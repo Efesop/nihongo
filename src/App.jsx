@@ -261,32 +261,7 @@ export default function App(){
         <div style={{fontSize:32,fontWeight:800,letterSpacing:"-.02em",color:"#f0eee9",textShadow:"0 0 40px rgba(192,40,42,0.4)"}}>日本語</div>
         <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
       </div>
-      <SignIn routing="hash" appearance={{
-        variables:{
-          colorPrimary:"#c0282a",
-          colorBackground:"#161619",
-          colorInputBackground:"#1e1e23",
-          colorInputText:"#f0eee9",
-          colorText:"#f0eee9",
-          colorTextSecondary:"#64646a",
-          colorNeutral:"#2e2e36",
-          borderRadius:"10px",
-          fontFamily:"system-ui,sans-serif",
-        },
-        elements:{
-          card:{boxShadow:"none",border:"1px solid #2e2e36"},
-          headerTitle:{color:"#f0eee9"},
-          headerSubtitle:{color:"#64646a"},
-          socialButtonsBlockButton:{borderColor:"#2e2e36",color:"#f0eee9",background:"#1e1e23"},
-          dividerLine:{background:"#2e2e36"},
-          dividerText:{color:"#64646a"},
-          formFieldLabel:{color:"#64646a"},
-          footerAction:{color:"#64646a"},
-          footerActionLink:{color:"#c45d4c"},
-          identityPreviewText:{color:"#f0eee9"},
-          identityPreviewEditButton:{color:"#c45d4c"},
-        }
-      }}/>
+      <SignIn routing="hash" />
     </div>
   );
 

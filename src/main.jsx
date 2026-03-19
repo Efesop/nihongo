@@ -5,9 +5,36 @@ import App from './App.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
+const clerkAppearance = {
+  variables: {
+    colorPrimary: "#c0282a",
+    colorBackground: "#161619",
+    colorInputBackground: "#1e1e23",
+    colorInputText: "#f0eee9",
+    colorText: "#f0eee9",
+    colorTextSecondary: "#64646a",
+    colorNeutral: "#2e2e36",
+    borderRadius: "10px",
+    fontFamily: "system-ui,sans-serif",
+  },
+  elements: {
+    card: { boxShadow: "none", border: "1px solid #2e2e36" },
+    headerTitle: { color: "#f0eee9" },
+    headerSubtitle: { color: "#64646a" },
+    socialButtonsBlockButton: { borderColor: "#2e2e36", color: "#f0eee9", background: "#1e1e23" },
+    dividerLine: { background: "#2e2e36" },
+    dividerText: { color: "#64646a" },
+    formFieldLabel: { color: "#64646a" },
+    footerAction: { color: "#64646a" },
+    footerActionLink: { color: "#c0282a" },
+    identityPreviewText: { color: "#f0eee9" },
+    identityPreviewEditButton: { color: "#c0282a" },
+  }
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY} appearance={clerkAppearance}>
       <App />
     </ClerkProvider>
   </React.StrictMode>
