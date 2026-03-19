@@ -180,6 +180,7 @@ const PHRASES = [
 
 const CATS={greet:"Greetings",food:"Restaurants",train:"Transport",hotel:"Hotels",shop:"Shopping",dir:"Directions",sos:"Emergencies"};
 const CAT_ICONS={greet:"👋",food:"🍜",train:"🚃",hotel:"🏨",shop:"🏪",dir:"🗺️",sos:"🆘"};
+const CAT_COLORS={greet:"#5a9e6f",food:"#c45d4c",train:"#5a8ec4",hotel:"#8b6ec4",shop:"#c45d8b",dir:"#5ac4a0",sos:"#c44444"};
 const SRS_DAYS=[0,0.5,1,3,7,14];
 const KEY="nihongo-v4";
 const TRIP=new Date("2026-05-15");
@@ -191,19 +192,17 @@ const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
 const THEMES = {
   dark: {
     name:"Dark",
-    bg:"#0f0f12", s:"#18181d", s2:"#222228", s3:"#2a2a32", b:"#34343c",
-    tx:"#eae8e5", m:"#6e6e74",
+    bg:"#0d0d10", s:"#161619", s2:"#1e1e23", s3:"#26262d", b:"#2e2e36",
+    tx:"#f0eee9", m:"#64646a",
     a:"#c45d4c", g:"#5a9e6f", go:"#c4a24c", bl:"#5a8ec4",
-    as:"rgba(196,93,76,.14)", gs:"rgba(90,158,111,.14)", rs:"rgba(196,93,76,.12)",
-    shadow:"0 2px 8px rgba(0,0,0,.35)",
+    as:"rgba(196,93,76,.13)", gs:"rgba(90,158,111,.13)", rs:"rgba(196,93,76,.11)",
   },
   light: {
     name:"Light",
-    bg:"#f2f1ee", s:"#ffffff", s2:"#eae9e5", s3:"#dddcD7", b:"#cccbc6",
-    tx:"#1a1a1e", m:"#7a7870",
+    bg:"#f7f6f3", s:"#ffffff", s2:"#f0efec", s3:"#e8e7e3", b:"#dddcD8",
+    tx:"#111114", m:"#888580",
     a:"#b84d3c", g:"#3d7a52", go:"#9a7a2e", bl:"#3a6ea0",
-    as:"rgba(184,77,60,.11)", gs:"rgba(61,122,82,.11)", rs:"rgba(184,77,60,.09)",
-    shadow:"0 1px 4px rgba(0,0,0,.10)",
+    as:"rgba(184,77,60,.10)", gs:"rgba(61,122,82,.10)", rs:"rgba(184,77,60,.09)",
   },
   // Additional themes can be added here
 };
@@ -357,30 +356,24 @@ RULES:
   };
 
   // ═══ SHARED STYLES ═══
-  const card={
-    background:c.s,
-    border:"1px solid "+c.b,
-    borderRadius:14,
-    padding:16,
-    boxShadow:c.shadow,
-  };
+  const card={background:c.s,border:"1px solid "+c.b,borderRadius:12,padding:16};
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
+  const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
 
   const sideTabBtn=(active)=>({
     ...btn,
     width:"100%",
-    padding:"10px 14px",
-    paddingLeft: active ? "11px" : "14px",
-    background:"transparent",
+    padding:"9px 12px",
+    background: active ? c.as : "transparent",
     display:"flex",
     flexDirection:"row",
     alignItems:"center",
-    gap:11,
+    gap:10,
     color:active?c.a:c.m,
     fontSize:14,
     fontWeight: active ? 600 : 400,
-    borderRadius:9,
-    borderLeft: active ? `3px solid ${c.a}` : "3px solid transparent",
+    borderRadius:8,
+    border:"none",
     textAlign:"left",
   });
 
@@ -415,29 +408,24 @@ RULES:
     const kanaPct=Math.round(kMastered/92*100);
     const phrPct=Math.round(learnedPhr/PHRASES.length*100);
     const stats=[
-      {l:"Kana",v:kanaPct+"%",cl:c.a,border:c.a},
-      {l:"Phrases",v:phrPct+"%",cl:c.g,border:c.g},
-      {l:"Due",v:dueCount,cl:dueCount>0?c.go:c.m,border:dueCount>0?c.go:c.b},
+      {l:"Kana",v:kanaPct+"%",cl:c.a},
+      {l:"Phrases",v:phrPct+"%",cl:c.g},
+      {l:"Due",v:dueCount,cl:dueCount>0?c.go:c.m},
     ];
     const actions=[
       {id:"study",icon:"📚",iconBg:c.gs,title:"Study Now",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
       {id:"kana",icon:"あ",iconBg:c.as,title:"Kana Practice",desc:`${kMastered}/92 mastered`,action:()=>{setTab("kana");setKScreen("menu");}},
-      {id:"sensei",icon:"🎌",iconBg:"rgba(90,142,196,.14)",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
+      {id:"sensei",icon:"🎌",iconBg:c.bl+"22",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
     ];
     return <div style={inner}>
       <div style={{marginBottom:28}}>
         <h1 style={{fontSize:32,fontWeight:700,margin:"0 0 8px",letterSpacing:"-.02em"}}>日本語 Journey</h1>
-        {dl>0&&<span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:12,color:c.m,background:c.s2,border:"1px solid "+c.b,borderRadius:20,padding:"3px 10px",fontFamily:mono}}>
-          {dl} days to Japan
-        </span>}
+        {dl>0&&<span style={chip(c.m)}>{dl} days to Japan</span>}
       </div>
       <div style={{display:"flex",gap:10,marginBottom:20}}>
-        {stats.map((s,i)=><div key={i} style={{flex:1,...card,padding:0,overflow:"hidden",textAlign:"center"}}>
-          <div style={{height:3,background:s.border,borderRadius:"14px 14px 0 0"}}/>
-          <div style={{padding:"12px 10px 14px"}}>
-            <div style={{fontSize:22,fontWeight:800,fontFamily:mono,color:s.cl}}>{s.v}</div>
-            <div style={{fontSize:11,color:c.m,marginTop:3,textTransform:"uppercase",letterSpacing:".05em"}}>{s.l}</div>
-          </div>
+        {stats.map((s,i)=><div key={i} style={{flex:1,...card,textAlign:"center",padding:"14px 10px 16px"}}>
+          <div style={{fontSize:24,fontWeight:800,fontFamily:mono,color:s.cl,marginBottom:6}}>{s.v}</div>
+          <span style={chip(s.cl)}>{s.l}</span>
         </div>)}
       </div>
       {actions.map(item=><div key={item.id} onClick={item.action}
@@ -453,15 +441,15 @@ RULES:
         </div>
       </div>)}
       <div style={{...card,marginTop:8}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>Progress by scenario</div>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:14}}>Progress by scenario</div>
         {Object.entries(CATS).map(([k,v])=>{
           const total=PHRASES.filter(p=>p[4]===k).length;
           const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
           const pct=Math.round(done/total*100);
-          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-            <span style={{fontSize:16,width:24,flexShrink:0}}>{CAT_ICONS[k]}</span>
-            <span style={{fontSize:13,flex:1}}>{v}</span>
-            {progressBar(pct,pct>=80?c.g:pct>=40?c.go:c.a)}
+          const col=CAT_COLORS[k];
+          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:11}}>
+            <span style={chip(col)}>{v}</span>
+            {progressBar(pct,col)}
             <span style={{fontSize:11,fontFamily:mono,color:c.m,width:34,textAlign:"right",flexShrink:0}}>{done}/{total}</span>
           </div>;
         })}
@@ -612,8 +600,8 @@ RULES:
         </div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:c.g,borderRadius:4,transition:"width .3s"}}/></div>
         <div style={{...card,padding:"36px 24px",textAlign:"center",minHeight:220,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!pFlip?"pointer":"default"}} onClick={()=>!pFlip&&setPFlip(true)}>
-          {!pFlip?<><div style={{fontSize:12,color:c.m,marginBottom:10}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
-          :<><div style={{fontSize:12,color:c.m,marginBottom:8}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:30,fontWeight:700,marginBottom:10,lineHeight:1.3}}>{p[1]}</div><div style={{fontSize:19,fontFamily:mono,color:c.a,marginBottom:8}}>{p[2]}</div><div style={{fontSize:14,color:c.m}}>{p[3]}</div>{p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}</>}
+          {!pFlip?<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span><div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
+          :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span><div style={{fontSize:30,fontWeight:700,marginBottom:10,lineHeight:1.3}}>{p[1]}</div><div style={{fontSize:19,fontFamily:mono,color:c.a,marginBottom:8}}>{p[2]}</div><div style={{fontSize:14,color:c.m}}>{p[3]}</div>{p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}</>}
         </div>
         {pFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
           <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
@@ -638,10 +626,7 @@ RULES:
         <h2 style={{fontSize:22,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>{CAT_ICONS[pCat]} {CATS[pCat]}</h2>
         <button onClick={()=>{setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600,marginBottom:16}}>Practice</button>
         {phrases.map((p,i)=>{const box=getPhrBox(p[0]);
-          const badgeStyle={fontSize:11,fontFamily:mono,padding:"3px 10px",borderRadius:6,fontWeight:600,
-            background:box>=4?c.gs:box>=1?c.as:"transparent",
-            color:box>=4?c.g:box>=1?c.a:c.m,
-            border:"1px solid "+(box>=4?c.g+"40":box>=1?c.a+"40":c.b)};
+          const badgeColor=box>=4?c.g:box>=1?c.go:c.m;
           return <div key={i} style={{...card,marginBottom:8,padding:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
               <div style={{flex:1}}>
@@ -649,7 +634,7 @@ RULES:
                 <div style={{fontSize:13,fontFamily:mono,color:c.a,marginBottom:2}}>{p[2]}</div>
                 <div style={{fontSize:13,color:c.m}}>{p[3]}</div>
               </div>
-              <div style={badgeStyle}>{box>=4?"mastered":box>=1?"learning":"new"}</div>
+              <span style={chip(badgeColor)}>{box>=4?"mastered":box>=1?"learning":"new"}</span>
             </div>
           </div>;
         })}
@@ -663,17 +648,20 @@ RULES:
         const total=PHRASES.filter(p=>p[4]===k).length;
         const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
         const pct=Math.round(done/total*100);
+        const col=CAT_COLORS[k];
         return <div key={k} onClick={()=>setPCat(k)}
           onMouseEnter={()=>setHov("cat_"+k)} onMouseLeave={()=>setHov(null)}
           style={{...card,marginBottom:8,padding:14,cursor:"pointer",background:hov==="cat_"+k?c.s2:c.s,transition:"all .15s"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:24,flexShrink:0}}>{CAT_ICONS[k]}</span>
+            <span style={{fontSize:22,flexShrink:0}}>{CAT_ICONS[k]}</span>
             <div style={{flex:1}}>
-              <div style={{fontSize:15,fontWeight:600,marginBottom:5}}>{v}</div>
-              {progressBar(pct,pct>=80?c.g:pct>=40?c.go:c.a)}
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                <span style={{fontSize:15,fontWeight:600}}>{v}</span>
+                <span style={chip(col)}>{done}/{total}</span>
+              </div>
+              {progressBar(pct,col)}
             </div>
-            <span style={{fontSize:11,fontFamily:mono,color:c.m,flexShrink:0}}>{done}/{total}</span>
-            <div style={{color:c.m,opacity:.5,fontSize:14}}>→</div>
+            <div style={{color:c.m,opacity:.4,fontSize:14,marginLeft:4}}>→</div>
           </div>
         </div>;
       })}
@@ -681,58 +669,60 @@ RULES:
   };
 
   // ═══ SENSEI ═══
-  const renderSensei=()=><div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",height:"100vh",paddingBottom:0,paddingLeft:isDesktop?SIDEBAR_W:0}}>
-    <style>{`@keyframes pulse{0%,100%{opacity:.25}50%{opacity:.9}}.dot1{animation:pulse 1.4s ease-in-out infinite}.dot2{animation:pulse 1.4s ease-in-out .22s infinite}.dot3{animation:pulse 1.4s ease-in-out .44s infinite}`}</style>
-    <div style={{padding:"18px 20px 12px",borderBottom:"1px solid "+c.b}}>
-      <div style={{maxWidth:isDesktop?740:540,margin:"0 auto",display:"flex",alignItems:"center",gap:12}}>
-        <div style={{fontSize:26}}>🎌</div>
-        <div><div style={{fontSize:16,fontWeight:700}}>Sensei</div><div style={{fontSize:11,color:c.m}}>AI Japanese tutor</div></div>
+  const renderSensei=()=>{
+    const chatW=isDesktop?800:540;
+    return <div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",height:"100vh",paddingLeft:isDesktop?SIDEBAR_W:0}}>
+      <style>{`@keyframes pulse{0%,100%{opacity:.2}50%{opacity:.9}}.dot1{animation:pulse 1.4s ease-in-out infinite}.dot2{animation:pulse 1.4s ease-in-out .22s infinite}.dot3{animation:pulse 1.4s ease-in-out .44s infinite}`}</style>
+      <div style={{padding:"18px 24px 14px",borderBottom:"1px solid "+c.b}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{fontSize:26}}>🎌</div>
+          <div><div style={{fontSize:16,fontWeight:700}}>Sensei</div><div style={{fontSize:11,color:c.m}}>AI Japanese tutor</div></div>
+        </div>
       </div>
-    </div>
-    <div style={{flex:1,overflow:"auto",padding:"16px 20px"}}>
-      <div style={{maxWidth:isDesktop?740:540,margin:"0 auto"}}>
-        {msgs.length===0&&<div style={{textAlign:"center",padding:"52px 20px"}}>
+      <div style={{flex:1,overflow:"auto",padding:"20px 24px"}}>
+        {msgs.length===0&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60%",textAlign:"center",padding:"40px 20px"}}>
           <div style={{fontSize:52,marginBottom:16}}>🎌</div>
-          <div style={{fontSize:17,fontWeight:600,marginBottom:8}}>Hey, I'm your Sensei.</div>
-          <div style={{fontSize:13,color:c.m,marginBottom:24,lineHeight:1.6}}>I know your progress and trip details. Try:</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:420,margin:"0 auto"}}>
+          <div style={{fontSize:18,fontWeight:600,marginBottom:8}}>Hey, I'm your Sensei.</div>
+          <div style={{fontSize:13,color:c.m,marginBottom:28,lineHeight:1.6}}>I know your progress and trip details. Try:</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,width:"100%",maxWidth:460}}>
             {["Practice ordering ramen","Roleplay buying a train ticket","Explain how to count","Quiz me on what I've learned"].map((s,i)=>
               <button key={i} onClick={()=>setChatIn(s)}
                 onMouseEnter={()=>setHov("sg"+i)} onMouseLeave={()=>setHov(null)}
-                style={{...btn,padding:"11px 16px",borderRadius:10,background:hov==="sg"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
-                <span>{s}</span><span style={{color:c.m,opacity:.5}}>→</span>
+                style={{...btn,padding:"12px 16px",borderRadius:10,background:hov==="sg"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
+                <span>{s}</span><span style={{color:c.m,opacity:.4,fontSize:16}}>→</span>
               </button>
             )}
           </div>
         </div>}
-        {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
-          <div style={{
-            maxWidth:"82%",padding:"10px 14px",
-            borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",
-            background:m.role==="user"?c.a+"1a":c.s,
-            border:"1px solid "+(m.role==="user"?c.a+"30":c.b),
-            fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap",
-            boxShadow:c.shadow,
-          }}>{m.content}</div>
-        </div>)}
-        {loading&&<div style={{display:"flex",marginBottom:10}}>
-          <div style={{padding:"12px 18px",borderRadius:"14px 14px 14px 4px",background:c.s,border:"1px solid "+c.b,display:"flex",gap:5,alignItems:"center",boxShadow:c.shadow}}>
-            <span className="dot1" style={{fontSize:20,color:c.m,lineHeight:1}}>·</span>
-            <span className="dot2" style={{fontSize:20,color:c.m,lineHeight:1}}>·</span>
-            <span className="dot3" style={{fontSize:20,color:c.m,lineHeight:1}}>·</span>
-          </div>
-        </div>}
-        <div ref={chatEndRef}/>
+        <div style={{maxWidth:chatW,margin:"0 auto"}}>
+          {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
+            <div style={{
+              maxWidth:"80%",padding:"10px 14px",
+              borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",
+              background:m.role==="user"?c.a+"18":c.s,
+              border:"1px solid "+(m.role==="user"?c.a+"30":c.b),
+              fontSize:14,lineHeight:1.65,whiteSpace:"pre-wrap",
+            }}>{m.content}</div>
+          </div>)}
+          {loading&&<div style={{display:"flex",marginBottom:10}}>
+            <div style={{padding:"12px 18px",borderRadius:"14px 14px 14px 4px",background:c.s,border:"1px solid "+c.b,display:"flex",gap:5,alignItems:"center"}}>
+              <span className="dot1" style={{fontSize:22,color:c.m,lineHeight:1}}>·</span>
+              <span className="dot2" style={{fontSize:22,color:c.m,lineHeight:1}}>·</span>
+              <span className="dot3" style={{fontSize:22,color:c.m,lineHeight:1}}>·</span>
+            </div>
+          </div>}
+          <div ref={chatEndRef}/>
+        </div>
       </div>
-    </div>
-    <div style={{padding:"10px 20px 14px",borderTop:"1px solid "+c.b,paddingBottom:"max(14px, env(safe-area-inset-bottom))",background:c.bg}}>
-      <div style={{maxWidth:isDesktop?740:540,margin:"0 auto",display:"flex",gap:8}}>
-        <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
-          placeholder="Ask sensei..." style={{flex:1,padding:"11px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
-        <button onClick={sendToSensei} disabled={!chatIn.trim()||loading} style={{...btn,padding:"11px 18px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
+      <div style={{padding:"12px 24px",borderTop:"1px solid "+c.b,paddingBottom:"max(14px, env(safe-area-inset-bottom))",background:c.bg}}>
+        <div style={{maxWidth:chatW,margin:"0 auto",display:"flex",gap:8}}>
+          <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
+            placeholder="Ask sensei..." style={{flex:1,padding:"11px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
+          <button onClick={sendToSensei} disabled={!chatIn.trim()||loading} style={{...btn,padding:"11px 20px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
+        </div>
       </div>
-    </div>
-  </div>;
+    </div>;
+  };
 
   // ═══ RENDER ═══
   const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Sensei"}];
