@@ -259,7 +259,7 @@ export default function App(){
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#0d0d10",gap:24}}>
       <div style={{textAlign:"center",marginBottom:8}}>
         <div style={{fontSize:32,fontWeight:800,letterSpacing:"-.02em",color:"#f0eee9"}}>日本語</div>
-        <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>Japanese Trainer</div>
+        <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
       </div>
       <SignIn routing="hash" appearance={{
         variables:{
@@ -1002,7 +1002,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <div style={{width:"100%",maxWidth:460}}>
             <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10,textAlign:"left"}}>Or ask a question</div>
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {["Quiz me on what I've learned","Explain how to count in Japanese","What phrases should I focus on?","Cultural tips for Osaka"].map((s,i)=>
+              {["Quiz me on what I've learned","Explain how to count in Japanese","What phrases should I focus on?",data.onboarding?.why==="travel"?"Cultural tips for Japan":data.onboarding?.why==="anime"?"Anime phrases I should know":"What should I learn next?"].map((s,i)=>
                 <button key={i} onClick={()=>setChatIn(s)}
                   onMouseEnter={()=>setHov("sg"+i)} onMouseLeave={()=>setHov(null)}
                   style={{...btn,padding:"11px 14px",borderRadius:10,background:hov==="sg"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
@@ -1152,7 +1152,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <div style={{width:"100%",maxWidth:420}}>
           <div style={{textAlign:"center",marginBottom:32}}>
             <div style={{fontSize:36,fontWeight:800,letterSpacing:"-.02em",marginBottom:4}}>日本語</div>
-            <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".08em"}}>Japanese Trainer</div>
+            <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".08em"}}>TinySenpai</div>
           </div>
           {/* progress bar */}
           <div style={{height:3,background:c.b,borderRadius:2,marginBottom:32}}>
@@ -1279,7 +1279,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
           <div style={{padding:"22px 16px 18px",borderBottom:"1px solid "+c.b}}>
             <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
-            <div style={{fontSize:11,color:c.m,marginTop:4,fontFamily:mono,letterSpacing:".02em"}}>Japanese Trainer</div>
+            <div style={{fontSize:11,color:c.m,marginTop:4,fontFamily:mono,letterSpacing:".02em"}}>TinySenpai</div>
           </div>
           <div style={{flex:1,padding:"12px 8px"}}>
             {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={sideTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home")}>
