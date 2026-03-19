@@ -37,10 +37,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ClerkProvider
       publishableKey={PUBLISHABLE_KEY}
       appearance={clerkAppearance}
-      afterSignInUrl="/"
-      afterSignUpUrl="/"
-      signInUrl="/"
-      signUpUrl="/#sign-up"
     >
       <App />
     </ClerkProvider>

@@ -254,9 +254,18 @@ export default function App(){
   const { getToken } = useAuth();
 
   // Show sign-in/sign-up screen if not authenticated
-  const [authMode, setAuthMode] = useState(() => window.location.hash.includes("sign-up") ? "sign-up" : "sign-in");
+  // Detect Clerk verification callbacks (email link clicks redirect back with __clerk params)
+  const hasClerkCallback = window.location.search.includes("__clerk") || window.location.hash.includes("__clerk");
+  const [authMode, setAuthMode] = useState(() => {
+    if (hasClerkCallback) return "sign-up";
+    return window.location.hash.includes("sign-up") ? "sign-up" : "sign-in";
+  });
   useEffect(() => {
-    const onHash = () => setAuthMode(window.location.hash.includes("sign-up") ? "sign-up" : "sign-in");
+    const onHash = () => {
+      if (!window.location.href.includes("__clerk")) {
+        setAuthMode(window.location.hash.includes("sign-up") ? "sign-up" : "sign-in");
+      }
+    };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -269,8 +278,8 @@ export default function App(){
         <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
       </div>
       {authMode === "sign-up"
-        ? <SignUp routing="hash" signInUrl="#sign-in" afterSignUpUrl="/" />
-        : <SignIn routing="hash" signUpUrl="#sign-up" afterSignInUrl="/" />}
+        ? <SignUp routing="virtual" afterSignUpUrl="/" signInUrl="#sign-in" />
+        : <SignIn routing="virtual" afterSignInUrl="/" signUpUrl="#sign-up" />}
     </div>
   );
 
