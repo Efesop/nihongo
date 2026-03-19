@@ -379,7 +379,7 @@ function AuthedApp({ user, getToken }){
     const yesterday=new Date(Date.now()-864e5).toDateString();
     const lastDay=raw.lastDay;
     const streak=lastDay===today?raw.streak||1:lastDay===yesterday?(raw.streak||0)+1:1;
-    return {...raw,kana:migratedKana,streak,lastDay:today};
+    return {...raw,kana:migratedKana,phr:raw.phr||{},streak,lastDay:today};
   };
 
   useEffect(()=>{
@@ -413,7 +413,7 @@ function AuthedApp({ user, getToken }){
   const syncTimer=useRef(null);
   const save=useCallback((u={})=>{
     setD(prev=>{
-      const nd={...prev,...u};
+      const nd={...defaultD(),...prev,...u};
       store.set(KEY,nd);
       clearTimeout(syncTimer.current);
       setSyncStatus("saving");
