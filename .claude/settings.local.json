@@ -30,7 +30,12 @@
       "mcp__Neon__run_sql",
       "Bash(1:*)",
       "Bash(/Users/ollie/Documents/Github/nihongo/.env.local:*)",
-      "Bash(/Users/ollie/Documents/Github/nihongo/src/main.jsx:*)"
+      "Bash(/Users/ollie/Documents/Github/nihongo/src/main.jsx:*)",
+      "Bash(vercel alias:*)",
+      "WebSearch",
+      "Bash(vercel domains:*)",
+      "Bash(vercel dns:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tinysenpai.com)"
     ]
   }
 }
