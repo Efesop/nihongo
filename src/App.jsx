@@ -254,7 +254,13 @@ export default function App(){
   const { getToken } = useAuth();
 
   // Show sign-in/sign-up screen if not authenticated
-  const isSignUp = window.location.hash.includes("sign-up");
+  const [authMode, setAuthMode] = useState(() => window.location.hash.includes("sign-up") ? "sign-up" : "sign-in");
+  useEffect(() => {
+    const onHash = () => setAuthMode(window.location.hash.includes("sign-up") ? "sign-up" : "sign-in");
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
   if (!clerkLoaded) return null;
   if (!user) return (
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.18) 0%, transparent 70%), #0d0d10",gap:24}}>
@@ -262,7 +268,7 @@ export default function App(){
         <div style={{fontSize:32,fontWeight:800,letterSpacing:"-.02em",color:"#f0eee9",textShadow:"0 0 40px rgba(192,40,42,0.4)"}}>日本語</div>
         <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
       </div>
-      {isSignUp
+      {authMode === "sign-up"
         ? <SignUp routing="hash" signInUrl="#sign-in" />
         : <SignIn routing="hash" signUpUrl="#sign-up" />}
     </div>
