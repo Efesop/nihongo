@@ -215,7 +215,6 @@ const CAT_ICONS={greet:"👋",food:"🍜",train:"🚃",hotel:"🏨",shop:"🏪",
 const CAT_COLORS={greet:"#5a9e6f",food:"#c45d4c",train:"#5a8ec4",hotel:"#8b6ec4",shop:"#c45d8b",dir:"#5ac4a0",sos:"#c44444"};
 const SRS_DAYS=[0,0.5,1,3,7,14];
 const KEY="nihongo-v4";
-const TRIP=new Date("2026-05-15");
 
 const font='"Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
 const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
@@ -248,7 +247,7 @@ const THEMES = {
 };
 
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
-function daysLeft(){return Math.max(0,Math.ceil((TRIP-Date.now())/(864e5)));}
+function daysUntil(dateStr){if(!dateStr)return 0;return Math.max(0,Math.ceil((new Date(dateStr)-Date.now())/(864e5)));}
 
 export default function App(){
   const { user, isLoaded: clerkLoaded } = useUser();
@@ -337,6 +336,8 @@ function AuthedApp({ user, getToken }){
   // profile
   const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:""});
   const [showProfile,setShowProfile]=useState(false);
+  const [onboardStep,setOnboardStep]=useState(0);
+  const [onboardAnswers,setOnboardAnswers]=useState({});
   const [syncStatus,setSyncStatus]=useState("idle"); // idle | saving | saved | error
   const uid = user.id;
   // ui
@@ -412,7 +413,7 @@ function AuthedApp({ user, getToken }){
     init();
   },[]);// eslint-disable-line
 
-  const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,streak:1,lastDay:new Date().toDateString(),started:new Date().toISOString()});
+  const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,streak:1,lastDay:new Date().toDateString(),started:new Date().toISOString(),onboarded:false,onboarding:{}});
   const data=d||defaultD();
 
   // atomic save — localStorage + DB
@@ -552,20 +553,25 @@ function AuthedApp({ user, getToken }){
     const notesLine=profile.notes?`User context: ${profile.notes.slice(0,200)}. `:"";
     const streakLine=`Streak: ${data.streak||1} day${(data.streak||1)!==1?"s":""}.`;
 
-    const sysPrompt=`You are Sensei, a Japanese tutor embedded in a learning app for a user traveling to Japan.
+    const ob=data.onboarding||{};
+    const whyMap={travel:"travelling to Japan",anime:"interested in anime and Japanese culture",work:"learning for work or study",moving:"planning to live in Japan",curious:"curious about Japanese"};
+    const levelMap={beginner:"complete beginner",basics:"knows a few words and phrases",refresh:"studied before and is refreshing",intermediate:"intermediate level"};
+    const whyLine=ob.why?`Reason for learning: ${whyMap[ob.why]||ob.why}. `:"";
+    const levelLine=`Level: ${levelMap[ob.level]||"complete beginner"}. `;
+    const focusLine=ob.focus?`Specific focus: ${ob.focus}. `:"";
+    const tripLine=ob.tripDate&&daysUntil(ob.tripDate)>0?`Trip date: ${ob.tripDate} (${daysUntil(ob.tripDate)} days away). `:"";
+    const sysPrompt=`You are Sensei, a friendly Japanese tutor built into a learning app.
 
-${nameLine}${notesLine}
-TRIP: Flying Chiang Mai to Osaka May 15 2026 (${daysLeft()} days away). 26 days in Japan: Osaka first, then Tokyo. Mix of food, culture, transport, exploring.
-
+${nameLine}${whyLine}${levelLine}${focusLine}${tripLine}${notesLine}
 PROGRESS: Hiragana ${hMastered}/46 mastered. Katakana ${kaMastered}/46 mastered. Phrases ${learnedPhr}/${PHRASES.length} learned. ${dueCount} phrases due for review. ${streakLine}
 
 RULES:
 - Plain English, no jargon
 - Pronunciations with syllable breaks using dashes (e.g. su-mi-ma-sen)
-- Concise and practical, focused on trip usage
+- Concise and practical, tailored to the user's goal above
 - Roleplay scenarios fully when asked (you play the Japanese speaker, provide English in parentheses)
 - Give cultural context naturally
-- Adapt difficulty to progress shown above
+- Adapt difficulty to the level and progress shown above
 - Short focused responses, this is a chat not an essay
 - Never use em dashes or special characters in prose`;
 
@@ -591,9 +597,11 @@ RULES:
     const hM=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x3040&&k.charCodeAt(0)<=0x309F).filter(([_,v])=>(v?.box??0)>=3).length;
     const kaM=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x30A0&&k.charCodeAt(0)<=0x30FF).filter(([_,v])=>(v?.box??0)>=3).length;
     const nameLine=profile.name?`User's name is ${profile.name}. `:"";
-    const sysPrompt=`You are Sensei, a Japanese tutor doing a role-play scenario with a user who is traveling to Japan soon. ${nameLine}
-PROGRESS: Hiragana ${hM}/46. Katakana ${kaM}/46. Phrases ${learnedPhr}/${PHRASES.length}. ${daysLeft()} days until trip.
-ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first, then provide the English translation in parentheses. Keep turns short (1-3 sentences). After 2-3 exchanges, gently note if the user should use a specific phrase from their studies.`;
+    const ob2=data.onboarding||{};
+    const levelMap2={beginner:"complete beginner",basics:"knows a few words",refresh:"studied before",intermediate:"intermediate"};
+    const sysPrompt=`You are Sensei, a Japanese tutor doing a role-play scenario. ${nameLine}Level: ${levelMap2[ob2.level]||"beginner"}.
+PROGRESS: Hiragana ${hM}/46. Katakana ${kaM}/46. Phrases ${learnedPhr}/${PHRASES.length}.
+ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first, then provide the English translation in parentheses. Keep turns short (1-3 sentences). After 2-3 exchanges, gently note if the user should use a specific phrase from their studies. Adapt difficulty to the user's level.`;
     try{
       const response=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({system:sysPrompt,messages:kickoff.slice(-20)})});
       const json=await response.json();
@@ -638,7 +646,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
 
   // ═══ HOME ═══
   const renderHome=()=>{
-    const dl=daysLeft();
+    const ob=data.onboarding||{};
+    const dl=ob.tripDate?daysUntil(ob.tripDate):0;
     const kanaPct=Math.round(kMastered/92*100);
     const phrPct=Math.round(learnedPhr/PHRASES.length*100);
     const stats=[
@@ -655,9 +664,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     ];
     return <div style={inner}>
       <div style={{marginBottom:24}}>
-        <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em"}}>日本語 Journey</h1>
+        <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em"}}>{profile.name?`こんにちは, ${profile.name}!`:"日本語 Journey"}</h1>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to Japan</span>}
+          {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to go</span>}
           {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono}}>🔥 {data.streak} day streak</span>}
         </div>
       </div>
@@ -1114,6 +1123,94 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     </div>;
   };
 
+  // ═══ ONBOARDING ═══
+  const WHY_OPTIONS=[
+    {id:"travel",icon:"🗾",label:"Travelling to Japan"},
+    {id:"anime",icon:"🎌",label:"Anime & culture"},
+    {id:"work",icon:"💼",label:"Work or study"},
+    {id:"moving",icon:"🏠",label:"Living / moving there"},
+    {id:"curious",icon:"✨",label:"Just curious"},
+  ];
+  const LEVEL_OPTIONS=[
+    {id:"beginner",label:"Complete beginner — I know nothing yet"},
+    {id:"basics",label:"I know a few words or phrases"},
+    {id:"refresh",label:"Studied before, need a refresh"},
+    {id:"intermediate",label:"Intermediate — want to level up"},
+  ];
+
+  const finishOnboarding=()=>{
+    const ob={...onboardAnswers,completedAt:new Date().toISOString()};
+    save({onboarded:true,onboarding:ob});
+  };
+
+  const renderOnboarding=()=>{
+    const stepCount=3;
+    const progressPct=Math.round((onboardStep/stepCount)*100);
+    const ans=onboardAnswers;
+    return(
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:c.bg,padding:24}}>
+        <div style={{width:"100%",maxWidth:420}}>
+          <div style={{textAlign:"center",marginBottom:32}}>
+            <div style={{fontSize:36,fontWeight:800,letterSpacing:"-.02em",marginBottom:4}}>日本語</div>
+            <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".08em"}}>Japanese Trainer</div>
+          </div>
+          {/* progress bar */}
+          <div style={{height:3,background:c.b,borderRadius:2,marginBottom:32}}>
+            <div style={{height:3,width:progressPct+"%",background:c.a,borderRadius:2,transition:"width .3s"}}/>
+          </div>
+
+          {onboardStep===0&&(
+            <div>
+              <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>Why are you learning Japanese?</div>
+              <div style={{fontSize:14,color:c.m,marginBottom:20}}>We'll personalise your experience around your goal.</div>
+              {WHY_OPTIONS.map(o=>(
+                <div key={o.id} onClick={()=>{setOnboardAnswers(a=>({...a,why:o.id}));setOnboardStep(1);}}
+                  style={{...card,padding:"14px 18px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:14,border:"1px solid "+(ans.why===o.id?c.a:c.b),transition:"border .15s"}}>
+                  <span style={{fontSize:22}}>{o.icon}</span>
+                  <span style={{fontSize:15,fontWeight:500}}>{o.label}</span>
+                </div>
+              ))}
+              <button onClick={()=>setOnboardStep(1)} style={{...btn,width:"100%",padding:12,marginTop:8,background:"transparent",color:c.m,fontSize:13}}>Skip</button>
+            </div>
+          )}
+
+          {onboardStep===1&&(
+            <div>
+              <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>What's your current level?</div>
+              <div style={{fontSize:14,color:c.m,marginBottom:20}}>Be honest — this helps your AI tutor pitch things right.</div>
+              {LEVEL_OPTIONS.map(o=>(
+                <div key={o.id} onClick={()=>{setOnboardAnswers(a=>({...a,level:o.id}));setOnboardStep(2);}}
+                  style={{...card,padding:"14px 18px",marginBottom:8,cursor:"pointer",border:"1px solid "+(ans.level===o.id?c.a:c.b),transition:"border .15s"}}>
+                  <span style={{fontSize:14,fontWeight:500}}>{o.label}</span>
+                </div>
+              ))}
+              <button onClick={()=>setOnboardStep(2)} style={{...btn,width:"100%",padding:12,marginTop:8,background:"transparent",color:c.m,fontSize:13}}>Skip</button>
+            </div>
+          )}
+
+          {onboardStep===2&&(
+            <div>
+              <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>Anything else to know?</div>
+              <div style={{fontSize:14,color:c.m,marginBottom:20}}>Optional — helps your Sensei give better answers.</div>
+              {ans.why==="travel"&&(
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Trip date (optional)</div>
+                  <input type="date" value={ans.tripDate||""} onChange={e=>setOnboardAnswers(a=>({...a,tripDate:e.target.value}))}
+                    style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:12}}/>
+                </div>
+              )}
+              <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Anything to focus on? (optional)</div>
+              <textarea value={ans.focus||""} onChange={e=>setOnboardAnswers(a=>({...a,focus:e.target.value.slice(0,200)}))}
+                placeholder="e.g. ordering food, reading menus, anime without subtitles, business meetings..."
+                rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5,marginBottom:16}}/>
+              <button onClick={finishOnboarding} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.a,color:"#fff",fontSize:15,fontWeight:600}}>Let's go →</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // ═══ PROFILE MODAL ═══
   const renderProfile=()=>(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowProfile(false)}>
@@ -1122,15 +1219,28 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <div style={{fontSize:16,fontWeight:700}}>Your Profile</div>
           <div style={{fontSize:11,color:c.m}}>{user.primaryEmailAddress?.emailAddress}</div>
         </div>
-        <div style={{fontSize:12,color:c.m,marginBottom:18}}>Progress auto-saves to the cloud</div>
+        <div style={{fontSize:12,color:c.m,marginBottom:18}}>Changes save automatically to the cloud</div>
 
         <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Display Name</div>
         <input value={profile.name} onChange={e=>saveProfile({name:e.target.value})} placeholder="e.g. Ollie"
           style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:14,boxSizing:"border-box"}}/>
 
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Context for Sensei</div>
-        <textarea value={profile.notes} onChange={e=>saveProfile({notes:e.target.value.slice(0,200)})} placeholder="e.g. travelling solo, vegetarian, interested in anime..."
-          rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Why learning Japanese</div>
+        <select value={data.onboarding?.why||""} onChange={e=>save({onboarding:{...data.onboarding,why:e.target.value}})}
+          style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:12,boxSizing:"border-box"}}>
+          <option value="">Select a reason...</option>
+          <option value="travel">Travelling to Japan</option>
+          <option value="anime">Anime & culture</option>
+          <option value="work">Work or study</option>
+          <option value="moving">Living / moving there</option>
+          <option value="curious">Just curious</option>
+        </select>
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Trip date (optional)</div>
+        <input type="date" value={data.onboarding?.tripDate||""} onChange={e=>save({onboarding:{...data.onboarding,tripDate:e.target.value}})}
+          style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:12,boxSizing:"border-box"}}/>
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Extra context for Sensei</div>
+        <textarea value={profile.notes} onChange={e=>saveProfile({notes:e.target.value.slice(0,200)})} placeholder="e.g. vegetarian, solo traveller, interested in anime, need business phrases..."
+          rows={2} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
         <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
 
         <div style={{display:"flex",gap:8,fontSize:12,color:c.m,marginBottom:18,padding:"10px 12px",background:c.s2,borderRadius:8}}>
@@ -1154,7 +1264,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     if(id==="kana")setKScreen("menu");
     if(id==="sensei"){}
   };
-  const dl=daysLeft();
+
+  if(loaded&&!data.onboarded)return renderOnboarding();
 
   return <div style={wrap}>
     {tab==="home"&&renderHome()}
@@ -1187,7 +1298,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             </button>
             <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5}}>
               <div title={syncStatus} style={{width:7,height:7,borderRadius:"50%",background:syncStatus==="saved"?c.g:syncStatus==="saving"?c.go:syncStatus==="error"?c.a:c.b,transition:"background .3s"}}/>
-              {dl>0&&<span style={{fontSize:10,fontFamily:mono,color:c.m}}>{dl}d</span>}
+              {daysUntil(data.onboarding?.tripDate)>0&&<span style={{fontSize:10,fontFamily:mono,color:c.m}}>{daysUntil(data.onboarding?.tripDate)}d</span>}
             </div>
           </div>
         </div>
