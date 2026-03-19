@@ -69,52 +69,52 @@ const speakPhrase=(id,text)=>{
 
 // ═══ KANA MNEMONICS ═══
 const M = {
-"あ":["🍎","Apple","Cross stroke = stem, loop = apple shape","Ah — that's the sound. Like when you bite into a crispy apple and just go... ah. Look at the character: a cross stroke at the top, that's the stem, and the looping shape below is the round fruit hanging from it. Ah. Apple. A."],
-"い":["🔤","Two i's side by side","Two vertical strokes like i i","Say ee — like you're grinning for a photo. Now look at the character: two simple vertical strokes standing side by side, just like writing lowercase i twice. i... i. That's it. Ee."],
-"う":["🥊","Boxer punched — uu!","Top = fist, curve = doubling over","Oo — like you just took a hit to the gut. A boxer doubles over, groaning oo! The top stroke is the impact, and the curve swooping down is the body folding. Oo. U."],
-"え":["🥷","Energetic ninja","Dynamic fighting pose","Eh? A ninja just flew past mid-kick — that surprised eh sound. The crossing strokes look exactly like a fighter caught in full motion, arms and legs everywhere. Eh. E."],
-"お":["🛸","UFO — oh!","Or face saying oh with x eyes","Oh! A UFO just appeared overhead. That's the sound — oh. Look at the character: a saucer shape with a beam of light, and a face below with X eyes, mouth wide open. Oh. O."],
-"か":["🔪","Blade cutting stick","Diagonal = blade, vertical = stick","Kah — a blade slices clean through a stick. That sharp crack: kah. The diagonal stroke is the blade coming down hard, the vertical line is the stick being split in two. Ka."],
-"き":["🔑","Key","Horizontals = teeth, vertical = shaft","Kee — key. Say it: kee, key. The character looks just like a key lying flat — horizontal teeth along the top, a shaft running through the middle. Ki. Key."],
-"く":["🐦","Cuckoo's beak","Angle = beak opening, ku-koo!","Ku — like a cuckoo clock going ku-koo! The character is that beak, wide open mid-call. One sharp angled stroke, exactly the shape of a bird's mouth crying out. Ku."],
-"け":["🪣","Keg","First stroke = cane leaning on keg","Ke — keg. A walking cane leaning against a barrel, making that wooden knock: ke. The first stroke is the cane, the rest is the keg it's propped up against. Ke."],
-"こ":["🐟","Two koi fish","Two horizontals like fish swimming","Ko — koi. Two horizontal lines, two koi fish gliding side by side through perfectly still water. Ko. Koi. Just those two calm parallel lines. Ko."],
-"さ":["😏","Sneaky grin — sa-neaky!","Strokes form a sly face","Sa — sneaky. Picture that sly grin someone pulls when they know something you don't. The crossing strokes form a crafty smirking face. Sa-neaky. Sa."],
-"し":["🎣","Fishing hook — fi-SHI-ng","Single swooping curve = hook","Shi — that shh sound, like being quiet by the water. One single swooping curve, hanging down just like a fishing hook dropped into the still water. Shh... waiting. Shi."],
-"す":["🌀","Spiral straw — su-piral","Or curly Sue","Su — like a straw being pulled into a swirl. The stroke curls around itself, caught in a su-piral. Or think of curly Sue, her hair looping round. Su."],
-"せ":["🗣️","Mouth about to say — se-y","Or sensei speaking","Se — sensei. Your teacher mid-sentence, mouth open, about to say something — se. The strokes suggest that open face, caught in the act of speaking. Se."],
-"そ":["🧵","Sewing stitch — so-so","50/50 fraction = so-so","So — sewing. Thread being pulled through fabric in one neat crossing stroke. So. Sew. So. Like a quiet rhythm: so, sew, so."],
-"た":["🔤","Letters t + a = ta!","Cross = T, curve = A","Ta — look closely and you'll find two hidden letters. The cross at the top is a T. The curve at the bottom is an A. T plus A: ta! Right there in the character. Ta."],
-"ち":["📣","Cheerleader — chi-eer!","Looks like 5, groups of 5","Chi — cheer! A cheerleader throws their arms up wide. The character looks like a five — chi, cheer, five fingers raised. Chi!"],
-"つ":["🌊","Tsunami wave","Curling stroke or sideways U","Tsu — tsunami. One enormous sweeping curve, the whole ocean bending over on itself about to crash. Tsu. Tsunami."],
-"て":["🐾","Tail + letter T","te-il = tail","Te — tail. A letter T with a little curling tail on the end. The crossbar, then it sweeps down and curls — like a cat flicking its te-il. Te."],
-"と":["🌪️","Tornado","Funny stalk on TOp","To — tornado. A spiral at the base, and sticking out of the very top — a little stalk. That detail makes it to. To. Tornado."],
-"な":["🪢","Knot — kna-t","Or X for nah + tongue out","Na — knot. All those crossing strokes tangled up tight like rope. Or picture someone going nah — shaking their head, tongue out. Na."],
-"に":["🦵","Knee","Elongated n + sideways i","Ni — knee. Look at the character: a long stroke for the thigh, then a right stroke bent at the joint. There's the leg. There's the knee. Ni."],
-"ぬ":["🍜","Chopsticks + noodles","See n + angular u","Nu — noodles. Trace the character: an N shape on the left, a looping U on the right, like noodles being twisted round and round on chopsticks. Nu. Noodles."],
-"ね":["🐌","Snail behind nail","Extra hoop = NE not RE","Ne — nail with a snail trailing behind it. Spot that loop at the bottom — that's the snail, and it's what makes this ne and not re. No loop: re. Loop: ne."],
-"の":["🚫","No sign","n + o in one swirl","No — and it literally looks like no. One decisive swirl, N and O spinning into a single stroke. A circle of refusal. No."],
-"は":["🔤","Capital H + little a","Has hoop, け does not","Ha — a capital H with a little hoop on the right side. Ha! One hoop means ha. Two horizontal bars means ho. Ha."],
-"ひ":["😁","Smiling mouth — hihihi!","Big grinning mouth","Hee hee hee — that big silly laugh you can't stop. The stroke is a wide curved mouth, lips pulled right back in the most ridiculous grin. Hee. Hi."],
-"ふ":["🗻","Mount Fuji","Or nose blowing foooo","Fu — Fuji. The character is the silhouette of Mount Fuji itself, that famous peak. Or just blow out slowly: foooo. Fu."],
-"へ":["⬆️","Arrow to heaven — he","Angled line pointing up","He — heaven. One simple angled line, rising to a peak, pointing straight up like an arrow aimed at the sky. He."],
-"ほ":["🐴","Horse face with mane","2 HOrizontal lines vs は's 1","Ho — horse. Two horizontal bars making a long face — longer than ha, like a horse's elongated muzzle. Ho ho ho, even. Ho."],
-"ま":["🎵","Musical note — ma-usic","Or man with mask","Ma — music. The strokes form a perfect quaver note floating on a staff. Go on, hum something: ma. Music. Ma."],
-"み":["🎶","I + i joined — Mi and mi","Or quaver note do-re-MI","Mi — do re mi. Two quaver notes joined side by side. Do re mi — the third note, and this character looks just like two of them linked together. Mi."],
-"む":["🐄","Cow — mooo!","Clown imitating animals","Mu — moo. A cow turning to look right at you, mid-moo. The curling strokes form that round bovine face. Moo. Mu. Same thing, basically. Mu."],
-"め":["🥨","Pretzel","Chopsticks drop hoop = MEss","Me — mess. A pretzel, all twisted and tangled. Or noodles dropped from chopsticks into a chaotic loop. Me. What a me-ss. Me."],
-"も":["⛵","Sailboat","Or monitor lizard","Mo — mast. A sailboat with two horizontal sails catching the wind, the mast running clean through the middle. Mo. More wind. Mo."],
-"ら":["📣","Rah rah rah!","Like ち but spread out","Ra — rah rah rah! A cheerleader with arms thrown wide open, going all in for the crowd. Like chi but bigger, more spread out. Ra!"],
-"り":["🏞️","River","Right stroke longer than い","Ri — river. Two strokes but the right one is longer and curves, one bank higher than the other. A river flowing downhill. Ri."],
-"る":["💎","Hand holding ruby","Loop = ruby being held","Ru — ruby. A hand gripping a precious stone, the loop at the bottom is the gem held tight in the palm. Ru. Ruby."],
-"れ":["🦌","Reindeer","Strokes form reindeer","Re — reindeer. Trace the character and you'll find it: the head, the neck, the branching antler. Re. Reindeer."],
-"ろ":["🚣","Row your boat — looks like 3","る got RObbed, no ruby","Ro — rowing. Just like ru but the loop is gone — the ruby got stolen. Ru got robbed. What's left is ro. Row the boat. Ro."],
-"や":["🦒","Yak or giraffe — yaaa!","Animal with long neck","Ya — yak. A yak stretching its long neck way up high — yaaa. The tall vertical stroke with the outstretched curve captures that neck reaching up. Ya."],
-"ゆ":["🦄","Unicorn","Or finger pointing at YOU","Yu — unicorn. That distinctive horn rearing up, or a finger pointing right at YOU. The U shape with a sharp point aimed at the sky. Yu."],
-"よ":["🪀","Yo-yo on string","Y without the cup","Yo — yo-yo. The descending loop looks exactly like a yo-yo spinning downward on its string, mid-trick. Yo."],
-"わ":["🐕","Dog wagging tail — wa!","Or white swan","Wa — wag. A happy dog, tail going. The curved body on the left, the little hooking tail on the right, mid-wag. Wa."],
-"を":["🧱","Crack in wall — woah!","Only used as particle","Wo — woah. Something just cracked right through a wall. Those complex strokes are the drama of it — the split, the impact. Wo. Woah. Wo."],
-"ん":["🔤","Elongated n","Single curve like letter n","N. That's it. One flowing curve, just like the letter n. The simplest character in Japanese, and it can end almost any word. N."],
+"あ":["🍎","Apple","Cross stroke = stem, loop = apple shape","The cross stroke at the top is the stem of an apple, and the loop below is the round fruit hanging from it."],
+"い":["🔤","Two i's side by side","Two vertical strokes like i i","Two simple strokes side by side — just like writing lowercase i twice."],
+"う":["🥊","Boxer punched — uu!","Top = fist, curve = doubling over","A boxer just took a hit to the gut, body curving down as they double over."],
+"え":["🥷","Energetic ninja","Dynamic fighting pose","A ninja caught mid-kick — those crossing strokes are arms and legs flying."],
+"お":["🛸","UFO — oh!","Or face saying oh with x eyes","A UFO hovering overhead, saucer shape beneath a beam of light, with a face below — mouth wide open in shock."],
+"か":["🔪","Blade cutting stick","Diagonal = blade, vertical = stick","A blade slicing clean through a stick — the diagonal is the blade, the vertical line is the stick being split."],
+"き":["🔑","Key","Horizontals = teeth, vertical = shaft","A key lying flat — the horizontal strokes are the teeth, the vertical line is the shaft."],
+"く":["🐦","Cuckoo's beak","Angle = beak opening, ku-koo!","A cuckoo's beak wide open mid-call — one sharp angled stroke."],
+"け":["🪣","Keg","First stroke = cane leaning on keg","A walking cane leaning against a keg."],
+"こ":["🐟","Two koi fish","Two horizontals like fish swimming","Two koi fish gliding side by side through perfectly still water."],
+"さ":["😏","Sneaky grin — sa-neaky!","Strokes form a sly face","A crafty smirking face, one eyebrow raised — those crossing strokes are that sly grin."],
+"し":["🎣","Fishing hook — fi-SHI-ng","Single swooping curve = hook","A fishing hook dropped into still water — one single swooping curve."],
+"す":["🌀","Spiral straw — su-piral","Or curly Sue","A straw caught in a spiral, curling around itself."],
+"せ":["🗣️","Mouth about to say — se-y","Or sensei speaking","A sensei mid-sentence, mouth open, caught in the act of teaching."],
+"そ":["🧵","Sewing stitch — so-so","50/50 fraction = so-so","Thread pulled through fabric in one neat crossing stroke."],
+"た":["🔤","Letters t + a = ta!","Cross = T, curve = A","Look closely — the cross at the top is a T, the curve at the bottom is an A. T plus A."],
+"ち":["📣","Cheerleader — chi-eer!","Looks like 5, groups of 5","A cheerleader throwing their arms up wide — the stroke looks just like a five."],
+"つ":["🌊","Tsunami wave","Curling stroke or sideways U","One enormous sweeping curve — the whole ocean bending over, about to crash."],
+"て":["🐾","Tail + letter T","te-il = tail","A letter T with a curling tail at the end."],
+"と":["🌪️","Tornado","Funny stalk on TOp","A tornado spinning at the base, with a little stalk poking out of the very top."],
+"な":["🪢","Knot — kna-t","Or X for nah + tongue out","A tangled knot of rope — all those crossing strokes tied up tight."],
+"に":["🦵","Knee","Elongated n + sideways i","A leg with a bent knee — long left stroke for the thigh, right stroke bent at the joint."],
+"ぬ":["🍜","Chopsticks + noodles","See n + angular u","Noodles twirling on chopsticks — an N shape on the left, a looping U on the right."],
+"ね":["🐌","Snail behind nail","Extra hoop = NE not RE","A nail with a snail trailing behind it. That loop at the bottom is the snail — it's what makes this different from the next character."],
+"の":["🚫","No sign","n + o in one swirl","One decisive swirl — N and O combined into a single spinning stroke."],
+"は":["🔤","Capital H + little a","Has hoop, け does not","A capital H with a hoop on the right side. One hoop is this character — two horizontal bars is the next one."],
+"ひ":["😁","Smiling mouth — hihihi!","Big grinning mouth","A wide curved mouth, lips pulled right back in the silliest grin."],
+"ふ":["🗻","Mount Fuji","Or nose blowing foooo","The silhouette of Mount Fuji — that iconic pointed peak."],
+"へ":["⬆️","Arrow to heaven — he","Angled line pointing up","One simple angled line rising to a point — an arrow aimed straight at the sky."],
+"ほ":["🐴","Horse face with mane","2 HOrizontal lines vs は's 1","Two horizontal bars making a very long face — like a horse's elongated muzzle."],
+"ま":["🎵","Musical note — ma-usic","Or man with mask","A quaver note floating on a staff."],
+"み":["🎶","I + i joined — Mi and mi","Or quaver note do-re-MI","Two quaver notes joined side by side — do, re, mi."],
+"む":["🐄","Cow — mooo!","Clown imitating animals","A cow turning to look right at you — the curling strokes form that round bovine face."],
+"め":["🥨","Pretzel","Chopsticks drop hoop = MEss","A pretzel, all twisted — or noodles dropped into a chaotic tangle."],
+"も":["⛵","Sailboat","Or monitor lizard","A sailboat — two horizontal sails catching the wind, mast running clean through the middle."],
+"ら":["📣","Rah rah rah!","Like ち but spread out","A cheerleader with arms thrown wide open — like the previous one, but bigger and more spread out."],
+"り":["🏞️","River","Right stroke longer than い","Two strokes, but the right one is longer and curves — one riverbank higher than the other."],
+"る":["💎","Hand holding ruby","Loop = ruby being held","A hand gripping a precious gem — the loop at the bottom is the ruby held tight in the palm."],
+"れ":["🦌","Reindeer","Strokes form reindeer","Trace the strokes and you'll find a reindeer — head, neck, branching antler."],
+"ろ":["🚣","Row your boat — looks like 3","る got RObbed, no ruby","Just like the previous character, but the loop at the bottom is gone — the ruby got stolen."],
+"や":["🦒","Yak or giraffe — yaaa!","Animal with long neck","A yak stretching its long neck up high — the tall stroke with the outstretched curve."],
+"ゆ":["🦄","Unicorn","Or finger pointing at YOU","A unicorn rearing up, horn pointing to the sky — or a finger aimed right at you."],
+"よ":["🪀","Yo-yo on string","Y without the cup","A yo-yo mid-trick, the loop descending on its string."],
+"わ":["🐕","Dog wagging tail — wa!","Or white swan","A happy dog mid-wag — curved body on the left, little hooking tail on the right."],
+"を":["🧱","Crack in wall — woah!","Only used as particle","Something cracked clean through a wall — those complex strokes are the drama of that split."],
+"ん":["🔤","Elongated n","Single curve like letter n","One simple flowing curve, just like the letter n — the simplest character in the whole alphabet."],
 "ア":["🪓","Axe","Angular blade + handle"],
 "イ":["🎨","Easel","Two strokes like easel legs"],
 "ウ":["👒","Angular う — beret hat","Connected angular version"],
@@ -692,7 +692,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
   const speakStory=(m,ch)=>{
-    if(!m) return;
+    if(!m||!ch) return;
     if(storyPlaying){
       if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
       setStoryPlaying(false);
@@ -700,31 +700,31 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     }
     setStoryPlaying(true);
     const done=()=>setStoryPlaying(false);
-    // Try static pre-generated story file (story2 = new Matilda, story = Daniel backup)
-    if(ch&&_isKana(ch)){
-      const cp=ch.codePointAt(0).toString(16);
-      const a=new Audio(`/audio/story2/${cp}.mp3`);
-      a.playbackRate=1.15; _ttsAudio=a;
-      a.onended=done; a.onerror=()=>{
-        const a1=new Audio(`/audio/story/${cp}.mp3`);
-        a1.playbackRate=1.15; _ttsAudio=a1;
-        a1.onended=done; a1.onerror=()=>{
-          const txt=m[3]||`${m[1]}. ${m[2]}.`;
-          const a2=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(txt)}`);
-          a2.playbackRate=1.15; _ttsAudio=a2;
-          a2.onended=done; a2.onerror=done;
-          a2.play().catch(done);
-        };
-        a1.play().catch(done);
+    const cp=ch.codePointAt(0).toString(16);
+    // Chain: JP kana → English story → JP kana again
+    const playStory=(onStoryEnd)=>{
+      const s=new Audio(`/audio/story2/${cp}.mp3`);
+      s.playbackRate=1.1; _ttsAudio=s;
+      s.onended=onStoryEnd;
+      s.onerror=()=>{
+        const s1=new Audio(`/audio/story/${cp}.mp3`);
+        s1.playbackRate=1.1; _ttsAudio=s1;
+        s1.onended=onStoryEnd; s1.onerror=onStoryEnd;
+        s1.play().catch(onStoryEnd);
       };
-      a.play().catch(done);
-      return;
-    }
-    const txt=m[3]||`${m[1]}. ${m[2]}.`;
-    const audio=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(txt)}`);
-    audio.playbackRate=1.15; _ttsAudio=audio;
-    audio.onended=done; audio.onerror=done;
-    audio.play().catch(done);
+      s.play().catch(onStoryEnd);
+    };
+    const playKanaAgain=()=>{
+      const k2=new Audio(`/audio/kana/${cp}.mp3`);
+      _ttsAudio=k2;
+      k2.onended=done; k2.onerror=done;
+      k2.play().catch(done);
+    };
+    const k1=new Audio(`/audio/kana/${cp}.mp3`);
+    _ttsAudio=k1;
+    k1.onended=()=>playStory(playKanaAgain);
+    k1.onerror=()=>playStory(done);
+    k1.play().catch(done);
   };
   const storyBtn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:12,color:storyPlaying?c.a:c.m,marginTop:8,flexShrink:0}}>
     {storyPlaying?"■ stop":"📖 story"}
