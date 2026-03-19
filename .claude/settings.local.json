@@ -28,7 +28,9 @@
       "Bash(npm install:*)",
       "mcp__Neon__create_project",
       "mcp__Neon__run_sql",
-      "Bash(1:*)"
+      "Bash(1:*)",
+      "Bash(/Users/ollie/Documents/Github/nihongo/.env.local:*)",
+      "Bash(/Users/ollie/Documents/Github/nihongo/src/main.jsx:*)"
     ]
   }
 }

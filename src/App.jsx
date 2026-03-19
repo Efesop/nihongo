@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useUser, useAuth, useClerk, SignIn } from "@clerk/clerk-react";
 
 // ═══ STORAGE HELPERS ═══
 const store = {
@@ -8,26 +9,22 @@ const store = {
 };
 
 // ═══ SYNC HELPERS ═══
-const genId = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36);
-const getUserId = () => {
-  let id = localStorage.getItem("nihongo-uid");
-  if (!id) { id = genId(); localStorage.setItem("nihongo-uid", id); }
-  return id;
-};
-const syncLoad = async (id) => {
+const syncLoad = async (token) => {
   try {
-    const r = await fetch(`/api/sync?id=${encodeURIComponent(id)}`);
+    const r = await fetch("/api/sync", {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
     if (r.status === 404) return null;
     if (!r.ok) return null;
     return await r.json();
   } catch { return null; }
 };
-const syncSave = async (id, data, username) => {
+const syncSave = async (token, data) => {
   try {
     await fetch("/api/sync", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, data, username: username || undefined }),
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ data }),
     });
   } catch { /* offline — localStorage still holds it */ }
 };
@@ -254,6 +251,22 @@ function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.fl
 function daysLeft(){return Math.max(0,Math.ceil((TRIP-Date.now())/(864e5)));}
 
 export default function App(){
+  const { user, isLoaded: clerkLoaded } = useUser();
+  const { getToken } = useAuth();
+
+  // Show sign-in screen if not authenticated
+  if (!clerkLoaded) return null;
+  if (!user) return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#0d0d10"}}>
+      <SignIn routing="hash" />
+    </div>
+  );
+
+  return <AuthedApp user={user} getToken={getToken} />;
+}
+
+function AuthedApp({ user, getToken }){
+  const { signOut } = useClerk();
   const [tab,setTab]=useState("home");
   const [d,setD]=useState(null);
   const [loaded,setLoaded]=useState(false);
@@ -296,7 +309,7 @@ export default function App(){
   const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:""});
   const [showProfile,setShowProfile]=useState(false);
   const [syncStatus,setSyncStatus]=useState("idle"); // idle | saving | saved | error
-  const uid = getUserId();
+  const uid = user.id;
   // ui
   const [isDesktop,setIsDesktop]=useState(window.innerWidth>=768);
   const [hov,setHov]=useState(null);
@@ -348,28 +361,21 @@ export default function App(){
 
   useEffect(()=>{
     const init=async()=>{
+      const token=await getToken();
       // 1. Try loading from DB (source of truth)
-      const remote=await syncLoad(uid);
+      const remote=await syncLoad(token);
       if(remote?.data){
         const nd=migrate(remote.data);
         setD(nd);
         store.set(KEY,nd);
-        // also restore profile username if present
-        if(remote.username){
-          const p=store.get("nihongo-profile")||{name:"",notes:"",username:""};
-          const np={...p,username:remote.username};
-          setProfile(np);
-          store.set("nihongo-profile",np);
-        }
       } else {
-        // 2. Fall back to localStorage (first visit or offline)
+        // 2. First sign-in — migrate any existing localStorage data up to DB
         const local=store.get(KEY);
         if(local){
           const nd=migrate(local);
           setD(nd);
           store.set(KEY,nd);
-          // push local data up to DB
-          syncSave(uid,nd,store.get("nihongo-profile")?.username);
+          syncSave(token,nd);
         }
       }
       setLoaded(true);
@@ -386,18 +392,18 @@ export default function App(){
     setD(prev=>{
       const nd={...prev,...u};
       store.set(KEY,nd);
-      // debounce DB writes to avoid hammering on rapid answers
       clearTimeout(syncTimer.current);
       setSyncStatus("saving");
-      syncTimer.current=setTimeout(()=>{
-        syncSave(uid,nd,store.get("nihongo-profile")?.username)
+      syncTimer.current=setTimeout(async()=>{
+        const token=await getToken();
+        syncSave(token,nd)
           .then(()=>setSyncStatus("saved"))
           .catch(()=>setSyncStatus("error"));
         setTimeout(()=>setSyncStatus("idle"),2000);
       },1500);
       return nd;
     });
-  },[uid]);
+  },[getToken]);
 
   useEffect(()=>{
     if(kScreen==="quiz"&&!kFb&&inputRef.current)inputRef.current.focus();
@@ -1083,10 +1089,13 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const renderProfile=()=>(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowProfile(false)}>
       <div style={{...card,width:"100%",maxWidth:360,padding:24}} onClick={e=>e.stopPropagation()}>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Your Profile</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+          <div style={{fontSize:16,fontWeight:700}}>Your Profile</div>
+          <div style={{fontSize:11,color:c.m}}>{user.primaryEmailAddress?.emailAddress}</div>
+        </div>
         <div style={{fontSize:12,color:c.m,marginBottom:18}}>Progress auto-saves to the cloud</div>
 
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Name</div>
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Display Name</div>
         <input value={profile.name} onChange={e=>saveProfile({name:e.target.value})} placeholder="e.g. Ollie"
           style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:14,boxSizing:"border-box"}}/>
 
@@ -1100,7 +1109,10 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <span style={{marginLeft:"auto"}}>📚 {data.sessions} sessions</span>
           <span>✅ {data.totalC} correct</span>
         </div>
-        <button onClick={()=>setShowProfile(false)} style={{...btn,width:"100%",padding:11,borderRadius:9,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>setShowProfile(false)} style={{...btn,flex:1,padding:11,borderRadius:9,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>
+          <button onClick={()=>signOut()} style={{...btn,padding:"11px 14px",borderRadius:9,background:"transparent",border:"1px solid "+c.b,color:c.m,fontSize:13}}>Sign out</button>
+        </div>
       </div>
     </div>
   );
