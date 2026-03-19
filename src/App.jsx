@@ -293,10 +293,9 @@ export default function App(){
   const [drillScore,setDrillScore]=useState({c:0,w:0});
   const [drillDone,setDrillDone]=useState(false);
   // profile
-  const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:"",username:""});
+  const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:""});
   const [showProfile,setShowProfile]=useState(false);
   const [syncStatus,setSyncStatus]=useState("idle"); // idle | saving | saved | error
-  const [usernameError,setUsernameError]=useState("");
   const uid = getUserId();
   // ui
   const [isDesktop,setIsDesktop]=useState(window.innerWidth>=768);
@@ -318,7 +317,6 @@ export default function App(){
     const np={...profile,...u};
     setProfile(np);
     store.set("nihongo-profile",np);
-    // profile.username is synced when user explicitly saves it
   };
 
   useEffect(()=>{
@@ -1082,29 +1080,13 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   };
 
   // ═══ PROFILE MODAL ═══
-  const saveUsername=async()=>{
-    const un=(profile.username||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
-    if(!un){setUsernameError("Enter a username (letters, numbers, _ -)");return;}
-    setUsernameError("");
-    const np={...profile,username:un};
-    setProfile(np);
-    store.set("nihongo-profile",np);
-    setSyncStatus("saving");
-    try{
-      const r=await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:uid,data,username:un})});
-      const j=await r.json();
-      if(j.error==="username_taken"){setUsernameError("That username is taken — try another");setSyncStatus("idle");}
-      else{setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);}
-    }catch{setSyncStatus("error");}
-  };
-
   const renderProfile=()=>(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowProfile(false)}>
-      <div style={{...card,width:"100%",maxWidth:380,padding:24}} onClick={e=>e.stopPropagation()}>
+      <div style={{...card,width:"100%",maxWidth:360,padding:24}} onClick={e=>e.stopPropagation()}>
         <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Your Profile</div>
-        <div style={{fontSize:12,color:c.m,marginBottom:16}}>Stored in the cloud — safe across devices</div>
+        <div style={{fontSize:12,color:c.m,marginBottom:18}}>Progress auto-saves to the cloud</div>
 
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Display Name</div>
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Name</div>
         <input value={profile.name} onChange={e=>saveProfile({name:e.target.value})} placeholder="e.g. Ollie"
           style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:14,boxSizing:"border-box"}}/>
 
@@ -1113,22 +1095,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
         <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
 
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Recovery Username</div>
-        <div style={{fontSize:11,color:c.m,marginBottom:8,lineHeight:1.5}}>Set once to recover your progress on any device. Letters, numbers, _ and - only.</div>
-        <div style={{display:"flex",gap:8,marginBottom:4}}>
-          <input value={profile.username||""} onChange={e=>saveProfile({username:e.target.value})} placeholder="e.g. ollie42"
-            style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+(usernameError?c.a:c.b),background:c.s2,color:c.tx,fontFamily:mono,fontSize:14,outline:"none",boxSizing:"border-box"}}/>
-          <button onClick={saveUsername} style={{...btn,padding:"10px 16px",borderRadius:8,background:c.g,color:"#fff",fontSize:13,fontWeight:600,flexShrink:0}}>Save</button>
-        </div>
-        {usernameError&&<div style={{fontSize:11,color:c.a,marginBottom:8}}>{usernameError}</div>}
-        {profile.username&&!usernameError&&<div style={{fontSize:11,color:c.g,marginBottom:8}}>✓ Username set — use this to log in from any device</div>}
-
-        <div style={{display:"flex",gap:8,fontSize:12,color:c.m,margin:"14px 0",padding:"10px 12px",background:c.s2,borderRadius:8}}>
+        <div style={{display:"flex",gap:8,fontSize:12,color:c.m,marginBottom:18,padding:"10px 12px",background:c.s2,borderRadius:8}}>
           <span>🔥 {data.streak||1} day streak</span>
           <span style={{marginLeft:"auto"}}>📚 {data.sessions} sessions</span>
           <span>✅ {data.totalC} correct</span>
         </div>
-        <div style={{fontSize:10,color:c.m,fontFamily:mono,marginBottom:14,wordBreak:"break-all"}}>ID: {uid.slice(0,16)}…</div>
         <button onClick={()=>setShowProfile(false)} style={{...btn,width:"100%",padding:11,borderRadius:9,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>
       </div>
     </div>
