@@ -440,6 +440,26 @@ function AuthedApp({ user, getToken }){
     if(chatEndRef.current)chatEndRef.current.scrollIntoView({behavior:"smooth"});
   },[msgs]);
 
+  // Global Enter key — advance through learn/quiz without touching mouse
+  useEffect(()=>{
+    const handler=(e)=>{
+      if(e.key!=="Enter") return;
+      if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA") return;
+      if(kScreen==="learn"){
+        e.preventDefault();
+        if(!kFlip){setKFlip(true);}
+        else{
+          const chars=(kScript==="h"?H_GROUPS:K_GROUPS).flatMap((_,i)=>kSel.includes(i)?(kScript==="h"?H_GROUPS:K_GROUPS)[i].c:[]);
+          if(kLI<chars.length-1){setKLI(l=>l+1);setKFlip(false);}
+          else startKanaQuiz();
+        }
+      }
+      if(kScreen==="quiz"&&kFb){e.preventDefault();nextKana();}
+    };
+    window.addEventListener("keydown",handler);
+    return()=>window.removeEventListener("keydown",handler);
+  },[kScreen,kFlip,kLI,kFb,kSel,kScript]);// eslint-disable-line
+
   const groups=kScript==="h"?H_GROUPS:K_GROUPS;
   const allKana=kSel.flatMap(i=>groups[i]?.c||[]);
 
@@ -611,6 +631,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
+  const speakStory=(m,ch,rom)=>{if(!m)return speak(ch);const txt=`${m[1]}. ${m[2]}. Say it: ${rom}.`;speak(txt,"en-US");};
+  const storyBtn=(m,ch,rom)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch,rom);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m,marginTop:8,flexShrink:0}} title="Hear the story">📖 story</button>:null;
 
   const sideTabBtn=(active)=>({
     ...btn,width:"100%",padding:"9px 12px",
@@ -741,7 +763,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                   <div style={{fontSize:12,color:c.m,fontStyle:"italic",lineHeight:1.5}}>{m[2]}</div>
                 </div>
               </div>}
-              <div style={{marginTop:12}}>{speakBtn(ch)}</div>
+              <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m,ch,rom)}</div>
             </div>}
         </div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
@@ -793,7 +815,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                   <div style={{fontSize:11,color:c.m,fontStyle:"italic",lineHeight:1.4}}>{m[2]}</div>
                 </div>
               </div>}
-              <div style={{marginTop:10}}>{speakBtn(ch)}</div>
+              <div style={{marginTop:10,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m,ch,rom)}</div>
             </div>
           </div>
           <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}</button>
