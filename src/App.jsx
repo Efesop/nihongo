@@ -194,15 +194,15 @@ const THEMES = {
     name:"Dark",
     bg:"#0d0d10", s:"#161619", s2:"#1e1e23", s3:"#26262d", b:"#2e2e36",
     tx:"#f0eee9", m:"#64646a",
-    a:"#c45d4c", g:"#5a9e6f", go:"#c4a24c", bl:"#5a8ec4",
-    as:"rgba(196,93,76,.13)", gs:"rgba(90,158,111,.13)", rs:"rgba(196,93,76,.11)",
+    a:"#c45d4c", g:"#4f8ec4", go:"#9b8ecf", bl:"#5a8ec4",
+    as:"rgba(196,93,76,.13)", gs:"rgba(79,142,196,.13)", gos:"rgba(155,142,207,.13)", rs:"rgba(196,93,76,.11)",
   },
   light: {
     name:"Light",
     bg:"#f7f6f3", s:"#ffffff", s2:"#f0efec", s3:"#e8e7e3", b:"#dddcD8",
     tx:"#111114", m:"#888580",
-    a:"#b84d3c", g:"#3d7a52", go:"#9a7a2e", bl:"#3a6ea0",
-    as:"rgba(184,77,60,.10)", gs:"rgba(61,122,82,.10)", rs:"rgba(184,77,60,.09)",
+    a:"#b84d3c", g:"#3a6ea0", go:"#7c6fcd", bl:"#3a6ea0",
+    as:"rgba(184,77,60,.10)", gs:"rgba(58,110,160,.10)", gos:"rgba(124,111,205,.10)", rs:"rgba(184,77,60,.09)",
   },
   // Additional themes can be added here
 };
@@ -644,7 +644,7 @@ RULES:
     return <div style={inner}>
       <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:8}}>Phrase Bank</div>
       <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>Scenarios</h2>
-      {dueCount>0&&<button onClick={()=>{setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.go,color:"#1a1a1c",fontSize:15,fontWeight:600,marginBottom:16}}>Review {dueCount} due</button>}
+      {dueCount>0&&<button onClick={()=>{setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.go,color:"#fff",fontSize:15,fontWeight:600,marginBottom:16}}>Review {dueCount} due</button>}
       {Object.entries(CATS).map(([k,v])=>{
         const total=PHRASES.filter(p=>p[4]===k).length;
         const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
