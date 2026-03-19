@@ -723,14 +723,26 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
         <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:6}}>{kLI+1}/{chars.length}</div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"40px 24px",minHeight:260,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",border:"1px solid "+(kFlip?c.a+"60":c.b)}}>
-          {!kFlip?<><div style={{fontSize:96,lineHeight:1,marginBottom:14}}>{ch}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
-          :<><div style={{display:"flex",alignItems:"center",gap:16,marginBottom:12}}>
-            <div style={{fontSize:68,lineHeight:1}}>{ch}</div>{m&&<div style={{fontSize:44}}>{m[0]}</div>}
-          </div>
-          <div style={{fontSize:30,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:8}}>{rom}</div>
-          {m&&<><div style={{fontSize:15,color:c.tx,marginBottom:4}}>{m[1]}</div><div style={{fontSize:12,color:c.m,fontStyle:"italic"}}>{m[2]}</div></>}
-          {speakBtn(ch)}</>}
+        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"40px 24px",minHeight:280,position:"relative",overflow:"hidden",border:"1px solid "+(kFlip?c.a+"60":c.b),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          {/* Mnemonic ghost — always behind the character, reveals connection */}
+          {m&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-58%)",fontSize:170,opacity:kFlip?0.13:0.06,pointerEvents:"none",lineHeight:1,transition:"opacity .4s",userSelect:"none",filter:kFlip?"none":"blur(2px)"}}>{m[0]}</div>}
+          {!kFlip
+            ?<div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
+              <div style={{fontSize:100,lineHeight:1,marginBottom:16}}>{ch}</div>
+              <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
+            </div>
+            :<div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
+              <div style={{fontSize:80,lineHeight:1,marginBottom:4}}>{ch}</div>
+              <div style={{fontSize:32,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:16}}>{rom}</div>
+              {m&&<div style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:c.s2,borderRadius:12,border:"1px solid "+c.b,textAlign:"left",width:"100%",boxSizing:"border-box"}}>
+                <span style={{fontSize:40,flexShrink:0}}>{m[0]}</span>
+                <div>
+                  <div style={{fontSize:14,fontWeight:600,color:c.tx,marginBottom:3}}>{m[1]}</div>
+                  <div style={{fontSize:12,color:c.m,fontStyle:"italic",lineHeight:1.5}}>{m[2]}</div>
+                </div>
+              </div>}
+              <div style={{marginTop:12}}>{speakBtn(ch)}</div>
+            </div>}
         </div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
@@ -766,14 +778,23 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           </div>
           <button onClick={()=>setKPeek(!kPeek)} style={{...btn,display:"block",margin:"14px auto 0",background:"none",color:c.m,fontFamily:mono,fontSize:11,opacity:.55}}>{kPeek?`"${rom}"`:"peek"}</button>
         </>:<>
-          <div style={{...card,textAlign:"center",marginTop:14,background:kFb==="ok"?c.gs:c.rs,border:"1px solid "+(kFb==="ok"?c.g+"50":c.a+"50")}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:10}}>
-              <span style={{fontSize:48}}>{ch}</span>{m&&<span style={{fontSize:32}}>{m[0]}</span>}
+          <div style={{...card,marginTop:14,background:kFb==="ok"?c.gs:c.rs,border:"1px solid "+(kFb==="ok"?c.g+"50":c.a+"50"),position:"relative",overflow:"hidden"}}>
+            {m&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:130,opacity:0.1,pointerEvents:"none",lineHeight:1,userSelect:"none"}}>{m[0]}</div>}
+            <div style={{position:"relative",zIndex:1,textAlign:"center"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,marginBottom:6}}>
+                <span style={{fontSize:56}}>{ch}</span>
+                <div style={{fontFamily:mono,fontSize:26,fontWeight:700,color:kFb==="ok"?c.g:c.a,marginLeft:8}}>{rom}</div>
+              </div>
+              {kFb==="no"&&<div style={{fontSize:12,color:c.m,marginBottom:8}}>you typed: <span style={{color:c.a,textDecoration:"line-through"}}>{kInput}</span></div>}
+              {m&&<div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:kFb==="ok"?c.gs:c.rs,borderRadius:10,border:"1px solid "+(kFb==="ok"?c.g+"30":c.a+"30"),textAlign:"left",marginTop:4}}>
+                <span style={{fontSize:32,flexShrink:0}}>{m[0]}</span>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:c.tx,marginBottom:2}}>{m[1]}</div>
+                  <div style={{fontSize:11,color:c.m,fontStyle:"italic",lineHeight:1.4}}>{m[2]}</div>
+                </div>
+              </div>}
+              <div style={{marginTop:10}}>{speakBtn(ch)}</div>
             </div>
-            <div style={{fontFamily:mono,fontSize:22,fontWeight:700,color:kFb==="ok"?c.g:c.a}}>{rom}</div>
-            {m&&<div style={{fontSize:14,color:c.tx,marginTop:6}}>{m[1]}</div>}
-            {kFb==="no"&&<div style={{fontSize:12,color:c.m,marginTop:4}}>you typed: <span style={{color:c.a,textDecoration:"line-through"}}>{kInput}</span></div>}
-            <div style={{marginTop:8}}>{speakBtn(ch)}</div>
           </div>
           <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}</button>
         </>}
