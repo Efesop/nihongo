@@ -234,15 +234,15 @@ const THEMES = {
     name:"Dark",
     bg:"#0d0d10", s:"#161619", s2:"#1e1e23", s3:"#26262d", b:"#2e2e36",
     tx:"#f0eee9", m:"#64646a",
-    a:"#c45d4c", g:"#4f8ec4", go:"#9b8ecf", bl:"#5a8ec4",
-    as:"rgba(196,93,76,.13)", gs:"rgba(79,142,196,.13)", gos:"rgba(155,142,207,.13)", rs:"rgba(196,93,76,.11)",
+    a:"#c0282a", g:"#4f8ec4", go:"#9b8ecf", bl:"#5a8ec4",
+    as:"rgba(192,40,42,.15)", gs:"rgba(79,142,196,.13)", gos:"rgba(155,142,207,.13)", rs:"rgba(192,40,42,.11)",
   },
   light: {
     name:"Light",
     bg:"#f7f6f3", s:"#ffffff", s2:"#f0efec", s3:"#e8e7e3", b:"#dddcD8",
     tx:"#111114", m:"#888580",
-    a:"#b84d3c", g:"#3a6ea0", go:"#7c6fcd", bl:"#3a6ea0",
-    as:"rgba(184,77,60,.10)", gs:"rgba(58,110,160,.10)", gos:"rgba(124,111,205,.10)", rs:"rgba(184,77,60,.09)",
+    a:"#a81e20", g:"#3a6ea0", go:"#7c6fcd", bl:"#3a6ea0",
+    as:"rgba(168,30,32,.10)", gs:"rgba(58,110,160,.10)", gos:"rgba(124,111,205,.10)", rs:"rgba(168,30,32,.09)",
   },
 };
 
@@ -256,14 +256,14 @@ export default function App(){
   // Show sign-in screen if not authenticated
   if (!clerkLoaded) return null;
   if (!user) return (
-    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"#0d0d10",gap:24}}>
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"radial-gradient(ellipse 80% 50% at 50% -10%, rgba(192,40,42,0.18) 0%, transparent 70%), #0d0d10",gap:24}}>
       <div style={{textAlign:"center",marginBottom:8}}>
-        <div style={{fontSize:32,fontWeight:800,letterSpacing:"-.02em",color:"#f0eee9"}}>日本語</div>
+        <div style={{fontSize:32,fontWeight:800,letterSpacing:"-.02em",color:"#f0eee9",textShadow:"0 0 40px rgba(192,40,42,0.4)"}}>日本語</div>
         <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
       </div>
       <SignIn routing="hash" appearance={{
         variables:{
-          colorPrimary:"#c45d4c",
+          colorPrimary:"#c0282a",
           colorBackground:"#161619",
           colorInputBackground:"#1e1e23",
           colorInputText:"#f0eee9",
@@ -633,7 +633,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     color:active?c.a:c.m,fontSize:10,fontWeight:active?600:400,
   });
 
-  const wrap={fontFamily:font,background:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
+  const redGlow=theme==="dark"?"radial-gradient(ellipse 70% 35% at 50% -5%, rgba(192,40,42,0.13) 0%, transparent 100%)":"none";
+  const wrap={fontFamily:font,background:theme==="dark"?`${redGlow}, ${c.bg}`:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
   const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
 
   const progressBar=(pct,color)=>(
@@ -664,7 +665,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     ];
     return <div style={inner}>
       <div style={{marginBottom:24}}>
-        <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em"}}>{profile.name?`こんにちは, ${profile.name}!`:"日本語 Journey"}</h1>
+        <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em",textShadow:theme==="dark"?"0 0 30px rgba(192,40,42,0.35)":"none"}}>{profile.name?`こんにちは, ${profile.name}!`:"日本語 Journey"}</h1>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to go</span>}
           {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono}}>🔥 {data.streak} day streak</span>}
@@ -1148,7 +1149,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const progressPct=Math.round((onboardStep/stepCount)*100);
     const ans=onboardAnswers;
     return(
-      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:c.bg,padding:24}}>
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:theme==="dark"?`radial-gradient(ellipse 80% 50% at 50% -10%, rgba(192,40,42,0.16) 0%, transparent 70%), ${c.bg}`:c.bg,padding:24}}>
         <div style={{width:"100%",maxWidth:420}}>
           <div style={{textAlign:"center",marginBottom:32}}>
             <div style={{fontSize:36,fontWeight:800,letterSpacing:"-.02em",marginBottom:4}}>日本語</div>
