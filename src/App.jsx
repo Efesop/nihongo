@@ -800,31 +800,36 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
         <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:6}}>{kLI+1}/{chars.length}</div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        {/* Before flip: big character with faint ghost hint */}
-        {!kFlip
-          ?<div onClick={()=>setKFlip(true)} style={{...card,textAlign:"center",cursor:"pointer",padding:"52px 24px",position:"relative",overflow:"hidden",border:"1px solid "+c.b,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-            {m&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:160,opacity:0.06,pointerEvents:"none",lineHeight:1,userSelect:"none",filter:"blur(3px)"}}>{m[0]}</div>}
-            <div style={{position:"relative",zIndex:1}}>
-              <div style={{fontSize:110,lineHeight:1,marginBottom:16}}>{ch}</div>
-              <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
-            </div>
+        <style>{`
+          @keyframes mnemonicPulse{0%,100%{opacity:.05}50%{opacity:.18}}
+          @keyframes mnemonicReveal{0%,100%{opacity:.12}50%{opacity:.32}}
+        `}</style>
+        {/* Character card — emoji ghost always overlaid, animates differently before/after flip */}
+        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"52px 24px",position:"relative",overflow:"hidden",border:"1px solid "+(kFlip?c.a+"60":c.b),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:220}}>
+          {m&&<div style={{
+            position:"absolute",top:"50%",left:"50%",
+            transform:"translate(-50%,-50%)",
+            fontSize:160,lineHeight:1,pointerEvents:"none",userSelect:"none",
+            animation:kFlip?"mnemonicReveal 2.5s ease-in-out infinite":"mnemonicPulse 3s ease-in-out infinite",
+            filter:kFlip?"none":"blur(2px)",
+          }}>{m[0]}</div>}
+          <div style={{position:"relative",zIndex:1}}>
+            <div style={{fontSize:kFlip?88:110,lineHeight:1,marginBottom:kFlip?6:16,transition:"font-size .2s"}}>{ch}</div>
+            {kFlip
+              ?<div style={{fontSize:34,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+              :<div style={{fontSize:12,color:c.m}}>tap to reveal</div>}
+            {kFlip&&<div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}</div>}
           </div>
-          /* After flip: clean layout, no ghost — emoji lives in the mnemonic card */
-          :<div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{...card,textAlign:"center",padding:"28px 24px",border:"1px solid "+c.a+"60"}}>
-              <div style={{fontSize:88,lineHeight:1,marginBottom:6}}>{ch}</div>
-              <div style={{fontSize:34,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
-              <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}</div>
-            </div>
-            {m&&<div style={{...card,display:"flex",alignItems:"center",gap:16,padding:"16px 18px",border:"1px solid "+c.b}}>
-              <span style={{fontSize:44,flexShrink:0}}>{m[0]}</span>
-              <div style={{flex:1}}>
-                <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
-                <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
-              </div>
-              {storyBtn(m)}
-            </div>}
-          </div>}
+        </div>
+        {/* Mnemonic card — only shown after flip */}
+        {kFlip&&m&&<div style={{...card,display:"flex",alignItems:"center",gap:16,padding:"16px 18px",border:"1px solid "+c.b,marginTop:12}}>
+          <span style={{fontSize:44,flexShrink:0}}>{m[0]}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
+            <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
+          </div>
+          {storyBtn(m)}
+        </div>}
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
