@@ -34,58 +34,74 @@ const speak = (text, lang="ja-JP") => {
   if(!window.speechSynthesis) return;
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang; u.rate = 0.85;
+  // Pick the best available voice — browser/OS premium voices sound much better
+  const voices = window.speechSynthesis.getVoices();
+  if(voices.length){
+    const preferred = lang==="ja-JP"
+      ? voices.find(v=>v.name==="Google 日本語")
+        || voices.find(v=>v.name==="Kyoko")
+        || voices.find(v=>v.name==="O-Ren")
+        || voices.find(v=>v.lang==="ja-JP"&&v.localService)
+        || voices.find(v=>v.lang==="ja-JP")
+      : voices.find(v=>v.name==="Google US English")
+        || voices.find(v=>v.name==="Samantha")
+        || voices.find(v=>v.name==="Karen")
+        || voices.find(v=>v.lang.startsWith("en")&&v.localService)
+        || voices.find(v=>v.lang.startsWith("en"));
+    if(preferred) u.voice=preferred;
+  }
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(u);
 };
 
 // ═══ KANA MNEMONICS ═══
 const M = {
-"あ":["🍎","Apple","Cross stroke = stem, loop = apple shape"],
-"い":["🔤","Two i's side by side","Two vertical strokes like i i"],
-"う":["🥊","Boxer punched — uu!","Top = fist, curve = doubling over"],
-"え":["🥷","Energetic ninja","Dynamic fighting pose"],
-"お":["🛸","UFO — oh!","Or face saying oh with x eyes"],
-"か":["🔪","Blade cutting stick","Diagonal = blade, vertical = stick"],
-"き":["🔑","Key","Horizontals = teeth, vertical = shaft"],
-"く":["🐦","Cuckoo's beak","Angle = beak opening, ku-koo!"],
-"け":["🪣","Keg","First stroke = cane leaning on keg"],
-"こ":["🐟","Two koi fish","Two horizontals like fish swimming"],
-"さ":["😏","Sneaky grin — sa-neaky!","Strokes form a sly face"],
-"し":["🎣","Fishing hook — fi-SHI-ng","Single swooping curve = hook"],
-"す":["🌀","Spiral straw — su-piral","Or curly Sue"],
-"せ":["🗣️","Mouth about to say — se-y","Or sensei speaking"],
-"そ":["🧵","Sewing stitch — so-so","50/50 fraction = so-so"],
-"た":["🔤","Letters t + a = ta!","Cross = T, curve = A"],
-"ち":["📣","Cheerleader — chi-eer!","Looks like 5, groups of 5"],
-"つ":["🌊","Tsunami wave","Curling stroke or sideways U"],
-"て":["🐾","Tail + letter T","te-il = tail"],
-"と":["🌪️","Tornado","Funny stalk on TOp"],
-"な":["🪢","Knot — kna-t","Or X for nah + tongue out"],
-"に":["🦵","Knee","Elongated n + sideways i"],
-"ぬ":["🍜","Chopsticks + noodles","See n + angular u"],
-"ね":["🐌","Snail behind nail","Extra hoop = NE not RE"],
-"の":["🚫","No sign","n + o in one swirl"],
-"は":["🔤","Capital H + little a","Has hoop, け does not"],
-"ひ":["😁","Smiling mouth — hihihi!","Big grinning mouth"],
-"ふ":["🗻","Mount Fuji","Or nose blowing foooo"],
-"へ":["⬆️","Arrow to heaven — he","Angled line pointing up"],
-"ほ":["🐴","Horse face with mane","2 HOrizontal lines vs は's 1"],
-"ま":["🎵","Musical note — ma-usic","Or man with mask"],
-"み":["🎶","I + i joined — Mi and mi","Or quaver note do-re-MI"],
-"む":["🐄","Cow — mooo!","Clown imitating animals"],
-"め":["🥨","Pretzel","Chopsticks drop hoop = MEss"],
-"も":["⛵","Sailboat","Or monitor lizard"],
-"ら":["📣","Rah rah rah!","Like ち but spread out"],
-"り":["🏞️","River","Right stroke longer than い"],
-"る":["💎","Hand holding ruby","Loop = ruby being held"],
-"れ":["🦌","Reindeer","Strokes form reindeer"],
-"ろ":["🚣","Row your boat — looks like 3","る got RObbed, no ruby"],
-"や":["🦒","Yak or giraffe — yaaa!","Animal with long neck"],
-"ゆ":["🦄","Unicorn","Or finger pointing at YOU"],
-"よ":["🪀","Yo-yo on string","Y without the cup"],
-"わ":["🐕","Dog wagging tail — wa!","Or white swan"],
-"を":["🧱","Crack in wall — woah!","Only used as particle"],
-"ん":["🔤","Elongated n","Single curve like letter n"],
+"あ":["🍎","Apple","Cross stroke = stem, loop = apple shape","Look at the character — there's a cross stroke at the top like the stem of an apple, and the looping body below is the round fruit hanging from it."],
+"い":["🔤","Two i's side by side","Two vertical strokes like i i","Two simple vertical strokes standing side by side — just like writing the letter i twice: i i. As simple as that."],
+"う":["🥊","Boxer punched — uu!","Top = fist, curve = doubling over","A boxer just took a hit to the gut. The top stroke is the impact, and the curve swooping down is their body doubling over, groaning uu!"],
+"え":["🥷","Energetic ninja","Dynamic fighting pose","An energetic ninja mid-kick — the crossing strokes capture the dynamic, angular movement of a fighter in full action."],
+"お":["🛸","UFO — oh!","Or face saying oh with x eyes","A surprised face with X eyes going oh! — or picture a UFO hovering with its distinctive saucer shape beneath a beam of light."],
+"か":["🔪","Blade cutting stick","Diagonal = blade, vertical = stick","A blade slicing through a stick — the diagonal stroke is the sharp edge cutting down, the vertical line is the stick being split."],
+"き":["🔑","Key","Horizontals = teeth, vertical = shaft","A key lying flat — the horizontal strokes are the teeth that unlock the door, and the vertical shaft runs through the middle."],
+"く":["🐦","Cuckoo's beak","Angle = beak opening, ku-koo!","A cuckoo opening its beak wide — the sharp angle of the stroke is exactly the shape of a beak calling out ku-koo!"],
+"け":["🪣","Keg","First stroke = cane leaning on keg","A keg with a cane leaning against it — the first stroke is the walking cane propped up against the barrel shape of the keg."],
+"こ":["🐟","Two koi fish","Two horizontals like fish swimming","Two koi fish swimming side by side — the two horizontal lines are the sleek bodies of fish gliding through still water."],
+"さ":["😏","Sneaky grin — sa-neaky!","Strokes form a sly face","A sly, sneaky grin — the crossing strokes form a crafty smirking face. Sa-neaky! You can almost see the raised eyebrow."],
+"し":["🎣","Fishing hook — fi-SHI-ng","Single swooping curve = hook","A fishing hook dropped into the water — the single swooping curve hangs down exactly like a hook waiting for a bite."],
+"す":["🌀","Spiral straw — su-piral","Or curly Sue","A straw caught in a spiral — the curling stroke twists around like a straw mid-su-piral, or curly Sue's distinctive hair."],
+"せ":["🗣️","Mouth about to say — se-y","Or sensei speaking","A sensei with their mouth open mid-sentence — the strokes suggest a face caught in the act of teaching, about to say se-y something important."],
+"そ":["🧵","Sewing stitch — so-so","50/50 fraction = so-so","A sewing stitch passing through fabric — the crossing stroke looks like thread being pulled through, so-so neatly stitched."],
+"た":["🔤","Letters t + a = ta!","Cross = T, curve = A","Spot two hidden letters inside — the cross at the top makes a T, and the curve at the bottom forms an A. T plus A equals ta!"],
+"ち":["📣","Cheerleader — chi-eer!","Looks like 5, groups of 5","A cheerleader throwing their arms up — the stroke resembles a 5, perfect for counting off chi-eer groups of five fans."],
+"つ":["🌊","Tsunami wave","Curling stroke or sideways U","A massive tsunami wave rolling in — the broad sweeping curve captures the enormous curling force of an ocean wave."],
+"て":["🐾","Tail + letter T","te-il = tail","The letter T with a curling tail — the horizontal stroke is the crossbar of a T, and the end curls into a te-il."],
+"と":["🌪️","Tornado","Funny stalk on TOp","A tornado with a stalk sticking out at the TOP — the spiral spins at the base and that distinctive little stalk pokes out from the top."],
+"な":["🪢","Knot — kna-t","Or X for nah + tongue out","A tangled knot of rope — the complex crossing strokes look like rope twisted up tight. Or think of X for nah, with a tongue stuck out defiantly."],
+"に":["🦵","Knee","Elongated n + sideways i","A leg with a bent knee — the elongated left stroke is the thigh, and the right stroke is the lower leg bent at the knee joint."],
+"ぬ":["🍜","Chopsticks + noodles","See n + angular u","Noodles twirling on chopsticks — you can trace an n-shape at the left and a looping u on the right, like noodles being twirled around."],
+"ね":["🐌","Snail behind nail","Extra hoop = NE not RE","A snail trailing behind a nail — that extra loop at the bottom is what separates ne from re. No loop equals re, loop equals ne."],
+"の":["🚫","No sign","n + o in one swirl","The universal no sign — a single decisive swirl that combines n and o into one stroke. A spinning circle of refusal."],
+"は":["🔤","Capital H + little a","Has hoop, け does not","A capital H with a small hoop attached — notice it has one hoop at the right side, unlike ほ which has two horizontal bars."],
+"ひ":["😁","Smiling mouth — hihihi!","Big grinning mouth","A huge grinning mouth laughing hihihi — the wide curved stroke spreads like lips pulled back in the biggest, silliest grin imaginable."],
+"ふ":["🗻","Mount Fuji","Or nose blowing foooo","The silhouette of Mount Fuji — the upper strokes form the iconic peak, or picture someone blowing out a long breath: foooo."],
+"へ":["⬆️","Arrow to heaven — he","Angled line pointing up","An arrow pointing straight up to heaven — the simple angled line rises to a peak like a directional sign pointing he-avenward."],
+"ほ":["🐴","Horse face with mane","2 HOrizontal lines vs は's 1","A horse face with a long mane — two horizontal bars make the face longer than は, like the elongated muzzle of a horse."],
+"ま":["🎵","Musical note — ma-usic","Or man with mask","A musical note floating on the staff — the strokes form a quaver note, perfect for ma-usic. Hum it to yourself."],
+"み":["🎶","I + i joined — Mi and mi","Or quaver note do-re-MI","Two quaver notes joined together — the strokes look like mi and mi connected, as in the musical scale: do-re-MI."],
+"む":["🐄","Cow — mooo!","Clown imitating animals","A cow turning to moo at you — the curling strokes suggest a round bovine face mid-moo, loud and proud."],
+"め":["🥨","Pretzel","Chopsticks drop hoop = MEss","A pretzel twisted into a mess — the crossing loop looks like a pretzel, as if chopsticks dropped noodles into a MEssy tangle."],
+"も":["⛵","Sailboat","Or monitor lizard","A sailboat with two masts — the horizontal strokes are the sails catching wind, with the mast running straight through the middle."],
+"ら":["📣","Rah rah rah!","Like ち but spread out","Rah rah rah! A cheerleader with arms thrown wide — like ち but spread out further, a cheerleader going all-in for the crowd."],
+"り":["🏞️","River","Right stroke longer than い","A river flowing downhill — like い but the right stroke is longer and curves, like a river with one bank higher than the other."],
+"る":["💎","Hand holding ruby","Loop = ruby being held","A hand clutching a ruby — the loop at the bottom is the precious gem being gripped tightly in the palm."],
+"れ":["🦌","Reindeer","Strokes form reindeer","A reindeer seen in profile — trace the strokes and you'll find the distinctive head, neck and branching antler of a reindeer."],
+"ろ":["🚣","Row your boat — looks like 3","る got RObbed, no ruby","Rowing a boat on a river — like る but the ruby got stolen, so the loop is gone. る got ROBbed, leaving just ろ."],
+"や":["🦒","Yak or giraffe — yaaa!","Animal with long neck","A yak stretching its neck up high — the tall vertical stroke with the outstretched curve captures that long neck reaching yaaa up."],
+"ゆ":["🦄","Unicorn","Or finger pointing at YOU","A unicorn rearing up — the distinctive horn shape, or picture a finger pointing directly at YOU, the u-shape with a sharp point."],
+"よ":["🪀","Yo-yo on string","Y without the cup","A yo-yo mid-trick on its string — the descending loop looks exactly like a yo-yo spinning downward in a classic move."],
+"わ":["🐕","Dog wagging tail — wa!","Or white swan","A dog wagging its tail excitedly — the curved body stroke on the left and the little hooking tail on the right, mid-wag."],
+"を":["🧱","Crack in wall — woah!","Only used as particle","A dramatic crack splitting a wall — the complex strokes look like something went woah and split right through the brickwork."],
+"ん":["🔤","Elongated n","Single curve like letter n","The simplest character of all — just like the letter n, a single flowing curve. Every Japanese sentence can end with this."],
 "ア":["🪓","Axe","Angular blade + handle"],
 "イ":["🎨","Easel","Two strokes like easel legs"],
 "ウ":["👒","Angular う — beret hat","Connected angular version"],
@@ -440,6 +456,10 @@ function AuthedApp({ user, getToken }){
     if(chatEndRef.current)chatEndRef.current.scrollIntoView({behavior:"smooth"});
   },[msgs]);
 
+  useEffect(()=>{
+    if(tab==="sensei"&&msgs.length===0&&loaded&&d)autoGreet();
+  },[tab,msgs.length]);// eslint-disable-line
+
   // Global Enter key — advance through learn/quiz without touching mouse
   useEffect(()=>{
     const handler=(e)=>{
@@ -573,7 +593,7 @@ function AuthedApp({ user, getToken }){
     const levelLine=`Level: ${levelMap[ob.level]||"complete beginner"}. `;
     const focusLine=ob.focus?`Specific focus: ${ob.focus}. `:"";
     const tripLine=ob.tripDate&&daysUntil(ob.tripDate)>0?`Trip date: ${ob.tripDate} (${daysUntil(ob.tripDate)} days away). `:"";
-    const sysPrompt=`You are Sensei, a friendly Japanese tutor built into a learning app.
+    const sysPrompt=`You are Senpai, a friendly Japanese tutor built into a learning app.
 
 ${nameLine}${whyLine}${levelLine}${focusLine}${tripLine}${notesLine}
 PROGRESS: Hiragana ${hMastered}/46 mastered. Katakana ${kaMastered}/46 mastered. Phrases ${learnedPhr}/${PHRASES.length} learned. ${dueCount} phrases due for review. ${streakLine}
@@ -603,6 +623,32 @@ RULES:
     setLoading(false);
   };
 
+  const autoGreet=async()=>{
+    setLoading(true);
+    const hMastered=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x3040&&k.charCodeAt(0)<=0x309F).filter(([_,v])=>(v?.box??0)>=3).length;
+    const ob=data.onboarding||{};
+    const whyMap={travel:"travelling to Japan",anime:"interested in anime and Japanese culture",work:"learning for work or study",moving:"planning to live in Japan",curious:"curious about Japanese"};
+    const levelMap={beginner:"complete beginner",basics:"knows a few words and phrases",refresh:"studied before and is refreshing",intermediate:"intermediate level"};
+    const nameLine=profile.name?`User's name is ${profile.name}. `:"";
+    const whyLine=ob.why?`Reason for learning: ${whyMap[ob.why]||ob.why}. `:"";
+    const levelLine=`Level: ${levelMap[ob.level]||"complete beginner"}. `;
+    const tripLine=ob.tripDate&&daysUntil(ob.tripDate)>0?`Trip in ${daysUntil(ob.tripDate)} days. `:"";
+    const sysPrompt=`You are Senpai, a friendly Japanese tutor. ${nameLine}${whyLine}${levelLine}${tripLine}
+STATS: Hiragana ${hMastered}/46 mastered. ${dueCount} phrases due for review. Streak: ${data.streak||1} day${(data.streak||1)!==1?"s":""}.
+Give a SHORT proactive opening message: 2-3 sentences max. Mention their specific stats (kana count, phrases due, streak, or trip countdown if relevant). End with one concrete suggestion or question to get them started. Be warm and direct, like a tutor checking in.`;
+    try{
+      const response=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({system:sysPrompt,messages:[{role:"user",content:"(opening — greet me proactively)"}],max_tokens:200})
+      });
+      const json=await response.json();
+      const reply=json.content?.map(c=>c.text||"").join("\n")||json.error||"";
+      if(reply)setMsgs([{role:"assistant",content:reply}]);
+    }catch(e){}
+    setLoading(false);
+  };
+
   const startRolePlay=async(scenario)=>{
     if(loading)return;
     const kickoff=[{role:"user",content:scenario.prompt}];
@@ -612,7 +658,7 @@ RULES:
     const nameLine=profile.name?`User's name is ${profile.name}. `:"";
     const ob2=data.onboarding||{};
     const levelMap2={beginner:"complete beginner",basics:"knows a few words",refresh:"studied before",intermediate:"intermediate"};
-    const sysPrompt=`You are Sensei, a Japanese tutor doing a role-play scenario. ${nameLine}Level: ${levelMap2[ob2.level]||"beginner"}.
+    const sysPrompt=`You are Senpai, a Japanese tutor doing a role-play scenario. ${nameLine}Level: ${levelMap2[ob2.level]||"beginner"}.
 PROGRESS: Hiragana ${hM}/46. Katakana ${kaM}/46. Phrases ${learnedPhr}/${PHRASES.length}.
 ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first, then provide the English translation in parentheses. Keep turns short (1-3 sentences). After 2-3 exchanges, gently note if the user should use a specific phrase from their studies. Adapt difficulty to the user's level.`;
     try{
@@ -631,7 +677,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
-  const speakStory=(m,ch,rom)=>{if(!m)return speak(ch);const txt=`${m[1]}. ${m[2]}. Say it: ${rom}.`;speak(txt,"en-US");};
+  const speakStory=(m,ch,rom)=>{
+    if(!m) return speak(ch);
+    const txt=m[3]?`${m[3]} It's pronounced: ${rom}.`:`${m[1]}. ${m[2]}. Say it: ${rom}.`;
+    speak(txt,"en-US");
+  };
   const storyBtn=(m,ch,rom)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch,rom);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m,marginTop:8,flexShrink:0}} title="Hear the story">📖 story</button>:null;
 
   const sideTabBtn=(active)=>({
@@ -676,7 +726,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       {id:"drill",icon:"🔥",title:"Daily Drill",desc:"5 kana + 5 phrases mixed",action:startDrill},
       {id:"study",icon:"💬",title:"Review Phrases",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
       {id:"kana",icon:"あ",title:"Kana Practice",desc:`${kMastered}/92 mastered${kDueCount>0?" · "+kDueCount+" due":""}`,action:()=>{setTab("kana");setKScreen("menu");}},
-      {id:"sensei",icon:"🎌",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
+      {id:"sensei",icon:"🎌",title:"Ask Senpai",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
     ];
     return <div style={inner}>
       <div style={{marginBottom:24}}>
@@ -745,27 +795,31 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
         <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:6}}>{kLI+1}/{chars.length}</div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"40px 24px",minHeight:280,position:"relative",overflow:"hidden",border:"1px solid "+(kFlip?c.a+"60":c.b),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-          {/* Mnemonic ghost — always behind the character, reveals connection */}
-          {m&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-58%)",fontSize:170,opacity:kFlip?0.13:0.06,pointerEvents:"none",lineHeight:1,transition:"opacity .4s",userSelect:"none",filter:kFlip?"none":"blur(2px)"}}>{m[0]}</div>}
-          {!kFlip
-            ?<div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
-              <div style={{fontSize:100,lineHeight:1,marginBottom:16}}>{ch}</div>
+        {/* Before flip: big character with faint ghost hint */}
+        {!kFlip
+          ?<div onClick={()=>setKFlip(true)} style={{...card,textAlign:"center",cursor:"pointer",padding:"52px 24px",position:"relative",overflow:"hidden",border:"1px solid "+c.b,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+            {m&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:160,opacity:0.06,pointerEvents:"none",lineHeight:1,userSelect:"none",filter:"blur(3px)"}}>{m[0]}</div>}
+            <div style={{position:"relative",zIndex:1}}>
+              <div style={{fontSize:110,lineHeight:1,marginBottom:16}}>{ch}</div>
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
-            :<div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",width:"100%"}}>
-              <div style={{fontSize:80,lineHeight:1,marginBottom:4}}>{ch}</div>
-              <div style={{fontSize:32,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:16}}>{rom}</div>
-              {m&&<div style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:c.s2,borderRadius:12,border:"1px solid "+c.b,textAlign:"left",width:"100%",boxSizing:"border-box"}}>
-                <span style={{fontSize:40,flexShrink:0}}>{m[0]}</span>
-                <div>
-                  <div style={{fontSize:14,fontWeight:600,color:c.tx,marginBottom:3}}>{m[1]}</div>
-                  <div style={{fontSize:12,color:c.m,fontStyle:"italic",lineHeight:1.5}}>{m[2]}</div>
-                </div>
-              </div>}
-              <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m,ch,rom)}</div>
+          </div>
+          /* After flip: clean layout, no ghost — emoji lives in the mnemonic card */
+          :<div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div style={{...card,textAlign:"center",padding:"28px 24px",border:"1px solid "+c.a+"60"}}>
+              <div style={{fontSize:88,lineHeight:1,marginBottom:6}}>{ch}</div>
+              <div style={{fontSize:34,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+              <div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}</div>
+            </div>
+            {m&&<div style={{...card,display:"flex",alignItems:"center",gap:16,padding:"16px 18px",border:"1px solid "+c.b}}>
+              <span style={{fontSize:44,flexShrink:0}}>{m[0]}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
+                <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
+              </div>
+              {storyBtn(m,ch,rom)}
             </div>}
-        </div>
+          </div>}
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
@@ -1014,7 +1068,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <div style={{fontSize:26}}>🎌</div>
           <div>
-            <div style={{fontSize:16,fontWeight:700}}>Sensei{profile.name?` · ${profile.name}`:""}</div>
+            <div style={{fontSize:16,fontWeight:700}}>Senpai{profile.name?` · ${profile.name}`:""}</div>
             <div style={{fontSize:11,color:c.m}}>AI Japanese tutor · {data.streak||1} day streak</div>
           </div>
         </div>
@@ -1023,7 +1077,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       <div style={{flex:1,overflow:"auto",padding:"20px 24px"}}>
         {msgs.length===0&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60%",textAlign:"center",padding:"40px 20px"}}>
           <div style={{fontSize:52,marginBottom:16}}>🎌</div>
-          <div style={{fontSize:18,fontWeight:600,marginBottom:6}}>Hey{profile.name?`, ${profile.name}`:""}. I'm your Sensei.</div>
+          <div style={{fontSize:18,fontWeight:600,marginBottom:6}}>Hey{profile.name?`, ${profile.name}`:""}. I'm your Senpai.</div>
           <div style={{fontSize:13,color:c.m,marginBottom:24,lineHeight:1.6}}>I know your progress and trip details.</div>
           {/* Role-play scenarios */}
           <div style={{width:"100%",maxWidth:460,marginBottom:20}}>
@@ -1075,7 +1129,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       <div style={{padding:"12px 24px",borderTop:"1px solid "+c.b,paddingBottom:"max(14px, env(safe-area-inset-bottom))",background:c.bg}}>
         <div style={{maxWidth:chatW,margin:"0 auto",display:"flex",gap:8}}>
           <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
-            placeholder="Ask sensei..." style={{flex:1,padding:"11px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
+            placeholder="Ask senpai..." style={{flex:1,padding:"11px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
           <button onClick={()=>sendToSensei()} disabled={!chatIn.trim()||loading} style={{...btn,padding:"11px 20px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
         </div>
       </div>
@@ -1231,7 +1285,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           {onboardStep===2&&(
             <div>
               <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>Anything else to know?</div>
-              <div style={{fontSize:14,color:c.m,marginBottom:20}}>Optional — helps your Sensei give better answers.</div>
+              <div style={{fontSize:14,color:c.m,marginBottom:20}}>Optional — helps your Senpai give better answers.</div>
               {ans.why==="travel"&&(
                 <div style={{marginBottom:16}}>
                   <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Trip date (optional)</div>
@@ -1278,7 +1332,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Trip date (optional)</div>
         <input type="date" value={data.onboarding?.tripDate||""} onChange={e=>save({onboarding:{...data.onboarding,tripDate:e.target.value}})}
           style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:12,boxSizing:"border-box"}}/>
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Extra context for Sensei</div>
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Extra context for Senpai</div>
         <textarea value={profile.notes} onChange={e=>saveProfile({notes:e.target.value.slice(0,200)})} placeholder="e.g. vegetarian, solo traveller, interested in anime, need business phrases..."
           rows={2} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
         <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
@@ -1297,7 +1351,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   );
 
   // ═══ RENDER ═══
-  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Sensei"}];
+  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"}];
   const handleTabClick=(id)=>{
     setTab(id);
     if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);setFastTrack(false);}
