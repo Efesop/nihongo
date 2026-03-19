@@ -1,0 +1,596 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+
+// ═══ STORAGE HELPERS (localStorage for standalone deployment) ═══
+const store = {
+  get: (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} },
+  del: (key) => { try { localStorage.removeItem(key); } catch(e) {} },
+};
+
+// ═══ KANA MNEMONICS (JapanesePod101) ═══
+const M = {
+"あ":["🍎","Apple","Cross stroke = stem, loop = apple shape"],
+"い":["🔤","Two i's side by side","Two vertical strokes like i i"],
+"う":["🥊","Boxer punched — uu!","Top = fist, curve = doubling over"],
+"え":["🥷","Energetic ninja","Dynamic fighting pose"],
+"お":["🛸","UFO — oh!","Or face saying oh with x eyes"],
+"か":["🔪","Blade cutting stick","Diagonal = blade, vertical = stick"],
+"き":["🔑","Key","Horizontals = teeth, vertical = shaft"],
+"く":["🐦","Cuckoo's beak","Angle = beak opening, ku-koo!"],
+"け":["🪣","Keg","First stroke = cane leaning on keg"],
+"こ":["🐟","Two koi fish","Two horizontals like fish swimming"],
+"さ":["😏","Sneaky grin — sa-neaky!","Strokes form a sly face"],
+"し":["🎣","Fishing hook — fi-SHI-ng","Single swooping curve = hook"],
+"す":["🌀","Spiral straw — su-piral","Or curly Sue"],
+"せ":["🗣️","Mouth about to say — se-y","Or sensei speaking"],
+"そ":["🧵","Sewing stitch — so-so","50/50 fraction = so-so"],
+"た":["🔤","Letters t + a = ta!","Cross = T, curve = A"],
+"ち":["📣","Cheerleader — chi-eer!","Looks like 5, groups of 5"],
+"つ":["🌊","Tsunami wave","Curling stroke or sideways U"],
+"て":["🐾","Tail + letter T","te-il = tail"],
+"と":["🌪️","Tornado","Funny stalk on TOp"],
+"な":["🪢","Knot — kna-t","Or X for nah + tongue out"],
+"に":["🦵","Knee","Elongated n + sideways i"],
+"ぬ":["🍜","Chopsticks + noodles","See n + angular u"],
+"ね":["🐌","Snail behind nail","Extra hoop = NE not RE"],
+"の":["🚫","No sign","n + o in one swirl"],
+"は":["🔤","Capital H + little a","Has hoop, け does not"],
+"ひ":["😁","Smiling mouth — hihihi!","Big grinning mouth"],
+"ふ":["🗻","Mount Fuji","Or nose blowing foooo"],
+"へ":["⬆️","Arrow to heaven — he","Angled line pointing up"],
+"ほ":["🐴","Horse face with mane","2 HOrizontal lines vs は's 1"],
+"ま":["🎵","Musical note — ma-usic","Or man with mask"],
+"み":["🎶","I + i joined — Mi and mi","Or quaver note do-re-MI"],
+"む":["🐄","Cow — mooo!","Clown imitating animals"],
+"め":["🥨","Pretzel","Chopsticks drop hoop = MEss"],
+"も":["⛵","Sailboat","Or monitor lizard"],
+"ら":["📣","Rah rah rah!","Like ち but spread out"],
+"り":["🏞️","River","Right stroke longer than い"],
+"る":["💎","Hand holding ruby","Loop = ruby being held"],
+"れ":["🦌","Reindeer","Strokes form reindeer"],
+"ろ":["🚣","Row your boat — looks like 3","る got RObbed, no ruby"],
+"や":["🦒","Yak or giraffe — yaaa!","Animal with long neck"],
+"ゆ":["🦄","Unicorn","Or finger pointing at YOU"],
+"よ":["🪀","Yo-yo on string","Y without the cup"],
+"わ":["🐕","Dog wagging tail — wa!","Or white swan"],
+"を":["🧱","Crack in wall — woah!","Only used as particle"],
+"ん":["🔤","Elongated n","Single curve like letter n"],
+"ア":["🪓","Axe","Angular blade + handle"],
+"イ":["🎨","Easel","Two strokes like easel legs"],
+"ウ":["👒","Angular う — beret hat","Connected angular version"],
+"エ":["🛗","Elevator doors","Frame + where doors meet"],
+"オ":["🎤","Opera singer — Ohhhh!","Mouth shaped like O"],
+"カ":["🔪","Angular か","Same blade, sharper"],
+"キ":["🔑","き without bottom","Same key, less curve"],
+"ク":["🐦","Cuckoo's tail","Tail feathers"],
+"ケ":["🔤","Sideways K — ke!","Looks like T? Must be Ke"],
+"コ":["📐","Corner — ko-rner","Two right angles"],
+"サ":["🐎","Saddle","Strokes = saddle on horse"],
+"シ":["🚢","Sinking ship smiley","Dots + curve going down"],
+"ス":["⛷️","Skiing figure — su-ki","Angled = skiing downhill"],
+"セ":["🗣️","Like せ — sensei","Angular mouth shape"],
+"ソ":["🍦","Softserve — slimmer than ン","SO slim + one-eyed smiley"],
+"タ":["📱","Person holding tablet","Gripping a tablet"],
+"チ":["🐔","Chicken — chi-cken","Looks nothing like one!"],
+"ツ":["🌊","Three tsunami drops","Like シ but different direction"],
+"テ":["📞","Telephone pole","Wires on a pole"],
+"ト":["🚪","Totem pole","Vertical + short horizontal"],
+"ナ":["🔪","Knife — na-ife","Sword cross at top"],
+"ニ":["2️⃣","Two lines = ni = 2!","Easiest one"],
+"ヌ":["🪢","Noose — nu-se","Loop + cross"],
+"ネ":["🪺","Nest","Twigs woven together"],
+"ノ":["🚫","No slash","Single diagonal stroke"],
+"ハ":["🏠","House — ha-us","Roof spreading out"],
+"ヒ":["👠","Heel — hi-el","Small t = small tea + heels"],
+"フ":["🦶","Foot tip — foo","U on its side"],
+"ヘ":["⛰️","Same as へ — identical!","Same in both scripts"],
+"ホ":["✝️","Holy cross shining","Cross + rays of light"],
+"マ":["🦈","Manta ray — ma-nta","Wing sweeping through water"],
+"ミ":["3️⃣","Three lines — mi-ddle","Three horizontal strokes"],
+"ム":["🫎","Moose antlers — mu-se","Angular antler shape"],
+"メ":["💌","Mail letter — me-il","X = back of envelope"],
+"モ":["⛵","Like も — same shape","Angular sailboat"],
+"ヤ":["🐐","Angular や","Sharp yak"],
+"ユ":["🔭","U-boat periscope","Or sideways U"],
+"ヨ":["🥚","Backwards E — egg yolk","E for Egg, YOlk = Yo"],
+"ラ":["🪑","Rack / rocking chair","Simple chair shape"],
+"リ":["🏞️","Like り — river","Flowing water strokes"],
+"ル":["🌳","Tree root — ru-t","Two strokes = roots"],
+"レ":["🪒","Razor edge — re-zor","Curve = blade edge"],
+"ロ":["🤖","Robot mouth — ro-bot","Rectangle = mouth"],
+"ワ":["🍷","Wine glass — wa-ine","Angular curve = glass"],
+"ヲ":["🏆","Trophy — wo!","Wine glass + extra stroke"],
+"ン":["🛸","Spacecraft entering — wider than ソ","ン wider, ソ slimmer"],
+};
+
+const H_GROUPS = [
+{n:"Vowels",c:["あ","い","う","え","お"]},{n:"K",c:["か","き","く","け","こ"]},
+{n:"S",c:["さ","し","す","せ","そ"]},{n:"T",c:["た","ち","つ","て","と"]},
+{n:"N",c:["な","に","ぬ","ね","の"]},{n:"H",c:["は","ひ","ふ","へ","ほ"]},
+{n:"M",c:["ま","み","む","め","も"]},{n:"Y",c:["や","ゆ","よ"]},
+{n:"R",c:["ら","り","る","れ","ろ"]},{n:"W+N",c:["わ","を","ん"]},
+];
+const K_GROUPS = [
+{n:"Vowels",c:["ア","イ","ウ","エ","オ"]},{n:"K",c:["カ","キ","ク","ケ","コ"]},
+{n:"S",c:["サ","シ","ス","セ","ソ"]},{n:"T",c:["タ","チ","ツ","テ","ト"]},
+{n:"N",c:["ナ","ニ","ヌ","ネ","ノ"]},{n:"H",c:["ハ","ヒ","フ","ヘ","ホ"]},
+{n:"M",c:["マ","ミ","ム","メ","モ"]},{n:"Y",c:["ヤ","ユ","ヨ"]},
+{n:"R",c:["ラ","リ","ル","レ","ロ"]},{n:"W+N",c:["ワ","ヲ","ン"]},
+];
+
+const ROMAJI={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o","カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko","サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so","タ":"ta","チ":"chi","ツ":"tsu","テ":"te","ト":"to","ナ":"na","ニ":"ni","ヌ":"nu","ネ":"ne","ノ":"no","ハ":"ha","ヒ":"hi","フ":"fu","ヘ":"he","ホ":"ho","マ":"ma","ミ":"mi","ム":"mu","メ":"me","モ":"mo","ヤ":"ya","ユ":"yu","ヨ":"yo","ラ":"ra","リ":"ri","ル":"ru","レ":"re","ロ":"ro","ワ":"wa","ヲ":"wo","ン":"n"};
+
+const PHRASES = [
+["g1","こんにちは","kon-ni-chi-wa","Hello (daytime)","greet","Most universal greeting"],
+["g2","おはようございます","o-ha-you go-zai-ma-su","Good morning (polite)","greet","Use before ~10am"],
+["g3","こんばんは","kon-ban-wa","Good evening","greet","Use after sunset"],
+["g4","ありがとうございます","a-ri-ga-tou go-zai-ma-su","Thank you (polite)","greet","Use this version with strangers"],
+["g5","すみません","su-mi-ma-sen","Excuse me / sorry","greet","Swiss army knife phrase"],
+["g6","はい","hai","Yes","greet","Nod slightly when saying it"],
+["g7","いいえ","ii-e","No","greet","Can sound blunt — use daijoubu desu instead"],
+["g8","おねがいします","o-ne-gai-shi-ma-su","Please","greet","Add after any request"],
+["g9","だいじょうぶです","dai-jou-bu de-su","I'm fine / no thank you","greet","Polite way to decline"],
+["g10","さようなら","sa-you-na-ra","Goodbye (formal)","greet","For when you won't see them again soon"],
+["f1","これをください","ko-re o ku-da-sai","This one please","food","Point at menu + say this"],
+["f2","おかんじょうおねがいします","o-kan-jou o-ne-gai-shi-ma-su","Bill please","food","Or gesture writing in air"],
+["f3","みずをください","mi-zu o ku-da-sai","Water please","food","Water is free at restaurants"],
+["f4","おいしいです","oi-shii de-su","It's delicious","food","Staff love hearing this"],
+["f5","いただきます","i-ta-da-ki-ma-su","(Before eating)","food","Say before every meal"],
+["f6","ごちそうさまでした","go-chi-sou-sa-ma de-shi-ta","(After eating)","food","Thanks for the meal — say when leaving"],
+["f7","おすすめはなんですか","o-su-su-me wa nan de-su ka","What do you recommend?","food","Great for trying local specialties"],
+["f8","ひとりです","hi-to-ri de-su","One person","food","When entering, say party size"],
+["f9","ふたりです","fu-ta-ri de-su","Two people","food","For when you're with someone"],
+["f10","アレルギーがあります","a-re-ru-gii ga a-ri-ma-su","I have allergies","food","Follow with the allergen name"],
+["t1","...えきはどこですか","...e-ki wa do-ko de-su ka","Where is ... station?","train","Insert station name before えき"],
+["t2","...までいくらですか","...ma-de i-ku-ra de-su ka","How much to ...?","train","For buying tickets"],
+["t3","つぎのえきはなんですか","tsu-gi no e-ki wa nan de-su ka","What's the next station?","train","Useful on trains"],
+["t4","のりかえはどこですか","no-ri-ka-e wa do-ko de-su ka","Where do I transfer?","train","For complex routes"],
+["t5","...までおねがいします","...ma-de o-ne-gai-shi-ma-su","To ... please (taxi)","train","Give destination to taxi driver"],
+["t6","ここでおろしてください","ko-ko de o-ro-shi-te ku-da-sai","Let me off here please","train","For taxis"],
+["t7","スイカ / パスモ","sui-ka / pa-su-mo","IC transit cards","train","Tap on/off at gates"],
+["t8","しゅうでんはなんじですか","shuu-den wa nan-ji de-su ka","When is the last train?","train","Critical for nightlife"],
+["h1","チェックインおねがいします","chek-ku-in o-ne-gai-shi-ma-su","Check in please","hotel","Hand over passport with this"],
+["h2","よやくがあります","yo-ya-ku ga a-ri-ma-su","I have a reservation","hotel","Follow with your name"],
+["h3","チェックアウトはなんじですか","chek-ku-au-to wa nan-ji de-su ka","What time is checkout?","hotel","Usually 10-11am"],
+["h4","WiFiのパスワードはなんですか","wai-fai no pa-su-waa-do wa nan de-su ka","What's the WiFi password?","hotel","Most hotels have free WiFi"],
+["h5","かぎ","ka-gi","Key","hotel","If you need a room key"],
+["h6","もういっぱくおねがいします","mou ip-pa-ku o-ne-gai-shi-ma-su","One more night please","hotel","To extend your stay"],
+["s1","これはいくらですか","ko-re wa i-ku-ra de-su ka","How much is this?","shop","Point at item"],
+["s2","ふくろはいらないです","fu-ku-ro wa i-ra-nai de-su","I don't need a bag","shop","Bags cost extra in Japan"],
+["s3","カードでおねがいします","kaa-do de o-ne-gai-shi-ma-su","By card please","shop","Most places take IC cards"],
+["s4","げんきんでおねがいします","gen-kin de o-ne-gai-shi-ma-su","Cash please","shop","Japan is still very cash-friendly"],
+["s5","あたためますか？","a-ta-ta-me-ma-su ka","Shall I heat it up?","shop","Conbini staff ask this for bento"],
+["s6","これをふたつください","ko-re o fu-ta-tsu ku-da-sai","Two of these please","shop","Point + quantity"],
+["s7","レシートはいらないです","re-shii-to wa i-ra-nai de-su","No receipt needed","shop","Common at convenience stores"],
+["d1","...はどこですか","...wa do-ko de-su ka","Where is ...?","dir","Universal direction question"],
+["d2","みぎ","mi-gi","Right","dir",""],
+["d3","ひだり","hi-da-ri","Left","dir",""],
+["d4","まっすぐ","mas-su-gu","Straight ahead","dir",""],
+["d5","ちかいですか","chi-kai de-su ka","Is it close?","dir","Good follow-up"],
+["d6","あるいていけますか","a-ru-i-te i-ke-ma-su ka","Can I walk there?","dir","Walk vs taxi decision"],
+["d7","ちずをみせてください","chi-zu o mi-se-te ku-da-sai","Show me on the map please","dir","Hand them your phone"],
+["d8","トイレはどこですか","toi-re wa do-ko de-su ka","Where is the toilet?","dir","Essential"],
+["e1","たすけてください","ta-su-ke-te ku-da-sai","Help me please","sos","For emergencies"],
+["e2","びょういんはどこですか","byou-in wa do-ko de-su ka","Where is the hospital?","sos",""],
+["e3","けいさつをよんでください","kei-sa-tsu o yon-de ku-da-sai","Please call the police","sos","Emergency: 110"],
+["e4","えいごをはなせますか","ei-go o ha-na-se-ma-su ka","Do you speak English?","sos","Try in tourist areas"],
+["e5","にほんごがわかりません","ni-hon-go ga wa-ka-ri-ma-sen","I don't understand Japanese","sos","Signal language barrier"],
+["e6","もういちどいってください","mou i-chi-do it-te ku-da-sai","Please say that again","sos","When someone speaks too fast"],
+];
+
+const CATS={greet:"Greetings",food:"Restaurants",train:"Transport",hotel:"Hotels",shop:"Shopping",dir:"Directions",sos:"Emergencies"};
+const CAT_ICONS={greet:"👋",food:"🍜",train:"🚃",hotel:"🏨",shop:"🏪",dir:"🗺️",sos:"🆘"};
+const SRS_DAYS=[0,0.5,1,3,7,14];
+const KEY="nihongo-v4";
+const TRIP=new Date("2026-05-15");
+
+const font='"Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
+const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
+const c={bg:"#131316",s:"#1c1c21",s2:"#25252b",s3:"#2f2f37",b:"#38383f",tx:"#e8e6e3",m:"#8a8a8e",a:"#c45d4c",as:"rgba(196,93,76,.15)",g:"#5a9e6f",gs:"rgba(90,158,111,.15)",r:"#c45d4c",rs:"rgba(196,93,76,.12)",go:"#c4a24c",bl:"#5a8ec4"};
+
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
+function daysLeft(){return Math.max(0,Math.ceil((TRIP-Date.now())/(864e5)));}
+
+export default function App(){
+  const [tab,setTab]=useState("home");
+  const [d,setD]=useState(null);
+  const [loaded,setLoaded]=useState(false);
+  const [kScript,setKScript]=useState("h");
+  const [kSel,setKSel]=useState([0]);
+  const [kScreen,setKScreen]=useState("menu");
+  const [kCards,setKCards]=useState([]);
+  const [kI,setKI]=useState(0);
+  const [kInput,setKInput]=useState("");
+  const [kFb,setKFb]=useState(null);
+  const [kScore,setKScore]=useState({c:0,w:0});
+  const [kMistakes,setKMistakes]=useState([]);
+  const [kPeek,setKPeek]=useState(false);
+  const [kFlip,setKFlip]=useState(false);
+  const [kLI,setKLI]=useState(0);
+  const [pCat,setPCat]=useState(null);
+  const [pMode,setPMode]=useState("browse");
+  const [pCards,setPCards]=useState([]);
+  const [pI,setPI]=useState(0);
+  const [pFlip,setPFlip]=useState(false);
+  const [pDone,setPDone]=useState(false);
+  const [msgs,setMsgs]=useState([]);
+  const [chatIn,setChatIn]=useState("");
+  const [loading,setLoading]=useState(false);
+  const inputRef=useRef(null);
+  const chatEndRef=useRef(null);
+
+  useEffect(()=>{
+    const saved = store.get(KEY);
+    if(saved) setD(saved);
+    setLoaded(true);
+  },[]);
+
+  const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,started:new Date().toISOString()});
+  const data=d||defaultD();
+
+  const save=useCallback((u={})=>{
+    const nd={...data,...u};
+    setD(nd);
+    store.set(KEY,nd);
+  },[data]);
+
+  useEffect(()=>{
+    if(kScreen==="quiz"&&!kFb&&inputRef.current)inputRef.current.focus();
+  },[kI,kFb,kScreen]);
+
+  useEffect(()=>{
+    if(chatEndRef.current)chatEndRef.current.scrollIntoView({behavior:"smooth"});
+  },[msgs]);
+
+  const groups=kScript==="h"?H_GROUPS:K_GROUPS;
+  const allKana=kSel.flatMap(i=>groups[i]?.c||[]);
+  const kMastered=Object.entries(data.kana).filter(([_,v])=>v>=3).length;
+  const getPhrBox=(id)=>data.phr[id]?.box||0;
+  const isPhrDue=(id)=>Date.now()>=(data.phr[id]?.next||0);
+  const dueCount=PHRASES.filter(p=>isPhrDue(p[0])).length;
+  const learnedPhr=Object.keys(data.phr).length;
+
+  const reviewPhr=(id,correct)=>{
+    const cur=data.phr[id]||{box:0,next:0};
+    const newBox=correct?Math.min(cur.box+1,5):0;
+    const nextMs=Date.now()+SRS_DAYS[newBox]*864e5;
+    const np={...data.phr,[id]:{box:newBox,next:nextMs}};
+    save({phr:np,totalC:correct?data.totalC+1:data.totalC});
+  };
+
+  const startKanaQuiz=()=>{
+    setKCards(shuffle(allKana));setKI(0);setKInput("");setKFb(null);
+    setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
+  };
+
+  const submitKana=()=>{
+    if(kFb||!kInput.trim())return;
+    const ch=kCards[kI];const rom=ROMAJI[ch];
+    const ok=kInput.trim().toLowerCase()===rom;
+    const nk={...data.kana};
+    if(ok){setKFb("ok");setKScore(s=>({...s,c:s.c+1}));nk[ch]=(nk[ch]||0)+1;}
+    else{setKFb("no");setKScore(s=>({...s,w:s.w+1}));setKMistakes(m=>[...m,{ch,rom,ans:kInput.trim()}]);nk[ch]=0;}
+    save({kana:nk});
+  };
+
+  const nextKana=()=>{
+    if(kI+1>=kCards.length){setKScreen("results");save({sessions:data.sessions+1});}
+    else{setKI(kI+1);setKInput("");setKFb(null);setKPeek(false);}
+  };
+
+  const sendToSensei=async()=>{
+    if(!chatIn.trim()||loading)return;
+    const userMsg={role:"user",content:chatIn.trim()};
+    const newMsgs=[...msgs,userMsg];
+    setMsgs(newMsgs);setChatIn("");setLoading(true);
+
+    const hMastered=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x3040&&k.charCodeAt(0)<=0x309F).filter(([_,v])=>v>=3).length;
+    const kaMastered=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x30A0&&k.charCodeAt(0)<=0x30FF).filter(([_,v])=>v>=3).length;
+
+    const sysPrompt=`You are Sensei, a Japanese tutor embedded in a learning app for a user traveling to Japan.
+
+TRIP: Flying Chiang Mai to Osaka May 15 2026 (${daysLeft()} days away). 26 days in Japan: Osaka first, then Tokyo. Mix of food, culture, transport, exploring.
+
+PROGRESS: Hiragana ${hMastered}/46 mastered. Katakana ${kaMastered}/46 mastered. Phrases ${learnedPhr}/${PHRASES.length} learned. ${dueCount} phrases due for review.
+
+RULES:
+- Plain English, no jargon
+- Pronunciations with syllable breaks using dashes (e.g. su-mi-ma-sen)
+- Concise and practical, focused on trip usage
+- Roleplay scenarios fully when asked (you play the Japanese speaker)
+- Give cultural context naturally
+- Adapt difficulty to progress shown above
+- Short focused responses, this is a chat not an essay
+- Never use em dashes or special characters in prose`;
+
+    try{
+      const response=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({system:sysPrompt,messages:newMsgs.slice(-20)})
+      });
+      const json=await response.json();
+      const reply=json.content?.map(c=>c.text||"").join("\n")||json.error||"Couldn't get a response. Check your API key is set.";
+      setMsgs([...newMsgs,{role:"assistant",content:reply}]);
+    }catch(e){
+      setMsgs([...newMsgs,{role:"assistant",content:"Connection error. Make sure ANTHROPIC_API_KEY is set in Vercel environment variables."}]);
+    }
+    setLoading(false);
+  };
+
+  const card={background:c.s,border:"1px solid "+c.b,borderRadius:12,padding:16};
+  const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
+  const tabBtn=(active)=>({...btn,flex:1,padding:"10px 0 8px",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:active?c.a:c.m,fontSize:10,fontWeight:600});
+  const wrap={fontFamily:font,background:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:70};
+  const inner={maxWidth:520,margin:"0 auto",padding:"24px 16px 32px"};
+
+  if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
+
+  // ═══ HOME ═══
+  const renderHome=()=>{
+    const dl=daysLeft();const week=Math.min(7,Math.max(1,8-Math.ceil(dl/7)));
+    const kanaPct=Math.round(kMastered/92*100);const phrPct=Math.round(learnedPhr/PHRASES.length*100);
+    return <div style={inner}>
+      <div style={{marginBottom:24}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>日本語 Journey</div>
+        <h1 style={{fontSize:28,fontWeight:700,margin:0}}>Week {week} of 7</h1>
+        <div style={{fontSize:13,color:c.m,marginTop:4}}>{dl} days until Japan</div>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        {[{l:"Kana",v:kanaPct+"%",cl:c.a},{l:"Phrases",v:phrPct+"%",cl:c.g},{l:"Due",v:dueCount,cl:dueCount>0?c.go:c.m}].map((s,i)=>
+          <div key={i} style={{flex:1,...card,padding:"12px 10px",textAlign:"center"}}>
+            <div style={{fontSize:22,fontWeight:800,fontFamily:mono,color:s.cl}}>{s.v}</div>
+            <div style={{fontSize:10,color:c.m,marginTop:2}}>{s.l}</div>
+          </div>
+        )}
+      </div>
+      {[
+        {icon:"📚",title:"Study Now",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
+        {icon:"あ",title:"Kana Practice",desc:`${kMastered}/92 mastered`,action:()=>{setTab("kana");setKScreen("menu");}},
+        {icon:"🎌",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
+      ].map((item,i)=>
+        <div key={i} onClick={item.action} style={{...card,marginBottom:10,cursor:"pointer",padding:14}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><div style={{fontSize:15,fontWeight:600}}>{item.icon} {item.title}</div><div style={{fontSize:12,color:c.m,marginTop:2}}>{item.desc}</div></div>
+            <div style={{fontSize:18,color:c.m}}>→</div>
+          </div>
+        </div>
+      )}
+      <div style={{...card,marginTop:6}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:10}}>Progress by scenario</div>
+        {Object.entries(CATS).map(([k,v])=>{
+          const total=PHRASES.filter(p=>p[4]===k).length;
+          const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
+          const pct=Math.round(done/total*100);
+          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <span style={{fontSize:16,width:24}}>{CAT_ICONS[k]}</span>
+            <span style={{fontSize:13,flex:1}}>{v}</span>
+            <div style={{width:80,height:6,background:c.s3,borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",width:pct+"%",background:pct>=80?c.g:pct>=40?c.go:c.a,borderRadius:3}}/>
+            </div>
+            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:32,textAlign:"right"}}>{done}/{total}</span>
+          </div>;
+        })}
+      </div>
+    </div>;
+  };
+
+  // ═══ KANA ═══
+  const renderKana=()=>{
+    if(kScreen==="learn"){
+      const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
+      return <div style={inner}>
+        <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:16}}>← back</button>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:6}}>{kLI+1}/{chars.length}</div>
+        <div style={{height:3,background:c.b,borderRadius:2,marginBottom:24,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,transition:"width .3s"}}/></div>
+        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"36px 20px",minHeight:240,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",border:"1px solid "+(kFlip?c.a+"60":c.b)}}>
+          {!kFlip?<><div style={{fontSize:88,lineHeight:1,marginBottom:12}}>{ch}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
+          :<><div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
+            <div style={{fontSize:64,lineHeight:1}}>{ch}</div>{m&&<div style={{fontSize:40}}>{m[0]}</div>}
+          </div>
+          <div style={{fontSize:28,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:6}}>{rom}</div>
+          {m&&<><div style={{fontSize:14,color:c.tx,marginBottom:3}}>{m[1]}</div><div style={{fontSize:11,color:c.m,fontStyle:"italic"}}>{m[2]}</div></>}</>}
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:20}}>
+          <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:12,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
+          {kLI<chars.length-1?<button onClick={()=>{setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:12,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
+          :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:12,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>⚡ Quiz</button>}
+        </div>
+      </div>;
+    }
+    if(kScreen==="quiz"){
+      const ch=kCards[kI];const rom=ROMAJI[ch];const m=M[ch];
+      const prog=kCards.length>0?((kI+(kFb?1:0))/kCards.length*100):0;
+      return <div style={inner}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
+          <div style={{fontFamily:mono,fontSize:12,color:c.m}}><span style={{color:c.g}}>{kScore.c}</span>{" / "}<span style={{color:c.r}}>{kScore.w}</span></div>
+        </div>
+        <div style={{height:3,background:c.b,borderRadius:2,marginBottom:32,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,transition:"width .3s"}}/></div>
+        <div style={{textAlign:"center",marginBottom:kFb?6:24}}>
+          <div style={{fontSize:100,lineHeight:1,marginBottom:8,color:kFb==="ok"?c.g:kFb==="no"?c.r:c.tx}}>{ch}</div>
+          <div style={{fontSize:12,fontFamily:mono,color:c.m}}>{kI+1} of {kCards.length}</div>
+        </div>
+        {!kFb?<>
+          <div style={{display:"flex",gap:8}}>
+            <input ref={inputRef} value={kInput} onChange={e=>setKInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")submitKana();}}
+              placeholder="romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+              style={{flex:1,padding:"12px 14px",borderRadius:10,border:"1px solid "+c.b,background:c.s,color:c.tx,fontFamily:mono,fontSize:18,outline:"none",textAlign:"center"}}/>
+            <button onClick={submitKana} style={{...btn,padding:"12px 20px",borderRadius:10,background:kInput.trim()?c.a:c.b,color:kInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go</button>
+          </div>
+          <button onClick={()=>setKPeek(!kPeek)} style={{...btn,display:"block",margin:"12px auto 0",background:"none",color:c.m,fontFamily:mono,fontSize:11,opacity:.6}}>{kPeek?`"${rom}"`:"peek"}</button>
+        </>:<>
+          <div style={{...card,textAlign:"center",marginTop:12,background:kFb==="ok"?c.gs:c.rs,border:"1px solid "+(kFb==="ok"?c.g+"40":c.r+"40")}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:8}}>
+              <span style={{fontSize:44}}>{ch}</span>{m&&<span style={{fontSize:28}}>{m[0]}</span>}
+            </div>
+            <div style={{fontFamily:mono,fontSize:20,fontWeight:700,color:kFb==="ok"?c.g:c.a}}>{rom}</div>
+            {m&&<div style={{fontSize:13,color:c.tx,marginTop:4}}>{m[1]}</div>}
+            {kFb==="no"&&<div style={{fontSize:12,color:c.m,marginTop:4}}>you typed: <span style={{color:c.r,textDecoration:"line-through"}}>{kInput}</span></div>}
+          </div>
+          <button onClick={nextKana} style={{...btn,width:"100%",padding:12,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"Results":"Next →"}</button>
+        </>}
+      </div>;
+    }
+    if(kScreen==="results"){
+      const pct=kCards.length>0?Math.round(kScore.c/kCards.length*100):0;
+      return <div style={inner}>
+        <div style={{textAlign:"center",marginBottom:24}}>
+          <div style={{fontSize:56,marginBottom:12}}>{pct>=90?"🎌":pct>=70?"📖":"🔄"}</div>
+          <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 4px"}}>{pct>=90?"Excellent!":pct>=70?"Good progress":"Keep going"}</h2>
+          <div style={{fontSize:40,fontWeight:800,fontFamily:mono,color:pct>=70?c.g:c.go}}>{pct}%</div>
+        </div>
+        {kMistakes.length>0&&<div style={{...card,marginBottom:16}}>
+          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:8}}>Review</div>
+          {kMistakes.map((m,i)=>{const mn=M[m.ch];return <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<kMistakes.length-1?"1px solid "+c.b:"none"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:24}}>{m.ch}</span>{mn&&<span>{mn[0]}</span>}<span style={{fontFamily:mono,fontWeight:700,color:c.g}}>{m.rom}</span></div>
+            <span style={{fontFamily:mono,fontSize:12,color:c.r,textDecoration:"line-through"}}>{m.ans}</span>
+          </div>;})}
+        </div>}
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={()=>setKScreen("menu")} style={{...btn,flex:1,padding:12,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Back</button>
+          <button onClick={()=>{if(kMistakes.length>0){setKCards(shuffle(kMistakes.map(m=>m.ch)));setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKScreen("quiz");}else startKanaQuiz();}} style={{...btn,flex:1,padding:12,borderRadius:10,background:kMistakes.length?c.go:c.a,color:kMistakes.length?"#1a1a1c":"#fff",fontSize:14,fontWeight:600}}>{kMistakes.length?"🔄 Retry":"⚡ Again"}</button>
+        </div>
+      </div>;
+    }
+    return <div style={inner}>
+      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Kana Trainer</div>
+      <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 16px"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
+      <div style={{display:"flex",gap:6,marginBottom:16}}>
+        {[["h","ひらがな"],["k","カタカナ"]].map(([s,l])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,flex:1,padding:"8px 0",borderRadius:8,border:"1px solid "+(kScript===s?c.a:c.b),background:kScript===s?c.as:"transparent",color:kScript===s?c.a:c.m,fontSize:13,fontWeight:600}}>{l}</button>)}
+      </div>
+      <div style={{...card,marginBottom:16}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:8,textTransform:"uppercase"}}>Select rows</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>(data.kana[ch]||0)>=3);
+            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:6,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}</button>;
+          })}
+        </div>
+        <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,marginTop:8,padding:"4px 10px",borderRadius:4,border:"1px solid "+c.b,background:"transparent",color:c.m,fontFamily:mono,fontSize:10}}>all</button>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s:c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>📖 Learn ({allKana.length})</button>
+        <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>⚡ Quiz ({allKana.length})</button>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+        {allKana.map((ch,i)=>{const s=data.kana[ch]||0;return <div key={i} style={{width:42,height:42,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:6,background:s>=3?c.gs:c.s2,border:"1px solid "+(s>=3?c.g+"40":c.b),position:"relative"}}>
+          <div style={{fontSize:16,lineHeight:1}}>{ch}</div><div style={{fontSize:8,color:c.m,marginTop:1}}>{ROMAJI[ch]}</div>
+          {s>0&&s<3&&<div style={{position:"absolute",top:1,right:3,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{s}</div>}
+        </div>;})}
+      </div>
+    </div>;
+  };
+
+  // ═══ PHRASES ═══
+  const renderPhrases=()=>{
+    if(pMode==="review"&&!pDone){
+      let reviewable=pCat?PHRASES.filter(p=>p[4]===pCat):PHRASES;
+      let due=reviewable.filter(p=>isPhrDue(p[0]));
+      if(due.length===0)due=reviewable.filter(p=>!data.phr[p[0]]).slice(0,5);
+      if(pCards.length===0&&due.length>0){setPCards(shuffle(due));setPI(0);setPFlip(false);return null;}
+      if(pCards.length===0)return <div style={inner}>
+        <button onClick={()=>{setPMode("browse");setPCards([]);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:16}}>← back</button>
+        <div style={{textAlign:"center",padding:40}}><div style={{fontSize:48,marginBottom:12}}>✅</div><h3 style={{fontSize:20,fontWeight:600}}>All caught up!</h3><div style={{fontSize:13,color:c.m,marginTop:8}}>No phrases due. Check back later.</div></div>
+      </div>;
+      const p=pCards[pI];if(!p){setPDone(true);return null;}
+      return <div style={inner}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+          <button onClick={()=>{setPMode("browse");setPCards([]);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
+          <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{pI+1}/{pCards.length}</div>
+        </div>
+        <div style={{height:3,background:c.b,borderRadius:2,marginBottom:24,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:c.g,transition:"width .3s"}}/></div>
+        <div style={{...card,padding:"32px 20px",textAlign:"center",minHeight:200,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!pFlip?"pointer":"default"}} onClick={()=>!pFlip&&setPFlip(true)}>
+          {!pFlip?<><div style={{fontSize:12,color:c.m,marginBottom:8}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:18,fontWeight:600,marginBottom:12}}>{p[3]}</div><div style={{fontSize:12,color:c.m}}>tap to reveal Japanese</div></>
+          :<><div style={{fontSize:12,color:c.m,marginBottom:6}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:28,fontWeight:700,marginBottom:8,lineHeight:1.3}}>{p[1]}</div><div style={{fontSize:18,fontFamily:mono,color:c.a,marginBottom:6}}>{p[2]}</div><div style={{fontSize:14,color:c.m}}>{p[3]}</div>{p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:4}}>{p[5]}</div>}</>}
+        </div>
+        {pFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
+          <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.r+"40",color:c.r,fontSize:14,fontWeight:600}}>Missed it</button>
+          <button onClick={()=>{reviewPhr(p[0],true);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it!</button>
+        </div>}
+      </div>;
+    }
+    if(pDone)return <div style={inner}>
+      <div style={{textAlign:"center",padding:32}}>
+        <div style={{fontSize:56,marginBottom:12}}>🎉</div><h3 style={{fontSize:22,fontWeight:600,margin:"0 0 8px"}}>Session complete!</h3>
+        <div style={{display:"flex",gap:10,marginTop:20}}>
+          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:12,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
+          <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:12,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>More</button>
+        </div>
+      </div>
+    </div>;
+    if(pCat){
+      const phrases=PHRASES.filter(p=>p[4]===pCat);
+      return <div style={inner}>
+        <button onClick={()=>setPCat(null)} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:12}}>← scenarios</button>
+        <h2 style={{fontSize:20,fontWeight:700,margin:"0 0 16px"}}>{CAT_ICONS[pCat]} {CATS[pCat]}</h2>
+        <button onClick={()=>{setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:12,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600,marginBottom:16}}>📚 Practice</button>
+        {phrases.map((p,i)=>{const box=getPhrBox(p[0]);return <div key={i} style={{...card,marginBottom:8,padding:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{flex:1}}><div style={{fontSize:16,fontWeight:600,marginBottom:2}}>{p[1]}</div><div style={{fontSize:13,fontFamily:mono,color:c.a}}>{p[2]}</div><div style={{fontSize:13,color:c.m,marginTop:2}}>{p[3]}</div></div>
+            <div style={{fontSize:10,fontFamily:mono,padding:"2px 8px",borderRadius:4,background:box>=4?c.gs:box>=1?c.as:"transparent",color:box>=4?c.g:box>=1?c.a:c.m,border:"1px solid "+(box>=4?c.g+"40":box>=1?c.a+"40":c.b)}}>{box>=4?"mastered":box>=1?"learning":"new"}</div>
+          </div>
+        </div>;})}
+      </div>;
+    }
+    return <div style={inner}>
+      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Phrase Bank</div>
+      <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 16px"}}>Scenarios</h2>
+      {dueCount>0&&<button onClick={()=>{setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.go,color:"#1a1a1c",fontSize:15,fontWeight:600,marginBottom:16}}>🔄 Review {dueCount} due</button>}
+      {Object.entries(CATS).map(([k,v])=>{
+        const total=PHRASES.filter(p=>p[4]===k).length;const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
+        return <div key={k} onClick={()=>setPCat(k)} style={{...card,marginBottom:8,padding:14,cursor:"pointer"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:24}}>{CAT_ICONS[k]}</span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600}}>{v}</div><div style={{fontSize:12,color:c.m}}>{done}/{total}</div></div><div style={{color:c.m}}>→</div></div>
+        </div>;
+      })}
+    </div>;
+  };
+
+  // ═══ SENSEI ═══
+  const renderSensei=()=><div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",height:"100vh",paddingBottom:0}}>
+    <div style={{padding:"16px 16px 8px",borderBottom:"1px solid "+c.b}}>
+      <div style={{maxWidth:520,margin:"0 auto",display:"flex",alignItems:"center",gap:10}}>
+        <div style={{fontSize:24}}>🎌</div><div><div style={{fontSize:15,fontWeight:700}}>Sensei</div><div style={{fontSize:11,color:c.m}}>AI Japanese tutor</div></div>
+      </div>
+    </div>
+    <div style={{flex:1,overflow:"auto",padding:16}}>
+      <div style={{maxWidth:520,margin:"0 auto"}}>
+        {msgs.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}>
+          <div style={{fontSize:48,marginBottom:12}}>🎌</div>
+          <div style={{fontSize:15,fontWeight:600,marginBottom:8}}>Hey! I'm your Sensei.</div>
+          <div style={{fontSize:13,color:c.m,marginBottom:20,lineHeight:1.5}}>I know your trip details and progress. Try:</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {["Practice ordering ramen","Roleplay buying a train ticket","Explain how to count","Quiz me on what I've learned"].map((s,i)=>
+              <button key={i} onClick={()=>setChatIn(s)} style={{...btn,padding:"10px 14px",borderRadius:8,background:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left"}}>"{s}"</button>
+            )}
+          </div>
+        </div>}
+        {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:12}}>
+          <div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:12,background:m.role==="user"?c.a+"20":c.s,border:"1px solid "+(m.role==="user"?c.a+"30":c.b),fontSize:14,lineHeight:1.5,whiteSpace:"pre-wrap"}}>{m.content}</div>
+        </div>)}
+        {loading&&<div style={{display:"flex",marginBottom:12}}><div style={{padding:"10px 14px",borderRadius:12,background:c.s,border:"1px solid "+c.b,color:c.m}}>Thinking...</div></div>}
+        <div ref={chatEndRef}/>
+      </div>
+    </div>
+    <div style={{padding:"8px 16px 12px",borderTop:"1px solid "+c.b,paddingBottom:"max(12px, env(safe-area-inset-bottom))",background:c.bg}}>
+      <div style={{maxWidth:520,margin:"0 auto",display:"flex",gap:8}}>
+        <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
+          placeholder="Ask sensei..." style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1px solid "+c.b,background:c.s,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
+        <button onClick={sendToSensei} disabled={!chatIn.trim()||loading} style={{...btn,padding:"10px 16px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
+      </div>
+    </div>
+  </div>;
+
+  // ═══ RENDER ═══
+  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Sensei"}];
+  return <div style={wrap}>
+    {tab==="home"&&renderHome()}
+    {tab==="kana"&&renderKana()}
+    {tab==="phrases"&&renderPhrases()}
+    {tab==="sensei"&&renderSensei()}
+    <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
+      {tabs.map(tb=><button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);}if(tb.id==="kana")setKScreen("menu");}} style={tabBtn(tab===tb.id)}>
+        <span style={{fontSize:18}}>{tb.icon}</span><span>{tb.label}</span>
+      </button>)}
+    </div>
+  </div>;
+}
