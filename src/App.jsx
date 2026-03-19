@@ -751,8 +751,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         </div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:36,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
         <div style={{textAlign:"center",marginBottom:kFb?8:28}}>
-          <div style={{fontSize:108,lineHeight:1,marginBottom:10,color:kFb==="ok"?c.g:kFb==="no"?c.a:c.tx}}>{ch}</div>
-          <div style={{fontSize:12,fontFamily:mono,color:c.m}}>{kI+1} of {kCards.length}</div>
+          <div onClick={()=>speak(ch)} title="Listen" style={{fontSize:108,lineHeight:1,marginBottom:10,color:kFb==="ok"?c.g:kFb==="no"?c.a:c.tx,cursor:"pointer"}}>{ch}</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+            <span style={{fontSize:12,fontFamily:mono,color:c.m}}>{kI+1} of {kCards.length}</span>
+            <button onClick={()=>speak(ch)} style={{...btn,padding:"3px 9px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:11,color:c.m}}>🔊 listen</button>
+          </div>
         </div>
         {!kFb?<>
           <div style={{display:"flex",gap:8}}>
@@ -1281,19 +1284,17 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <span>{tb.label}</span>
             </button>)}
           </div>
-          <div style={{padding:"14px 16px",borderTop:"1px solid "+c.b,display:"flex",alignItems:"center",gap:6}}>
-            <button onClick={toggleTheme} title="Toggle theme"
-              style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:16,color:c.tx}}>
-              {theme==="dark"?"☀️":"🌙"}
+          <div style={{padding:"10px 8px",borderTop:"1px solid "+c.b}}>
+            <button onClick={()=>setShowProfile(true)} style={{...sideTabBtn(false),gap:10,marginBottom:2}}>
+              <span style={{fontSize:15}}>👤</span>
+              <span style={{fontSize:13}}>{profile.name||"Profile"}</span>
+              <div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:syncStatus==="saved"?c.g:syncStatus==="saving"?c.go:syncStatus==="error"?c.a:c.b,transition:"background .3s",flexShrink:0}}/>
             </button>
-            <button onClick={()=>setShowProfile(true)} title="Profile"
-              style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:13,fontWeight:600,color:c.a}}>
-              {profile.name?profile.name[0].toUpperCase():"👤"}
+            <button onClick={toggleTheme} style={{...sideTabBtn(false),gap:10}}>
+              <span style={{fontSize:15}}>{theme==="dark"?"☀️":"🌙"}</span>
+              <span style={{fontSize:13}}>{theme==="dark"?"Light mode":"Dark mode"}</span>
+              {daysUntil(data.onboarding?.tripDate)>0&&<span style={{marginLeft:"auto",fontSize:10,fontFamily:mono,color:c.m,flexShrink:0}}>{daysUntil(data.onboarding?.tripDate)}d</span>}
             </button>
-            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5}}>
-              <div title={syncStatus} style={{width:7,height:7,borderRadius:"50%",background:syncStatus==="saved"?c.g:syncStatus==="saving"?c.go:syncStatus==="error"?c.a:c.b,transition:"background .3s"}}/>
-              {daysUntil(data.onboarding?.tripDate)>0&&<span style={{fontSize:10,fontFamily:mono,color:c.m}}>{daysUntil(data.onboarding?.tripDate)}d</span>}
-            </div>
           </div>
         </div>
       : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
