@@ -29,19 +29,41 @@ const syncSave = async (token, data) => {
   } catch { /* offline — localStorage still holds it */ }
 };
 
-// ═══ TTS — proxied through /api/tts to avoid CORS ═══
+// ═══ TTS — static pre-generated files, fallback to /api/tts proxy ═══
 let _ttsAudio = null;
-const speak = (text, lang="ja-JP") => {
+const _isKana=(ch)=>/^[\u3040-\u30FF]$/.test(ch);
+const _playAudio=(src,rate=1,onEnd=null,onErr=null)=>{
   if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
   if(window.speechSynthesis) window.speechSynthesis.cancel();
+  const a=new Audio(src); a.playbackRate=rate; _ttsAudio=a;
+  if(onEnd) a.onended=onEnd;
+  if(onErr) a.onerror=onErr;
+  return a.play();
+};
+const speak = (text, lang="ja-JP") => {
+  // Single kana char → use pre-generated static file
+  if(lang==="ja-JP"&&_isKana(text)){
+    const cp=text.codePointAt(0).toString(16);
+    _playAudio(`/audio/kana/${cp}.mp3`,1).catch(()=>{
+      const ttsLang="ja";
+      _playAudio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`,0.85).catch(()=>{
+        if(!window.speechSynthesis) return;
+        const u=new SpeechSynthesisUtterance(text); u.lang=lang; u.rate=0.85;
+        window.speechSynthesis.speak(u);
+      });
+    });
+    return;
+  }
   const ttsLang=lang==="ja-JP"?"ja":"en";
-  _ttsAudio=new Audio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`);
-  if(lang==="ja-JP") _ttsAudio.playbackRate=0.85;
-  _ttsAudio.play().catch(()=>{
+  _playAudio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`,lang==="ja-JP"?0.85:1).catch(()=>{
     if(!window.speechSynthesis) return;
-    const u=new SpeechSynthesisUtterance(text);
-    u.lang=lang; u.rate=0.85;
+    const u=new SpeechSynthesisUtterance(text); u.lang=lang; u.rate=0.85;
     window.speechSynthesis.speak(u);
+  });
+};
+const speakPhrase=(id,text)=>{
+  _playAudio(`/audio/phrase/${id}.mp3`,1).catch(()=>{
+    _playAudio(`/api/tts?lang=ja&q=${encodeURIComponent(text)}`,0.85).catch(()=>{});
   });
 };
 
@@ -669,23 +691,38 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
-  const speakStory=(m)=>{
+  const speakStory=(m,ch)=>{
     if(!m) return;
     if(storyPlaying){
       if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
       setStoryPlaying(false);
       return;
     }
+    setStoryPlaying(true);
+    const done=()=>setStoryPlaying(false);
+    // Try static pre-generated story file first
+    if(ch&&_isKana(ch)){
+      const cp=ch.codePointAt(0).toString(16);
+      const a=new Audio(`/audio/story/${cp}.mp3`);
+      a.playbackRate=1.15; _ttsAudio=a;
+      a.onended=done; a.onerror=()=>{
+        // Fallback to /api/tts
+        const txt=m[3]||`${m[1]}. ${m[2]}.`;
+        const a2=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(txt)}`);
+        a2.playbackRate=1.15; _ttsAudio=a2;
+        a2.onended=done; a2.onerror=done;
+        a2.play().catch(done);
+      };
+      a.play().catch(done);
+      return;
+    }
     const txt=m[3]||`${m[1]}. ${m[2]}.`;
     const audio=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(txt)}`);
-    audio.playbackRate=1.15;
-    _ttsAudio=audio;
-    setStoryPlaying(true);
-    audio.play().catch(()=>setStoryPlaying(false));
-    audio.onended=()=>setStoryPlaying(false);
-    audio.onerror=()=>setStoryPlaying(false);
+    audio.playbackRate=1.15; _ttsAudio=audio;
+    audio.onended=done; audio.onerror=done;
+    audio.play().catch(done);
   };
-  const storyBtn=(m)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:12,color:storyPlaying?c.a:c.m,marginTop:8,flexShrink:0}}>
+  const storyBtn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:12,color:storyPlaying?c.a:c.m,marginTop:8,flexShrink:0}}>
     {storyPlaying?"■ stop":"📖 story"}
   </button>:null;
 
@@ -829,7 +866,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
             <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
           </div>
-          {storyBtn(m)}
+          {storyBtn(m,ch)}
         </div>}
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
@@ -880,7 +917,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                   <div style={{fontSize:11,color:c.m,fontStyle:"italic",lineHeight:1.4}}>{m[2]}</div>
                 </div>
               </div>}
-              <div style={{marginTop:10,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m)}</div>
+              <div style={{marginTop:10,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m,ch)}</div>
             </div>
           </div>
           <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}</button>
@@ -993,7 +1030,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{fontSize:12,color:c.m}}>{pRecall?"think of the Japanese... then flip":"tap to reveal"}</div></>
             :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
               <div style={{fontSize:30,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
-              {speakBtn(p[1])}
+              <button onClick={e=>{e.stopPropagation();speakPhrase(p[0],p[1]);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>
               <div style={{fontSize:19,fontFamily:mono,color:c.a,marginTop:6,marginBottom:8}}>{p[2]}</div>
               <div style={{fontSize:14,color:c.m}}>{p[3]}</div>
               {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}</>}
@@ -1027,7 +1064,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
                   <div style={{fontSize:17,fontWeight:600}}>{p[1]}</div>
-                  <button onClick={()=>speak(p[1])} style={{...btn,padding:"2px 7px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m}}>🔊</button>
+                  <button onClick={()=>speakPhrase(p[0],p[1])} style={{...btn,padding:"2px 7px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m}}>🔊</button>
                 </div>
                 <div style={{fontSize:13,fontFamily:mono,color:c.a,marginBottom:2}}>{p[2]}</div>
                 <div style={{fontSize:13,color:c.m}}>{p[3]}</div>
@@ -1217,7 +1254,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             <div style={{fontSize:12,color:c.m}}>think of it... then tap to reveal</div></>
           :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
             <div style={{fontSize:30,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
-            {speakBtn(p[1])}
+            <button onClick={e=>{e.stopPropagation();speakPhrase(p[0],p[1]);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>
             <div style={{fontSize:19,fontFamily:mono,color:c.a,marginTop:6,marginBottom:8}}>{p[2]}</div>
             <div style={{fontSize:14,color:c.m}}>{p[3]}</div></>}
       </div>
