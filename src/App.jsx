@@ -30,27 +30,33 @@ const syncSave = async (token, data) => {
 };
 
 // ═══ TTS ═══
+let _ttsAudio = null;
 const speak = (text, lang="ja-JP") => {
-  if(!window.speechSynthesis) return;
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang; u.rate = 0.85;
-  // Pick the best available voice — browser/OS premium voices sound much better
-  const voices = window.speechSynthesis.getVoices();
-  if(voices.length){
-    const preferred = lang==="ja-JP"
-      ? voices.find(v=>v.name==="Google 日本語")
-        || voices.find(v=>v.name==="Kyoko")
-        || voices.find(v=>v.name==="O-Ren")
-        || voices.find(v=>v.lang==="ja-JP"&&v.localService)
-        || voices.find(v=>v.lang==="ja-JP")
-      : voices.find(v=>v.name==="Google US English")
-        || voices.find(v=>v.name==="Samantha")
-        || voices.find(v=>v.name==="Karen")
-        || voices.find(v=>v.lang.startsWith("en")&&v.localService)
-        || voices.find(v=>v.lang.startsWith("en"));
-    if(preferred) u.voice=preferred;
+  if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  if(lang==="ja-JP"){
+    // Google Translate TTS — neural quality, no API key needed
+    const url=`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=${encodeURIComponent(text)}`;
+    _ttsAudio=new Audio(url);
+    _ttsAudio.playbackRate=0.9;
+    _ttsAudio.play().catch(()=>_webSpeak(text,lang));
+  } else {
+    _webSpeak(text,lang);
   }
-  window.speechSynthesis.cancel();
+};
+const _webSpeak=(text,lang)=>{
+  if(!window.speechSynthesis) return;
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=lang; u.rate=0.88;
+  const voices=window.speechSynthesis.getVoices();
+  if(voices.length){
+    const v=voices.find(v=>v.name==="Google US English")
+      ||voices.find(v=>v.name==="Samantha")
+      ||voices.find(v=>v.name==="Karen")
+      ||voices.find(v=>v.lang.startsWith("en")&&v.localService)
+      ||voices.find(v=>v.lang.startsWith("en"));
+    if(v) u.voice=v;
+  }
   window.speechSynthesis.speak(u);
 };
 
