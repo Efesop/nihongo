@@ -34,7 +34,14 @@ const clerkAppearance = {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY} appearance={clerkAppearance}>
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
+      appearance={clerkAppearance}
+      afterSignInUrl="/"
+      afterSignUpUrl="/"
+      signInUrl="/"
+      signUpUrl="/#sign-up"
+    >
       <App />
     </ClerkProvider>
   </React.StrictMode>

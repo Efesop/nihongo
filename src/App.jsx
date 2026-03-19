@@ -269,8 +269,8 @@ export default function App(){
         <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
       </div>
       {authMode === "sign-up"
-        ? <SignUp routing="hash" signInUrl="#sign-in" />
-        : <SignIn routing="hash" signUpUrl="#sign-up" />}
+        ? <SignUp routing="hash" signInUrl="#sign-in" afterSignUpUrl="/" />
+        : <SignIn routing="hash" signUpUrl="#sign-up" afterSignInUrl="/" />}
     </div>
   );
 
