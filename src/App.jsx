@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // ═══ STORAGE HELPERS ═══
 const store = {
@@ -7,7 +7,16 @@ const store = {
   del: (key) => { try { localStorage.removeItem(key); } catch(e) {} },
 };
 
-// ═══ KANA MNEMONICS (JapanesePod101) ═══
+// ═══ TTS ═══
+const speak = (text, lang="ja-JP") => {
+  if(!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang; u.rate = 0.85;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+};
+
+// ═══ KANA MNEMONICS ═══
 const M = {
 "あ":["🍎","Apple","Cross stroke = stem, loop = apple shape"],
 "い":["🔤","Two i's side by side","Two vertical strokes like i i"],
@@ -61,7 +70,7 @@ const M = {
 "エ":["🛗","Elevator doors","Frame + where doors meet"],
 "オ":["🎤","Opera singer — Ohhhh!","Mouth shaped like O"],
 "カ":["🔪","Angular か","Same blade, sharper"],
-"キ":["🔑","き without bottom","Same key, less curve"],
+"キ":["🗝️","き without bottom","Same key, less curve"],
 "ク":["🐦","Cuckoo's tail","Tail feathers"],
 "ケ":["🔤","Sideways K — ke!","Looks like T? Must be Ke"],
 "コ":["📐","Corner — ko-rner","Two right angles"],
@@ -120,61 +129,62 @@ const K_GROUPS = [
 
 const ROMAJI={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o","カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko","サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so","タ":"ta","チ":"chi","ツ":"tsu","テ":"te","ト":"to","ナ":"na","ニ":"ni","ヌ":"nu","ネ":"ne","ノ":"no","ハ":"ha","ヒ":"hi","フ":"fu","ヘ":"he","ホ":"ho","マ":"ma","ミ":"mi","ム":"mu","メ":"me","モ":"mo","ヤ":"ya","ユ":"yu","ヨ":"yo","ラ":"ra","リ":"ri","ル":"ru","レ":"re","ロ":"ro","ワ":"wa","ヲ":"wo","ン":"n"};
 
+// mc=true → mission critical (first 48h survival phrases)
 const PHRASES = [
-["g1","こんにちは","kon-ni-chi-wa","Hello (daytime)","greet","Most universal greeting"],
+["g1","こんにちは","kon-ni-chi-wa","Hello (daytime)","greet","Most universal greeting",true],
 ["g2","おはようございます","o-ha-you go-zai-ma-su","Good morning (polite)","greet","Use before ~10am"],
 ["g3","こんばんは","kon-ban-wa","Good evening","greet","Use after sunset"],
-["g4","ありがとうございます","a-ri-ga-tou go-zai-ma-su","Thank you (polite)","greet","Use this version with strangers"],
-["g5","すみません","su-mi-ma-sen","Excuse me / sorry","greet","Swiss army knife phrase"],
-["g6","はい","hai","Yes","greet","Nod slightly when saying it"],
+["g4","ありがとうございます","a-ri-ga-tou go-zai-ma-su","Thank you (polite)","greet","Use this version with strangers",true],
+["g5","すみません","su-mi-ma-sen","Excuse me / sorry","greet","Swiss army knife phrase",true],
+["g6","はい","hai","Yes","greet","Nod slightly when saying it",true],
 ["g7","いいえ","ii-e","No","greet","Can sound blunt — use daijoubu desu instead"],
-["g8","おねがいします","o-ne-gai-shi-ma-su","Please","greet","Add after any request"],
-["g9","だいじょうぶです","dai-jou-bu de-su","I'm fine / no thank you","greet","Polite way to decline"],
+["g8","おねがいします","o-ne-gai-shi-ma-su","Please","greet","Add after any request",true],
+["g9","だいじょうぶです","dai-jou-bu de-su","I'm fine / no thank you","greet","Polite way to decline",true],
 ["g10","さようなら","sa-you-na-ra","Goodbye (formal)","greet","For when you won't see them again soon"],
-["f1","これをください","ko-re o ku-da-sai","This one please","food","Point at menu + say this"],
-["f2","おかんじょうおねがいします","o-kan-jou o-ne-gai-shi-ma-su","Bill please","food","Or gesture writing in air"],
-["f3","みずをください","mi-zu o ku-da-sai","Water please","food","Water is free at restaurants"],
+["f1","これをください","ko-re o ku-da-sai","This one please","food","Point at menu + say this",true],
+["f2","おかんじょうおねがいします","o-kan-jou o-ne-gai-shi-ma-su","Bill please","food","Or gesture writing in air",true],
+["f3","みずをください","mi-zu o ku-da-sai","Water please","food","Water is free at restaurants",true],
 ["f4","おいしいです","oi-shii de-su","It's delicious","food","Staff love hearing this"],
-["f5","いただきます","i-ta-da-ki-ma-su","(Before eating)","food","Say before every meal"],
+["f5","いただきます","i-ta-da-ki-ma-su","(Before eating)","food","Say before every meal",true],
 ["f6","ごちそうさまでした","go-chi-sou-sa-ma de-shi-ta","(After eating)","food","Thanks for the meal — say when leaving"],
 ["f7","おすすめはなんですか","o-su-su-me wa nan de-su ka","What do you recommend?","food","Great for trying local specialties"],
-["f8","ひとりです","hi-to-ri de-su","One person","food","When entering, say party size"],
+["f8","ひとりです","hi-to-ri de-su","One person","food","When entering, say party size",true],
 ["f9","ふたりです","fu-ta-ri de-su","Two people","food","For when you're with someone"],
 ["f10","アレルギーがあります","a-re-ru-gii ga a-ri-ma-su","I have allergies","food","Follow with the allergen name"],
-["t1","...えきはどこですか","...e-ki wa do-ko de-su ka","Where is ... station?","train","Insert station name before えき"],
+["t1","...えきはどこですか","...e-ki wa do-ko de-su ka","Where is ... station?","train","Insert station name before えき",true],
 ["t2","...までいくらですか","...ma-de i-ku-ra de-su ka","How much to ...?","train","For buying tickets"],
 ["t3","つぎのえきはなんですか","tsu-gi no e-ki wa nan de-su ka","What's the next station?","train","Useful on trains"],
 ["t4","のりかえはどこですか","no-ri-ka-e wa do-ko de-su ka","Where do I transfer?","train","For complex routes"],
-["t5","...までおねがいします","...ma-de o-ne-gai-shi-ma-su","To ... please (taxi)","train","Give destination to taxi driver"],
+["t5","...までおねがいします","...ma-de o-ne-gai-shi-ma-su","To ... please (taxi)","train","Give destination to taxi driver",true],
 ["t6","ここでおろしてください","ko-ko de o-ro-shi-te ku-da-sai","Let me off here please","train","For taxis"],
 ["t7","スイカ / パスモ","sui-ka / pa-su-mo","IC transit cards","train","Tap on/off at gates"],
 ["t8","しゅうでんはなんじですか","shuu-den wa nan-ji de-su ka","When is the last train?","train","Critical for nightlife"],
-["h1","チェックインおねがいします","chek-ku-in o-ne-gai-shi-ma-su","Check in please","hotel","Hand over passport with this"],
-["h2","よやくがあります","yo-ya-ku ga a-ri-ma-su","I have a reservation","hotel","Follow with your name"],
+["h1","チェックインおねがいします","chek-ku-in o-ne-gai-shi-ma-su","Check in please","hotel","Hand over passport with this",true],
+["h2","よやくがあります","yo-ya-ku ga a-ri-ma-su","I have a reservation","hotel","Follow with your name",true],
 ["h3","チェックアウトはなんじですか","chek-ku-au-to wa nan-ji de-su ka","What time is checkout?","hotel","Usually 10-11am"],
 ["h4","WiFiのパスワードはなんですか","wai-fai no pa-su-waa-do wa nan de-su ka","What's the WiFi password?","hotel","Most hotels have free WiFi"],
 ["h5","かぎ","ka-gi","Key","hotel","If you need a room key"],
 ["h6","もういっぱくおねがいします","mou ip-pa-ku o-ne-gai-shi-ma-su","One more night please","hotel","To extend your stay"],
-["s1","これはいくらですか","ko-re wa i-ku-ra de-su ka","How much is this?","shop","Point at item"],
-["s2","ふくろはいらないです","fu-ku-ro wa i-ra-nai de-su","I don't need a bag","shop","Bags cost extra in Japan"],
+["s1","これはいくらですか","ko-re wa i-ku-ra de-su ka","How much is this?","shop","Point at item",true],
+["s2","ふくろはいらないです","fu-ku-ro wa i-ra-nai de-su","I don't need a bag","shop","Bags cost extra in Japan",true],
 ["s3","カードでおねがいします","kaa-do de o-ne-gai-shi-ma-su","By card please","shop","Most places take IC cards"],
 ["s4","げんきんでおねがいします","gen-kin de o-ne-gai-shi-ma-su","Cash please","shop","Japan is still very cash-friendly"],
 ["s5","あたためますか？","a-ta-ta-me-ma-su ka","Shall I heat it up?","shop","Conbini staff ask this for bento"],
 ["s6","これをふたつください","ko-re o fu-ta-tsu ku-da-sai","Two of these please","shop","Point + quantity"],
 ["s7","レシートはいらないです","re-shii-to wa i-ra-nai de-su","No receipt needed","shop","Common at convenience stores"],
-["d1","...はどこですか","...wa do-ko de-su ka","Where is ...?","dir","Universal direction question"],
-["d2","みぎ","mi-gi","Right","dir",""],
-["d3","ひだり","hi-da-ri","Left","dir",""],
-["d4","まっすぐ","mas-su-gu","Straight ahead","dir",""],
+["d1","...はどこですか","...wa do-ko de-su ka","Where is ...?","dir","Universal direction question",true],
+["d2","みぎ","mi-gi","Right","dir","",true],
+["d3","ひだり","hi-da-ri","Left","dir","",true],
+["d4","まっすぐ","mas-su-gu","Straight ahead","dir","",true],
 ["d5","ちかいですか","chi-kai de-su ka","Is it close?","dir","Good follow-up"],
 ["d6","あるいていけますか","a-ru-i-te i-ke-ma-su ka","Can I walk there?","dir","Walk vs taxi decision"],
 ["d7","ちずをみせてください","chi-zu o mi-se-te ku-da-sai","Show me on the map please","dir","Hand them your phone"],
-["d8","トイレはどこですか","toi-re wa do-ko de-su ka","Where is the toilet?","dir","Essential"],
-["e1","たすけてください","ta-su-ke-te ku-da-sai","Help me please","sos","For emergencies"],
+["d8","トイレはどこですか","toi-re wa do-ko de-su ka","Where is the toilet?","dir","Essential",true],
+["e1","たすけてください","ta-su-ke-te ku-da-sai","Help me please","sos","For emergencies",true],
 ["e2","びょういんはどこですか","byou-in wa do-ko de-su ka","Where is the hospital?","sos",""],
 ["e3","けいさつをよんでください","kei-sa-tsu o yon-de ku-da-sai","Please call the police","sos","Emergency: 110"],
-["e4","えいごをはなせますか","ei-go o ha-na-se-ma-su ka","Do you speak English?","sos","Try in tourist areas"],
-["e5","にほんごがわかりません","ni-hon-go ga wa-ka-ri-ma-sen","I don't understand Japanese","sos","Signal language barrier"],
+["e4","えいごをはなせますか","ei-go o ha-na-se-ma-su ka","Do you speak English?","sos","Try in tourist areas",true],
+["e5","にほんごがわかりません","ni-hon-go ga wa-ka-ri-ma-sen","I don't understand Japanese","sos","Signal language barrier",true],
 ["e6","もういちどいってください","mou i-chi-do it-te ku-da-sai","Please say that again","sos","When someone speaks too fast"],
 ];
 
@@ -187,6 +197,15 @@ const TRIP=new Date("2026-05-15");
 
 const font='"Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
 const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
+
+// ═══ ROLE-PLAY SCENARIOS ═══
+const RP_SCENARIOS = [
+  {id:"hotel", icon:"🏨", name:"Hotel Check-In", prompt:"Let's role-play. You are the front desk staff at a Japanese hotel. Speak in Japanese with English translation in parentheses after each line. Start by greeting me as I approach the desk to check in."},
+  {id:"food",  icon:"🍜", name:"Ordering Food",  prompt:"Let's role-play. You are a waiter at a Japanese restaurant. Speak in Japanese with English in parentheses. I've just sat down — start the scene."},
+  {id:"train", icon:"🚃", name:"Buying a Ticket",prompt:"Let's role-play. You are a helpful Japanese train station attendant. Speak in Japanese with English in parentheses. I approach your window looking a bit lost — start the scene."},
+  {id:"shop",  icon:"🏪", name:"Shopping",       prompt:"Let's role-play. You are staff at a Japanese convenience store. Speak in Japanese with English in parentheses. I walk up to the counter — start the scene."},
+  {id:"dir",   icon:"🗺️", name:"Asking Directions",prompt:"Let's role-play. You are a friendly Japanese local on the street. Speak in Japanese with English in parentheses. I approach you looking confused with my phone — start the scene."},
+];
 
 // ═══ THEMES ═══
 const THEMES = {
@@ -204,7 +223,6 @@ const THEMES = {
     a:"#b84d3c", g:"#3a6ea0", go:"#7c6fcd", bl:"#3a6ea0",
     as:"rgba(184,77,60,.10)", gs:"rgba(58,110,160,.10)", gos:"rgba(124,111,205,.10)", rs:"rgba(184,77,60,.09)",
   },
-  // Additional themes can be added here
 };
 
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
@@ -215,6 +233,7 @@ export default function App(){
   const [d,setD]=useState(null);
   const [loaded,setLoaded]=useState(false);
   const [theme,setTheme]=useState(()=>localStorage.getItem("nihongo-theme")||"dark");
+  // kana
   const [kScript,setKScript]=useState("h");
   const [kSel,setKSel]=useState([0]);
   const [kScreen,setKScreen]=useState("menu");
@@ -227,18 +246,35 @@ export default function App(){
   const [kPeek,setKPeek]=useState(false);
   const [kFlip,setKFlip]=useState(false);
   const [kLI,setKLI]=useState(0);
+  // phrases
   const [pCat,setPCat]=useState(null);
   const [pMode,setPMode]=useState("browse");
   const [pCards,setPCards]=useState([]);
   const [pI,setPI]=useState(0);
   const [pFlip,setPFlip]=useState(false);
   const [pDone,setPDone]=useState(false);
+  const [pRecall,setPRecall]=useState(false);
+  const [fastTrack,setFastTrack]=useState(false);
+  // sensei
   const [msgs,setMsgs]=useState([]);
   const [chatIn,setChatIn]=useState("");
   const [loading,setLoading]=useState(false);
+  // drill
+  const [drillCards,setDrillCards]=useState([]);
+  const [drillI,setDrillI]=useState(0);
+  const [drillFlip,setDrillFlip]=useState(false);
+  const [drillInput,setDrillInput]=useState("");
+  const [drillFb,setDrillFb]=useState(null);
+  const [drillScore,setDrillScore]=useState({c:0,w:0});
+  const [drillDone,setDrillDone]=useState(false);
+  // profile
+  const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:""});
+  const [showProfile,setShowProfile]=useState(false);
+  // ui
   const [isDesktop,setIsDesktop]=useState(window.innerWidth>=768);
   const [hov,setHov]=useState(null);
   const inputRef=useRef(null);
+  const drillRef=useRef(null);
   const chatEndRef=useRef(null);
 
   const c=THEMES[theme];
@@ -250,30 +286,69 @@ export default function App(){
     localStorage.setItem("nihongo-theme",next);
   };
 
+  const saveProfile=(u)=>{
+    const np={...profile,...u};
+    setProfile(np);
+    store.set("nihongo-profile",np);
+  };
+
   useEffect(()=>{
     const onResize=()=>setIsDesktop(window.innerWidth>=768);
     window.addEventListener("resize",onResize);
     return()=>window.removeEventListener("resize",onResize);
   },[]);
 
+  // Pre-warm TTS voices
+  useEffect(()=>{
+    if(window.speechSynthesis) window.speechSynthesis.getVoices();
+    const h=()=>window.speechSynthesis.getVoices();
+    window.speechSynthesis?.addEventListener?.("voiceschanged",h);
+    return()=>window.speechSynthesis?.removeEventListener?.("voiceschanged",h);
+  },[]);
+
   useEffect(()=>{
     const saved=store.get(KEY);
-    if(saved)setD(saved);
+    if(saved){
+      // migrate kana from integer to SRS format
+      const migratedKana={};
+      Object.entries(saved.kana||{}).forEach(([ch,v])=>{
+        if(typeof v==="number"){
+          migratedKana[ch]={box:Math.min(v,5),next:Date.now()};
+        } else {
+          migratedKana[ch]=v;
+        }
+      });
+      // streak tracking
+      const today=new Date().toDateString();
+      const yesterday=new Date(Date.now()-864e5).toDateString();
+      const lastDay=saved.lastDay;
+      const streak=lastDay===today?saved.streak||1:lastDay===yesterday?(saved.streak||0)+1:1;
+      const nd={...saved,kana:migratedKana,streak,lastDay:today};
+      setD(nd);
+      store.set(KEY,nd);
+    }
     setLoaded(true);
   },[]);
 
-  const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,started:new Date().toISOString()});
+  const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,streak:1,lastDay:new Date().toDateString(),started:new Date().toISOString()});
   const data=d||defaultD();
 
-  const save=useCallback((u={})=>{
-    const nd={...data,...u};
-    setD(nd);
-    store.set(KEY,nd);
-  },[data]);
+  // atomic save — always uses latest state
+  const save=(u={})=>{
+    setD(prev=>{
+      const nd={...prev,...u};
+      store.set(KEY,nd);
+      return nd;
+    });
+  };
 
   useEffect(()=>{
     if(kScreen==="quiz"&&!kFb&&inputRef.current)inputRef.current.focus();
   },[kI,kFb,kScreen]);
+
+  useEffect(()=>{
+    if(drillFb===null&&tab==="drill"&&drillCards[drillI]?.type==="kana"&&drillRef.current)drillRef.current.focus();
+  },[drillI,drillFb,tab]);
 
   useEffect(()=>{
     if(chatEndRef.current)chatEndRef.current.scrollIntoView({behavior:"smooth"});
@@ -281,18 +356,43 @@ export default function App(){
 
   const groups=kScript==="h"?H_GROUPS:K_GROUPS;
   const allKana=kSel.flatMap(i=>groups[i]?.c||[]);
-  const kMastered=Object.entries(data.kana).filter(([_,v])=>v>=3).length;
+
+  // kana SRS helpers
+  const getKBox=(ch)=>data.kana[ch]?.box??0;
+  const isKanaDue=(ch)=>Date.now()>=(data.kana[ch]?.next??0);
+  const kMastered=Object.values(data.kana).filter(v=>(v?.box??0)>=3).length;
+  const kDueCount=Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)).length;
+
+  // phrase helpers
   const getPhrBox=(id)=>data.phr[id]?.box||0;
   const isPhrDue=(id)=>Date.now()>=(data.phr[id]?.next||0);
   const dueCount=PHRASES.filter(p=>isPhrDue(p[0])).length;
   const learnedPhr=Object.keys(data.phr).length;
 
+  // mission critical
+  const MC_PHRASES=PHRASES.filter(p=>p[6]);
+  const mcLeft=MC_PHRASES.filter(p=>getPhrBox(p[0])<4).length;
+
   const reviewPhr=(id,correct)=>{
-    const cur=data.phr[id]||{box:0,next:0};
-    const newBox=correct?Math.min(cur.box+1,5):0;
-    const nextMs=Date.now()+SRS_DAYS[newBox]*864e5;
-    const np={...data.phr,[id]:{box:newBox,next:nextMs}};
-    save({phr:np,totalC:correct?data.totalC+1:data.totalC});
+    setD(prev=>{
+      const cur=prev.phr[id]||{box:0,next:0};
+      const newBox=correct?Math.min(cur.box+1,5):0;
+      const nextMs=Date.now()+SRS_DAYS[newBox]*864e5;
+      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:nextMs}},totalC:correct?prev.totalC+1:prev.totalC};
+      store.set(KEY,nd);
+      return nd;
+    });
+  };
+
+  const updateKanaSRS=(ch,correct)=>{
+    setD(prev=>{
+      const cur=prev.kana[ch]||{box:0,next:0};
+      const newBox=correct?Math.min(cur.box+1,5):Math.max(cur.box-1,0);
+      const nextMs=Date.now()+SRS_DAYS[newBox]*864e5;
+      const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:nextMs}}};
+      store.set(KEY,nd);
+      return nd;
+    });
   };
 
   const startKanaQuiz=()=>{
@@ -304,37 +404,74 @@ export default function App(){
     if(kFb||!kInput.trim())return;
     const ch=kCards[kI];const rom=ROMAJI[ch];
     const ok=kInput.trim().toLowerCase()===rom;
-    const nk={...data.kana};
-    if(ok){setKFb("ok");setKScore(s=>({...s,c:s.c+1}));nk[ch]=(nk[ch]||0)+1;}
-    else{setKFb("no");setKScore(s=>({...s,w:s.w+1}));setKMistakes(m=>[...m,{ch,rom,ans:kInput.trim()}]);nk[ch]=0;}
-    save({kana:nk});
+    if(ok){setKFb("ok");setKScore(s=>({...s,c:s.c+1}));}
+    else{setKFb("no");setKScore(s=>({...s,w:s.w+1}));setKMistakes(m=>[...m,{ch,rom,ans:kInput.trim()}]);}
+    updateKanaSRS(ch,ok);
   };
 
   const nextKana=()=>{
-    if(kI+1>=kCards.length){setKScreen("results");save({sessions:data.sessions+1});}
-    else{setKI(kI+1);setKInput("");setKFb(null);setKPeek(false);}
+    if(kI+1>=kCards.length){
+      setKScreen("results");
+      setD(prev=>{const nd={...prev,sessions:prev.sessions+1};store.set(KEY,nd);return nd;});
+    } else {setKI(kI+1);setKInput("");setKFb(null);setKPeek(false);}
   };
 
-  const sendToSensei=async()=>{
-    if(!chatIn.trim()||loading)return;
-    const userMsg={role:"user",content:chatIn.trim()};
-    const newMsgs=[...msgs,userMsg];
+  const startDrill=()=>{
+    // 5 kana: due first, then unseen
+    const dueK=shuffle(Object.keys(data.kana).filter(ch=>isKanaDue(ch)&&(data.kana[ch]?.box??0)>=1)).slice(0,5);
+    const newK=dueK.length<5?shuffle(Object.keys(M).filter(ch=>!data.kana[ch])).slice(0,5-dueK.length):[];
+    const kanaSet=[...dueK,...newK].map(ch=>({type:"kana",ch}));
+    // 5 phrases: due first, then unseen
+    const dueP=shuffle(PHRASES.filter(p=>isPhrDue(p[0])&&data.phr[p[0]])).slice(0,5);
+    const newP=dueP.length<5?shuffle(PHRASES.filter(p=>!data.phr[p[0]])).slice(0,5-dueP.length):[];
+    const phrSet=[...dueP,...newP].map(p=>({type:"phrase",p}));
+    const cards=shuffle([...kanaSet,...phrSet]);
+    setDrillCards(cards);setDrillI(0);setDrillFlip(false);setDrillInput("");
+    setDrillFb(null);setDrillScore({c:0,w:0});setDrillDone(false);
+    setTab("drill");
+  };
+
+  const submitDrillKana=()=>{
+    if(drillFb||!drillInput.trim())return;
+    const ch=drillCards[drillI].ch;
+    const rom=ROMAJI[ch];
+    const ok=drillInput.trim().toLowerCase()===rom;
+    if(ok){setDrillFb("ok");setDrillScore(s=>({...s,c:s.c+1}));}
+    else{setDrillFb("no");setDrillScore(s=>({...s,w:s.w+1}));}
+    updateKanaSRS(ch,ok);
+  };
+
+  const advanceDrill=()=>{
+    if(drillI+1>=drillCards.length){setDrillDone(true);}
+    else{setDrillI(drillI+1);setDrillFlip(false);setDrillInput("");setDrillFb(null);}
+  };
+
+  const sendToSensei=async(overrideMsgs)=>{
+    const msgs_to_use=overrideMsgs||null;
+    if(!msgs_to_use&&(!chatIn.trim()||loading))return;
+    const userMsg=msgs_to_use?null:{role:"user",content:chatIn.trim()};
+    const newMsgs=msgs_to_use||[...msgs,userMsg];
     setMsgs(newMsgs);setChatIn("");setLoading(true);
 
-    const hMastered=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x3040&&k.charCodeAt(0)<=0x309F).filter(([_,v])=>v>=3).length;
-    const kaMastered=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x30A0&&k.charCodeAt(0)<=0x30FF).filter(([_,v])=>v>=3).length;
+    const hMastered=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x3040&&k.charCodeAt(0)<=0x309F).filter(([_,v])=>(v?.box??0)>=3).length;
+    const kaMastered=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x30A0&&k.charCodeAt(0)<=0x30FF).filter(([_,v])=>(v?.box??0)>=3).length;
+
+    const nameLine=profile.name?`User's name is ${profile.name}. `:"";
+    const notesLine=profile.notes?`User context: ${profile.notes.slice(0,200)}. `:"";
+    const streakLine=`Streak: ${data.streak||1} day${(data.streak||1)!==1?"s":""}.`;
 
     const sysPrompt=`You are Sensei, a Japanese tutor embedded in a learning app for a user traveling to Japan.
 
+${nameLine}${notesLine}
 TRIP: Flying Chiang Mai to Osaka May 15 2026 (${daysLeft()} days away). 26 days in Japan: Osaka first, then Tokyo. Mix of food, culture, transport, exploring.
 
-PROGRESS: Hiragana ${hMastered}/46 mastered. Katakana ${kaMastered}/46 mastered. Phrases ${learnedPhr}/${PHRASES.length} learned. ${dueCount} phrases due for review.
+PROGRESS: Hiragana ${hMastered}/46 mastered. Katakana ${kaMastered}/46 mastered. Phrases ${learnedPhr}/${PHRASES.length} learned. ${dueCount} phrases due for review. ${streakLine}
 
 RULES:
 - Plain English, no jargon
 - Pronunciations with syllable breaks using dashes (e.g. su-mi-ma-sen)
 - Concise and practical, focused on trip usage
-- Roleplay scenarios fully when asked (you play the Japanese speaker)
+- Roleplay scenarios fully when asked (you play the Japanese speaker, provide English in parentheses)
 - Give cultural context naturally
 - Adapt difficulty to progress shown above
 - Short focused responses, this is a chat not an essay
@@ -355,40 +492,45 @@ RULES:
     setLoading(false);
   };
 
+  const startRolePlay=async(scenario)=>{
+    if(loading)return;
+    const kickoff=[{role:"user",content:scenario.prompt}];
+    setMsgs(kickoff);setChatIn("");setLoading(true);
+    const hM=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x3040&&k.charCodeAt(0)<=0x309F).filter(([_,v])=>(v?.box??0)>=3).length;
+    const kaM=Object.entries(data.kana).filter(([k])=>k.charCodeAt(0)>=0x30A0&&k.charCodeAt(0)<=0x30FF).filter(([_,v])=>(v?.box??0)>=3).length;
+    const nameLine=profile.name?`User's name is ${profile.name}. `:"";
+    const sysPrompt=`You are Sensei, a Japanese tutor doing a role-play scenario with a user who is traveling to Japan soon. ${nameLine}
+PROGRESS: Hiragana ${hM}/46. Katakana ${kaM}/46. Phrases ${learnedPhr}/${PHRASES.length}. ${daysLeft()} days until trip.
+ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first, then provide the English translation in parentheses. Keep turns short (1-3 sentences). After 2-3 exchanges, gently note if the user should use a specific phrase from their studies.`;
+    try{
+      const response=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({system:sysPrompt,messages:kickoff.slice(-20)})});
+      const json=await response.json();
+      const reply=json.content?.map(c=>c.text||"").join("\n")||json.error||"Error";
+      setMsgs([...kickoff,{role:"assistant",content:reply}]);
+    }catch(e){
+      setMsgs([...kickoff,{role:"assistant",content:"Connection error."}]);
+    }
+    setLoading(false);
+  };
+
   // ═══ SHARED STYLES ═══
   const card={background:c.s,border:"1px solid "+c.b,borderRadius:12,padding:16};
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
+  const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
 
   const sideTabBtn=(active)=>({
-    ...btn,
-    width:"100%",
-    padding:"9px 12px",
-    background: active ? c.as : "transparent",
-    display:"flex",
-    flexDirection:"row",
-    alignItems:"center",
-    gap:10,
-    color:active?c.a:c.m,
-    fontSize:14,
-    fontWeight: active ? 600 : 400,
-    borderRadius:8,
-    border:"none",
-    textAlign:"left",
+    ...btn,width:"100%",padding:"9px 12px",
+    background:active?c.as:"transparent",
+    display:"flex",flexDirection:"row",alignItems:"center",gap:10,
+    color:active?c.a:c.m,fontSize:14,fontWeight:active?600:400,
+    borderRadius:8,border:"none",textAlign:"left",
   });
 
   const bottomTabBtn=(active)=>({
-    ...btn,
-    flex:1,
-    padding:"10px 0 8px",
-    background:"transparent",
-    display:"flex",
-    flexDirection:"column",
-    alignItems:"center",
-    gap:3,
-    color:active?c.a:c.m,
-    fontSize:10,
-    fontWeight: active ? 600 : 400,
+    ...btn,flex:1,padding:"10px 0 8px",background:"transparent",
+    display:"flex",flexDirection:"column",alignItems:"center",gap:3,
+    color:active?c.a:c.m,fontSize:10,fontWeight:active?600:400,
   });
 
   const wrap={fontFamily:font,background:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
@@ -410,24 +552,41 @@ RULES:
     const stats=[
       {l:"Kana",v:kanaPct+"%",cl:c.a},
       {l:"Phrases",v:phrPct+"%",cl:c.g},
-      {l:"Due",v:dueCount,cl:dueCount>0?c.go:c.m},
+      {l:"Phr Due",v:dueCount,cl:dueCount>0?c.go:c.m},
+      {l:"Kana Due",v:kDueCount,cl:kDueCount>0?c.a:c.m},
     ];
     const actions=[
-      {id:"study",icon:"📚",title:"Study Now",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
-      {id:"kana",icon:"あ",title:"Kana Practice",desc:`${kMastered}/92 mastered`,action:()=>{setTab("kana");setKScreen("menu");}},
+      {id:"drill",icon:"🔥",title:"Daily Drill",desc:"5 kana + 5 phrases mixed",action:startDrill},
+      {id:"study",icon:"💬",title:"Review Phrases",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
+      {id:"kana",icon:"あ",title:"Kana Practice",desc:`${kMastered}/92 mastered${kDueCount>0?" · "+kDueCount+" due":""}`,action:()=>{setTab("kana");setKScreen("menu");}},
       {id:"sensei",icon:"🎌",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
     ];
     return <div style={inner}>
       <div style={{marginBottom:24}}>
         <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em"}}>日本語 Journey</h1>
-        {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to Japan</span>}
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to Japan</span>}
+          {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono}}>🔥 {data.streak} day streak</span>}
+        </div>
       </div>
-      <div style={{display:"flex",gap:8,marginBottom:16}}>
-        {stats.map((s,i)=><div key={i} style={{flex:1,...card,textAlign:"center",padding:"14px 8px"}}>
-          <div style={{fontSize:22,fontWeight:800,fontFamily:mono,color:s.cl,marginBottom:4}}>{s.v}</div>
-          <div style={{fontSize:11,color:c.m,textTransform:"uppercase",letterSpacing:".04em"}}>{s.l}</div>
+      <div style={{display:"flex",gap:6,marginBottom:16}}>
+        {stats.map((s,i)=><div key={i} style={{flex:1,...card,textAlign:"center",padding:"12px 6px"}}>
+          <div style={{fontSize:19,fontWeight:800,fontFamily:mono,color:s.cl,marginBottom:3}}>{s.v}</div>
+          <div style={{fontSize:10,color:c.m,textTransform:"uppercase",letterSpacing:".04em"}}>{s.l}</div>
         </div>)}
       </div>
+      {mcLeft>0&&<div onClick={()=>{setTab("phrases");setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
+        onMouseEnter={()=>setHov("ft")} onMouseLeave={()=>setHov(null)}
+        style={{...card,marginBottom:8,cursor:"pointer",padding:"11px 16px",background:hov==="ft"?c.as:c.s,border:"1px solid "+c.a+"50",transition:"background .15s"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:20,flexShrink:0}}>⚡</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:600,color:c.a}}>Fast Track</div>
+            <div style={{fontSize:11,color:c.m,marginTop:1}}>{mcLeft} mission-critical phrases left</div>
+          </div>
+          <span style={{fontSize:14,color:c.m,opacity:.4}}>›</span>
+        </div>
+      </div>}
       {actions.map(item=><div key={item.id} onClick={item.action}
         onMouseEnter={()=>setHov(item.id)} onMouseLeave={()=>setHov(null)}
         style={{...card,marginBottom:8,cursor:"pointer",padding:"13px 16px",background:hov===item.id?c.s2:c.s,transition:"background .15s"}}>
@@ -475,7 +634,8 @@ RULES:
             <div style={{fontSize:68,lineHeight:1}}>{ch}</div>{m&&<div style={{fontSize:44}}>{m[0]}</div>}
           </div>
           <div style={{fontSize:30,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:8}}>{rom}</div>
-          {m&&<><div style={{fontSize:15,color:c.tx,marginBottom:4}}>{m[1]}</div><div style={{fontSize:12,color:c.m,fontStyle:"italic"}}>{m[2]}</div></>}</>}
+          {m&&<><div style={{fontSize:15,color:c.tx,marginBottom:4}}>{m[1]}</div><div style={{fontSize:12,color:c.m,fontStyle:"italic"}}>{m[2]}</div></>}
+          {speakBtn(ch)}</>}
         </div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
@@ -515,6 +675,7 @@ RULES:
             <div style={{fontFamily:mono,fontSize:22,fontWeight:700,color:kFb==="ok"?c.g:c.a}}>{rom}</div>
             {m&&<div style={{fontSize:14,color:c.tx,marginTop:6}}>{m[1]}</div>}
             {kFb==="no"&&<div style={{fontSize:12,color:c.m,marginTop:4}}>you typed: <span style={{color:c.a,textDecoration:"line-through"}}>{kInput}</span></div>}
+            <div style={{marginTop:8}}>{speakBtn(ch)}</div>
           </div>
           <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}</button>
         </>}
@@ -549,10 +710,16 @@ RULES:
       <div style={{display:"flex",gap:6,marginBottom:18}}>
         {[["h","ひらがな"],["k","カタカナ"]].map(([s,l])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,flex:1,padding:"9px 0",borderRadius:9,border:"1px solid "+(kScript===s?c.a:c.b),background:kScript===s?c.as:"transparent",color:kScript===s?c.a:c.m,fontSize:13,fontWeight:600}}>{l}</button>)}
       </div>
+      {kDueCount>0&&<button onClick={()=>{
+        const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
+        setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
+      }} style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.go,color:"#fff",fontSize:14,fontWeight:600,marginBottom:12}}>
+        Review {kDueCount} due kana
+      </button>}
       <div style={{...card,marginBottom:18}}>
         <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:10,textTransform:"uppercase"}}>Select rows</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-          {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>(data.kana[ch]||0)>=3);
+          {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>getKBox(ch)>=3);
             return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:7,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}</button>;
           })}
         </div>
@@ -563,19 +730,20 @@ RULES:
         <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
       </div>
       <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-        {allKana.map((ch,i)=>{const s=data.kana[ch]||0;const mastered=s>=3;const learning=s>=1&&s<3;
+        {allKana.map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;
           return <div key={i} style={{
             width:tileSize,height:tileSize,
             display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
             borderRadius:9,
             background:mastered?c.gs:learning?c.go+"1a":c.s2,
             border:"1px solid "+(mastered?c.g+"55":learning?c.go+"44":c.b),
+            outline:due?"2px solid "+c.a+"50":"none",
             position:"relative",
           }}>
             <div style={{fontSize:tileFont,lineHeight:1}}>{ch}</div>
             <div style={{fontSize:8,color:c.m,marginTop:2}}>{ROMAJI[ch]}</div>
             {mastered&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.g}}>✓</div>}
-            {learning&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{s}</div>}
+            {learning&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{box}</div>}
           </div>;
         })}
       </div>
@@ -585,24 +753,44 @@ RULES:
   // ═══ PHRASES ═══
   const renderPhrases=()=>{
     if(pMode==="review"&&!pDone){
-      let reviewable=pCat?PHRASES.filter(p=>p[4]===pCat):PHRASES;
+      let reviewable=fastTrack?MC_PHRASES:pCat?PHRASES.filter(p=>p[4]===pCat):PHRASES;
       let due=reviewable.filter(p=>isPhrDue(p[0]));
       if(due.length===0)due=reviewable.filter(p=>!data.phr[p[0]]).slice(0,5);
       if(pCards.length===0&&due.length>0){setPCards(shuffle(due));setPI(0);setPFlip(false);return null;}
       if(pCards.length===0)return <div style={inner}>
-        <button onClick={()=>{setPMode("browse");setPCards([]);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
+        <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
         <div style={{textAlign:"center",padding:48}}><div style={{fontSize:52,marginBottom:14}}>✅</div><h3 style={{fontSize:20,fontWeight:600}}>All caught up!</h3><div style={{fontSize:13,color:c.m,marginTop:8}}>No phrases due. Check back later.</div></div>
       </div>;
       const p=pCards[pI];if(!p){setPDone(true);return null;}
       return <div style={inner}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-          <button onClick={()=>{setPMode("browse");setPCards([]);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
-          <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{pI+1}/{pCards.length}</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            {fastTrack&&<span style={chip(c.a)}>⚡ Fast Track</span>}
+            <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{pI+1}/{pCards.length}</div>
+          </div>
         </div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:c.g,borderRadius:4,transition:"width .3s"}}/></div>
+        {/* recall mode toggle */}
+        <div style={{display:"flex",gap:6,marginBottom:14}}>
+          {[["recognise","Show Japanese"],["recall","Recall Mode"]].map(([mode,label])=>(
+            <button key={mode} onClick={()=>setPRecall(mode==="recall")}
+              style={{...btn,flex:1,padding:"7px 0",borderRadius:8,border:"1px solid "+(pRecall===(mode==="recall")?c.g:c.b),background:pRecall===(mode==="recall")?c.gs:"transparent",color:pRecall===(mode==="recall")?c.g:c.m,fontSize:11,fontWeight:600}}>
+              {label}
+            </button>
+          ))}
+        </div>
         <div style={{...card,padding:"36px 24px",textAlign:"center",minHeight:220,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!pFlip?"pointer":"default"}} onClick={()=>!pFlip&&setPFlip(true)}>
-          {!pFlip?<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span><div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
-          :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span><div style={{fontSize:30,fontWeight:700,marginBottom:10,lineHeight:1.3}}>{p[1]}</div><div style={{fontSize:19,fontFamily:mono,color:c.a,marginBottom:8}}>{p[2]}</div><div style={{fontSize:14,color:c.m}}>{p[3]}</div>{p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}</>}
+          {!pFlip
+            ?<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
+              <div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div>
+              <div style={{fontSize:12,color:c.m}}>{pRecall?"think of the Japanese... then flip":"tap to reveal"}</div></>
+            :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
+              <div style={{fontSize:30,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
+              {speakBtn(p[1])}
+              <div style={{fontSize:19,fontFamily:mono,color:c.a,marginTop:6,marginBottom:8}}>{p[2]}</div>
+              <div style={{fontSize:14,color:c.m}}>{p[3]}</div>
+              {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}</>}
         </div>
         {pFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
           <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
@@ -615,7 +803,7 @@ RULES:
         <div style={{fontSize:60,marginBottom:14}}>🎉</div>
         <h3 style={{fontSize:24,fontWeight:600,margin:"0 0 8px",letterSpacing:"-.01em"}}>Session complete!</h3>
         <div style={{display:"flex",gap:10,marginTop:24}}>
-          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
+          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);setFastTrack(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
           <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>More</button>
         </div>
       </div>
@@ -631,7 +819,10 @@ RULES:
           return <div key={i} style={{...card,marginBottom:8,padding:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
               <div style={{flex:1}}>
-                <div style={{fontSize:17,fontWeight:600,marginBottom:3}}>{p[1]}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
+                  <div style={{fontSize:17,fontWeight:600}}>{p[1]}</div>
+                  <button onClick={()=>speak(p[1])} style={{...btn,padding:"2px 7px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m}}>🔊</button>
+                </div>
                 <div style={{fontSize:13,fontFamily:mono,color:c.a,marginBottom:2}}>{p[2]}</div>
                 <div style={{fontSize:13,color:c.m}}>{p[3]}</div>
               </div>
@@ -644,7 +835,11 @@ RULES:
     return <div style={inner}>
       <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:8}}>Phrase Bank</div>
       <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>Scenarios</h2>
-      {dueCount>0&&<button onClick={()=>{setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.go,color:"#fff",fontSize:15,fontWeight:600,marginBottom:16}}>Review {dueCount} due</button>}
+      {mcLeft>0&&<button onClick={()=>{setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
+        style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600,marginBottom:10}}>
+        ⚡ Fast Track — {mcLeft} mission-critical left
+      </button>}
+      {dueCount>0&&<button onClick={()=>{setFastTrack(false);setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.go,color:"#fff",fontSize:15,fontWeight:600,marginBottom:16}}>Review {dueCount} due</button>}
       {Object.entries(CATS).map(([k,v])=>{
         const total=PHRASES.filter(p=>p[4]===k).length;
         const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
@@ -674,29 +869,50 @@ RULES:
     const chatW=isDesktop?800:540;
     return <div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",position:"fixed",top:0,right:0,bottom:0,left:isDesktop?SIDEBAR_W:0}}>
       <style>{`@keyframes pulse{0%,100%{opacity:.2}50%{opacity:.9}}.dot1{animation:pulse 1.4s ease-in-out infinite}.dot2{animation:pulse 1.4s ease-in-out .22s infinite}.dot3{animation:pulse 1.4s ease-in-out .44s infinite}`}</style>
-      <div style={{padding:"18px 24px 14px",borderBottom:"1px solid "+c.b}}>
+      <div style={{padding:"18px 24px 14px",borderBottom:"1px solid "+c.b,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           <div style={{fontSize:26}}>🎌</div>
-          <div><div style={{fontSize:16,fontWeight:700}}>Sensei</div><div style={{fontSize:11,color:c.m}}>AI Japanese tutor</div></div>
+          <div>
+            <div style={{fontSize:16,fontWeight:700}}>Sensei{profile.name?` · ${profile.name}`:""}</div>
+            <div style={{fontSize:11,color:c.m}}>AI Japanese tutor · {data.streak||1} day streak</div>
+          </div>
         </div>
+        {msgs.length>0&&<button onClick={()=>setMsgs([])} style={{...btn,padding:"5px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m}}>New</button>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"20px 24px"}}>
         {msgs.length===0&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60%",textAlign:"center",padding:"40px 20px"}}>
           <div style={{fontSize:52,marginBottom:16}}>🎌</div>
-          <div style={{fontSize:18,fontWeight:600,marginBottom:8}}>Hey, I'm your Sensei.</div>
-          <div style={{fontSize:13,color:c.m,marginBottom:28,lineHeight:1.6}}>I know your progress and trip details. Try:</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,width:"100%",maxWidth:460}}>
-            {["Practice ordering ramen","Roleplay buying a train ticket","Explain how to count","Quiz me on what I've learned"].map((s,i)=>
-              <button key={i} onClick={()=>setChatIn(s)}
-                onMouseEnter={()=>setHov("sg"+i)} onMouseLeave={()=>setHov(null)}
-                style={{...btn,padding:"12px 16px",borderRadius:10,background:hov==="sg"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
-                <span>{s}</span><span style={{color:c.m,opacity:.4,fontSize:16}}>→</span>
-              </button>
-            )}
+          <div style={{fontSize:18,fontWeight:600,marginBottom:6}}>Hey{profile.name?`, ${profile.name}`:""}. I'm your Sensei.</div>
+          <div style={{fontSize:13,color:c.m,marginBottom:24,lineHeight:1.6}}>I know your progress and trip details.</div>
+          {/* Role-play scenarios */}
+          <div style={{width:"100%",maxWidth:460,marginBottom:20}}>
+            <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10,textAlign:"left"}}>Role-play a scenario</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {RP_SCENARIOS.map((sc,i)=>
+                <button key={sc.id} onClick={()=>startRolePlay(sc)}
+                  onMouseEnter={()=>setHov("rp"+i)} onMouseLeave={()=>setHov(null)}
+                  style={{...btn,padding:"11px 14px",borderRadius:10,background:hov==="rp"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
+                  <span>{sc.icon} {sc.name}</span><span style={{color:c.m,opacity:.4,fontSize:16}}>→</span>
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Free questions */}
+          <div style={{width:"100%",maxWidth:460}}>
+            <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10,textAlign:"left"}}>Or ask a question</div>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {["Quiz me on what I've learned","Explain how to count in Japanese","What phrases should I focus on?","Cultural tips for Osaka"].map((s,i)=>
+                <button key={i} onClick={()=>setChatIn(s)}
+                  onMouseEnter={()=>setHov("sg"+i)} onMouseLeave={()=>setHov(null)}
+                  style={{...btn,padding:"11px 14px",borderRadius:10,background:hov==="sg"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
+                  <span>{s}</span><span style={{color:c.m,opacity:.4,fontSize:16}}>→</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>}
         <div style={{maxWidth:chatW,margin:"0 auto"}}>
-          {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
+          {msgs.map((m,i)=>m.role!=="user"||!m.content.startsWith("Let's role-play")&&!m.content.startsWith("Let's do a role-play")?<div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
             <div style={{
               maxWidth:"80%",padding:"10px 14px",
               borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",
@@ -704,7 +920,7 @@ RULES:
               border:"1px solid "+(m.role==="user"?c.a+"30":c.b),
               fontSize:14,lineHeight:1.65,whiteSpace:"pre-wrap",
             }}>{m.content}</div>
-          </div>)}
+          </div>:null)}
           {loading&&<div style={{display:"flex",marginBottom:10}}>
             <div style={{padding:"12px 18px",borderRadius:"14px 14px 14px 4px",background:c.s,border:"1px solid "+c.b,display:"flex",gap:5,alignItems:"center"}}>
               <span className="dot1" style={{fontSize:22,color:c.m,lineHeight:1}}>·</span>
@@ -719,15 +935,123 @@ RULES:
         <div style={{maxWidth:chatW,margin:"0 auto",display:"flex",gap:8}}>
           <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
             placeholder="Ask sensei..." style={{flex:1,padding:"11px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
-          <button onClick={sendToSensei} disabled={!chatIn.trim()||loading} style={{...btn,padding:"11px 20px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
+          <button onClick={()=>sendToSensei()} disabled={!chatIn.trim()||loading} style={{...btn,padding:"11px 20px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
         </div>
       </div>
     </div>;
   };
 
+  // ═══ DAILY DRILL ═══
+  const renderDrill=()=>{
+    if(drillDone||drillCards.length===0){
+      const total=drillCards.length;
+      const pct=total>0?Math.round(drillScore.c/total*100):0;
+      return <div style={inner}>
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <div style={{fontSize:60,marginBottom:14}}>{pct>=80?"🔥":pct>=60?"👍":"🔄"}</div>
+          <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 6px"}}>Drill complete!</h2>
+          <div style={{fontSize:44,fontWeight:800,fontFamily:mono,color:pct>=80?c.g:c.go,marginBottom:24}}>{pct}%</div>
+          <div style={{fontSize:13,color:c.m,marginBottom:24}}>{drillScore.c} correct · {drillScore.w} missed</div>
+          <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+            <button onClick={()=>setTab("home")} style={{...btn,flex:1,maxWidth:160,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Home</button>
+            <button onClick={startDrill} style={{...btn,flex:1,maxWidth:160,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Again</button>
+          </div>
+        </div>
+      </div>;
+    }
+    const card_=drillCards[drillI];
+    const progress=(drillI/(drillCards.length))*100;
+    if(card_.type==="kana"){
+      const ch=card_.ch;const rom=ROMAJI[ch];const m=M[ch];
+      return <div style={inner}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <button onClick={()=>setTab("home")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← exit</button>
+          <span style={chip(c.a)}>🔥 Daily Drill</span>
+          <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{drillI+1}/{drillCards.length}</div>
+        </div>
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:36,overflow:"hidden"}}><div style={{height:"100%",width:progress+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+        <div style={{textAlign:"center",marginBottom:drillFb?8:28}}>
+          <div style={{fontSize:12,fontFamily:mono,color:c.m,marginBottom:8}}>Kana</div>
+          <div style={{fontSize:108,lineHeight:1,marginBottom:10,color:drillFb==="ok"?c.g:drillFb==="no"?c.a:c.tx}}>{ch}</div>
+        </div>
+        {!drillFb?<>
+          <div style={{display:"flex",gap:8}}>
+            <input ref={drillRef} value={drillInput} onChange={e=>setDrillInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")submitDrillKana();}}
+              placeholder="romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+              style={{flex:1,padding:"13px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:mono,fontSize:20,outline:"none",textAlign:"center"}}/>
+            <button onClick={submitDrillKana} style={{...btn,padding:"13px 22px",borderRadius:10,background:drillInput.trim()?c.a:c.b,color:drillInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go</button>
+          </div>
+        </>:<>
+          <div style={{...card,textAlign:"center",marginTop:14,background:drillFb==="ok"?c.gs:c.rs,border:"1px solid "+(drillFb==="ok"?c.g+"50":c.a+"50")}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:10}}>
+              <span style={{fontSize:48}}>{ch}</span>{m&&<span style={{fontSize:32}}>{m[0]}</span>}
+            </div>
+            <div style={{fontFamily:mono,fontSize:22,fontWeight:700,color:drillFb==="ok"?c.g:c.a}}>{rom}</div>
+            {m&&<div style={{fontSize:14,color:c.tx,marginTop:6}}>{m[1]}</div>}
+            {drillFb==="no"&&<div style={{fontSize:12,color:c.m,marginTop:4}}>you typed: <span style={{color:c.a,textDecoration:"line-through"}}>{drillInput}</span></div>}
+            <div style={{marginTop:8}}>{speakBtn(ch)}</div>
+          </div>
+          <button onClick={advanceDrill} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{drillI+1>=drillCards.length?"Finish":"Next →"}</button>
+        </>}
+      </div>;
+    }
+    // phrase card in drill
+    const p=card_.p;
+    return <div style={inner}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+        <button onClick={()=>setTab("home")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← exit</button>
+        <span style={chip(c.g)}>🔥 Daily Drill</span>
+        <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{drillI+1}/{drillCards.length}</div>
+      </div>
+      <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:progress+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+      <div style={{...card,padding:"36px 24px",textAlign:"center",minHeight:220,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!drillFlip?"pointer":"default"}} onClick={()=>!drillFlip&&setDrillFlip(true)}>
+        {!drillFlip
+          ?<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
+            <div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div>
+            <div style={{fontSize:12,color:c.m}}>think of it... then tap to reveal</div></>
+          :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
+            <div style={{fontSize:30,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
+            {speakBtn(p[1])}
+            <div style={{fontSize:19,fontFamily:mono,color:c.a,marginTop:6,marginBottom:8}}>{p[2]}</div>
+            <div style={{fontSize:14,color:c.m}}>{p[3]}</div></>}
+      </div>
+      {drillFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
+        <button onClick={()=>{reviewPhr(p[0],false);setDrillScore(s=>({...s,w:s.w+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
+        <button onClick={()=>{reviewPhr(p[0],true);setDrillScore(s=>({...s,c:s.c+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it</button>
+      </div>}
+    </div>;
+  };
+
+  // ═══ PROFILE MODAL ═══
+  const renderProfile=()=>(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowProfile(false)}>
+      <div style={{...card,width:"100%",maxWidth:360,padding:24}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Your Profile</div>
+        <div style={{fontSize:12,color:c.m,marginBottom:4,fontFamily:mono}}>NAME</div>
+        <input value={profile.name} onChange={e=>saveProfile({name:e.target.value})} placeholder="e.g. Ollie"
+          style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:14,boxSizing:"border-box"}}/>
+        <div style={{fontSize:12,color:c.m,marginBottom:4,fontFamily:mono}}>CONTEXT FOR SENSEI</div>
+        <textarea value={profile.notes} onChange={e=>saveProfile({notes:e.target.value.slice(0,200)})} placeholder="e.g. travelling solo, vegetarian, interested in anime..."
+          rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
+        <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{profile.notes.length}/200</div>
+        <div style={{display:"flex",gap:8,fontSize:12,color:c.m,marginBottom:16,padding:"10px 12px",background:c.s2,borderRadius:8}}>
+          <span>🔥 {data.streak||1} day streak</span>
+          <span style={{marginLeft:"auto"}}>📚 {data.sessions} sessions</span>
+          <span>✅ {data.totalC} correct</span>
+        </div>
+        <button onClick={()=>setShowProfile(false)} style={{...btn,width:"100%",padding:11,borderRadius:9,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>
+      </div>
+    </div>
+  );
+
   // ═══ RENDER ═══
   const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Sensei"}];
-  const handleTabClick=(id)=>{setTab(id);if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);}if(id==="kana")setKScreen("menu");};
+  const handleTabClick=(id)=>{
+    setTab(id);
+    if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);setFastTrack(false);}
+    if(id==="kana")setKScreen("menu");
+    if(id==="sensei"){}
+  };
   const dl=daysLeft();
 
   return <div style={wrap}>
@@ -735,32 +1059,35 @@ RULES:
     {tab==="kana"&&renderKana()}
     {tab==="phrases"&&renderPhrases()}
     {tab==="sensei"&&renderSensei()}
+    {tab==="drill"&&renderDrill()}
+    {showProfile&&renderProfile()}
 
     {isDesktop
       ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
-          {/* Branding */}
           <div style={{padding:"22px 16px 18px",borderBottom:"1px solid "+c.b}}>
             <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
             <div style={{fontSize:11,color:c.m,marginTop:4,fontFamily:mono,letterSpacing:".02em"}}>Japanese Trainer</div>
           </div>
-          {/* Nav */}
           <div style={{flex:1,padding:"12px 8px"}}>
-            {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={sideTabBtn(tab===tb.id)}>
+            {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={sideTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home")}>
               <span style={{fontSize:18,lineHeight:1}}>{tb.icon}</span>
               <span>{tb.label}</span>
             </button>)}
           </div>
-          {/* Bottom strip */}
           <div style={{padding:"14px 16px",borderTop:"1px solid "+c.b,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
             <button onClick={toggleTheme} title="Toggle theme"
               style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:16,color:c.tx}}>
               {theme==="dark"?"☀️":"🌙"}
             </button>
-            {dl>0&&<span style={{fontSize:11,fontFamily:mono,color:c.m}}>{dl}d to Japan</span>}
+            <button onClick={()=>setShowProfile(true)} title="Profile"
+              style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:14,color:c.m}}>
+              {profile.name?profile.name[0].toUpperCase():"👤"}
+            </button>
+            {dl>0&&<span style={{fontSize:11,fontFamily:mono,color:c.m}}>{dl}d</span>}
           </div>
         </div>
       : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
-          {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={bottomTabBtn(tab===tb.id)}>
+          {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={bottomTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home")}>
             <span style={{fontSize:20}}>{tb.icon}</span><span>{tb.label}</span>
           </button>)}
         </div>
