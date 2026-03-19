@@ -29,35 +29,20 @@ const syncSave = async (token, data) => {
   } catch { /* offline — localStorage still holds it */ }
 };
 
-// ═══ TTS ═══
+// ═══ TTS — proxied through /api/tts to avoid CORS ═══
 let _ttsAudio = null;
 const speak = (text, lang="ja-JP") => {
   if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
   if(window.speechSynthesis) window.speechSynthesis.cancel();
-  if(lang==="ja-JP"){
-    // Google Translate TTS — neural quality, no API key needed
-    const url=`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ja&q=${encodeURIComponent(text)}`;
-    _ttsAudio=new Audio(url);
-    _ttsAudio.playbackRate=0.9;
-    _ttsAudio.play().catch(()=>_webSpeak(text,lang));
-  } else {
-    _webSpeak(text,lang);
-  }
-};
-const _webSpeak=(text,lang)=>{
-  if(!window.speechSynthesis) return;
-  const u=new SpeechSynthesisUtterance(text);
-  u.lang=lang; u.rate=0.88;
-  const voices=window.speechSynthesis.getVoices();
-  if(voices.length){
-    const v=voices.find(v=>v.name==="Google US English")
-      ||voices.find(v=>v.name==="Samantha")
-      ||voices.find(v=>v.name==="Karen")
-      ||voices.find(v=>v.lang.startsWith("en")&&v.localService)
-      ||voices.find(v=>v.lang.startsWith("en"));
-    if(v) u.voice=v;
-  }
-  window.speechSynthesis.speak(u);
+  const ttsLang=lang==="ja-JP"?"ja":"en";
+  _ttsAudio=new Audio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`);
+  if(lang==="ja-JP") _ttsAudio.playbackRate=0.85;
+  _ttsAudio.play().catch(()=>{
+    if(!window.speechSynthesis) return;
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang=lang; u.rate=0.85;
+    window.speechSynthesis.speak(u);
+  });
 };
 
 // ═══ KANA MNEMONICS ═══
