@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-// ═══ STORAGE HELPERS (localStorage for standalone deployment) ═══
+// ═══ STORAGE HELPERS ═══
 const store = {
   get: (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
   set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} },
@@ -186,7 +186,27 @@ const TRIP=new Date("2026-05-15");
 
 const font='"Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
 const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
-const c={bg:"#131316",s:"#1c1c21",s2:"#25252b",s3:"#2f2f37",b:"#38383f",tx:"#e8e6e3",m:"#8a8a8e",a:"#c45d4c",as:"rgba(196,93,76,.15)",g:"#5a9e6f",gs:"rgba(90,158,111,.15)",r:"#c45d4c",rs:"rgba(196,93,76,.12)",go:"#c4a24c",bl:"#5a8ec4"};
+
+// ═══ THEMES ═══
+const THEMES = {
+  dark: {
+    name:"Dark",
+    bg:"#0f0f12", s:"#18181d", s2:"#222228", s3:"#2a2a32", b:"#34343c",
+    tx:"#eae8e5", m:"#6e6e74",
+    a:"#c45d4c", g:"#5a9e6f", go:"#c4a24c", bl:"#5a8ec4",
+    as:"rgba(196,93,76,.14)", gs:"rgba(90,158,111,.14)", rs:"rgba(196,93,76,.12)",
+    shadow:"0 2px 8px rgba(0,0,0,.35)",
+  },
+  light: {
+    name:"Light",
+    bg:"#f2f1ee", s:"#ffffff", s2:"#eae9e5", s3:"#dddcD7", b:"#cccbc6",
+    tx:"#1a1a1e", m:"#7a7870",
+    a:"#b84d3c", g:"#3d7a52", go:"#9a7a2e", bl:"#3a6ea0",
+    as:"rgba(184,77,60,.11)", gs:"rgba(61,122,82,.11)", rs:"rgba(184,77,60,.09)",
+    shadow:"0 1px 4px rgba(0,0,0,.10)",
+  },
+  // Additional themes can be added here
+};
 
 function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
 function daysLeft(){return Math.max(0,Math.ceil((TRIP-Date.now())/(864e5)));}
@@ -195,6 +215,7 @@ export default function App(){
   const [tab,setTab]=useState("home");
   const [d,setD]=useState(null);
   const [loaded,setLoaded]=useState(false);
+  const [theme,setTheme]=useState(()=>localStorage.getItem("nihongo-theme")||"dark");
   const [kScript,setKScript]=useState("h");
   const [kSel,setKSel]=useState([0]);
   const [kScreen,setKScreen]=useState("menu");
@@ -217,8 +238,18 @@ export default function App(){
   const [chatIn,setChatIn]=useState("");
   const [loading,setLoading]=useState(false);
   const [isDesktop,setIsDesktop]=useState(window.innerWidth>=768);
+  const [hov,setHov]=useState(null);
   const inputRef=useRef(null);
   const chatEndRef=useRef(null);
+
+  const c=THEMES[theme];
+  const SIDEBAR_W=240;
+
+  const toggleTheme=()=>{
+    const next=theme==="dark"?"light":"dark";
+    setTheme(next);
+    localStorage.setItem("nihongo-theme",next);
+  };
 
   useEffect(()=>{
     const onResize=()=>setIsDesktop(window.innerWidth>=768);
@@ -227,8 +258,8 @@ export default function App(){
   },[]);
 
   useEffect(()=>{
-    const saved = store.get(KEY);
-    if(saved) setD(saved);
+    const saved=store.get(KEY);
+    if(saved)setD(saved);
     setLoaded(true);
   },[]);
 
@@ -325,60 +356,113 @@ RULES:
     setLoading(false);
   };
 
-  const card={background:c.s,border:"1px solid "+c.b,borderRadius:12,padding:16};
+  // ═══ SHARED STYLES ═══
+  const card={
+    background:c.s,
+    border:"1px solid "+c.b,
+    borderRadius:14,
+    padding:16,
+    boxShadow:c.shadow,
+  };
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
-  const tabBtn=(active)=>isDesktop
-    ?{...btn,width:"100%",padding:"10px 16px",background:active?c.as:"transparent",display:"flex",flexDirection:"row",alignItems:"center",gap:10,color:active?c.a:c.m,fontSize:13,fontWeight:600,borderRadius:8,border:"none",textAlign:"left"}
-    :({...btn,flex:1,padding:"10px 0 8px",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:active?c.a:c.m,fontSize:10,fontWeight:600});
-  const SIDEBAR_W=200;
+
+  const sideTabBtn=(active)=>({
+    ...btn,
+    width:"100%",
+    padding:"10px 14px",
+    paddingLeft: active ? "11px" : "14px",
+    background:"transparent",
+    display:"flex",
+    flexDirection:"row",
+    alignItems:"center",
+    gap:11,
+    color:active?c.a:c.m,
+    fontSize:14,
+    fontWeight: active ? 600 : 400,
+    borderRadius:9,
+    borderLeft: active ? `3px solid ${c.a}` : "3px solid transparent",
+    textAlign:"left",
+  });
+
+  const bottomTabBtn=(active)=>({
+    ...btn,
+    flex:1,
+    padding:"10px 0 8px",
+    background:"transparent",
+    display:"flex",
+    flexDirection:"column",
+    alignItems:"center",
+    gap:3,
+    color:active?c.a:c.m,
+    fontSize:10,
+    fontWeight: active ? 600 : 400,
+  });
+
   const wrap={fontFamily:font,background:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
-  const inner={maxWidth:isDesktop?720:520,margin:"0 auto",padding:"24px 16px 32px"};
+  const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
+
+  const progressBar=(pct,color)=>(
+    <div style={{flex:1,height:8,background:c.s3,borderRadius:4,overflow:"hidden"}}>
+      <div style={{height:"100%",width:pct+"%",background:color,borderRadius:4,transition:"width .4s"}}/>
+    </div>
+  );
 
   if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
 
   // ═══ HOME ═══
   const renderHome=()=>{
-    const dl=daysLeft();const week=Math.min(7,Math.max(1,8-Math.ceil(dl/7)));
-    const kanaPct=Math.round(kMastered/92*100);const phrPct=Math.round(learnedPhr/PHRASES.length*100);
+    const dl=daysLeft();
+    const kanaPct=Math.round(kMastered/92*100);
+    const phrPct=Math.round(learnedPhr/PHRASES.length*100);
+    const stats=[
+      {l:"Kana",v:kanaPct+"%",cl:c.a,border:c.a},
+      {l:"Phrases",v:phrPct+"%",cl:c.g,border:c.g},
+      {l:"Due",v:dueCount,cl:dueCount>0?c.go:c.m,border:dueCount>0?c.go:c.b},
+    ];
+    const actions=[
+      {id:"study",icon:"📚",iconBg:c.gs,title:"Study Now",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
+      {id:"kana",icon:"あ",iconBg:c.as,title:"Kana Practice",desc:`${kMastered}/92 mastered`,action:()=>{setTab("kana");setKScreen("menu");}},
+      {id:"sensei",icon:"🎌",iconBg:"rgba(90,142,196,.14)",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
+    ];
     return <div style={inner}>
-      <div style={{marginBottom:24}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>日本語 Journey</div>
-        <h1 style={{fontSize:28,fontWeight:700,margin:0}}>Week {week} of 7</h1>
-        <div style={{fontSize:13,color:c.m,marginTop:4}}>{dl} days until Japan</div>
+      <div style={{marginBottom:28}}>
+        <h1 style={{fontSize:32,fontWeight:700,margin:"0 0 8px",letterSpacing:"-.02em"}}>日本語 Journey</h1>
+        {dl>0&&<span style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:12,color:c.m,background:c.s2,border:"1px solid "+c.b,borderRadius:20,padding:"3px 10px",fontFamily:mono}}>
+          {dl} days to Japan
+        </span>}
       </div>
-      <div style={{display:"flex",gap:10,marginBottom:16}}>
-        {[{l:"Kana",v:kanaPct+"%",cl:c.a},{l:"Phrases",v:phrPct+"%",cl:c.g},{l:"Due",v:dueCount,cl:dueCount>0?c.go:c.m}].map((s,i)=>
-          <div key={i} style={{flex:1,...card,padding:"12px 10px",textAlign:"center"}}>
+      <div style={{display:"flex",gap:10,marginBottom:20}}>
+        {stats.map((s,i)=><div key={i} style={{flex:1,...card,padding:0,overflow:"hidden",textAlign:"center"}}>
+          <div style={{height:3,background:s.border,borderRadius:"14px 14px 0 0"}}/>
+          <div style={{padding:"12px 10px 14px"}}>
             <div style={{fontSize:22,fontWeight:800,fontFamily:mono,color:s.cl}}>{s.v}</div>
-            <div style={{fontSize:10,color:c.m,marginTop:2}}>{s.l}</div>
+            <div style={{fontSize:11,color:c.m,marginTop:3,textTransform:"uppercase",letterSpacing:".05em"}}>{s.l}</div>
           </div>
-        )}
+        </div>)}
       </div>
-      {[
-        {icon:"📚",title:"Study Now",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
-        {icon:"あ",title:"Kana Practice",desc:`${kMastered}/92 mastered`,action:()=>{setTab("kana");setKScreen("menu");}},
-        {icon:"🎌",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
-      ].map((item,i)=>
-        <div key={i} onClick={item.action} style={{...card,marginBottom:10,cursor:"pointer",padding:14}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div><div style={{fontSize:15,fontWeight:600}}>{item.icon} {item.title}</div><div style={{fontSize:12,color:c.m,marginTop:2}}>{item.desc}</div></div>
-            <div style={{fontSize:18,color:c.m}}>→</div>
+      {actions.map(item=><div key={item.id} onClick={item.action}
+        onMouseEnter={()=>setHov(item.id)} onMouseLeave={()=>setHov(null)}
+        style={{...card,marginBottom:10,cursor:"pointer",padding:14,background:hov===item.id?c.s2:c.s,transition:"all .15s"}}>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <div style={{width:42,height:42,borderRadius:12,background:item.iconBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{item.icon}</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:15,fontWeight:600}}>{item.title}</div>
+            <div style={{fontSize:12,color:c.m,marginTop:2}}>{item.desc}</div>
           </div>
+          <div style={{fontSize:16,color:c.m,opacity:.6}}>→</div>
         </div>
-      )}
-      <div style={{...card,marginTop:6}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:10}}>Progress by scenario</div>
+      </div>)}
+      <div style={{...card,marginTop:8}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>Progress by scenario</div>
         {Object.entries(CATS).map(([k,v])=>{
           const total=PHRASES.filter(p=>p[4]===k).length;
           const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
           const pct=Math.round(done/total*100);
-          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-            <span style={{fontSize:16,width:24}}>{CAT_ICONS[k]}</span>
+          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+            <span style={{fontSize:16,width:24,flexShrink:0}}>{CAT_ICONS[k]}</span>
             <span style={{fontSize:13,flex:1}}>{v}</span>
-            <div style={{width:80,height:6,background:c.s3,borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",width:pct+"%",background:pct>=80?c.g:pct>=40?c.go:c.a,borderRadius:3}}/>
-            </div>
-            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:32,textAlign:"right"}}>{done}/{total}</span>
+            {progressBar(pct,pct>=80?c.g:pct>=40?c.go:c.a)}
+            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:34,textAlign:"right",flexShrink:0}}>{done}/{total}</span>
           </div>;
         })}
       </div>
@@ -387,106 +471,124 @@ RULES:
 
   // ═══ KANA ═══
   const renderKana=()=>{
+    const tileSize=isDesktop?48:42;
+    const tileFont=isDesktop?19:16;
+
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
       return <div style={inner}>
-        <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:16}}>← back</button>
+        <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
         <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:6}}>{kLI+1}/{chars.length}</div>
-        <div style={{height:3,background:c.b,borderRadius:2,marginBottom:24,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,transition:"width .3s"}}/></div>
-        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"36px 20px",minHeight:240,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",border:"1px solid "+(kFlip?c.a+"60":c.b)}}>
-          {!kFlip?<><div style={{fontSize:88,lineHeight:1,marginBottom:12}}>{ch}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
-          :<><div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
-            <div style={{fontSize:64,lineHeight:1}}>{ch}</div>{m&&<div style={{fontSize:40}}>{m[0]}</div>}
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"40px 24px",minHeight:260,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",border:"1px solid "+(kFlip?c.a+"60":c.b)}}>
+          {!kFlip?<><div style={{fontSize:96,lineHeight:1,marginBottom:14}}>{ch}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
+          :<><div style={{display:"flex",alignItems:"center",gap:16,marginBottom:12}}>
+            <div style={{fontSize:68,lineHeight:1}}>{ch}</div>{m&&<div style={{fontSize:44}}>{m[0]}</div>}
           </div>
-          <div style={{fontSize:28,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:6}}>{rom}</div>
-          {m&&<><div style={{fontSize:14,color:c.tx,marginBottom:3}}>{m[1]}</div><div style={{fontSize:11,color:c.m,fontStyle:"italic"}}>{m[2]}</div></>}</>}
+          <div style={{fontSize:30,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:8}}>{rom}</div>
+          {m&&<><div style={{fontSize:15,color:c.tx,marginBottom:4}}>{m[1]}</div><div style={{fontSize:12,color:c.m,fontStyle:"italic"}}>{m[2]}</div></>}</>}
         </div>
         <div style={{display:"flex",gap:10,marginTop:20}}>
-          <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:12,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
-          {kLI<chars.length-1?<button onClick={()=>{setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:12,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
-          :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:12,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>⚡ Quiz</button>}
+          <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
+          {kLI<chars.length-1
+            ?<button onClick={()=>{setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
+            :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Quiz</button>}
         </div>
       </div>;
     }
+
     if(kScreen==="quiz"){
       const ch=kCards[kI];const rom=ROMAJI[ch];const m=M[ch];
       const prog=kCards.length>0?((kI+(kFb?1:0))/kCards.length*100):0;
       return <div style={inner}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
           <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
-          <div style={{fontFamily:mono,fontSize:12,color:c.m}}><span style={{color:c.g}}>{kScore.c}</span>{" / "}<span style={{color:c.r}}>{kScore.w}</span></div>
+          <div style={{fontFamily:mono,fontSize:12,color:c.m}}><span style={{color:c.g}}>{kScore.c}</span>{" / "}<span style={{color:c.a}}>{kScore.w}</span></div>
         </div>
-        <div style={{height:3,background:c.b,borderRadius:2,marginBottom:32,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,transition:"width .3s"}}/></div>
-        <div style={{textAlign:"center",marginBottom:kFb?6:24}}>
-          <div style={{fontSize:100,lineHeight:1,marginBottom:8,color:kFb==="ok"?c.g:kFb==="no"?c.r:c.tx}}>{ch}</div>
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:36,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+        <div style={{textAlign:"center",marginBottom:kFb?8:28}}>
+          <div style={{fontSize:108,lineHeight:1,marginBottom:10,color:kFb==="ok"?c.g:kFb==="no"?c.a:c.tx}}>{ch}</div>
           <div style={{fontSize:12,fontFamily:mono,color:c.m}}>{kI+1} of {kCards.length}</div>
         </div>
         {!kFb?<>
           <div style={{display:"flex",gap:8}}>
             <input ref={inputRef} value={kInput} onChange={e=>setKInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")submitKana();}}
               placeholder="romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
-              style={{flex:1,padding:"12px 14px",borderRadius:10,border:"1px solid "+c.b,background:c.s,color:c.tx,fontFamily:mono,fontSize:18,outline:"none",textAlign:"center"}}/>
-            <button onClick={submitKana} style={{...btn,padding:"12px 20px",borderRadius:10,background:kInput.trim()?c.a:c.b,color:kInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go</button>
+              style={{flex:1,padding:"13px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:mono,fontSize:20,outline:"none",textAlign:"center"}}/>
+            <button onClick={submitKana} style={{...btn,padding:"13px 22px",borderRadius:10,background:kInput.trim()?c.a:c.b,color:kInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go</button>
           </div>
-          <button onClick={()=>setKPeek(!kPeek)} style={{...btn,display:"block",margin:"12px auto 0",background:"none",color:c.m,fontFamily:mono,fontSize:11,opacity:.6}}>{kPeek?`"${rom}"`:"peek"}</button>
+          <button onClick={()=>setKPeek(!kPeek)} style={{...btn,display:"block",margin:"14px auto 0",background:"none",color:c.m,fontFamily:mono,fontSize:11,opacity:.55}}>{kPeek?`"${rom}"`:"peek"}</button>
         </>:<>
-          <div style={{...card,textAlign:"center",marginTop:12,background:kFb==="ok"?c.gs:c.rs,border:"1px solid "+(kFb==="ok"?c.g+"40":c.r+"40")}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:8}}>
-              <span style={{fontSize:44}}>{ch}</span>{m&&<span style={{fontSize:28}}>{m[0]}</span>}
+          <div style={{...card,textAlign:"center",marginTop:14,background:kFb==="ok"?c.gs:c.rs,border:"1px solid "+(kFb==="ok"?c.g+"50":c.a+"50")}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:10}}>
+              <span style={{fontSize:48}}>{ch}</span>{m&&<span style={{fontSize:32}}>{m[0]}</span>}
             </div>
-            <div style={{fontFamily:mono,fontSize:20,fontWeight:700,color:kFb==="ok"?c.g:c.a}}>{rom}</div>
-            {m&&<div style={{fontSize:13,color:c.tx,marginTop:4}}>{m[1]}</div>}
-            {kFb==="no"&&<div style={{fontSize:12,color:c.m,marginTop:4}}>you typed: <span style={{color:c.r,textDecoration:"line-through"}}>{kInput}</span></div>}
+            <div style={{fontFamily:mono,fontSize:22,fontWeight:700,color:kFb==="ok"?c.g:c.a}}>{rom}</div>
+            {m&&<div style={{fontSize:14,color:c.tx,marginTop:6}}>{m[1]}</div>}
+            {kFb==="no"&&<div style={{fontSize:12,color:c.m,marginTop:4}}>you typed: <span style={{color:c.a,textDecoration:"line-through"}}>{kInput}</span></div>}
           </div>
-          <button onClick={nextKana} style={{...btn,width:"100%",padding:12,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"Results":"Next →"}</button>
+          <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}</button>
         </>}
       </div>;
     }
+
     if(kScreen==="results"){
       const pct=kCards.length>0?Math.round(kScore.c/kCards.length*100):0;
       return <div style={inner}>
-        <div style={{textAlign:"center",marginBottom:24}}>
-          <div style={{fontSize:56,marginBottom:12}}>{pct>=90?"🎌":pct>=70?"📖":"🔄"}</div>
-          <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 4px"}}>{pct>=90?"Excellent!":pct>=70?"Good progress":"Keep going"}</h2>
-          <div style={{fontSize:40,fontWeight:800,fontFamily:mono,color:pct>=70?c.g:c.go}}>{pct}%</div>
+        <div style={{textAlign:"center",marginBottom:28}}>
+          <div style={{fontSize:60,marginBottom:14}}>{pct>=90?"🎌":pct>=70?"📖":"🔄"}</div>
+          <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.01em"}}>{pct>=90?"Excellent!":pct>=70?"Good progress":"Keep going"}</h2>
+          <div style={{fontSize:44,fontWeight:800,fontFamily:mono,color:pct>=70?c.g:c.go}}>{pct}%</div>
         </div>
         {kMistakes.length>0&&<div style={{...card,marginBottom:16}}>
-          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:8}}>Review</div>
-          {kMistakes.map((m,i)=>{const mn=M[m.ch];return <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:i<kMistakes.length-1?"1px solid "+c.b:"none"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:24}}>{m.ch}</span>{mn&&<span>{mn[0]}</span>}<span style={{fontFamily:mono,fontWeight:700,color:c.g}}>{m.rom}</span></div>
-            <span style={{fontFamily:mono,fontSize:12,color:c.r,textDecoration:"line-through"}}>{m.ans}</span>
+          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:10}}>Review</div>
+          {kMistakes.map((m,i)=>{const mn=M[m.ch];return <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 0",borderBottom:i<kMistakes.length-1?"1px solid "+c.b:"none"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:26}}>{m.ch}</span>{mn&&<span style={{fontSize:18}}>{mn[0]}</span>}<span style={{fontFamily:mono,fontWeight:700,color:c.g}}>{m.rom}</span></div>
+            <span style={{fontFamily:mono,fontSize:12,color:c.a,textDecoration:"line-through"}}>{m.ans}</span>
           </div>;})}
         </div>}
         <div style={{display:"flex",gap:10}}>
-          <button onClick={()=>setKScreen("menu")} style={{...btn,flex:1,padding:12,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Back</button>
-          <button onClick={()=>{if(kMistakes.length>0){setKCards(shuffle(kMistakes.map(m=>m.ch)));setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKScreen("quiz");}else startKanaQuiz();}} style={{...btn,flex:1,padding:12,borderRadius:10,background:kMistakes.length?c.go:c.a,color:kMistakes.length?"#1a1a1c":"#fff",fontSize:14,fontWeight:600}}>{kMistakes.length?"🔄 Retry":"⚡ Again"}</button>
+          <button onClick={()=>setKScreen("menu")} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Back</button>
+          <button onClick={()=>{if(kMistakes.length>0){setKCards(shuffle(kMistakes.map(m=>m.ch)));setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKScreen("quiz");}else startKanaQuiz();}} style={{...btn,flex:1,padding:13,borderRadius:10,background:kMistakes.length?c.go:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kMistakes.length?"Retry misses":"Again"}</button>
         </div>
       </div>;
     }
+
     return <div style={inner}>
-      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Kana Trainer</div>
-      <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 16px"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
-      <div style={{display:"flex",gap:6,marginBottom:16}}>
-        {[["h","ひらがな"],["k","カタカナ"]].map(([s,l])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,flex:1,padding:"8px 0",borderRadius:8,border:"1px solid "+(kScript===s?c.a:c.b),background:kScript===s?c.as:"transparent",color:kScript===s?c.a:c.m,fontSize:13,fontWeight:600}}>{l}</button>)}
+      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:8}}>Kana Trainer</div>
+      <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
+      <div style={{display:"flex",gap:6,marginBottom:18}}>
+        {[["h","ひらがな"],["k","カタカナ"]].map(([s,l])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,flex:1,padding:"9px 0",borderRadius:9,border:"1px solid "+(kScript===s?c.a:c.b),background:kScript===s?c.as:"transparent",color:kScript===s?c.a:c.m,fontSize:13,fontWeight:600}}>{l}</button>)}
       </div>
-      <div style={{...card,marginBottom:16}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:8,textTransform:"uppercase"}}>Select rows</div>
+      <div style={{...card,marginBottom:18}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:10,textTransform:"uppercase"}}>Select rows</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
           {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>(data.kana[ch]||0)>=3);
-            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:6,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}</button>;
+            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:7,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}</button>;
           })}
         </div>
-        <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,marginTop:8,padding:"4px 10px",borderRadius:4,border:"1px solid "+c.b,background:"transparent",color:c.m,fontFamily:mono,fontSize:10}}>all</button>
+        <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,marginTop:10,padding:"4px 10px",borderRadius:5,border:"1px solid "+c.b,background:"transparent",color:c.m,fontFamily:mono,fontSize:10}}>all</button>
       </div>
-      <div style={{display:"flex",gap:10,marginBottom:16}}>
-        <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s:c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>📖 Learn ({allKana.length})</button>
-        <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>⚡ Quiz ({allKana.length})</button>
+      <div style={{display:"flex",gap:10,marginBottom:18}}>
+        <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
+        <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
       </div>
-      <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-        {allKana.map((ch,i)=>{const s=data.kana[ch]||0;return <div key={i} style={{width:42,height:42,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",borderRadius:6,background:s>=3?c.gs:c.s2,border:"1px solid "+(s>=3?c.g+"40":c.b),position:"relative"}}>
-          <div style={{fontSize:16,lineHeight:1}}>{ch}</div><div style={{fontSize:8,color:c.m,marginTop:1}}>{ROMAJI[ch]}</div>
-          {s>0&&s<3&&<div style={{position:"absolute",top:1,right:3,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{s}</div>}
-        </div>;})}
+      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+        {allKana.map((ch,i)=>{const s=data.kana[ch]||0;const mastered=s>=3;const learning=s>=1&&s<3;
+          return <div key={i} style={{
+            width:tileSize,height:tileSize,
+            display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+            borderRadius:9,
+            background:mastered?c.gs:learning?c.go+"1a":c.s2,
+            border:"1px solid "+(mastered?c.g+"55":learning?c.go+"44":c.b),
+            position:"relative",
+          }}>
+            <div style={{fontSize:tileFont,lineHeight:1}}>{ch}</div>
+            <div style={{fontSize:8,color:c.m,marginTop:2}}>{ROMAJI[ch]}</div>
+            {mastered&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.g}}>✓</div>}
+            {learning&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{s}</div>}
+          </div>;
+        })}
       </div>
     </div>;
   };
@@ -499,57 +601,80 @@ RULES:
       if(due.length===0)due=reviewable.filter(p=>!data.phr[p[0]]).slice(0,5);
       if(pCards.length===0&&due.length>0){setPCards(shuffle(due));setPI(0);setPFlip(false);return null;}
       if(pCards.length===0)return <div style={inner}>
-        <button onClick={()=>{setPMode("browse");setPCards([]);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:16}}>← back</button>
-        <div style={{textAlign:"center",padding:40}}><div style={{fontSize:48,marginBottom:12}}>✅</div><h3 style={{fontSize:20,fontWeight:600}}>All caught up!</h3><div style={{fontSize:13,color:c.m,marginTop:8}}>No phrases due. Check back later.</div></div>
+        <button onClick={()=>{setPMode("browse");setPCards([]);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
+        <div style={{textAlign:"center",padding:48}}><div style={{fontSize:52,marginBottom:14}}>✅</div><h3 style={{fontSize:20,fontWeight:600}}>All caught up!</h3><div style={{fontSize:13,color:c.m,marginTop:8}}>No phrases due. Check back later.</div></div>
       </div>;
       const p=pCards[pI];if(!p){setPDone(true);return null;}
       return <div style={inner}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
           <button onClick={()=>{setPMode("browse");setPCards([]);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
           <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{pI+1}/{pCards.length}</div>
         </div>
-        <div style={{height:3,background:c.b,borderRadius:2,marginBottom:24,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:c.g,transition:"width .3s"}}/></div>
-        <div style={{...card,padding:"32px 20px",textAlign:"center",minHeight:200,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!pFlip?"pointer":"default"}} onClick={()=>!pFlip&&setPFlip(true)}>
-          {!pFlip?<><div style={{fontSize:12,color:c.m,marginBottom:8}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:18,fontWeight:600,marginBottom:12}}>{p[3]}</div><div style={{fontSize:12,color:c.m}}>tap to reveal Japanese</div></>
-          :<><div style={{fontSize:12,color:c.m,marginBottom:6}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:28,fontWeight:700,marginBottom:8,lineHeight:1.3}}>{p[1]}</div><div style={{fontSize:18,fontFamily:mono,color:c.a,marginBottom:6}}>{p[2]}</div><div style={{fontSize:14,color:c.m}}>{p[3]}</div>{p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:4}}>{p[5]}</div>}</>}
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:c.g,borderRadius:4,transition:"width .3s"}}/></div>
+        <div style={{...card,padding:"36px 24px",textAlign:"center",minHeight:220,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!pFlip?"pointer":"default"}} onClick={()=>!pFlip&&setPFlip(true)}>
+          {!pFlip?<><div style={{fontSize:12,color:c.m,marginBottom:10}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div><div style={{fontSize:12,color:c.m}}>tap to reveal</div></>
+          :<><div style={{fontSize:12,color:c.m,marginBottom:8}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</div><div style={{fontSize:30,fontWeight:700,marginBottom:10,lineHeight:1.3}}>{p[1]}</div><div style={{fontSize:19,fontFamily:mono,color:c.a,marginBottom:8}}>{p[2]}</div><div style={{fontSize:14,color:c.m}}>{p[3]}</div>{p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}</>}
         </div>
         {pFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
-          <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.r+"40",color:c.r,fontSize:14,fontWeight:600}}>Missed it</button>
-          <button onClick={()=>{reviewPhr(p[0],true);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it!</button>
+          <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
+          <button onClick={()=>{reviewPhr(p[0],true);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it</button>
         </div>}
       </div>;
     }
     if(pDone)return <div style={inner}>
-      <div style={{textAlign:"center",padding:32}}>
-        <div style={{fontSize:56,marginBottom:12}}>🎉</div><h3 style={{fontSize:22,fontWeight:600,margin:"0 0 8px"}}>Session complete!</h3>
-        <div style={{display:"flex",gap:10,marginTop:20}}>
-          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:12,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
-          <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:12,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>More</button>
+      <div style={{textAlign:"center",padding:40}}>
+        <div style={{fontSize:60,marginBottom:14}}>🎉</div>
+        <h3 style={{fontSize:24,fontWeight:600,margin:"0 0 8px",letterSpacing:"-.01em"}}>Session complete!</h3>
+        <div style={{display:"flex",gap:10,marginTop:24}}>
+          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
+          <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>More</button>
         </div>
       </div>
     </div>;
     if(pCat){
       const phrases=PHRASES.filter(p=>p[4]===pCat);
       return <div style={inner}>
-        <button onClick={()=>setPCat(null)} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:12}}>← scenarios</button>
-        <h2 style={{fontSize:20,fontWeight:700,margin:"0 0 16px"}}>{CAT_ICONS[pCat]} {CATS[pCat]}</h2>
-        <button onClick={()=>{setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:12,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600,marginBottom:16}}>📚 Practice</button>
-        {phrases.map((p,i)=>{const box=getPhrBox(p[0]);return <div key={i} style={{...card,marginBottom:8,padding:12}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-            <div style={{flex:1}}><div style={{fontSize:16,fontWeight:600,marginBottom:2}}>{p[1]}</div><div style={{fontSize:13,fontFamily:mono,color:c.a}}>{p[2]}</div><div style={{fontSize:13,color:c.m,marginTop:2}}>{p[3]}</div></div>
-            <div style={{fontSize:10,fontFamily:mono,padding:"2px 8px",borderRadius:4,background:box>=4?c.gs:box>=1?c.as:"transparent",color:box>=4?c.g:box>=1?c.a:c.m,border:"1px solid "+(box>=4?c.g+"40":box>=1?c.a+"40":c.b)}}>{box>=4?"mastered":box>=1?"learning":"new"}</div>
-          </div>
-        </div>;})}
+        <button onClick={()=>setPCat(null)} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:14}}>← scenarios</button>
+        <h2 style={{fontSize:22,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>{CAT_ICONS[pCat]} {CATS[pCat]}</h2>
+        <button onClick={()=>{setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600,marginBottom:16}}>Practice</button>
+        {phrases.map((p,i)=>{const box=getPhrBox(p[0]);
+          const badgeStyle={fontSize:11,fontFamily:mono,padding:"3px 10px",borderRadius:6,fontWeight:600,
+            background:box>=4?c.gs:box>=1?c.as:"transparent",
+            color:box>=4?c.g:box>=1?c.a:c.m,
+            border:"1px solid "+(box>=4?c.g+"40":box>=1?c.a+"40":c.b)};
+          return <div key={i} style={{...card,marginBottom:8,padding:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:17,fontWeight:600,marginBottom:3}}>{p[1]}</div>
+                <div style={{fontSize:13,fontFamily:mono,color:c.a,marginBottom:2}}>{p[2]}</div>
+                <div style={{fontSize:13,color:c.m}}>{p[3]}</div>
+              </div>
+              <div style={badgeStyle}>{box>=4?"mastered":box>=1?"learning":"new"}</div>
+            </div>
+          </div>;
+        })}
       </div>;
     }
     return <div style={inner}>
-      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Phrase Bank</div>
-      <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 16px"}}>Scenarios</h2>
-      {dueCount>0&&<button onClick={()=>{setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.go,color:"#1a1a1c",fontSize:15,fontWeight:600,marginBottom:16}}>🔄 Review {dueCount} due</button>}
+      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:8}}>Phrase Bank</div>
+      <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>Scenarios</h2>
+      {dueCount>0&&<button onClick={()=>{setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.go,color:"#1a1a1c",fontSize:15,fontWeight:600,marginBottom:16}}>Review {dueCount} due</button>}
       {Object.entries(CATS).map(([k,v])=>{
-        const total=PHRASES.filter(p=>p[4]===k).length;const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
-        return <div key={k} onClick={()=>setPCat(k)} style={{...card,marginBottom:8,padding:14,cursor:"pointer"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:24}}>{CAT_ICONS[k]}</span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600}}>{v}</div><div style={{fontSize:12,color:c.m}}>{done}/{total}</div></div><div style={{color:c.m}}>→</div></div>
+        const total=PHRASES.filter(p=>p[4]===k).length;
+        const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
+        const pct=Math.round(done/total*100);
+        return <div key={k} onClick={()=>setPCat(k)}
+          onMouseEnter={()=>setHov("cat_"+k)} onMouseLeave={()=>setHov(null)}
+          style={{...card,marginBottom:8,padding:14,cursor:"pointer",background:hov==="cat_"+k?c.s2:c.s,transition:"all .15s"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:24,flexShrink:0}}>{CAT_ICONS[k]}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:600,marginBottom:5}}>{v}</div>
+              {progressBar(pct,pct>=80?c.g:pct>=40?c.go:c.a)}
+            </div>
+            <span style={{fontSize:11,fontFamily:mono,color:c.m,flexShrink:0}}>{done}/{total}</span>
+            <div style={{color:c.m,opacity:.5,fontSize:14}}>→</div>
+          </div>
         </div>;
       })}
     </div>;
@@ -557,35 +682,54 @@ RULES:
 
   // ═══ SENSEI ═══
   const renderSensei=()=><div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",height:"100vh",paddingBottom:0,paddingLeft:isDesktop?SIDEBAR_W:0}}>
-    <div style={{padding:"16px 16px 8px",borderBottom:"1px solid "+c.b}}>
-      <div style={{maxWidth:isDesktop?720:520,margin:"0 auto",display:"flex",alignItems:"center",gap:10}}>
-        <div style={{fontSize:24}}>🎌</div><div><div style={{fontSize:15,fontWeight:700}}>Sensei</div><div style={{fontSize:11,color:c.m}}>AI Japanese tutor</div></div>
+    <style>{`@keyframes pulse{0%,100%{opacity:.25}50%{opacity:.9}}.dot1{animation:pulse 1.4s ease-in-out infinite}.dot2{animation:pulse 1.4s ease-in-out .22s infinite}.dot3{animation:pulse 1.4s ease-in-out .44s infinite}`}</style>
+    <div style={{padding:"18px 20px 12px",borderBottom:"1px solid "+c.b}}>
+      <div style={{maxWidth:isDesktop?740:540,margin:"0 auto",display:"flex",alignItems:"center",gap:12}}>
+        <div style={{fontSize:26}}>🎌</div>
+        <div><div style={{fontSize:16,fontWeight:700}}>Sensei</div><div style={{fontSize:11,color:c.m}}>AI Japanese tutor</div></div>
       </div>
     </div>
-    <div style={{flex:1,overflow:"auto",padding:16}}>
-      <div style={{maxWidth:isDesktop?720:520,margin:"0 auto"}}>
-        {msgs.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}>
-          <div style={{fontSize:48,marginBottom:12}}>🎌</div>
-          <div style={{fontSize:15,fontWeight:600,marginBottom:8}}>Hey! I'm your Sensei.</div>
-          <div style={{fontSize:13,color:c.m,marginBottom:20,lineHeight:1.5}}>I know your trip details and progress. Try:</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+    <div style={{flex:1,overflow:"auto",padding:"16px 20px"}}>
+      <div style={{maxWidth:isDesktop?740:540,margin:"0 auto"}}>
+        {msgs.length===0&&<div style={{textAlign:"center",padding:"52px 20px"}}>
+          <div style={{fontSize:52,marginBottom:16}}>🎌</div>
+          <div style={{fontSize:17,fontWeight:600,marginBottom:8}}>Hey, I'm your Sensei.</div>
+          <div style={{fontSize:13,color:c.m,marginBottom:24,lineHeight:1.6}}>I know your progress and trip details. Try:</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:420,margin:"0 auto"}}>
             {["Practice ordering ramen","Roleplay buying a train ticket","Explain how to count","Quiz me on what I've learned"].map((s,i)=>
-              <button key={i} onClick={()=>setChatIn(s)} style={{...btn,padding:"10px 14px",borderRadius:8,background:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left"}}>"{s}"</button>
+              <button key={i} onClick={()=>setChatIn(s)}
+                onMouseEnter={()=>setHov("sg"+i)} onMouseLeave={()=>setHov(null)}
+                style={{...btn,padding:"11px 16px",borderRadius:10,background:hov==="sg"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
+                <span>{s}</span><span style={{color:c.m,opacity:.5}}>→</span>
+              </button>
             )}
           </div>
         </div>}
-        {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:12}}>
-          <div style={{maxWidth:"85%",padding:"10px 14px",borderRadius:12,background:m.role==="user"?c.a+"20":c.s,border:"1px solid "+(m.role==="user"?c.a+"30":c.b),fontSize:14,lineHeight:1.5,whiteSpace:"pre-wrap"}}>{m.content}</div>
+        {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
+          <div style={{
+            maxWidth:"82%",padding:"10px 14px",
+            borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",
+            background:m.role==="user"?c.a+"1a":c.s,
+            border:"1px solid "+(m.role==="user"?c.a+"30":c.b),
+            fontSize:14,lineHeight:1.6,whiteSpace:"pre-wrap",
+            boxShadow:c.shadow,
+          }}>{m.content}</div>
         </div>)}
-        {loading&&<div style={{display:"flex",marginBottom:12}}><div style={{padding:"10px 14px",borderRadius:12,background:c.s,border:"1px solid "+c.b,color:c.m}}>Thinking...</div></div>}
+        {loading&&<div style={{display:"flex",marginBottom:10}}>
+          <div style={{padding:"12px 18px",borderRadius:"14px 14px 14px 4px",background:c.s,border:"1px solid "+c.b,display:"flex",gap:5,alignItems:"center",boxShadow:c.shadow}}>
+            <span className="dot1" style={{fontSize:20,color:c.m,lineHeight:1}}>·</span>
+            <span className="dot2" style={{fontSize:20,color:c.m,lineHeight:1}}>·</span>
+            <span className="dot3" style={{fontSize:20,color:c.m,lineHeight:1}}>·</span>
+          </div>
+        </div>}
         <div ref={chatEndRef}/>
       </div>
     </div>
-    <div style={{padding:"8px 16px 12px",borderTop:"1px solid "+c.b,paddingBottom:"max(12px, env(safe-area-inset-bottom))",background:c.bg}}>
-      <div style={{maxWidth:isDesktop?720:520,margin:"0 auto",display:"flex",gap:8}}>
+    <div style={{padding:"10px 20px 14px",borderTop:"1px solid "+c.b,paddingBottom:"max(14px, env(safe-area-inset-bottom))",background:c.bg}}>
+      <div style={{maxWidth:isDesktop?740:540,margin:"0 auto",display:"flex",gap:8}}>
         <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
-          placeholder="Ask sensei..." style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1px solid "+c.b,background:c.s,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
-        <button onClick={sendToSensei} disabled={!chatIn.trim()||loading} style={{...btn,padding:"10px 16px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
+          placeholder="Ask sensei..." style={{flex:1,padding:"11px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
+        <button onClick={sendToSensei} disabled={!chatIn.trim()||loading} style={{...btn,padding:"11px 18px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
       </div>
     </div>
   </div>;
@@ -593,25 +737,42 @@ RULES:
   // ═══ RENDER ═══
   const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Sensei"}];
   const handleTabClick=(id)=>{setTab(id);if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);}if(id==="kana")setKScreen("menu");};
-
-  const navItems=tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={tabBtn(tab===tb.id)}>
-    <span style={{fontSize:isDesktop?18:18}}>{tb.icon}</span><span>{tb.label}</span>
-  </button>);
+  const dl=daysLeft();
 
   return <div style={wrap}>
     {tab==="home"&&renderHome()}
     {tab==="kana"&&renderKana()}
     {tab==="phrases"&&renderPhrases()}
     {tab==="sensei"&&renderSensei()}
+
     {isDesktop
-      ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100,padding:"20px 12px"}}>
-          <div style={{fontSize:13,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:20,paddingLeft:4}}>日本語</div>
-          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            {navItems}
+      ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100,boxShadow:c.shadow}}>
+          {/* Branding */}
+          <div style={{padding:"24px 18px 20px",borderBottom:"1px solid "+c.b}}>
+            <div style={{fontSize:22,marginBottom:4}}>🗾</div>
+            <div style={{fontSize:16,fontWeight:700,letterSpacing:"-.01em"}}>日本語</div>
+            <div style={{fontSize:11,color:c.m,marginTop:1,fontFamily:mono}}>Journey</div>
+          </div>
+          {/* Nav */}
+          <div style={{flex:1,padding:"12px 8px"}}>
+            {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={sideTabBtn(tab===tb.id)}>
+              <span style={{fontSize:18,lineHeight:1}}>{tb.icon}</span>
+              <span>{tb.label}</span>
+            </button>)}
+          </div>
+          {/* Bottom strip */}
+          <div style={{padding:"14px 16px",borderTop:"1px solid "+c.b,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <button onClick={toggleTheme} title="Toggle theme"
+              style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:16,color:c.tx}}>
+              {theme==="dark"?"☀️":"🌙"}
+            </button>
+            {dl>0&&<span style={{fontSize:11,fontFamily:mono,color:c.m}}>{dl}d to Japan</span>}
           </div>
         </div>
       : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
-          {navItems}
+          {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={bottomTabBtn(tab===tb.id)}>
+            <span style={{fontSize:20}}>{tb.icon}</span><span>{tb.label}</span>
+          </button>)}
         </div>
     }
   </div>;
