@@ -12,7 +12,23 @@
       "Bash(git checkout:*)",
       "Bash(.gitignore:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "mcp__15a86393-c787-4145-99b8-e571bd5c845c__deploy_to_vercel",
+      "Bash(npm i:*)",
+      "Bash(vercel --yes)",
+      "Bash(vercel env:*)",
+      "Bash(vercel --prod)",
+      "mcp__15a86393-c787-4145-99b8-e571bd5c845c__get_project",
+      "Bash(vercel ls:*)",
+      "Bash(vercel deploy:*)",
+      "Bash(npx vite:*)",
+      "Bash(node_modules/.bin/vite build:*)",
+      "Bash(npm install:*)",
+      "mcp__Neon__create_project",
+      "mcp__Neon__run_sql",
+      "Bash(1:*)"
     ]
   }
 }

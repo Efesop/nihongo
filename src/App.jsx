@@ -1,10 +1,35 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 // ═══ STORAGE HELPERS ═══
 const store = {
   get: (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
   set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} },
   del: (key) => { try { localStorage.removeItem(key); } catch(e) {} },
+};
+
+// ═══ SYNC HELPERS ═══
+const genId = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36);
+const getUserId = () => {
+  let id = localStorage.getItem("nihongo-uid");
+  if (!id) { id = genId(); localStorage.setItem("nihongo-uid", id); }
+  return id;
+};
+const syncLoad = async (id) => {
+  try {
+    const r = await fetch(`/api/sync?id=${encodeURIComponent(id)}`);
+    if (r.status === 404) return null;
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+};
+const syncSave = async (id, data, username) => {
+  try {
+    await fetch("/api/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, data, username: username || undefined }),
+    });
+  } catch { /* offline — localStorage still holds it */ }
 };
 
 // ═══ TTS ═══
@@ -268,8 +293,11 @@ export default function App(){
   const [drillScore,setDrillScore]=useState({c:0,w:0});
   const [drillDone,setDrillDone]=useState(false);
   // profile
-  const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:""});
+  const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:"",username:""});
   const [showProfile,setShowProfile]=useState(false);
+  const [syncStatus,setSyncStatus]=useState("idle"); // idle | saving | saved | error
+  const [usernameError,setUsernameError]=useState("");
+  const uid = getUserId();
   // ui
   const [isDesktop,setIsDesktop]=useState(window.innerWidth>=768);
   const [hov,setHov]=useState(null);
@@ -290,6 +318,7 @@ export default function App(){
     const np={...profile,...u};
     setProfile(np);
     store.set("nihongo-profile",np);
+    // profile.username is synced when user explicitly saves it
   };
 
   useEffect(()=>{
@@ -306,41 +335,71 @@ export default function App(){
     return()=>window.speechSynthesis?.removeEventListener?.("voiceschanged",h);
   },[]);
 
+  const migrate=(raw)=>{
+    if(!raw) return null;
+    const migratedKana={};
+    Object.entries(raw.kana||{}).forEach(([ch,v])=>{
+      migratedKana[ch]=typeof v==="number"?{box:Math.min(v,5),next:Date.now()}:v;
+    });
+    const today=new Date().toDateString();
+    const yesterday=new Date(Date.now()-864e5).toDateString();
+    const lastDay=raw.lastDay;
+    const streak=lastDay===today?raw.streak||1:lastDay===yesterday?(raw.streak||0)+1:1;
+    return {...raw,kana:migratedKana,streak,lastDay:today};
+  };
+
   useEffect(()=>{
-    const saved=store.get(KEY);
-    if(saved){
-      // migrate kana from integer to SRS format
-      const migratedKana={};
-      Object.entries(saved.kana||{}).forEach(([ch,v])=>{
-        if(typeof v==="number"){
-          migratedKana[ch]={box:Math.min(v,5),next:Date.now()};
-        } else {
-          migratedKana[ch]=v;
+    const init=async()=>{
+      // 1. Try loading from DB (source of truth)
+      const remote=await syncLoad(uid);
+      if(remote?.data){
+        const nd=migrate(remote.data);
+        setD(nd);
+        store.set(KEY,nd);
+        // also restore profile username if present
+        if(remote.username){
+          const p=store.get("nihongo-profile")||{name:"",notes:"",username:""};
+          const np={...p,username:remote.username};
+          setProfile(np);
+          store.set("nihongo-profile",np);
         }
-      });
-      // streak tracking
-      const today=new Date().toDateString();
-      const yesterday=new Date(Date.now()-864e5).toDateString();
-      const lastDay=saved.lastDay;
-      const streak=lastDay===today?saved.streak||1:lastDay===yesterday?(saved.streak||0)+1:1;
-      const nd={...saved,kana:migratedKana,streak,lastDay:today};
-      setD(nd);
-      store.set(KEY,nd);
-    }
-    setLoaded(true);
-  },[]);
+      } else {
+        // 2. Fall back to localStorage (first visit or offline)
+        const local=store.get(KEY);
+        if(local){
+          const nd=migrate(local);
+          setD(nd);
+          store.set(KEY,nd);
+          // push local data up to DB
+          syncSave(uid,nd,store.get("nihongo-profile")?.username);
+        }
+      }
+      setLoaded(true);
+    };
+    init();
+  },[]);// eslint-disable-line
 
   const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,streak:1,lastDay:new Date().toDateString(),started:new Date().toISOString()});
   const data=d||defaultD();
 
-  // atomic save — always uses latest state
-  const save=(u={})=>{
+  // atomic save — localStorage + DB
+  const syncTimer=useRef(null);
+  const save=useCallback((u={})=>{
     setD(prev=>{
       const nd={...prev,...u};
       store.set(KEY,nd);
+      // debounce DB writes to avoid hammering on rapid answers
+      clearTimeout(syncTimer.current);
+      setSyncStatus("saving");
+      syncTimer.current=setTimeout(()=>{
+        syncSave(uid,nd,store.get("nihongo-profile")?.username)
+          .then(()=>setSyncStatus("saved"))
+          .catch(()=>setSyncStatus("error"));
+        setTimeout(()=>setSyncStatus("idle"),2000);
+      },1500);
       return nd;
     });
-  };
+  },[uid]);
 
   useEffect(()=>{
     if(kScreen==="quiz"&&!kFb&&inputRef.current)inputRef.current.focus();
@@ -1023,22 +1082,53 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   };
 
   // ═══ PROFILE MODAL ═══
+  const saveUsername=async()=>{
+    const un=(profile.username||"").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
+    if(!un){setUsernameError("Enter a username (letters, numbers, _ -)");return;}
+    setUsernameError("");
+    const np={...profile,username:un};
+    setProfile(np);
+    store.set("nihongo-profile",np);
+    setSyncStatus("saving");
+    try{
+      const r=await fetch("/api/sync",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:uid,data,username:un})});
+      const j=await r.json();
+      if(j.error==="username_taken"){setUsernameError("That username is taken — try another");setSyncStatus("idle");}
+      else{setSyncStatus("saved");setTimeout(()=>setSyncStatus("idle"),2000);}
+    }catch{setSyncStatus("error");}
+  };
+
   const renderProfile=()=>(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowProfile(false)}>
-      <div style={{...card,width:"100%",maxWidth:360,padding:24}} onClick={e=>e.stopPropagation()}>
-        <div style={{fontSize:16,fontWeight:700,marginBottom:16}}>Your Profile</div>
-        <div style={{fontSize:12,color:c.m,marginBottom:4,fontFamily:mono}}>NAME</div>
+      <div style={{...card,width:"100%",maxWidth:380,padding:24}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:16,fontWeight:700,marginBottom:4}}>Your Profile</div>
+        <div style={{fontSize:12,color:c.m,marginBottom:16}}>Stored in the cloud — safe across devices</div>
+
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Display Name</div>
         <input value={profile.name} onChange={e=>saveProfile({name:e.target.value})} placeholder="e.g. Ollie"
           style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:14,boxSizing:"border-box"}}/>
-        <div style={{fontSize:12,color:c.m,marginBottom:4,fontFamily:mono}}>CONTEXT FOR SENSEI</div>
+
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Context for Sensei</div>
         <textarea value={profile.notes} onChange={e=>saveProfile({notes:e.target.value.slice(0,200)})} placeholder="e.g. travelling solo, vegetarian, interested in anime..."
           rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
-        <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{profile.notes.length}/200</div>
-        <div style={{display:"flex",gap:8,fontSize:12,color:c.m,marginBottom:16,padding:"10px 12px",background:c.s2,borderRadius:8}}>
+        <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
+
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Recovery Username</div>
+        <div style={{fontSize:11,color:c.m,marginBottom:8,lineHeight:1.5}}>Set once to recover your progress on any device. Letters, numbers, _ and - only.</div>
+        <div style={{display:"flex",gap:8,marginBottom:4}}>
+          <input value={profile.username||""} onChange={e=>saveProfile({username:e.target.value})} placeholder="e.g. ollie42"
+            style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid "+(usernameError?c.a:c.b),background:c.s2,color:c.tx,fontFamily:mono,fontSize:14,outline:"none",boxSizing:"border-box"}}/>
+          <button onClick={saveUsername} style={{...btn,padding:"10px 16px",borderRadius:8,background:c.g,color:"#fff",fontSize:13,fontWeight:600,flexShrink:0}}>Save</button>
+        </div>
+        {usernameError&&<div style={{fontSize:11,color:c.a,marginBottom:8}}>{usernameError}</div>}
+        {profile.username&&!usernameError&&<div style={{fontSize:11,color:c.g,marginBottom:8}}>✓ Username set — use this to log in from any device</div>}
+
+        <div style={{display:"flex",gap:8,fontSize:12,color:c.m,margin:"14px 0",padding:"10px 12px",background:c.s2,borderRadius:8}}>
           <span>🔥 {data.streak||1} day streak</span>
           <span style={{marginLeft:"auto"}}>📚 {data.sessions} sessions</span>
           <span>✅ {data.totalC} correct</span>
         </div>
+        <div style={{fontSize:10,color:c.m,fontFamily:mono,marginBottom:14,wordBreak:"break-all"}}>ID: {uid.slice(0,16)}…</div>
         <button onClick={()=>setShowProfile(false)} style={{...btn,width:"100%",padding:11,borderRadius:9,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>
       </div>
     </div>
@@ -1074,16 +1164,19 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <span>{tb.label}</span>
             </button>)}
           </div>
-          <div style={{padding:"14px 16px",borderTop:"1px solid "+c.b,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{padding:"14px 16px",borderTop:"1px solid "+c.b,display:"flex",alignItems:"center",gap:6}}>
             <button onClick={toggleTheme} title="Toggle theme"
               style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:16,color:c.tx}}>
               {theme==="dark"?"☀️":"🌙"}
             </button>
             <button onClick={()=>setShowProfile(true)} title="Profile"
-              style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:14,color:c.m}}>
+              style={{...btn,padding:"6px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:13,fontWeight:600,color:c.a}}>
               {profile.name?profile.name[0].toUpperCase():"👤"}
             </button>
-            {dl>0&&<span style={{fontSize:11,fontFamily:mono,color:c.m}}>{dl}d</span>}
+            <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5}}>
+              <div title={syncStatus} style={{width:7,height:7,borderRadius:"50%",background:syncStatus==="saved"?c.g:syncStatus==="saving"?c.go:syncStatus==="error"?c.a:c.b,transition:"background .3s"}}/>
+              {dl>0&&<span style={{fontSize:10,fontFamily:mono,color:c.m}}>{dl}d</span>}
+            </div>
           </div>
         </div>
       : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
