@@ -804,22 +804,23 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           @keyframes mnemonicPulse{0%,100%{opacity:.05}50%{opacity:.18}}
           @keyframes mnemonicReveal{0%,100%{opacity:.12}50%{opacity:.32}}
         `}</style>
-        {/* Character card — emoji ghost always overlaid, animates differently before/after flip */}
-        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"52px 24px",position:"relative",overflow:"hidden",border:"1px solid "+(kFlip?c.a+"60":c.b),display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:220}}>
-          {m&&<div style={{
-            position:"absolute",top:"50%",left:"50%",
-            transform:"translate(-50%,-50%)",
-            fontSize:160,lineHeight:1,pointerEvents:"none",userSelect:"none",
-            animation:kFlip?"mnemonicReveal 2.5s ease-in-out infinite":"mnemonicPulse 3s ease-in-out infinite",
-            filter:kFlip?"none":"blur(2px)",
-          }}>{m[0]}</div>}
-          <div style={{position:"relative",zIndex:1}}>
-            <div style={{fontSize:kFlip?88:110,lineHeight:1,marginBottom:kFlip?6:16,transition:"font-size .2s"}}>{ch}</div>
-            {kFlip
-              ?<div style={{fontSize:34,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
-              :<div style={{fontSize:12,color:c.m}}>tap to reveal</div>}
-            {kFlip&&<div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}</div>}
+        {/* Character card */}
+        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"40px 24px",border:"1px solid "+(kFlip?c.a+"60":c.b),display:"flex",flexDirection:"column",alignItems:"center"}}>
+          {/* Emoji sits in the same inline container as the character so it overlays it exactly */}
+          <div style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:kFlip?8:16}}>
+            {m&&<div style={{
+              position:"absolute",top:"50%",left:"50%",
+              transform:"translate(-50%,-50%)",
+              fontSize:kFlip?110:130,lineHeight:1,pointerEvents:"none",userSelect:"none",
+              animation:kFlip?"mnemonicReveal 2.5s ease-in-out infinite":"mnemonicPulse 3s ease-in-out infinite",
+              filter:kFlip?"none":"blur(2px)",
+            }}>{m[0]}</div>}
+            <div style={{position:"relative",zIndex:1,fontSize:kFlip?88:110,lineHeight:1}}>{ch}</div>
           </div>
+          {kFlip
+            ?<div style={{fontSize:34,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+            :<div style={{fontSize:12,color:c.m}}>tap to reveal</div>}
+          {kFlip&&<div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}</div>}
         </div>
         {/* Mnemonic card — only shown after flip */}
         {kFlip&&m&&<div style={{...card,display:"flex",alignItems:"center",gap:16,padding:"16px 18px",border:"1px solid "+c.b,marginTop:12}}>
