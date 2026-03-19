@@ -216,8 +216,15 @@ export default function App(){
   const [msgs,setMsgs]=useState([]);
   const [chatIn,setChatIn]=useState("");
   const [loading,setLoading]=useState(false);
+  const [isDesktop,setIsDesktop]=useState(window.innerWidth>=768);
   const inputRef=useRef(null);
   const chatEndRef=useRef(null);
+
+  useEffect(()=>{
+    const onResize=()=>setIsDesktop(window.innerWidth>=768);
+    window.addEventListener("resize",onResize);
+    return()=>window.removeEventListener("resize",onResize);
+  },[]);
 
   useEffect(()=>{
     const saved = store.get(KEY);
@@ -320,9 +327,12 @@ RULES:
 
   const card={background:c.s,border:"1px solid "+c.b,borderRadius:12,padding:16};
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
-  const tabBtn=(active)=>({...btn,flex:1,padding:"10px 0 8px",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:active?c.a:c.m,fontSize:10,fontWeight:600});
-  const wrap={fontFamily:font,background:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:70};
-  const inner={maxWidth:520,margin:"0 auto",padding:"24px 16px 32px"};
+  const tabBtn=(active)=>isDesktop
+    ?{...btn,width:"100%",padding:"10px 16px",background:active?c.as:"transparent",display:"flex",flexDirection:"row",alignItems:"center",gap:10,color:active?c.a:c.m,fontSize:13,fontWeight:600,borderRadius:8,border:"none",textAlign:"left"}
+    :({...btn,flex:1,padding:"10px 0 8px",background:"transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:2,color:active?c.a:c.m,fontSize:10,fontWeight:600});
+  const SIDEBAR_W=200;
+  const wrap={fontFamily:font,background:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
+  const inner={maxWidth:isDesktop?720:520,margin:"0 auto",padding:"24px 16px 32px"};
 
   if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
 
@@ -546,14 +556,14 @@ RULES:
   };
 
   // ═══ SENSEI ═══
-  const renderSensei=()=><div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",height:"100vh",paddingBottom:0}}>
+  const renderSensei=()=><div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",height:"100vh",paddingBottom:0,paddingLeft:isDesktop?SIDEBAR_W:0}}>
     <div style={{padding:"16px 16px 8px",borderBottom:"1px solid "+c.b}}>
-      <div style={{maxWidth:520,margin:"0 auto",display:"flex",alignItems:"center",gap:10}}>
+      <div style={{maxWidth:isDesktop?720:520,margin:"0 auto",display:"flex",alignItems:"center",gap:10}}>
         <div style={{fontSize:24}}>🎌</div><div><div style={{fontSize:15,fontWeight:700}}>Sensei</div><div style={{fontSize:11,color:c.m}}>AI Japanese tutor</div></div>
       </div>
     </div>
     <div style={{flex:1,overflow:"auto",padding:16}}>
-      <div style={{maxWidth:520,margin:"0 auto"}}>
+      <div style={{maxWidth:isDesktop?720:520,margin:"0 auto"}}>
         {msgs.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}>
           <div style={{fontSize:48,marginBottom:12}}>🎌</div>
           <div style={{fontSize:15,fontWeight:600,marginBottom:8}}>Hey! I'm your Sensei.</div>
@@ -572,7 +582,7 @@ RULES:
       </div>
     </div>
     <div style={{padding:"8px 16px 12px",borderTop:"1px solid "+c.b,paddingBottom:"max(12px, env(safe-area-inset-bottom))",background:c.bg}}>
-      <div style={{maxWidth:520,margin:"0 auto",display:"flex",gap:8}}>
+      <div style={{maxWidth:isDesktop?720:520,margin:"0 auto",display:"flex",gap:8}}>
         <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
           placeholder="Ask sensei..." style={{flex:1,padding:"10px 14px",borderRadius:10,border:"1px solid "+c.b,background:c.s,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
         <button onClick={sendToSensei} disabled={!chatIn.trim()||loading} style={{...btn,padding:"10px 16px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
@@ -582,15 +592,27 @@ RULES:
 
   // ═══ RENDER ═══
   const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Sensei"}];
+  const handleTabClick=(id)=>{setTab(id);if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);}if(id==="kana")setKScreen("menu");};
+
+  const navItems=tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={tabBtn(tab===tb.id)}>
+    <span style={{fontSize:isDesktop?18:18}}>{tb.icon}</span><span>{tb.label}</span>
+  </button>);
+
   return <div style={wrap}>
     {tab==="home"&&renderHome()}
     {tab==="kana"&&renderKana()}
     {tab==="phrases"&&renderPhrases()}
     {tab==="sensei"&&renderSensei()}
-    <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
-      {tabs.map(tb=><button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);}if(tb.id==="kana")setKScreen("menu");}} style={tabBtn(tab===tb.id)}>
-        <span style={{fontSize:18}}>{tb.icon}</span><span>{tb.label}</span>
-      </button>)}
-    </div>
+    {isDesktop
+      ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100,padding:"20px 12px"}}>
+          <div style={{fontSize:13,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:20,paddingLeft:4}}>日本語</div>
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            {navItems}
+          </div>
+        </div>
+      : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
+          {navItems}
+        </div>
+    }
   </div>;
 }
