@@ -1286,12 +1286,14 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           </div>
           <div style={{padding:"10px 8px",borderTop:"1px solid "+c.b}}>
             <button onClick={()=>setShowProfile(true)} style={{...sideTabBtn(false),gap:10,marginBottom:2}}>
-              <span style={{fontSize:15}}>👤</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.m} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
               <span style={{fontSize:13}}>{profile.name||"Profile"}</span>
               <div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:syncStatus==="saved"?c.g:syncStatus==="saving"?c.go:syncStatus==="error"?c.a:c.b,transition:"background .3s",flexShrink:0}}/>
             </button>
             <button onClick={toggleTheme} style={{...sideTabBtn(false),gap:10}}>
-              <span style={{fontSize:15}}>{theme==="dark"?"☀️":"🌙"}</span>
+              {theme==="dark"
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.m} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.m} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
               <span style={{fontSize:13}}>{theme==="dark"?"Light mode":"Dark mode"}</span>
               {daysUntil(data.onboarding?.tripDate)>0&&<span style={{marginLeft:"auto",fontSize:10,fontFamily:mono,color:c.m,flexShrink:0}}>{daysUntil(data.onboarding?.tripDate)}d</span>}
             </button>
