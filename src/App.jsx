@@ -413,45 +413,45 @@ RULES:
       {l:"Due",v:dueCount,cl:dueCount>0?c.go:c.m},
     ];
     const actions=[
-      {id:"study",icon:"📚",iconBg:c.gs,title:"Study Now",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
-      {id:"kana",icon:"あ",iconBg:c.as,title:"Kana Practice",desc:`${kMastered}/92 mastered`,action:()=>{setTab("kana");setKScreen("menu");}},
-      {id:"sensei",icon:"🎌",iconBg:c.bl+"22",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
+      {id:"study",icon:"📚",title:"Study Now",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
+      {id:"kana",icon:"あ",title:"Kana Practice",desc:`${kMastered}/92 mastered`,action:()=>{setTab("kana");setKScreen("menu");}},
+      {id:"sensei",icon:"🎌",title:"Ask Sensei",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
     ];
     return <div style={inner}>
-      <div style={{marginBottom:28}}>
-        <h1 style={{fontSize:32,fontWeight:700,margin:"0 0 8px",letterSpacing:"-.02em"}}>日本語 Journey</h1>
-        {dl>0&&<span style={chip(c.m)}>{dl} days to Japan</span>}
+      <div style={{marginBottom:24}}>
+        <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em"}}>日本語 Journey</h1>
+        {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to Japan</span>}
       </div>
-      <div style={{display:"flex",gap:10,marginBottom:20}}>
-        {stats.map((s,i)=><div key={i} style={{flex:1,...card,textAlign:"center",padding:"14px 10px 16px"}}>
-          <div style={{fontSize:24,fontWeight:800,fontFamily:mono,color:s.cl,marginBottom:6}}>{s.v}</div>
-          <span style={chip(s.cl)}>{s.l}</span>
+      <div style={{display:"flex",gap:8,marginBottom:16}}>
+        {stats.map((s,i)=><div key={i} style={{flex:1,...card,textAlign:"center",padding:"14px 8px"}}>
+          <div style={{fontSize:22,fontWeight:800,fontFamily:mono,color:s.cl,marginBottom:4}}>{s.v}</div>
+          <div style={{fontSize:11,color:c.m,textTransform:"uppercase",letterSpacing:".04em"}}>{s.l}</div>
         </div>)}
       </div>
       {actions.map(item=><div key={item.id} onClick={item.action}
         onMouseEnter={()=>setHov(item.id)} onMouseLeave={()=>setHov(null)}
-        style={{...card,marginBottom:10,cursor:"pointer",padding:14,background:hov===item.id?c.s2:c.s,transition:"all .15s"}}>
-        <div style={{display:"flex",alignItems:"center",gap:14}}>
-          <div style={{width:42,height:42,borderRadius:12,background:item.iconBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{item.icon}</div>
+        style={{...card,marginBottom:8,cursor:"pointer",padding:"13px 16px",background:hov===item.id?c.s2:c.s,transition:"background .15s"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:22,lineHeight:1,flexShrink:0}}>{item.icon}</span>
           <div style={{flex:1}}>
-            <div style={{fontSize:15,fontWeight:600}}>{item.title}</div>
-            <div style={{fontSize:12,color:c.m,marginTop:2}}>{item.desc}</div>
+            <div style={{fontSize:14,fontWeight:600}}>{item.title}</div>
+            <div style={{fontSize:12,color:c.m,marginTop:1}}>{item.desc}</div>
           </div>
-          <div style={{fontSize:16,color:c.m,opacity:.6}}>→</div>
+          <span style={{fontSize:14,color:c.m,opacity:.4}}>›</span>
         </div>
       </div>)}
-      <div style={{...card,marginTop:8,padding:"18px 20px"}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:4}}>Progress by scenario</div>
+      <div style={{...card,marginTop:8,padding:"16px 18px"}}>
+        <div style={{fontSize:11,color:c.m,textTransform:"uppercase",letterSpacing:".07em",fontFamily:mono,marginBottom:2}}>Scenarios</div>
         {Object.entries(CATS).map(([k,v],i,arr)=>{
           const total=PHRASES.filter(p=>p[4]===k).length;
           const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
           const pct=Math.round(done/total*100);
           const col=CAT_COLORS[k];
-          return <div key={k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<arr.length-1?"1px solid "+c.b:"none"}}>
-            <span style={{fontSize:17,width:26,flexShrink:0,textAlign:"center"}}>{CAT_ICONS[k]}</span>
-            <span style={{fontSize:13,width:94,flexShrink:0,color:c.tx}}>{v}</span>
+          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<arr.length-1?"1px solid "+c.b+"88":"none"}}>
+            <span style={{fontSize:15,width:22,flexShrink:0,textAlign:"center"}}>{CAT_ICONS[k]}</span>
+            <span style={{fontSize:13,width:88,flexShrink:0,color:c.tx}}>{v}</span>
             {progressBar(pct,col)}
-            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:32,textAlign:"right",flexShrink:0}}>{done}/{total}</span>
+            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:30,textAlign:"right",flexShrink:0}}>{done}/{total}</span>
           </div>;
         })}
       </div>
@@ -737,12 +737,11 @@ RULES:
     {tab==="sensei"&&renderSensei()}
 
     {isDesktop
-      ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100,boxShadow:c.shadow}}>
+      ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
           {/* Branding */}
-          <div style={{padding:"24px 18px 20px",borderBottom:"1px solid "+c.b}}>
-            <div style={{fontSize:22,marginBottom:4}}>🗾</div>
-            <div style={{fontSize:16,fontWeight:700,letterSpacing:"-.01em"}}>日本語</div>
-            <div style={{fontSize:11,color:c.m,marginTop:1,fontFamily:mono}}>Journey</div>
+          <div style={{padding:"22px 16px 18px",borderBottom:"1px solid "+c.b}}>
+            <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
+            <div style={{fontSize:11,color:c.m,marginTop:4,fontFamily:mono,letterSpacing:".02em"}}>Japanese Trainer</div>
           </div>
           {/* Nav */}
           <div style={{flex:1,padding:"12px 8px"}}>
