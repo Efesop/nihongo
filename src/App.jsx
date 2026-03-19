@@ -310,6 +310,7 @@ function AuthedApp({ user, getToken }){
   const [kScore,setKScore]=useState({c:0,w:0});
   const [kMistakes,setKMistakes]=useState([]);
   const [kPeek,setKPeek]=useState(false);
+  const [storyPlaying,setStoryPlaying]=useState(false);
   const [kFlip,setKFlip]=useState(false);
   const [kLI,setKLI]=useState(0);
   // phrases
@@ -668,12 +669,25 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
-  const speakStory=(m,ch,rom)=>{
-    if(!m) return speak(ch);
-    const txt=m[3]?`${m[3]} It's pronounced: ${rom}.`:`${m[1]}. ${m[2]}. Say it: ${rom}.`;
-    speak(txt,"en-US");
+  const speakStory=(m)=>{
+    if(!m) return;
+    if(storyPlaying){
+      if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
+      setStoryPlaying(false);
+      return;
+    }
+    const txt=m[3]||`${m[1]}. ${m[2]}.`;
+    const audio=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(txt)}`);
+    audio.playbackRate=1.15;
+    _ttsAudio=audio;
+    setStoryPlaying(true);
+    audio.play().catch(()=>setStoryPlaying(false));
+    audio.onended=()=>setStoryPlaying(false);
+    audio.onerror=()=>setStoryPlaying(false);
   };
-  const storyBtn=(m,ch,rom)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch,rom);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m,marginTop:8,flexShrink:0}} title="Hear the story">📖 story</button>:null;
+  const storyBtn=(m)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:12,color:storyPlaying?c.a:c.m,marginTop:8,flexShrink:0}}>
+    {storyPlaying?"■ stop":"📖 story"}
+  </button>:null;
 
   const sideTabBtn=(active)=>({
     ...btn,width:"100%",padding:"9px 12px",
@@ -808,7 +822,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                 <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
                 <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
               </div>
-              {storyBtn(m,ch,rom)}
+              {storyBtn(m)}
             </div>}
           </div>}
         <div style={{display:"flex",gap:10,marginTop:20}}>
@@ -860,7 +874,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                   <div style={{fontSize:11,color:c.m,fontStyle:"italic",lineHeight:1.4}}>{m[2]}</div>
                 </div>
               </div>}
-              <div style={{marginTop:10,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m,ch,rom)}</div>
+              <div style={{marginTop:10,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m)}</div>
             </div>
           </div>
           <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}</button>
