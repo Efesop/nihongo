@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useUser, useAuth, useClerk, SignIn } from "@clerk/clerk-react";
+import { useUser, useAuth, useClerk, SignIn, SignUp } from "@clerk/clerk-react";
 
 // ═══ STORAGE HELPERS ═══
 const store = {
@@ -253,7 +253,8 @@ export default function App(){
   const { user, isLoaded: clerkLoaded } = useUser();
   const { getToken } = useAuth();
 
-  // Show sign-in screen if not authenticated
+  // Show sign-in/sign-up screen if not authenticated
+  const isSignUp = window.location.hash.includes("sign-up");
   if (!clerkLoaded) return null;
   if (!user) return (
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.18) 0%, transparent 70%), #0d0d10",gap:24}}>
@@ -261,7 +262,9 @@ export default function App(){
         <div style={{fontSize:32,fontWeight:800,letterSpacing:"-.02em",color:"#f0eee9",textShadow:"0 0 40px rgba(192,40,42,0.4)"}}>日本語</div>
         <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
       </div>
-      <SignIn routing="hash" />
+      {isSignUp
+        ? <SignUp routing="hash" signInUrl="#sign-in" />
+        : <SignIn routing="hash" signUpUrl="#sign-up" />}
     </div>
   );
 
