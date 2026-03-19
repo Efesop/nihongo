@@ -256,7 +256,7 @@ export default function App(){
   // Show sign-in screen if not authenticated
   if (!clerkLoaded) return null;
   if (!user) return (
-    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"radial-gradient(ellipse 80% 50% at 50% -10%, rgba(192,40,42,0.18) 0%, transparent 70%), #0d0d10",gap:24}}>
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.18) 0%, transparent 70%), #0d0d10",gap:24}}>
       <div style={{textAlign:"center",marginBottom:8}}>
         <div style={{fontSize:32,fontWeight:800,letterSpacing:"-.02em",color:"#f0eee9",textShadow:"0 0 40px rgba(192,40,42,0.4)"}}>日本語</div>
         <div style={{fontSize:12,color:"#64646a",letterSpacing:".08em",textTransform:"uppercase",fontFamily:"'SF Mono','Fira Mono',monospace"}}>TinySenpai</div>
@@ -633,7 +633,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     color:active?c.a:c.m,fontSize:10,fontWeight:active?600:400,
   });
 
-  const redGlow=theme==="dark"?"radial-gradient(ellipse 70% 35% at 50% -5%, rgba(192,40,42,0.13) 0%, transparent 100%)":"none";
+  const redGlow=theme==="dark"?"radial-gradient(ellipse 70% 35% at 50% 105%, rgba(192,40,42,0.13) 0%, transparent 100%)":"none";
   const wrap={fontFamily:font,background:theme==="dark"?`${redGlow}, ${c.bg}`:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
   const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
 
@@ -1149,7 +1149,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const progressPct=Math.round((onboardStep/stepCount)*100);
     const ans=onboardAnswers;
     return(
-      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:theme==="dark"?`radial-gradient(ellipse 80% 50% at 50% -10%, rgba(192,40,42,0.16) 0%, transparent 70%), ${c.bg}`:c.bg,padding:24}}>
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:theme==="dark"?`radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.16) 0%, transparent 70%), ${c.bg}`:c.bg,padding:24}}>
         <div style={{width:"100%",maxWidth:420}}>
           <div style={{textAlign:"center",marginBottom:32}}>
             <div style={{fontSize:36,fontWeight:800,letterSpacing:"-.02em",marginBottom:4}}>日本語</div>
