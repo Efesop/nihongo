@@ -1142,7 +1142,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const progressPct=Math.round((onboardStep/stepCount)*100);
     const ans=onboardAnswers;
     return(
-      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:theme==="dark"?`radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.16) 0%, transparent 70%), ${c.bg}`:c.bg,padding:24}}>
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:theme==="dark"?`radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.16) 0%, transparent 70%), ${c.bg}`:c.bg,padding:24,color:c.tx,fontFamily:font}}>
         <div style={{width:"100%",maxWidth:420}}>
           <div style={{textAlign:"center",marginBottom:32}}>
             <div style={{fontSize:36,fontWeight:800,letterSpacing:"-.02em",marginBottom:4}}>日本語</div>
@@ -1161,7 +1161,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                 <div key={o.id} onClick={()=>{setOnboardAnswers(a=>({...a,why:o.id}));setOnboardStep(1);}}
                   style={{...card,padding:"14px 18px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:14,border:"1px solid "+(ans.why===o.id?c.a:c.b),transition:"border .15s"}}>
                   <span style={{fontSize:22}}>{o.icon}</span>
-                  <span style={{fontSize:15,fontWeight:500}}>{o.label}</span>
+                  <span style={{fontSize:15,fontWeight:500,color:c.tx}}>{o.label}</span>
                 </div>
               ))}
               <button onClick={()=>setOnboardStep(1)} style={{...btn,width:"100%",padding:12,marginTop:8,background:"transparent",color:c.m,fontSize:13}}>Skip</button>
@@ -1175,7 +1175,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               {LEVEL_OPTIONS.map(o=>(
                 <div key={o.id} onClick={()=>{setOnboardAnswers(a=>({...a,level:o.id}));setOnboardStep(2);}}
                   style={{...card,padding:"14px 18px",marginBottom:8,cursor:"pointer",border:"1px solid "+(ans.level===o.id?c.a:c.b),transition:"border .15s"}}>
-                  <span style={{fontSize:14,fontWeight:500}}>{o.label}</span>
+                  <span style={{fontSize:14,fontWeight:500,color:c.tx}}>{o.label}</span>
                 </div>
               ))}
               <button onClick={()=>setOnboardStep(2)} style={{...btn,width:"100%",padding:12,marginTop:8,background:"transparent",color:c.m,fontSize:13}}>Skip</button>
