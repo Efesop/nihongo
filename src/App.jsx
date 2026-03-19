@@ -440,17 +440,18 @@ RULES:
           <div style={{fontSize:16,color:c.m,opacity:.6}}>→</div>
         </div>
       </div>)}
-      <div style={{...card,marginTop:8}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:14}}>Progress by scenario</div>
-        {Object.entries(CATS).map(([k,v])=>{
+      <div style={{...card,marginTop:8,padding:"18px 20px"}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:4}}>Progress by scenario</div>
+        {Object.entries(CATS).map(([k,v],i,arr)=>{
           const total=PHRASES.filter(p=>p[4]===k).length;
           const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
           const pct=Math.round(done/total*100);
           const col=CAT_COLORS[k];
-          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,marginBottom:11}}>
-            <span style={chip(col)}>{v}</span>
+          return <div key={k} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<arr.length-1?"1px solid "+c.b:"none"}}>
+            <span style={{fontSize:17,width:26,flexShrink:0,textAlign:"center"}}>{CAT_ICONS[k]}</span>
+            <span style={{fontSize:13,width:94,flexShrink:0,color:c.tx}}>{v}</span>
             {progressBar(pct,col)}
-            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:34,textAlign:"right",flexShrink:0}}>{done}/{total}</span>
+            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:32,textAlign:"right",flexShrink:0}}>{done}/{total}</span>
           </div>;
         })}
       </div>
@@ -671,7 +672,7 @@ RULES:
   // ═══ SENSEI ═══
   const renderSensei=()=>{
     const chatW=isDesktop?800:540;
-    return <div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",height:"100vh",paddingLeft:isDesktop?SIDEBAR_W:0}}>
+    return <div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",position:"fixed",top:0,right:0,bottom:0,left:isDesktop?SIDEBAR_W:0}}>
       <style>{`@keyframes pulse{0%,100%{opacity:.2}50%{opacity:.9}}.dot1{animation:pulse 1.4s ease-in-out infinite}.dot2{animation:pulse 1.4s ease-in-out .22s infinite}.dot3{animation:pulse 1.4s ease-in-out .44s infinite}`}</style>
       <div style={{padding:"18px 24px 14px",borderBottom:"1px solid "+c.b}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
