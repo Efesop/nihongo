@@ -866,14 +866,19 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           {kFlip&&<div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}</div>}
         </div>
         {/* Mnemonic card — only shown after flip */}
-        {kFlip&&m&&<div style={{...card,display:"flex",alignItems:"center",gap:16,padding:"16px 18px",border:"1px solid "+c.b,marginTop:12}}>
-          <span style={{fontSize:44,flexShrink:0}}>{m[0]}</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
-            <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
+        {kFlip&&m&&<>
+          <img src={`/images/mnemonics/${ch.codePointAt(0).toString(16)}.png`} alt={m[1]}
+            onError={e=>{e.target.style.display="none";}}
+            style={{width:"100%",maxWidth:480,borderRadius:10,marginTop:12,display:"block",marginLeft:"auto",marginRight:"auto"}}/>
+          <div style={{...card,display:"flex",alignItems:"center",gap:16,padding:"16px 18px",border:"1px solid "+c.b,marginTop:12}}>
+            <span style={{fontSize:44,flexShrink:0}}>{m[0]}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
+              <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
+            </div>
+            {storyBtn(m,ch)}
           </div>
-          {storyBtn(m,ch)}
-        </div>}
+        </>}
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={()=>{stopAudio();setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
@@ -1448,7 +1453,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     {isDesktop
       ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
           <div style={{padding:"16px 16px 14px",borderBottom:"1px solid "+c.b,display:"flex",alignItems:"center",gap:10}}>
-            <img src="/images/tinysenpai2.png" alt="TinySenpai" style={{width:52,height:52,imageRendering:"pixelated",borderRadius:8}}/>
+            <img src="/images/tinysenpai2.png" alt="TinySenpai" style={{width:64,height:64,imageRendering:"pixelated",borderRadius:10}}/>
             <div>
               <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
               <div style={{fontSize:11,color:c.m,marginTop:3,fontFamily:mono,letterSpacing:".02em"}}>TinySenpai</div>
