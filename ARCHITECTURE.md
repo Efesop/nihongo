@@ -6,6 +6,37 @@ A Japanese learning app (kana + phrases + AI tutor) built as a single-page React
 
 ---
 
+## Product Vision
+
+TinySenpai should be the **fastest, most effective way to learn Japanese** — especially for complete beginners preparing for a trip. It is NOT a traditional textbook app. Key principles:
+
+- **Use whatever method works best**, not what's traditional. If overlaying emoji ghosts on characters helps memory, do that. If chaining audio (JP pronunciation → English mnemonic story → JP again) locks it in, do that.
+- **Mnemonics are everything** for kana. Every character has a vivid visual story (apple for あ, boxer for う, UFO for お). The story audio is pre-generated with ElevenLabs (Matilda voice).
+- **SRS drives all review**. No busywork — only practice what's due, at the right time.
+- **Audio is first-class**. Japanese pronunciation comes from Google Translate TTS (natural). English stories from ElevenLabs static files. Phrases from ElevenLabs static files.
+- **UX must be clean and focused**. A beginner should never feel overwhelmed. Fewer buttons, clear hierarchy, one primary action per screen.
+- **The AI tutor (Senpai)** knows the user's progress, trip date, and learning context. It can roleplay scenarios, explain grammar, answer questions.
+- **Mobile-first** but works great on desktop with sidebar navigation.
+
+---
+
+## Deployment & Commands
+
+```bash
+# Deploy to production
+npx vercel --prod
+
+# Or just push to main — Vercel auto-deploys
+
+# Generate audio files (one-time, needs ElevenLabs key)
+ELEVENLABS_API_KEY=xxx node scripts/generate-audio.mjs
+
+# Dev server
+npm run dev
+```
+
+---
+
 ## Tech Stack
 
 | Layer | Tech |
@@ -184,3 +215,51 @@ Or push to `main` — Vercel auto-deploys.
 - **Static audio**: Pre-generated MP3s for stories/phrases (zero runtime TTS cost)
 - **Clean UX**: Minimal UI, dark-first, beginner-friendly. Don't overwhelm.
 - **SRS-driven**: Everything uses spaced repetition — kana and phrases both track box/next timing
+
+---
+
+## Known Gotchas & Past Bugs (avoid repeating)
+
+1. **`save()` null spread**: `setD(prev => {...prev, ...u})` crashes when `prev` is null (new users). Always use `{...defaultD(), ...prev, ...u}`.
+2. **Clerk routing**: Must use `routing="virtual"` on SignIn/SignUp components. `routing="hash"` breaks multi-step flows (email verification) because the hashchange listener switches auth mode mid-flow.
+3. **ClerkProvider props**: Do NOT pass `signInUrl`, `signUpUrl`, `afterSignInUrl`, `afterSignUpUrl` — they conflict with embedded components.
+4. **Onboarding visibility**: The onboarding container div MUST have `color: c.tx` explicitly set, otherwise text is invisible on dark backgrounds (browser default is near-black).
+5. **`migrate()` phr guard**: Always include `phr: raw.phr || {}` — old data may not have the phr field.
+6. **Google TTS CORS**: Cannot fetch `translate.google.com` directly from browser. Must proxy through `/api/tts.js` serverless function.
+7. **ElevenLabs language_code**: When generating Japanese audio, MUST pass `language_code: "ja"` and `apply_language_text_normalization: true` in the API body. Without this, single kana characters get mispronounced.
+8. **Audio cleanup on navigation**: When user clicks Prev/Next in kana learn mode, must call `stopAudio()` to prevent overlapping audio from previous card.
+9. **`_ttsAudio` global**: There's a module-level `let _ttsAudio = null` that tracks the currently playing audio. Always clean it up before starting new audio.
+
+---
+
+## Roadmap / Feature Ideas
+
+These have been discussed but not all implemented:
+
+- [ ] **Drawing practice** — trace kana with finger/mouse on canvas, motor memory
+- [ ] **Minimal pair drilling** — characters that look alike (は/ほ, ね/れ, る/ろ, シ/ツ, ソ/ン) drilled together
+- [ ] **Progress dashboard** — visual grid of all 46 hiragana showing mastery per character (red→yellow→green)
+- [ ] **Auto-play story on first flip** — when learning a card and flipping it for the first time, auto-play the JP→story→JP chain
+- [ ] **Katakana stories** — only hiragana has mnemonics currently, katakana needs them too
+- [ ] **Grammar module** — basic particles, sentence structure
+- [ ] **Kanji introduction** — basic kanji (numbers, days, common signs)
+- [x] Listening quiz mode (👂 hear kana, type romaji)
+- [x] SRS due indicators per group/category
+- [x] Streak celebration animation
+- [x] Keyboard shortcut hints (↵)
+- [x] Mobile bottom nav active dot
+- [x] Phrase context enhancement
+- [x] Pre-generated ElevenLabs audio (stories + phrases)
+- [x] Google Translate TTS proxy for kana
+- [x] Kana menu UI cleanup (collapsible grid, compact layout)
+
+---
+
+## Style Conventions
+
+- All styles are inline objects. No CSS files, no CSS-in-JS libraries.
+- Common style objects: `card`, `btn`, `chip(color)`, `progressBar(pct, color)`
+- Colors always from `c` object (theme-aware): `c.bg`, `c.tx`, `c.a` (accent/red), `c.g` (green), `c.go` (gold), `c.m` (muted), `c.s` (surface), `c.s2` (surface2), `c.b` (border)
+- Font: `font` variable = Inter/system font stack. `mono` = monospace stack.
+- Animations via `<style>` tags injected inline in JSX where needed.
+- Hover states via `onMouseEnter`/`onMouseLeave` setting `hov` state.
