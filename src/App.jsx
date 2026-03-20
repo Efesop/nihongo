@@ -839,7 +839,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
 
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
-      const mnemonicImg=`/images/mnemonics/${ch.codePointAt(0).toString(16)}.png`;
+      const mnemonicImg=`/images/mnemonics/approved/${ch.codePointAt(0).toString(16)}.png`;
       return <div style={inner}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
