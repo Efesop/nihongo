@@ -472,6 +472,7 @@ function AuthedApp({ user, getToken }){
         if(!kFlip){setKFlip(true);}
         else{
           const chars=(kScript==="h"?H_GROUPS:K_GROUPS).flatMap((_,i)=>kSel.includes(i)?(kScript==="h"?H_GROUPS:K_GROUPS)[i].c:[]);
+          stopAudio();
           if(kLI<chars.length-1){setKLI(l=>l+1);setKFlip(false);}
           else startKanaQuiz();
         }
@@ -679,40 +680,30 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
+  const stopAudio=()=>{if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}if(window.speechSynthesis)window.speechSynthesis.cancel();setStoryPlaying(false);};
   const speakStory=(m,ch)=>{
     if(!m||!ch) return;
-    if(storyPlaying){
-      if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
-      setStoryPlaying(false);
-      return;
-    }
+    if(storyPlaying){stopAudio();return;}
     setStoryPlaying(true);
     const done=()=>setStoryPlaying(false);
     const cp=ch.codePointAt(0).toString(16);
+    // Preload story + kana audio for minimal gaps
+    const storyUrl=`/audio/story3/${cp}.mp3`;
+    const kanaUrl=`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`;
+    const preStory=new Audio(storyUrl); preStory.playbackRate=1.1;
+    const preKana2=new Audio(kanaUrl); preKana2.playbackRate=0.85;
     // Chain: JP kana → English story → JP kana again
-    const playStory=(onStoryEnd)=>{
-      const s=new Audio(`/audio/story3/${cp}.mp3`);
-      s.playbackRate=1.1; _ttsAudio=s;
-      s.onended=onStoryEnd;
-      s.onerror=()=>{
-        const s1=new Audio(`/audio/story/${cp}.mp3`);
-        s1.playbackRate=1.1; _ttsAudio=s1;
-        s1.onended=onStoryEnd; s1.onerror=onStoryEnd;
-        s1.play().catch(onStoryEnd);
-      };
-      s.play().catch(onStoryEnd);
-    };
-    const playKana=(onEnd)=>{
-      const k=new Audio(`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`);
+    const playKana1=()=>{
+      const k=new Audio(kanaUrl);
       k.playbackRate=0.85; _ttsAudio=k;
-      k.onended=onEnd; k.onerror=onEnd;
-      k.play().catch(onEnd);
+      k.onended=()=>{_ttsAudio=preStory;preStory.onended=()=>{_ttsAudio=preKana2;preKana2.onended=done;preKana2.onerror=done;preKana2.play().catch(done);};preStory.onerror=done;preStory.play().catch(done);};
+      k.onerror=done;
+      k.play().catch(done);
     };
-    playKana(()=>playStory(()=>playKana(done)));
-    k1.play().catch(done);
+    playKana1();
   };
   const storyBtn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:12,color:storyPlaying?c.a:c.m,marginTop:8,flexShrink:0}}>
-    {storyPlaying?"■ stop":"📖 story"}
+    {storyPlaying?"■ stop":"🔊 story"}
   </button>:null;
 
   const sideTabBtn=(active)=>({
@@ -858,9 +849,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           {storyBtn(m,ch)}
         </div>}
         <div style={{display:"flex",gap:10,marginTop:20}}>
-          <button onClick={()=>{setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
+          <button onClick={()=>{stopAudio();setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
-            ?<button onClick={()=>{setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
+            ?<button onClick={()=>{stopAudio();setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
             :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Quiz</button>}
         </div>
       </div>;
