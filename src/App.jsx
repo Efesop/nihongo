@@ -324,6 +324,7 @@ function AuthedApp({ user, getToken }){
   const [kFlip,setKFlip]=useState(false);
   const [kLI,setKLI]=useState(0);
   const [kQuizMode,setKQuizMode]=useState("visual"); // "visual" | "listen"
+  const [kShowGrid,setKShowGrid]=useState(false);
   const [streakCelebrate,setStreakCelebrate]=useState(false);
   // phrases
   const [pCat,setPCat]=useState(null);
@@ -876,7 +877,10 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
           <div style={{fontFamily:mono,fontSize:12,color:c.m}}><span style={{color:c.g}}>{kScore.c}</span>{" / "}<span style={{color:c.a}}>{kScore.w}</span></div>
         </div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:36,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:16,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+        <div style={{display:"flex",justifyContent:"center",gap:4,marginBottom:20}}>
+          {[["visual","👁"],["listen","👂"]].map(([m,ico])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,padding:"4px 12px",borderRadius:6,border:"1px solid "+(kQuizMode===m?c.go+"66":c.b),background:kQuizMode===m?c.go+"18":"transparent",color:kQuizMode===m?c.go:c.m,fontSize:12}}>{ico}</button>)}
+        </div>
         <div style={{textAlign:"center",marginBottom:kFb?8:28}}>
           {kQuizMode==="listen"&&!kFb
             ?<><div onClick={()=>speak(ch)} style={{fontSize:108,lineHeight:1,marginBottom:10,color:c.m,cursor:"pointer",userSelect:"none"}}>?</div>
@@ -942,34 +946,38 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     }
 
     return <div style={inner}>
-      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:8}}>Kana Trainer</div>
-      <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
-      <div style={{display:"flex",gap:6,marginBottom:18}}>
-        {[["h","ひらがな"],["k","カタカナ"]].map(([s,l])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,flex:1,padding:"9px 0",borderRadius:9,border:"1px solid "+(kScript===s?c.a:c.b),background:kScript===s?c.as:"transparent",color:kScript===s?c.a:c.m,fontSize:13,fontWeight:600}}>{l}</button>)}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+        <div>
+          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:4}}>Kana Trainer</div>
+          <h2 style={{fontSize:26,fontWeight:700,margin:0,letterSpacing:"-.01em"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
+        </div>
+        <div style={{display:"flex",background:c.s2,borderRadius:8,border:"1px solid "+c.b,overflow:"hidden"}}>
+          {[["h","ひらがな"],["k","カタカナ"]].map(([s,l])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,padding:"7px 14px",borderRadius:0,border:"none",background:kScript===s?c.a+"22":"transparent",color:kScript===s?c.a:c.m,fontSize:12,fontWeight:600}}>{l}</button>)}
+        </div>
       </div>
-      {kDueCount>0&&<button onClick={()=>{
-        const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
-        setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
-      }} style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.go,color:"#fff",fontSize:14,fontWeight:600,marginBottom:12}}>
-        Review {kDueCount} due kana
-      </button>}
-      <div style={{...card,marginBottom:18}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:10,textTransform:"uppercase"}}>Select rows</div>
+      <div style={{...card,marginBottom:16,padding:"14px 16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase"}}>Select rows</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {kDueCount>0&&<button onClick={()=>{
+              const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
+              setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
+            }} style={{...btn,padding:"3px 10px",borderRadius:6,background:c.go+"22",border:"1px solid "+c.go+"44",color:c.go,fontSize:11,fontWeight:600}}>{kDueCount} due</button>}
+            <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+c.b,background:"transparent",color:c.m,fontFamily:mono,fontSize:10}}>all</button>
+          </div>
+        </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
           {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>getKBox(ch)>=3);const due=g.c.filter(ch=>data.kana[ch]?.box>=1&&isKanaDue(ch)).length;
             return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:7,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
           })}
         </div>
-        <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,marginTop:10,padding:"4px 10px",borderRadius:5,border:"1px solid "+c.b,background:"transparent",color:c.m,fontFamily:mono,fontSize:10}}>all</button>
       </div>
-      <div style={{display:"flex",gap:6,marginBottom:10}}>
-        {[["visual","👁 See kana"],["listen","👂 Hear kana"]].map(([m,l])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,flex:1,padding:"8px 0",borderRadius:8,border:"1px solid "+(kQuizMode===m?c.go:c.b),background:kQuizMode===m?c.go+"1a":"transparent",color:kQuizMode===m?c.go:c.m,fontSize:12,fontWeight:600}}>{l}</button>)}
-      </div>
-      <div style={{display:"flex",gap:10,marginBottom:18}}>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
         <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
         <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
       </div>
-      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+      <button onClick={()=>setKShowGrid(!kShowGrid)} style={{...btn,width:"100%",padding:"10px 0",background:"none",color:c.m,fontSize:12,fontFamily:mono,opacity:.6}}>{kShowGrid?"▾ Hide grid":"▸ Show all kana"}</button>
+      {kShowGrid&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>
         {allKana.map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;
           return <div key={i} style={{
             width:tileSize,height:tileSize,
@@ -986,7 +994,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             {learning&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{box}</div>}
           </div>;
         })}
-      </div>
+      </div>}
     </div>;
   };
 
