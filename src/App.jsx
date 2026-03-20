@@ -41,19 +41,7 @@ const _playAudio=(src,rate=1,onEnd=null,onErr=null)=>{
   return a.play();
 };
 const speak = (text, lang="ja-JP") => {
-  // Single kana char → use pre-generated static file
-  if(lang==="ja-JP"&&_isKana(text)){
-    const cp=text.codePointAt(0).toString(16);
-    _playAudio(`/audio/kana2/${cp}.mp3`,1).catch(()=>{
-      const ttsLang="ja";
-      _playAudio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`,0.85).catch(()=>{
-        if(!window.speechSynthesis) return;
-        const u=new SpeechSynthesisUtterance(text); u.lang=lang; u.rate=0.85;
-        window.speechSynthesis.speak(u);
-      });
-    });
-    return;
-  }
+  // All Japanese → Google Translate proxy (natural pronunciation)
   const ttsLang=lang==="ja-JP"?"ja":"en";
   _playAudio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`,lang==="ja-JP"?0.85:1).catch(()=>{
     if(!window.speechSynthesis) return;
@@ -714,16 +702,13 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       };
       s.play().catch(onStoryEnd);
     };
-    const playKanaAgain=()=>{
-      const k2=new Audio(`/audio/kana2/${cp}.mp3`);
-      _ttsAudio=k2;
-      k2.onended=done; k2.onerror=done;
-      k2.play().catch(done);
+    const playKana=(onEnd)=>{
+      const k=new Audio(`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`);
+      k.playbackRate=0.85; _ttsAudio=k;
+      k.onended=onEnd; k.onerror=onEnd;
+      k.play().catch(onEnd);
     };
-    const k1=new Audio(`/audio/kana2/${cp}.mp3`);
-    _ttsAudio=k1;
-    k1.onended=()=>playStory(playKanaAgain);
-    k1.onerror=()=>playStory(done);
+    playKana(()=>playStory(()=>playKana(done)));
     k1.play().catch(done);
   };
   const storyBtn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:12,color:storyPlaying?c.a:c.m,marginTop:8,flexShrink:0}}>
