@@ -852,25 +852,23 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
           : <div>
-              {/* Mnemonic image — the hero */}
+              {/* Mnemonic image with character + romaji beneath */}
               <img src={mnemonicImg} alt={m?m[1]:rom}
                 onError={e=>{e.target.style.display="none";}}
-                style={{width:"100%",borderRadius:12,display:"block",marginBottom:14}}/>
-              {/* Combined card: character/romaji on left, story on right */}
-              {m&&<div style={{...card,display:"flex",gap:0,padding:0,border:"1px solid "+c.b,overflow:"hidden",marginBottom:4}}>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px 24px",borderRight:"1px solid "+c.b,minWidth:100,flexShrink:0}}>
-                  <div style={{fontSize:56,lineHeight:1,marginBottom:6}}>{ch}</div>
-                  <div style={{fontSize:22,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:10}}>{rom}</div>
-                  {speakBtn(ch)}
+                style={{width:"80%",maxWidth:420,borderRadius:12,display:"block",margin:"0 auto 8px"}}/>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:14}}>
+                <div style={{fontSize:48,lineHeight:1}}>{ch}</div>
+                <div style={{fontSize:24,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+                {speakBtn(ch)}
+              </div>
+              {/* Story card */}
+              {m&&<div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <span style={{fontSize:22}}>{m[0]}</span>
+                  <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
                 </div>
-                <div style={{flex:1,padding:"16px 18px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                    <span style={{fontSize:22}}>{m[0]}</span>
-                    <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
-                  </div>
-                  <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:10}}>{m[3]||m[2]}</div>
-                  {storyBtn(m,ch)}
-                </div>
+                <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:10}}>{m[3]||m[2]}</div>
+                {storyBtn(m,ch)}
               </div>}
             </div>
         }
