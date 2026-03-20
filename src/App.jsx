@@ -305,7 +305,7 @@ export default function App(){
 
 function AuthedApp({ user, getToken }){
   const { signOut } = useClerk();
-  const [tab,setTab]=useState("home");
+  const [tab,setTab]=useState("kana");
   const [d,setD]=useState(null);
   const [loaded,setLoaded]=useState(false);
   const [theme,setTheme]=useState(()=>localStorage.getItem("nihongo-theme")||"dark");
@@ -952,7 +952,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <h2 style={{fontSize:26,fontWeight:700,margin:0,letterSpacing:"-.01em"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
         </div>
         <div style={{display:"flex",background:c.s2,borderRadius:8,border:"1px solid "+c.b,overflow:"hidden"}}>
-          {[["h","ひらがな"],["k","カタカナ"]].map(([s,l])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,padding:"7px 14px",borderRadius:0,border:"none",background:kScript===s?c.a+"22":"transparent",color:kScript===s?c.a:c.m,fontSize:12,fontWeight:600}}>{l}</button>)}
+          {[["h","ひらがな","Hiragana"],["k","カタカナ","Katakana"]].map(([s,jp,en])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,padding:"7px 14px",borderRadius:0,border:"none",background:kScript===s?c.a+"22":"transparent",color:kScript===s?c.a:c.m,fontSize:12,fontWeight:600}}>{jp} <span style={{fontSize:10,opacity:.7,marginLeft:2}}>{en}</span></button>)}
         </div>
       </div>
       <div style={{...card,marginBottom:16,padding:"14px 16px"}}>
@@ -962,8 +962,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             {kDueCount>0&&<button onClick={()=>{
               const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
               setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
-            }} style={{...btn,padding:"3px 10px",borderRadius:6,background:c.go+"22",border:"1px solid "+c.go+"44",color:c.go,fontSize:11,fontWeight:600}}>{kDueCount} due</button>}
-            <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+c.b,background:"transparent",color:c.m,fontFamily:mono,fontSize:10}}>all</button>
+            }} style={{...btn,padding:"4px 12px",borderRadius:6,background:c.go+"22",border:"1px solid "+c.go+"44",color:c.go,fontSize:11,fontWeight:600}}>🔔 Review {kDueCount} kana</button>}
+            <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,padding:"4px 10px",borderRadius:6,border:"1px solid "+c.a+"44",background:c.a+"11",color:c.a,fontSize:11,fontWeight:600}}>Select all</button>
           </div>
         </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
@@ -971,6 +971,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:7,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
           })}
         </div>
+      </div>
+      <div style={{display:"flex",justifyContent:"center",gap:4,marginBottom:10}}>
+        {[["visual","👁 Read"],["listen","👂 Listen"]].map(([m,label])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,padding:"6px 16px",borderRadius:7,border:"1px solid "+(kQuizMode===m?c.go+"66":c.b),background:kQuizMode===m?c.go+"18":"transparent",color:kQuizMode===m?c.go:c.m,fontSize:12,fontWeight:600}}>{label}</button>)}
       </div>
       <div style={{display:"flex",gap:10,marginBottom:14}}>
         <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
@@ -1438,9 +1441,10 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             </div>
           </div>
           <div style={{flex:1,padding:"12px 8px"}}>
-            {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={sideTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home")}>
+            {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={{...sideTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home"),position:"relative"}}>
               <span style={{fontSize:18,lineHeight:1}}>{tb.icon}</span>
               <span>{tb.label}</span>
+              {tb.id==="kana"&&kDueCount>0&&<span style={{marginLeft:"auto",fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10,background:c.go+"22",color:c.go,fontFamily:mono}}>{kDueCount}</span>}
             </button>)}
           </div>
           <div style={{padding:"10px 8px",borderTop:"1px solid "+c.b}}>
@@ -1459,9 +1463,10 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           </div>
         </div>
       : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
-          {tabs.map(tb=>{const active=tab===tb.id||(tab==="drill"&&tb.id==="home");return <button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={bottomTabBtn(active)}>
+          {tabs.map(tb=>{const active=tab===tb.id||(tab==="drill"&&tb.id==="home");return <button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={{...bottomTabBtn(active),position:"relative"}}>
             <span style={{fontSize:20}}>{tb.icon}</span><span>{tb.label}</span>
             {active&&<div style={{width:4,height:4,borderRadius:2,background:c.a,marginTop:1}}/>}
+            {tb.id==="kana"&&kDueCount>0&&<span style={{position:"absolute",top:4,right:"50%",transform:"translateX(14px)",fontSize:9,fontWeight:700,minWidth:16,padding:"1px 4px",borderRadius:8,background:c.go,color:"#fff",textAlign:"center",lineHeight:"14px"}}>{kDueCount}</span>}
           </button>;})}
         </div>
     }
