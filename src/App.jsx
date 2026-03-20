@@ -323,6 +323,8 @@ function AuthedApp({ user, getToken }){
   const [storyPlaying,setStoryPlaying]=useState(false);
   const [kFlip,setKFlip]=useState(false);
   const [kLI,setKLI]=useState(0);
+  const [kQuizMode,setKQuizMode]=useState("visual"); // "visual" | "listen"
+  const [streakCelebrate,setStreakCelebrate]=useState(false);
   // phrases
   const [pCat,setPCat]=useState(null);
   const [pMode,setPMode]=useState("browse");
@@ -406,17 +408,21 @@ function AuthedApp({ user, getToken }){
       // 1. Try loading from DB (source of truth)
       const remote=await syncLoad(token);
       if(remote?.data){
+        const oldStreak=remote.data.streak||1;
         const nd=migrate(remote.data);
         setD(nd);
         store.set(KEY,nd);
+        if(nd.streak>oldStreak){setStreakCelebrate(true);setTimeout(()=>setStreakCelebrate(false),3500);}
       } else {
         // 2. First sign-in — migrate any existing localStorage data up to DB
         const local=store.get(KEY);
         if(local){
+          const oldStreak=local.streak||1;
           const nd=migrate(local);
           setD(nd);
           store.set(KEY,nd);
           syncSave(token,nd);
+          if(nd.streak>oldStreak){setStreakCelebrate(true);setTimeout(()=>setStreakCelebrate(false),3500);}
         }
       }
       setLoaded(true);
@@ -449,6 +455,9 @@ function AuthedApp({ user, getToken }){
   useEffect(()=>{
     if(kScreen==="quiz"&&!kFb&&inputRef.current)inputRef.current.focus();
   },[kI,kFb,kScreen]);
+  useEffect(()=>{
+    if(kScreen==="quiz"&&kQuizMode==="listen"&&!kFb&&kCards[kI])speak(kCards[kI]);
+  },[kI,kFb,kScreen,kQuizMode]);// eslint-disable-line
 
   useEffect(()=>{
     if(drillFb===null&&tab==="drill"&&drillCards[drillI]?.type==="kana"&&drillRef.current)drillRef.current.focus();
@@ -680,6 +689,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
+  const kbHint=k=>isDesktop?<span style={{fontSize:10,opacity:0.3,fontFamily:mono,marginLeft:6}}>{k}</span>:null;
   const stopAudio=()=>{if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}if(window.speechSynthesis)window.speechSynthesis.cancel();setStoryPlaying(false);};
   const speakStory=(m,ch)=>{
     if(!m||!ch) return;
@@ -731,6 +741,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   );
 
   if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
+  const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}`;
 
   // ═══ HOME ═══
   const renderHome=()=>{
@@ -755,7 +766,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em",textShadow:theme==="dark"?"0 0 30px rgba(192,40,42,0.35)":"none"}}>{profile.name?`こんにちは, ${profile.name}!`:"日本語 Journey"}</h1>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to go</span>}
-          {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono}}>🔥 {data.streak} day streak</span>}
+          {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono,display:"inline-block",animation:streakCelebrate?"streakPop .6s ease-out, streakGlow 1.5s ease-in-out 3":"none"}}>🔥 {data.streak} day streak</span>}
         </div>
       </div>
       <div style={{display:"flex",gap:6,marginBottom:16}}>
@@ -851,7 +862,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <div style={{display:"flex",gap:10,marginTop:20}}>
           <button onClick={()=>{stopAudio();setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
-            ?<button onClick={()=>{stopAudio();setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
+            ?<button onClick={()=>{stopAudio();setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →{kbHint("↵")}</button>
             :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Quiz</button>}
         </div>
       </div>;
@@ -867,10 +878,13 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         </div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:36,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
         <div style={{textAlign:"center",marginBottom:kFb?8:28}}>
-          <div onClick={()=>speak(ch)} title="Listen" style={{fontSize:108,lineHeight:1,marginBottom:10,color:kFb==="ok"?c.g:kFb==="no"?c.a:c.tx,cursor:"pointer"}}>{ch}</div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+          {kQuizMode==="listen"&&!kFb
+            ?<><div onClick={()=>speak(ch)} style={{fontSize:108,lineHeight:1,marginBottom:10,color:c.m,cursor:"pointer",userSelect:"none"}}>?</div>
+              <button onClick={()=>speak(ch)} style={{...btn,padding:"6px 16px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:13,color:c.m}}>🔊 play again</button></>
+            :<div onClick={()=>speak(ch)} title="Listen" style={{fontSize:108,lineHeight:1,marginBottom:10,color:kFb==="ok"?c.g:kFb==="no"?c.a:c.tx,cursor:"pointer"}}>{ch}</div>}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:6}}>
             <span style={{fontSize:12,fontFamily:mono,color:c.m}}>{kI+1} of {kCards.length}</span>
-            <button onClick={()=>speak(ch)} style={{...btn,padding:"3px 9px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:11,color:c.m}}>🔊 listen</button>
+            {kQuizMode!=="listen"&&<button onClick={()=>speak(ch)} style={{...btn,padding:"3px 9px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:11,color:c.m}}>🔊 listen</button>}
           </div>
         </div>
         {!kFb?<>
@@ -878,7 +892,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             <input ref={inputRef} value={kInput} onChange={e=>setKInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")submitKana();}}
               placeholder="romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
               style={{flex:1,padding:"13px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:mono,fontSize:20,outline:"none",textAlign:"center"}}/>
-            <button onClick={submitKana} style={{...btn,padding:"13px 22px",borderRadius:10,background:kInput.trim()?c.a:c.b,color:kInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go</button>
+            <button onClick={submitKana} style={{...btn,padding:"13px 22px",borderRadius:10,background:kInput.trim()?c.a:c.b,color:kInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go{kbHint("↵")}</button>
           </div>
           <button onClick={()=>setKPeek(!kPeek)} style={{...btn,display:"block",margin:"14px auto 0",background:"none",color:c.m,fontFamily:mono,fontSize:11,opacity:.55}}>{kPeek?`"${rom}"`:"peek"}</button>
         </>:<>
@@ -900,7 +914,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{marginTop:10,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m,ch)}</div>
             </div>
           </div>
-          <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}</button>
+          <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}{kbHint("↵")}</button>
         </>}
       </div>;
     }
@@ -942,11 +956,14 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       <div style={{...card,marginBottom:18}}>
         <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:10,textTransform:"uppercase"}}>Select rows</div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-          {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>getKBox(ch)>=3);
-            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:7,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}</button>;
+          {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>getKBox(ch)>=3);const due=g.c.filter(ch=>data.kana[ch]?.box>=1&&isKanaDue(ch)).length;
+            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:7,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
           })}
         </div>
         <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,marginTop:10,padding:"4px 10px",borderRadius:5,border:"1px solid "+c.b,background:"transparent",color:c.m,fontFamily:mono,fontSize:10}}>all</button>
+      </div>
+      <div style={{display:"flex",gap:6,marginBottom:10}}>
+        {[["visual","👁 See kana"],["listen","👂 Hear kana"]].map(([m,l])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,flex:1,padding:"8px 0",borderRadius:8,border:"1px solid "+(kQuizMode===m?c.go:c.b),background:kQuizMode===m?c.go+"1a":"transparent",color:kQuizMode===m?c.go:c.m,fontSize:12,fontWeight:600}}>{l}</button>)}
       </div>
       <div style={{display:"flex",gap:10,marginBottom:18}}>
         <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
@@ -1013,7 +1030,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <button onClick={e=>{e.stopPropagation();speakPhrase(p[0],p[1]);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>
               <div style={{fontSize:19,fontFamily:mono,color:c.a,marginTop:6,marginBottom:8}}>{p[2]}</div>
               <div style={{fontSize:14,color:c.m}}>{p[3]}</div>
-              {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}</>}
+              {p[5]&&<div style={{fontSize:12,color:c.m,marginTop:10,padding:"8px 12px",borderLeft:"3px solid "+c.a+"50",background:c.s2,borderRadius:"0 6px 6px 0",fontStyle:"italic",textAlign:"left"}}>{p[5]}</div>}</>}
         </div>
         {pFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
           <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
@@ -1048,8 +1065,12 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                 </div>
                 <div style={{fontSize:13,fontFamily:mono,color:c.a,marginBottom:2}}>{p[2]}</div>
                 <div style={{fontSize:13,color:c.m}}>{p[3]}</div>
+                {p[5]&&<div style={{fontSize:11,color:c.m,fontStyle:"italic",marginTop:3,opacity:.65}}>{p[5]}</div>}
               </div>
-              <span style={chip(badgeColor)}>{box>=4?"mastered":box>=1?"learning":"new"}</span>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                <span style={chip(badgeColor)}>{box>=4?"mastered":box>=1?"learning":"new"}</span>
+                {p[6]&&<span style={{...chip(c.a),fontSize:9}}>⚡</span>}
+              </div>
             </div>
           </div>;
         })}
@@ -1077,6 +1098,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
                 <span style={{fontSize:15,fontWeight:600}}>{v}</span>
                 <span style={chip(col)}>{done}/{total}</span>
+                {(()=>{const catDue=PHRASES.filter(p=>p[4]===k&&data.phr[p[0]]?.box>=1&&isPhrDue(p[0])).length;return catDue>0?<span style={chip(c.go)}>{catDue} due</span>:null;})()}
               </div>
               {progressBar(pct,col)}
             </div>
@@ -1390,6 +1412,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   if(loaded&&!data.onboarded)return renderOnboarding();
 
   return <div style={wrap}>
+    <style>{globalCSS}</style>
     {tab==="home"&&renderHome()}
     {tab==="kana"&&renderKana()}
     {tab==="phrases"&&renderPhrases()}
@@ -1428,9 +1451,10 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           </div>
         </div>
       : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
-          {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={bottomTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home")}>
+          {tabs.map(tb=>{const active=tab===tb.id||(tab==="drill"&&tb.id==="home");return <button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={bottomTabBtn(active)}>
             <span style={{fontSize:20}}>{tb.icon}</span><span>{tb.label}</span>
-          </button>)}
+            {active&&<div style={{width:4,height:4,borderRadius:2,background:c.a,marginTop:1}}/>}
+          </button>;})}
         </div>
     }
   </div>;
