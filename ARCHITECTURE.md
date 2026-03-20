@@ -185,16 +185,105 @@ M["あ"] = ["🍎", "Apple", "Cross stroke = stem", "Story text for Matilda audi
 
 ---
 
-## Audio Generation
+## Audio Generation — Full Guide
 
-Run once to generate all static MP3s:
+The app uses **two TTS systems** for different purposes:
+
+| What | TTS Source | Voice | Where |
+|------|-----------|-------|-------|
+| Kana pronunciation (あ, カ, etc.) | Google Translate proxy | Google's JP voice | Runtime — `/api/tts?lang=ja` |
+| Mnemonic stories (English) | ElevenLabs static MP3s | Matilda (`XrExE9yKIg1WjnnlVkGX`) | Pre-generated — `/audio/story3/` |
+| Phrase pronunciation (こんにちは, etc.) | ElevenLabs static MP3s | Lily (`pFZP5JQG7iQjIQuC4Bku`) | Pre-generated — `/audio/phrase/` |
+
+### Why two systems?
+- **Google Translate** is better for single kana characters — it always pronounces them naturally. ElevenLabs sometimes mispronounces isolated characters even with `language_code: "ja"`.
+- **ElevenLabs** is better for longer content — stories sound warm and natural (Matilda), phrases sound clear (Lily). Google TTS for longer text sounds robotic.
+
+### How audio playback works in the app
+
+**Kana pronunciation** — `speak(char)` calls `/api/tts?lang=ja&q=あ` at runtime. No static files involved. Falls back to browser `SpeechSynthesis` if the proxy fails.
+
+**Story chain** — `speakStory(m, char)` plays three audio segments back-to-back:
+1. Google TTS says the Japanese character (e.g. "あ")
+2. Matilda narrates the English mnemonic from `/audio/story3/{codepoint}.mp3`
+3. Google TTS says the Japanese character again
+
+The second and third audio files are **preloaded** while the first plays, so transitions are instant. The `_ttsAudio` module-level variable tracks the currently playing audio so `stopAudio()` can kill it on navigation.
+
+**Phrase audio** — `speakPhrase(id)` plays `/audio/phrase/{id}.mp3`. Falls back to Google TTS if the file is missing.
+
+### File naming conventions
+- **Story files**: `public/audio/story3/{hex_codepoint}.mp3` — e.g. あ = U+3042 → `3042.mp3`
+- **Phrase files**: `public/audio/phrase/{phrase_id}.mp3` — e.g. `g1.mp3`, `f3.mp3`, `t7.mp3`
+- **Kana backup files**: `public/audio/kana2/{hex_codepoint}.mp3` — not used by app, kept as backup
+
+### Generating / regenerating audio
+
+The script is `scripts/generate-audio.mjs`. It calls the ElevenLabs API and writes MP3 files to `public/audio/`.
+
 ```bash
+# Generate everything (stories + phrases + kana backup)
 ELEVENLABS_API_KEY=your_key node scripts/generate-audio.mjs
+
+# Generate only stories (English mnemonic narrations)
+ELEVENLABS_API_KEY=your_key MODE=story node scripts/generate-audio.mjs
+
+# Generate only phrases (Japanese phrase audio)
+ELEVENLABS_API_KEY=your_key MODE=phrase node scripts/generate-audio.mjs
+
+# Generate kana backup files (not used by app, just for reference)
+ELEVENLABS_API_KEY=your_key MODE=kana2 node scripts/generate-audio.mjs
 ```
 
-Modes: `MODE=kana`, `MODE=kana2`, `MODE=story`, `MODE=phrase`, or `MODE=all`
+**Important behaviors:**
+- The script **skips files that already exist** (prints `·` instead of `✓`). To regenerate a specific file, delete it first, then run the script.
+- Rate-limited to ~3 requests/second (350ms delay) — safe for ElevenLabs free tier.
+- All generated files must be **committed to git** and pushed — Vercel serves them as static assets from `public/`.
 
-Generated files go to `public/audio/` and must be committed to the repo so Vercel serves them as static assets.
+### Changing a story
+
+If you want to update a mnemonic story (e.g. improve the wording for あ):
+
+1. **Update the story text** in two places:
+   - `scripts/generate-audio.mjs` → `STORIES` object (this is what gets spoken by Matilda)
+   - `src/App.jsx` → `M` object, index `[3]` (this is what gets displayed as text in the app)
+   - **These MUST match** — the displayed text should be what the audio says
+2. **Delete the old audio file**: `rm public/audio/story3/3042.mp3` (use the hex codepoint)
+3. **Regenerate**: `ELEVENLABS_API_KEY=your_key MODE=story node scripts/generate-audio.mjs`
+4. **Commit the new MP3** and push
+
+### Adding a new phrase
+
+1. Add the phrase to `PHRASES` array in both:
+   - `scripts/generate-audio.mjs` — `['id', 'japanese text']`
+   - `src/App.jsx` — full 7-element array `['id', 'japanese', 'romaji', 'english', 'category', 'context', isMissionCritical]`
+2. **Generate audio**: `ELEVENLABS_API_KEY=your_key MODE=phrase node scripts/generate-audio.mjs`
+3. **Commit** the new MP3 from `public/audio/phrase/{id}.mp3` and push
+
+### Voice settings (in generate-audio.mjs)
+
+```js
+model_id: 'eleven_multilingual_v2',
+voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0.2 }
+// For Japanese audio, also includes:
+language_code: 'ja',
+apply_language_text_normalization: true  // CRITICAL for single characters
+```
+
+### Audio directory history
+
+| Directory | Voice | Status | Notes |
+|-----------|-------|--------|-------|
+| `kana/` | Lily (no `language_code`) | BACKUP | Some characters mispronounced |
+| `kana2/` | Lily (with `language_code: "ja"`) | BACKUP | Better, but app uses Google TTS instead |
+| `story/` | Daniel | BACKUP | First attempt, wrong voice |
+| `story2/` | Matilda (verbose scripts) | BACKUP | Stories were too long |
+| `story3/` | Matilda (concise scripts) | **ACTIVE** | Current — 1-2 sentence stories |
+| `phrase/` | Lily (with `language_code: "ja"`) | **ACTIVE** | 55 phrase MP3s |
+
+### ElevenLabs API key
+
+Get one at [elevenlabs.io](https://elevenlabs.io). Free tier gives ~10,000 characters/month. Generating all audio (46 stories + 55 phrases) uses roughly 3,000-4,000 characters. Only needed for the one-time generation script — the app never calls ElevenLabs at runtime.
 
 ---
 
