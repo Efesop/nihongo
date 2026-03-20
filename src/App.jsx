@@ -117,7 +117,7 @@ const M = {
 "シ":["🚢","Sinking ship","Dots + curve going down","A smiley face sinking beneath the waves — the two dots are eyes and the curve sweeps downward like a ship going under."],
 "ス":["⛷️","Skiing person","Angled = skiing downhill","A person carving down a ski slope — the angled strokes capture that forward lean as they fly downhill."],
 "セ":["🗣️","Angular せ","Like せ without top right part","The angular version of hiragana せ with the top-right portion stripped away — same sensei, sharper edges."],
-"ソ":["🍦","Soft serve ice cream","SO slim + one-eyed smiley","A soft-serve ice cream cone — the gentle curve on top is the swirl of ice cream, the stroke below is the cone."],
+"ソ":["🍦","Soft serve ice cream","SO slim + one-eyed smiley","The two strokes of ソ form the cone of a soft-serve ice cream — the ice cream swirl sits on top, completing the picture."],
 "タ":["📱","Person holding a tablet","Gripping a tablet","A person gripping a tablet in both hands — the horizontal stroke is their arms, the vertical line is the screen."],
 "チ":["🐔","Chicken","Looks nothing like a chicken!","A chicken with its beak wide open — squint hard and you might see the head and body in those strokes."],
 "ツ":["🐟","Tuna fish head","Like シ but different direction","A tuna fish head — similar to シ but the strokes face a different direction, like the fish is swimming the other way."],
@@ -856,20 +856,21 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <img src={mnemonicImg} alt={m?m[1]:rom}
                 onError={e=>{e.target.style.display="none";}}
                 style={{width:"100%",borderRadius:12,display:"block",marginBottom:14}}/>
-              {/* Character + romaji + audio */}
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:14}}>
-                <div style={{fontSize:52,lineHeight:1}}>{ch}</div>
-                <div style={{fontSize:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
-                {speakBtn(ch)}
-              </div>
-              {/* Story card */}
-              {m&&<div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
-                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
-                  <span style={{fontSize:28}}>{m[0]}</span>
-                  <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
+              {/* Combined card: character/romaji on left, story on right */}
+              {m&&<div style={{...card,display:"flex",gap:0,padding:0,border:"1px solid "+c.b,overflow:"hidden",marginBottom:4}}>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px 24px",borderRight:"1px solid "+c.b,minWidth:100,flexShrink:0}}>
+                  <div style={{fontSize:56,lineHeight:1,marginBottom:6}}>{ch}</div>
+                  <div style={{fontSize:22,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:10}}>{rom}</div>
+                  {speakBtn(ch)}
                 </div>
-                <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
-                <div style={{marginTop:10}}>{storyBtn(m,ch)}</div>
+                <div style={{flex:1,padding:"16px 18px",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <span style={{fontSize:22}}>{m[0]}</span>
+                    <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
+                  </div>
+                  <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:10}}>{m[3]||m[2]}</div>
+                  {storyBtn(m,ch)}
+                </div>
               </div>}
             </div>
         }
