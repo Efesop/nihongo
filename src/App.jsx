@@ -44,7 +44,7 @@ const speak = (text, lang="ja-JP") => {
   // Single kana char → use pre-generated static file
   if(lang==="ja-JP"&&_isKana(text)){
     const cp=text.codePointAt(0).toString(16);
-    _playAudio(`/audio/kana/${cp}.mp3`,1).catch(()=>{
+    _playAudio(`/audio/kana2/${cp}.mp3`,1).catch(()=>{
       const ttsLang="ja";
       _playAudio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`,0.85).catch(()=>{
         if(!window.speechSynthesis) return;
@@ -715,12 +715,12 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       s.play().catch(onStoryEnd);
     };
     const playKanaAgain=()=>{
-      const k2=new Audio(`/audio/kana/${cp}.mp3`);
+      const k2=new Audio(`/audio/kana2/${cp}.mp3`);
       _ttsAudio=k2;
       k2.onended=done; k2.onerror=done;
       k2.play().catch(done);
     };
-    const k1=new Audio(`/audio/kana/${cp}.mp3`);
+    const k1=new Audio(`/audio/kana2/${cp}.mp3`);
     _ttsAudio=k1;
     k1.onended=()=>playStory(playKanaAgain);
     k1.onerror=()=>playStory(done);

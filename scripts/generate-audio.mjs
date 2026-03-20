@@ -152,6 +152,15 @@ async function main() {
     }
   }
 
+  if (mode === 'kana2') {
+    console.log('\n🔤 Kana characters v2 (Japanese, with language_code)…');
+    mkdirSync(join(OUT, 'kana2'), { recursive: true });
+    for (const ch of [...HIRAGANA, ...KATAKANA]) {
+      const cp = ch.codePointAt(0).toString(16);
+      await generate(ch, VOICE_JA, join(OUT, 'kana2', `${cp}.mp3`), true);
+    }
+  }
+
   if (mode === 'all' || mode === 'story') {
     console.log('\n\n📖 Mnemonic stories (English)…');
     for (const ch of HIRAGANA) {
