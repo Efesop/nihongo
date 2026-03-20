@@ -1408,9 +1408,12 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
 
     {isDesktop
       ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
-          <div style={{padding:"22px 16px 18px",borderBottom:"1px solid "+c.b}}>
-            <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
-            <div style={{fontSize:11,color:c.m,marginTop:4,fontFamily:mono,letterSpacing:".02em"}}>TinySenpai</div>
+          <div style={{padding:"16px 16px 14px",borderBottom:"1px solid "+c.b,display:"flex",alignItems:"center",gap:10}}>
+            <img src="/images/tinysenpai2.png" alt="TinySenpai" style={{width:38,height:38,imageRendering:"pixelated",borderRadius:6}}/>
+            <div>
+              <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
+              <div style={{fontSize:11,color:c.m,marginTop:3,fontFamily:mono,letterSpacing:".02em"}}>TinySenpai</div>
+            </div>
           </div>
           <div style={{flex:1,padding:"12px 8px"}}>
             {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={sideTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home")}>
