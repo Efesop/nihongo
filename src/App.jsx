@@ -750,11 +750,12 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const dl=ob.tripDate?daysUntil(ob.tripDate):0;
     const kanaPct=Math.round(kMastered/92*100);
     const phrPct=Math.round(learnedPhr/PHRASES.length*100);
+    const totalDue=kDueCount+dueCount;
     const stats=[
       {l:"Kana",v:kanaPct+"%",cl:c.a},
       {l:"Phrases",v:phrPct+"%",cl:c.g},
-      {l:"Phr Due",v:dueCount,cl:dueCount>0?c.go:c.m},
-      {l:"Kana Due",v:kDueCount,cl:kDueCount>0?c.a:c.m},
+      {l:"Streak",v:(data.streak||1)+"🔥",cl:c.go},
+      {l:"To Review",v:totalDue,cl:totalDue>0?c.go:c.g},
     ];
     const actions=[
       {id:"drill",icon:"🔥",title:"Daily Drill",desc:"5 kana + 5 phrases mixed",action:startDrill},
@@ -776,6 +777,19 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <div style={{fontSize:10,color:c.m,textTransform:"uppercase",letterSpacing:".04em"}}>{s.l}</div>
         </div>)}
       </div>
+      {(kDueCount>0||dueCount>0)&&<div style={{...card,marginBottom:8,padding:"14px 16px",background:c.go+"0d",border:"1px solid "+c.go+"33"}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.go,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10}}>🔔 Ready to review</div>
+        <div style={{display:"flex",gap:8}}>
+          {kDueCount>0&&<button onClick={()=>{
+            const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
+            setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");setTab("kana");
+          }} onMouseEnter={()=>setHov("rk")} onMouseLeave={()=>setHov(null)}
+            style={{...btn,flex:1,padding:"10px 14px",borderRadius:9,background:hov==="rk"?c.go+"33":c.go+"18",border:"1px solid "+c.go+"44",color:c.go,fontSize:13,fontWeight:600}}>あ {kDueCount} kana</button>}
+          {dueCount>0&&<button onClick={()=>{setTab("phrases");setPMode("review");}}
+            onMouseEnter={()=>setHov("rp")} onMouseLeave={()=>setHov(null)}
+            style={{...btn,flex:1,padding:"10px 14px",borderRadius:9,background:hov==="rp"?c.go+"33":c.go+"18",border:"1px solid "+c.go+"44",color:c.go,fontSize:13,fontWeight:600}}>💬 {dueCount} phrases</button>}
+        </div>
+      </div>}
       {mcLeft>0&&<div onClick={()=>{setTab("phrases");setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
         onMouseEnter={()=>setHov("ft")} onMouseLeave={()=>setHov(null)}
         style={{...card,marginBottom:8,cursor:"pointer",padding:"11px 16px",background:hov==="ft"?c.as:c.s,border:"1px solid "+c.a+"50",transition:"background .15s"}}>
