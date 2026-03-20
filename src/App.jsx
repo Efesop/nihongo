@@ -839,47 +839,41 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
 
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
+      const mnemonicImg=`/images/mnemonics/${ch.codePointAt(0).toString(16)}.png`;
       return <div style={inner}>
-        <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,marginBottom:6}}>{kLI+1}/{chars.length}</div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        <style>{`
-          @keyframes mnemonicPulse{0%,100%{opacity:.05}50%{opacity:.18}}
-          @keyframes mnemonicReveal{0%,100%{opacity:.12}50%{opacity:.32}}
-        `}</style>
-        {/* Character card */}
-        <div onClick={()=>setKFlip(!kFlip)} style={{...card,textAlign:"center",cursor:"pointer",padding:"40px 24px",border:"1px solid "+(kFlip?c.a+"60":c.b),display:"flex",flexDirection:"column",alignItems:"center"}}>
-          {/* Emoji sits in the same inline container as the character so it overlays it exactly */}
-          <div style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:kFlip?8:16}}>
-            {m&&<div style={{
-              position:"absolute",top:"50%",left:"50%",
-              transform:"translate(-50%,-50%)",
-              fontSize:kFlip?110:130,lineHeight:1,pointerEvents:"none",userSelect:"none",
-              animation:kFlip?"mnemonicReveal 2.5s ease-in-out infinite":"mnemonicPulse 3s ease-in-out infinite",
-              filter:kFlip?"none":"blur(2px)",
-            }}>{m[0]}</div>}
-            <div style={{position:"relative",zIndex:1,fontSize:kFlip?88:110,lineHeight:1}}>{ch}</div>
-          </div>
-          {kFlip
-            ?<div style={{fontSize:34,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
-            :<div style={{fontSize:12,color:c.m}}>tap to reveal</div>}
-          {kFlip&&<div style={{marginTop:12,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}</div>}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
+          <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
         </div>
-        {/* Mnemonic card — only shown after flip */}
-        {kFlip&&m&&<>
-          <img src={`/images/mnemonics/${ch.codePointAt(0).toString(16)}.png`} alt={m[1]}
-            onError={e=>{e.target.style.display="none";}}
-            style={{width:"100%",maxWidth:480,borderRadius:10,marginTop:12,display:"block",marginLeft:"auto",marginRight:"auto"}}/>
-          <div style={{...card,display:"flex",alignItems:"center",gap:16,padding:"16px 18px",border:"1px solid "+c.b,marginTop:12}}>
-            <span style={{fontSize:44,flexShrink:0}}>{m[0]}</span>
-            <div style={{flex:1}}>
-              <div style={{fontSize:14,fontWeight:700,color:c.tx,marginBottom:4}}>{m[1]}</div>
-              <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+        {!kFlip
+          ? <div onClick={()=>setKFlip(true)} style={{...card,textAlign:"center",cursor:"pointer",padding:"48px 24px"}}>
+              <div style={{fontSize:120,lineHeight:1,marginBottom:16}}>{ch}</div>
+              <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
-            {storyBtn(m,ch)}
-          </div>
-        </>}
-        <div style={{display:"flex",gap:10,marginTop:20}}>
+          : <div>
+              {/* Mnemonic image — the hero */}
+              <img src={mnemonicImg} alt={m?m[1]:rom}
+                onError={e=>{e.target.style.display="none";}}
+                style={{width:"100%",borderRadius:12,display:"block",marginBottom:14}}/>
+              {/* Character + romaji + audio */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginBottom:14}}>
+                <div style={{fontSize:52,lineHeight:1}}>{ch}</div>
+                <div style={{fontSize:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+                {speakBtn(ch)}
+              </div>
+              {/* Story card */}
+              {m&&<div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+                  <span style={{fontSize:28}}>{m[0]}</span>
+                  <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
+                </div>
+                <div style={{fontSize:13,color:c.m,lineHeight:1.6}}>{m[3]||m[2]}</div>
+                <div style={{marginTop:10}}>{storyBtn(m,ch)}</div>
+              </div>}
+            </div>
+        }
+        <div style={{display:"flex",gap:10,marginTop:16}}>
           <button onClick={()=>{stopAudio();setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
             ?<button onClick={()=>{stopAudio();setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →{kbHint("↵")}</button>
