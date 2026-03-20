@@ -104,7 +104,7 @@ const M = {
 "む":["🐄","Cow — mooo!","Clown imitating animals","A cow turning to look right at you — the curling strokes form that round bovine face."],
 "め":["🥨","Pretzel","Chopsticks drop hoop = MEss","A pretzel, all twisted — or noodles dropped into a chaotic tangle."],
 "も":["⛵","Sailboat","Or monitor lizard","A sailboat — two horizontal sails catching the wind, mast running clean through the middle."],
-"ら":["📣","Rah rah rah!","Like ち but spread out","A cheerleader with arms thrown wide open — like the previous one, but bigger and more spread out."],
+"ら":["🤠","Lasso","Wide loop at the bottom","A lasso looping through the air — that wide sweeping curve, ready to catch."],
 "り":["🏞️","River","Right stroke longer than い","Two strokes, but the right one is longer and curves — one riverbank higher than the other."],
 "る":["💎","Hand holding ruby","Loop = ruby being held","A hand gripping a precious gem — the loop at the bottom is the ruby held tight in the palm."],
 "れ":["🦌","Reindeer","Strokes form reindeer","Trace the strokes and you'll find a reindeer — head, neck, branching antler."],
@@ -703,7 +703,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const cp=ch.codePointAt(0).toString(16);
     // Chain: JP kana → English story → JP kana again
     const playStory=(onStoryEnd)=>{
-      const s=new Audio(`/audio/story2/${cp}.mp3`);
+      const s=new Audio(`/audio/story3/${cp}.mp3`);
       s.playbackRate=1.1; _ttsAudio=s;
       s.onended=onStoryEnd;
       s.onerror=()=>{
