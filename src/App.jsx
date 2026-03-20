@@ -111,7 +111,7 @@ const M = {
 "カ":["🔪","Angular か","Same blade, sharper","The angular version of hiragana か with one stroke removed — a sharper, more dangerous blade."],
 "キ":["🗝️","Like き without bottom","Same key, less curve","Hiragana き with the bottom curve chopped off — the same key, but stripped down to straight lines."],
 "ク":["🐦","Cuckoo's tail","Tail feathers","If hiragana く is the cuckoo's beak, this is the tail — the single curved stroke fans out like tail feathers."],
-"ケ":["🔤","Sideways K","Looks like letter K on its side","Turn your head and you'll see the letter K lying on its side — that's your ke right there."],
+"ケ":["🔠","Sideways K","Looks like letter K on its side","Turn your head and you'll see the letter K lying on its side — that's your ke right there."],
 "コ":["📐","Two corners","Two right angles form a road","A road with two sharp corners — follow the path and you'll make exactly two right-angle turns."],
 "サ":["🐎","Saddle","Strokes = saddle on horse","A saddle sitting on a horse's back — the vertical stroke is the pommel, the horizontal stroke is the seat."],
 "シ":["🚢","Sinking ship","Dots + curve going down","A smiley face sinking beneath the waves — the two dots are eyes and the curve sweeps downward like a ship going under."],
@@ -122,7 +122,7 @@ const M = {
 "チ":["🐔","Chicken","Looks nothing like a chicken!","A chicken with its beak wide open — squint hard and you might see the head and body in those strokes."],
 "ツ":["🐟","Tuna fish head","Like シ but different direction","A tuna fish head — similar to シ but the strokes face a different direction, like the fish is swimming the other way."],
 "テ":["📞","Telephone pole","Wires on a pole bent at angle","A telephone pole bent at an angle by the wind — the horizontal stroke is the crossbar with wires, the diagonal is the leaning pole."],
-"ト":["🚪","Temple side view","Vertical + short horizontal","The side view of a temple gate — one tall vertical pillar with a short horizontal beam jutting out."],
+"ト":["⛩️","Temple side view","Vertical + short horizontal","The side view of a temple gate — one tall vertical pillar with a short horizontal beam jutting out."],
 "ナ":["🔪","Curved knife","Curved blade with handle","A curved knife — the horizontal stroke at the top is the handle, and the diagonal slash below is the blade."],
 "ニ":["2️⃣","Like に without left part","Two straight lines","Hiragana に with the left stroke removed — just two clean horizontal lines, easy as counting to two."],
 "ヌ":["🪢","Noose","Loop + cross","A noose dangling from a rope — the crossing strokes form the knot, and the loop hangs ominously below."],
@@ -147,7 +147,7 @@ const M = {
 "レ":["🪒","Razor blade","Curve = blade edge","A razor blade standing on its edge — one sharp vertical stroke with a curve at the base, ready to cut."],
 "ロ":["🤖","Robot's mouth","Rectangle = mouth","A robot's mouth — a perfect rectangle, mechanical and rigid, ready to speak in monotone."],
 "ワ":["🍷","Wine glass","Angular curve = glass","A wine glass seen from the side — the angular curve is the bowl of the glass, tapering down to the stem."],
-"ヲ":["🏆","World Olympic torch","Wine glass + extra stroke","The Olympic torch held high — like ワ (wine glass) but with an extra stroke on top for the flame reaching skyward."],
+"ヲ":["🔥","World Olympic torch","Wine glass + extra stroke","The Olympic torch held high — like ワ (wine glass) but with an extra stroke on top for the flame reaching skyward."],
 "ン":["🛸","Spacecraft entering atmosphere","ン wider, ソ slimmer","A spacecraft streaking into Earth's atmosphere — wider and flatter than ソ, like a capsule heating up on re-entry."],
 };
 

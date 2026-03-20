@@ -75,6 +75,53 @@ const STORIES = {
   'わ': "A happy dog mid-wag — curved body on the left, little hooking tail on the right.",
   'を': "Something cracked clean through a wall — those complex strokes are the drama of that split.",
   'ん': "One simple flowing curve, just like the letter n — the simplest character in the whole alphabet.",
+  // Katakana
+  'ア': "The sharp angular strokes form the head of an axe — the diagonal slash is the blade, the vertical line is the handle.",
+  'イ': "An artist's easel tipped sideways — the two leaning strokes are the legs splayed apart on the floor.",
+  'ウ': "The angular katakana version of hiragana う — same character straightened out with sharp corners.",
+  'エ': "Two horizontal bars with a vertical line between them — elevator doors about to slide open on the ground floor.",
+  'オ': "An opera singer belting a high note — mouth wide open, one arm flung out dramatically to the side.",
+  'カ': "The angular version of hiragana か with one stroke removed — a sharper, more dangerous blade.",
+  'キ': "Hiragana き with the bottom curve chopped off — the same key, but stripped down to straight lines.",
+  'ク': "If hiragana く is the cuckoo's beak, this is the tail — the single curved stroke fans out like tail feathers.",
+  'ケ': "Turn your head and you'll see the letter K lying on its side — that's your ke right there.",
+  'コ': "A road with two sharp corners — follow the path and you'll make exactly two right-angle turns.",
+  'サ': "A saddle sitting on a horse's back — the vertical stroke is the pommel, the horizontal stroke is the seat.",
+  'シ': "A smiley face sinking beneath the waves — the two dots are eyes and the curve sweeps downward like a ship going under.",
+  'ス': "A person carving down a ski slope — the angled strokes capture that forward lean as they fly downhill.",
+  'セ': "The angular version of hiragana せ with the top-right portion stripped away — same sensei, sharper edges.",
+  'ソ': "A soft-serve ice cream cone — the gentle curve on top is the swirl of ice cream, the stroke below is the cone.",
+  'タ': "A person gripping a tablet in both hands — the horizontal stroke is their arms, the vertical line is the screen.",
+  'チ': "A chicken with its beak wide open — squint hard and you might see the head and body in those strokes.",
+  'ツ': "A tuna fish head — similar to シ but the strokes face a different direction, like the fish is swimming the other way.",
+  'テ': "A telephone pole bent at an angle by the wind — the horizontal stroke is the crossbar with wires, the diagonal is the leaning pole.",
+  'ト': "The side view of a temple gate — one tall vertical pillar with a short horizontal beam jutting out.",
+  'ナ': "A curved knife — the horizontal stroke at the top is the handle, and the diagonal slash below is the blade.",
+  'ニ': "Hiragana に with the left stroke removed — just two clean horizontal lines, easy as counting to two.",
+  'ヌ': "A noose dangling from a rope — the crossing strokes form the knot, and the loop hangs ominously below.",
+  'ネ': "A bird's nest tucked into the fork of a tree — twigs woven together between the branches.",
+  'ノ': "The diagonal slash from a no-entry sign — just the line itself, without the circle around it.",
+  'ハ': "Two strokes spreading outward like the roof of a house — the peak is at the top, eaves angling down on each side.",
+  'ヒ': "The side profile of a high heel shoe — the vertical stroke is the stiletto, the curve is the sole.",
+  'フ': "The tip of a bare foot, toes pointing up — one simple curved stroke capturing that arch.",
+  'ヘ': "Exactly the same as hiragana へ — one angled line pointing up, identical in both scripts.",
+  'ホ': "A holy cross with rays of light shining from it — the vertical and horizontal strokes form the cross, the extra strokes are beams of radiance.",
+  'マ': "A manta ray gliding through the ocean — the horizontal stroke is one massive wing, the curve beneath is the body sweeping through water.",
+  'ミ': "Three horizontal lines stacked up — look for the line in the middle and you've found mi.",
+  'ム': "A pair of moose antlers viewed from the front — the angular strokes branch upward like a bull moose's impressive rack.",
+  'メ': "Draw a rectangle around it and you get the back of a mail envelope — the X marks where the flap folds shut.",
+  'モ': "Just like hiragana も but the third stroke floats free instead of cutting through the first — same sailboat, slightly different rigging.",
+  'ヤ': "The angular version of hiragana や with one stroke removed — sharper, more geometric, but the same shape at heart.",
+  'ユ': "The periscope of a U-boat poking above the water's surface — the vertical tube rising up, the horizontal piece scanning the horizon.",
+  'ヨ': "An egg yolk being pulled by two oxen — the two horizontal strokes are the yoke beams, the vertical stroke connects them.",
+  'ラ': "A reclining chair tipped back — the horizontal stroke is the headrest, the curve below is the seat and backrest.",
+  'リ': "Hiragana り with the honey-like curves straightened out — the same river, but flowing in clean straight lines.",
+  'ル': "The roots of a tree splitting into the ground — two strokes diverging downward, digging deep into the earth.",
+  'レ': "A razor blade standing on its edge — one sharp vertical stroke with a curve at the base, ready to cut.",
+  'ロ': "A robot's mouth — a perfect rectangle, mechanical and rigid, ready to speak in monotone.",
+  'ワ': "A wine glass seen from the side — the angular curve is the bowl of the glass, tapering down to the stem.",
+  'ヲ': "The Olympic torch held high — like ワ (wine glass) but with an extra stroke on top for the flame reaching skyward.",
+  'ン': "A spacecraft streaking into Earth's atmosphere — wider and flatter than ソ, like a capsule heating up on re-entry.",
 };
 
 const PHRASES = [
@@ -163,7 +210,7 @@ async function main() {
 
   if (mode === 'all' || mode === 'story') {
     console.log('\n\n📖 Mnemonic stories (English)…');
-    for (const ch of HIRAGANA) {
+    for (const ch of [...HIRAGANA, ...KATAKANA]) {
       const story = STORIES[ch];
       if (!story) continue;
       const cp = ch.codePointAt(0).toString(16);
