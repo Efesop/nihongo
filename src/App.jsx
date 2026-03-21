@@ -863,15 +863,15 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             </div>
           : <div>
               {/* Character + mnemonic image side by side */}
-              <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:14}}>
-                <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
-                  <div style={{fontSize:isDesktop?90:70,lineHeight:1}}>{ch}</div>
-                  <div style={{fontSize:isDesktop?28:22,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
+                <div style={{flex:"1 1 40%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+                  <div style={{fontSize:isDesktop?100:80,lineHeight:1}}>{ch}</div>
+                  <div style={{fontSize:isDesktop?30:24,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
                   {speakBtn(ch)}
                 </div>
                 <img src={mnemonicImg} alt={m?m[1]:rom}
                   onError={e=>{e.target.style.display="none";}}
-                  style={{flex:1,borderRadius:12,display:"block"}}/>
+                  style={{flex:"1 1 60%",maxWidth:"55%",borderRadius:12,display:"block"}}/>
               </div>
               {/* Story card */}
               {m&&<div style={{...card,padding:"16px 18px",border:"1px solid "+c.b,marginBottom:4}}>
@@ -992,7 +992,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
           {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>getKBox(ch)>=3);const due=g.c.filter(ch=>data.kana[ch]?.box>=1&&isKanaDue(ch)).length;
-            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"6px 12px",borderRadius:7,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:12}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
+            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"8px 14px",borderRadius:8,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:13,fontWeight:sel?600:400,minWidth:48}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
           })}
         </div>
       </div>
@@ -1003,17 +1003,28 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
         <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
       </div>
-      <button onClick={()=>setKShowGrid(!kShowGrid)} style={{...btn,width:"100%",padding:"10px 0",background:"none",color:c.m,fontSize:12,fontFamily:mono,opacity:.6}}>{kShowGrid?"▾ Hide grid":"▸ Show all kana"}</button>
-      {kShowGrid&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>
-        {allKana.map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;
-          return <div key={i} style={{
-            width:tileSize,height:tileSize,
+      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:8,marginTop:4}}>Tap characters to select/deselect</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+        {groups.flatMap(g=>g.c).map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;const selected=allKana.includes(ch);
+          return <div key={i} onClick={()=>{
+            if(selected){
+              const gi=groups.findIndex(g=>g.c.includes(ch));
+              const remaining=groups[gi].c.filter(x=>x!==ch&&allKana.includes(x));
+              if(remaining.length===0)setKSel(kSel.filter(x=>x!==gi));
+            }else{
+              const gi=groups.findIndex(g=>g.c.includes(ch));
+              if(!kSel.includes(gi))setKSel([...kSel,gi]);
+            }
+          }} style={{
+            width:tileSize,height:tileSize,cursor:"pointer",
             display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
             borderRadius:9,
-            background:mastered?c.gs:learning?c.go+"1a":c.s2,
-            border:"1px solid "+(mastered?c.g+"55":learning?c.go+"44":c.b),
+            background:selected?(mastered?c.gs:learning?c.go+"1a":c.as):(c.s2+"66"),
+            border:"1px solid "+(selected?(mastered?c.g+"55":learning?c.go+"44":c.a):c.b+"44"),
             outline:due?"2px solid "+c.a+"50":"none",
             position:"relative",
+            opacity:selected?1:.4,
+            transition:"opacity .15s",
           }}>
             <div style={{fontSize:tileFont,lineHeight:1}}>{ch}</div>
             <div style={{fontSize:8,color:c.m,marginTop:2}}>{ROMAJI[ch]}</div>
@@ -1021,7 +1032,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             {learning&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{box}</div>}
           </div>;
         })}
-      </div>}
+      </div>
     </div>;
   };
 
@@ -1458,7 +1469,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     {isDesktop
       ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
           <div style={{padding:"16px 16px 14px",borderBottom:"1px solid "+c.b,display:"flex",alignItems:"center",gap:10}}>
-            <img src="/images/tinysenpai1.png" alt="TinySenpai" style={{width:64,height:64,imageRendering:"pixelated",borderRadius:10}}/>
+            <img src="/images/tinysenpai2.png" alt="TinySenpai" style={{width:64,height:64,imageRendering:"pixelated",borderRadius:10}}/>
             <div>
               <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
               <div style={{fontSize:11,color:c.m,marginTop:3,fontFamily:mono,letterSpacing:".02em"}}>TinySenpai</div>
