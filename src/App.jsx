@@ -865,8 +865,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               {/* Character + mnemonic image side by side */}
               <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
                 <div style={{flex:"1 1 40%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
-                  <div style={{fontSize:isDesktop?100:80,lineHeight:1}}>{ch}</div>
-                  <div style={{fontSize:isDesktop?30:24,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+                  <div style={{fontSize:isDesktop?130:100,lineHeight:1}}>{ch}</div>
+                  <div style={{fontSize:isDesktop?34:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
                   {speakBtn(ch)}
                 </div>
                 <img src={mnemonicImg} alt={m?m[1]:rom}
