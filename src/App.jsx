@@ -326,6 +326,8 @@ function AuthedApp({ user, getToken }){
   const [kLI,setKLI]=useState(0);
   const [kQuizMode,setKQuizMode]=useState("visual"); // "visual" | "listen"
   const [kShowGrid,setKShowGrid]=useState(false);
+  const [kAutoReveal,setKAutoReveal]=useState(()=>localStorage.getItem("nihongo-autoReveal")==="true");
+  const [kAutoStory,setKAutoStory]=useState(()=>localStorage.getItem("nihongo-autoStory")!=="false");
   const [streakCelebrate,setStreakCelebrate]=useState(false);
   // phrases
   const [pCat,setPCat]=useState(null);
@@ -847,18 +849,23 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         const dx=e.changedTouches[0].clientX-swipeRef.startX;
         const dy=e.changedTouches[0].clientY-swipeRef.startY;
         if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){
-          if(dx<0&&kLI<chars.length-1){stopAudio();setKLI(kLI+1);setKFlip(false);}
-          if(dx>0&&kLI>0){stopAudio();setKLI(kLI-1);setKFlip(false);}
+          if(dx<0&&kLI<chars.length-1){stopAudio();setKLI(kLI+1);setKFlip(false);if(kAutoStory&&kAutoReveal){const nch=chars[kLI+1];const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}
+          if(dx>0&&kLI>0){stopAudio();setKLI(kLI-1);setKFlip(false);if(kAutoStory&&kAutoReveal){const nch=chars[kLI-1];const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}
         }
       };
+      const showRevealed=kAutoReveal||kFlip;
       return <div style={inner} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
-          <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <button onClick={()=>{const v=!kAutoReveal;setKAutoReveal(v);localStorage.setItem("nihongo-autoReveal",v);}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoReveal?c.a+"44":c.b),background:kAutoReveal?c.a+"11":"transparent",color:kAutoReveal?c.a:c.m,fontSize:10}}>Auto-reveal {kAutoReveal?"on":"off"}</button>
+            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);localStorage.setItem("nihongo-autoStory",v);}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:10}}>Auto-story {kAutoStory?"on":"off"}</button>
+            <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
+          </div>
         </div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        {!kFlip
-          ? <div onClick={()=>setKFlip(true)} style={{...card,textAlign:"center",cursor:"pointer",padding:"48px 24px"}}>
+        {!showRevealed
+          ? <div onClick={()=>{setKFlip(true);if(kAutoStory&&m)setTimeout(()=>speakStory(m,ch),300);}} style={{...card,textAlign:"center",cursor:"pointer",padding:"48px 24px"}}>
               <div style={{fontSize:120,lineHeight:1,marginBottom:16}}>{ch}</div>
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
@@ -886,9 +893,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             </div>
         }
         <div style={{display:"flex",gap:10,marginTop:16}}>
-          <button onClick={()=>{stopAudio();setKLI(Math.max(0,kLI-1));setKFlip(false);}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
+          <button onClick={()=>{stopAudio();const ni=Math.max(0,kLI-1);setKLI(ni);setKFlip(false);if(kAutoStory&&kAutoReveal){const nch=chars[ni];const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
-            ?<button onClick={()=>{stopAudio();setKLI(kLI+1);setKFlip(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →{kbHint("↵")}</button>
+            ?<button onClick={()=>{stopAudio();const ni=kLI+1;setKLI(ni);setKFlip(false);if(kAutoStory&&kAutoReveal){const nch=chars[ni];const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →{kbHint("↵")}</button>
             :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Quiz</button>}
         </div>
       </div>;
