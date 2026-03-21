@@ -703,6 +703,20 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
   const kbHint=k=>isDesktop?<span style={{fontSize:10,opacity:0.3,fontFamily:mono,marginLeft:6}}>{k}</span>:null;
   const stopAudio=()=>{if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}if(window.speechSynthesis)window.speechSynthesis.cancel();setStoryPlaying(false);};
+  const speakDakuten=(ch)=>{
+    if(!ch||!DAKUTEN_BASE[ch]) return;
+    if(storyPlaying){stopAudio();return;}
+    setStoryPlaying(true);
+    const done=()=>setStoryPlaying(false);
+    const baseCh=DAKUTEN_BASE[ch];
+    const isHdk=["ぱ","ぴ","ぷ","ぺ","ぽ","パ","ピ","プ","ペ","ポ"].includes(ch);
+    const bridgeUrl=`/audio/dakuten/bridge_${isHdk?"handakuten":"dakuten"}.mp3`;
+    const baseUrl=`/api/tts?lang=ja&q=${encodeURIComponent(baseCh)}`;
+    const modUrl=`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`;
+    const a1=new Audio(baseUrl);a1.playbackRate=0.85;_ttsAudio=a1;
+    a1.onended=()=>{const a2=new Audio(bridgeUrl);_ttsAudio=a2;a2.onended=()=>{const a3=new Audio(modUrl);a3.playbackRate=0.85;_ttsAudio=a3;a3.onended=done;a3.onerror=done;a3.play().catch(done);};a2.onerror=done;a2.play().catch(done);};
+    a1.onerror=done;a1.play().catch(done);
+  };
   const speakStory=(m,ch)=>{
     if(!m||!ch) return;
     if(storyPlaying){stopAudio();return;}
@@ -858,8 +872,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         const dx=e.changedTouches[0].clientX-swipeRef.startX;
         const dy=e.changedTouches[0].clientY-swipeRef.startY;
         if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){
-          if(dx<0&&kLI<chars.length-1){stopAudio();setKLI(kLI+1);setKFlip(false);if(kAutoStory){const nch=chars[kLI+1];const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}
-          if(dx>0&&kLI>0){stopAudio();setKLI(kLI-1);setKFlip(false);if(kAutoStory){const nch=chars[kLI-1];const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}
+          if(dx<0&&kLI<chars.length-1){stopAudio();setKLI(kLI+1);setKFlip(false);if(kAutoStory){const nch=chars[kLI+1];if(DAKUTEN_BASE[nch])setTimeout(()=>speakDakuten(nch),300);else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}}
+          if(dx>0&&kLI>0){stopAudio();setKLI(kLI-1);setKFlip(false);if(kAutoStory){const nch=chars[kLI-1];if(DAKUTEN_BASE[nch])setTimeout(()=>speakDakuten(nch),300);else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}}
         }
       };
       const showRevealed=kAutoReveal||kFlip;
@@ -899,7 +913,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                     </div>
                   </div>
                   <div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
-                    <div style={{fontSize:14,color:c.tx,lineHeight:1.6}}>{ROMAJI[DAKUTEN_BASE[ch]]} → {rom} — {["ぱ","ぴ","ぷ","ぺ","ぽ","パ","ピ","プ","ペ","ポ"].includes(ch)?"add ゜ to make the P sound":"add ゛ to voice the consonant"}</div>
+                    <div style={{fontSize:14,color:c.tx,lineHeight:1.6,marginBottom:12}}>{ROMAJI[DAKUTEN_BASE[ch]]} → {rom} — {["ぱ","ぴ","ぷ","ぺ","ぽ","パ","ピ","プ","ペ","ポ"].includes(ch)?"add ゜ to make the P sound":"add ゛ to voice the consonant"}</div>
+                    <button onClick={e=>{e.stopPropagation();speakDakuten(ch);}} style={{...btn,padding:"10px 16px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:13,color:storyPlaying?c.a:c.m,width:"100%"}}>{storyPlaying?"■ stop":"🔊 hear the change"}</button>
                   </div>
                 </div>
                 : /* Regular mnemonic image layout */
