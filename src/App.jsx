@@ -91,7 +91,7 @@ const M = {
 "み":["🎶","I + i joined — Mi and mi","Or quaver note do-re-MI","Two quaver notes joined side by side — do, re, mi."],
 "む":["🐄","Cow — mooo!","Clown imitating animals","A cow turning to look right at you — the curling strokes form that round bovine face."],
 "め":["🥨","Pretzel","Chopsticks drop hoop = MEss","A pretzel, all twisted — or noodles dropped into a chaotic tangle."],
-"も":["⛵","Sailboat","Or monitor lizard","A sailboat — two horizontal sails catching the wind, mast running clean through the middle."],
+"も":["🦎","Monitor lizard","Two horizontals = legs, vertical = body","A monitor lizard — the two horizontal strokes are its stubby legs, the vertical stroke is its long body."],
 "ら":["🤠","Lasso","Wide loop at the bottom","A lasso looping through the air — that wide sweeping curve, ready to catch."],
 "り":["🏞️","River","Right stroke longer than い","Two strokes, but the right one is longer and curves — one riverbank higher than the other."],
 "る":["💎","Hand holding ruby","Loop = ruby being held","A hand gripping a precious gem — the loop at the bottom is the ruby held tight in the palm."],
