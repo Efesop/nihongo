@@ -853,12 +853,16 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             </div>
           : <div>
               {/* Mnemonic image with CSS character overlay */}
-              <div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:14,background:"#faf5ef",maxWidth:320,margin:"0 auto 14px"}}>
-                <img src={mnemonicImg} alt={m?m[1]:rom}
-                  onError={e=>{e.target.style.display="none";e.target.parentElement.style.background="none";}}
-                  style={{width:"100%",display:"block"}}/>
-                <div style={{position:"absolute",top:"45%",left:"50%",transform:"translate(-50%,-50%)",fontSize:90,lineHeight:1,color:"#d42c2c",opacity:.55,fontWeight:400,pointerEvents:"none",userSelect:"none"}}>{ch}</div>
-              </div>
+              {(()=>{
+                const P={"イ":{top:"52%",left:"48%",rot:-15,sz:120},"ク":{top:"48%",left:"45%",rot:5,sz:110},"オ":{top:"50%",left:"45%",rot:0,sz:130},"サ":{top:"45%",left:"50%",rot:0,sz:110},"ア":{top:"45%",left:"48%",rot:-8,sz:120},"ソ":{top:"55%",left:"50%",rot:0,sz:100},"コ":{top:"50%",left:"50%",rot:0,sz:110},"ト":{top:"50%",left:"55%",rot:0,sz:110},"シ":{top:"55%",left:"40%",rot:0,sz:100},"ス":{top:"50%",left:"50%",rot:-20,sz:110},"ヘ":{top:"40%",left:"50%",rot:0,sz:120},"エ":{top:"50%",left:"50%",rot:0,sz:110},"キ":{top:"55%",left:"50%",rot:0,sz:100},"ナ":{top:"45%",left:"48%",rot:-5,sz:110},"カ":{top:"48%",left:"50%",rot:0,sz:110}};
+                const p=P[ch]||{top:"48%",left:"50%",rot:0,sz:110};
+                return <div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:14,background:"#faf5ef",maxWidth:420,margin:"0 auto 14px"}}>
+                  <img src={mnemonicImg} alt={m?m[1]:rom}
+                    onError={e=>{e.target.style.display="none";e.target.parentElement.style.background="none";}}
+                    style={{width:"100%",display:"block"}}/>
+                  <div style={{position:"absolute",top:p.top,left:p.left,transform:`translate(-50%,-50%) rotate(${p.rot}deg)`,fontSize:p.sz,lineHeight:1,color:"#b91c1c",opacity:.82,fontWeight:700,pointerEvents:"none",userSelect:"none",WebkitTextStroke:"1px #8b0000"}}>{ch}</div>
+                </div>;
+              })()}
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:14}}>
                 <div style={{fontSize:48,lineHeight:1}}>{ch}</div>
                 <div style={{fontSize:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
