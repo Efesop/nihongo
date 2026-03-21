@@ -853,11 +853,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             </div>
           : <div>
               {/* Mnemonic image with CSS character overlay */}
-              <div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:14,background:"#faf5ef"}}>
+              <div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:14,background:"#faf5ef",maxWidth:320,margin:"0 auto 14px"}}>
                 <img src={mnemonicImg} alt={m?m[1]:rom}
                   onError={e=>{e.target.style.display="none";e.target.parentElement.style.background="none";}}
                   style={{width:"100%",display:"block"}}/>
-                <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:140,lineHeight:1,color:"#c02828",opacity:.7,fontWeight:900,pointerEvents:"none",userSelect:"none",textShadow:"0 2px 8px rgba(0,0,0,.08)"}}>{ch}</div>
+                <div style={{position:"absolute",top:"45%",left:"50%",transform:"translate(-50%,-50%)",fontSize:90,lineHeight:1,color:"#d42c2c",opacity:.55,fontWeight:400,pointerEvents:"none",userSelect:"none"}}>{ch}</div>
               </div>
               <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:14}}>
                 <div style={{fontSize:48,lineHeight:1}}>{ch}</div>
