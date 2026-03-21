@@ -996,12 +996,14 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           })}
         </div>
       </div>
-      <div style={{display:"flex",justifyContent:"center",gap:4,marginBottom:10}}>
-        {[["visual","👁 Read"],["listen","👂 Listen"]].map(([m,label])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,padding:"6px 16px",borderRadius:7,border:"1px solid "+(kQuizMode===m?c.go+"66":c.b),background:kQuizMode===m?c.go+"18":"transparent",color:kQuizMode===m?c.go:c.m,fontSize:12,fontWeight:600}}>{label}</button>)}
-      </div>
       <div style={{display:"flex",gap:10,marginBottom:14}}>
         <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
-        <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
+          <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,width:"100%",padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
+          <div style={{display:"flex",gap:4}}>
+            {[["visual","See character → type"],["listen","Hear audio → type"]].map(([m,label])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,flex:1,padding:"4px 6px",borderRadius:6,border:"1px solid "+(kQuizMode===m?c.a+"66":c.b+"44"),background:kQuizMode===m?c.a+"18":"transparent",color:kQuizMode===m?c.a:c.m,fontSize:10}}>{label}</button>)}
+          </div>
+        </div>
       </div>
       <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:8,marginTop:4}}>Tap characters to select/deselect</div>
       <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
