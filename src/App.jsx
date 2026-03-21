@@ -157,6 +157,9 @@ const H_GROUPS = [
 {n:"N",c:["な","に","ぬ","ね","の"]},{n:"H",c:["は","ひ","ふ","へ","ほ"]},
 {n:"M",c:["ま","み","む","め","も"]},{n:"Y",c:["や","ゆ","よ"]},
 {n:"R",c:["ら","り","る","れ","ろ"]},{n:"W+N",c:["わ","を","ん"]},
+{n:"G゛",c:["が","ぎ","ぐ","げ","ご"],dk:true},{n:"Z゛",c:["ざ","じ","ず","ぜ","ぞ"],dk:true},
+{n:"D゛",c:["だ","ぢ","づ","で","ど"],dk:true},{n:"B゛",c:["ば","び","ぶ","べ","ぼ"],dk:true},
+{n:"P゜",c:["ぱ","ぴ","ぷ","ぺ","ぽ"],dk:true},
 ];
 const K_GROUPS = [
 {n:"Vowels",c:["ア","イ","ウ","エ","オ"]},{n:"K",c:["カ","キ","ク","ケ","コ"]},
@@ -164,9 +167,14 @@ const K_GROUPS = [
 {n:"N",c:["ナ","ニ","ヌ","ネ","ノ"]},{n:"H",c:["ハ","ヒ","フ","ヘ","ホ"]},
 {n:"M",c:["マ","ミ","ム","メ","モ"]},{n:"Y",c:["ヤ","ユ","ヨ"]},
 {n:"R",c:["ラ","リ","ル","レ","ロ"]},{n:"W+N",c:["ワ","ヲ","ン"]},
+{n:"G゛",c:["ガ","ギ","グ","ゲ","ゴ"],dk:true},{n:"Z゛",c:["ザ","ジ","ズ","ゼ","ゾ"],dk:true},
+{n:"D゛",c:["ダ","ヂ","ヅ","デ","ド"],dk:true},{n:"B゛",c:["バ","ビ","ブ","ベ","ボ"],dk:true},
+{n:"P゜",c:["パ","ピ","プ","ペ","ポ"],dk:true},
 ];
 
-const ROMAJI={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o","カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko","サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so","タ":"ta","チ":"chi","ツ":"tsu","テ":"te","ト":"to","ナ":"na","ニ":"ni","ヌ":"nu","ネ":"ne","ノ":"no","ハ":"ha","ヒ":"hi","フ":"fu","ヘ":"he","ホ":"ho","マ":"ma","ミ":"mi","ム":"mu","メ":"me","モ":"mo","ヤ":"ya","ユ":"yu","ヨ":"yo","ラ":"ra","リ":"ri","ル":"ru","レ":"re","ロ":"ro","ワ":"wa","ヲ":"wo","ン":"n"};
+const ROMAJI={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","が":"ga","ぎ":"gi","ぐ":"gu","げ":"ge","ご":"go","ざ":"za","じ":"ji","ず":"zu","ぜ":"ze","ぞ":"zo","だ":"da","ぢ":"di","づ":"du","で":"de","ど":"do","ば":"ba","び":"bi","ぶ":"bu","べ":"be","ぼ":"bo","ぱ":"pa","ぴ":"pi","ぷ":"pu","ぺ":"pe","ぽ":"po","ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o","カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko","サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so","タ":"ta","チ":"chi","ツ":"tsu","テ":"te","ト":"to","ナ":"na","ニ":"ni","ヌ":"nu","ネ":"ne","ノ":"no","ハ":"ha","ヒ":"hi","フ":"fu","ヘ":"he","ホ":"ho","マ":"ma","ミ":"mi","ム":"mu","メ":"me","モ":"mo","ヤ":"ya","ユ":"yu","ヨ":"yo","ラ":"ra","リ":"ri","ル":"ru","レ":"re","ロ":"ro","ワ":"wa","ヲ":"wo","ン":"n","ガ":"ga","ギ":"gi","グ":"gu","ゲ":"ge","ゴ":"go","ザ":"za","ジ":"ji","ズ":"zu","ゼ":"ze","ゾ":"zo","ダ":"da","ヂ":"di","ヅ":"du","デ":"de","ド":"do","バ":"ba","ビ":"bi","ブ":"bu","ベ":"be","ボ":"bo","パ":"pa","ピ":"pi","プ":"pu","ペ":"pe","ポ":"po"};
+
+const DAKUTEN_BASE={"が":"か","ぎ":"き","ぐ":"く","げ":"け","ご":"こ","ざ":"さ","じ":"し","ず":"す","ぜ":"せ","ぞ":"そ","だ":"た","ぢ":"ち","づ":"つ","で":"て","ど":"と","ば":"は","び":"ひ","ぶ":"ふ","べ":"へ","ぼ":"ほ","ぱ":"は","ぴ":"ひ","ぷ":"ふ","ぺ":"へ","ぽ":"ほ","ガ":"カ","ギ":"キ","グ":"ク","ゲ":"ケ","ゴ":"コ","ザ":"サ","ジ":"シ","ズ":"ス","ゼ":"セ","ゾ":"ソ","ダ":"タ","ヂ":"チ","ヅ":"ツ","デ":"テ","ド":"ト","バ":"ハ","ビ":"ヒ","ブ":"フ","ベ":"ヘ","ボ":"ホ","パ":"ハ","ピ":"ヒ","プ":"フ","ペ":"ヘ","ポ":"ホ"};
 
 // mc=true → mission critical (first 48h survival phrases)
 const PHRASES = [
@@ -871,19 +879,45 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
           : <div>
-              {/* Character + mnemonic image side by side */}
-              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
-                <div style={{flex:"1 1 40%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
-                  <div style={{fontSize:isDesktop?130:100,lineHeight:1}}>{ch}</div>
-                  <div style={{fontSize:isDesktop?34:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
-                  {speakBtn(ch)}
+              {DAKUTEN_BASE[ch]
+                ? /* Dakuten transformation layout */
+                <div>
+                  <div style={{...card,display:"flex",alignItems:"center",justifyContent:"center",gap:isDesktop?24:12,padding:"28px 16px",marginBottom:14}}>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                      <div style={{fontSize:isDesktop?70:50,lineHeight:1,opacity:.5}}>{DAKUTEN_BASE[ch]}</div>
+                      <div style={{fontSize:isDesktop?22:16,fontFamily:mono,color:c.m}}>{ROMAJI[DAKUTEN_BASE[ch]]}</div>
+                      <button onClick={()=>speak(DAKUTEN_BASE[ch])} style={{...btn,padding:"4px 10px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:11,color:c.m}}>🔊</button>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                      <div style={{fontSize:24,color:c.m}}>→</div>
+                      <div style={{fontSize:16,color:c.go,fontWeight:700}}>{ch.includes("ぱ")||ch.includes("ぴ")||ch.includes("ぷ")||ch.includes("ぺ")||ch.includes("ぽ")||ch.includes("パ")||ch.includes("ピ")||ch.includes("プ")||ch.includes("ペ")||ch.includes("ポ")?"゜":"゛"}</div>
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                      <div style={{fontSize:isDesktop?90:70,lineHeight:1,color:c.a}}>{ch}</div>
+                      <div style={{fontSize:isDesktop?26:20,fontWeight:700,fontFamily:mono,color:c.a}}>{rom}</div>
+                      {speakBtn(ch)}
+                    </div>
+                  </div>
+                  <div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
+                    <div style={{fontSize:14,color:c.tx,lineHeight:1.6}}>{ROMAJI[DAKUTEN_BASE[ch]]} → {rom} — {["ぱ","ぴ","ぷ","ぺ","ぽ","パ","ピ","プ","ペ","ポ"].includes(ch)?"add ゜ to make the P sound":"add ゛ to voice the consonant"}</div>
+                  </div>
                 </div>
-                <img src={mnemonicImg} alt={m?m[1]:rom}
-                  onError={e=>{e.target.style.display="none";}}
-                  style={{flex:"1 1 60%",maxWidth:"55%",borderRadius:12,display:"block"}}/>
-              </div>
+                : /* Regular mnemonic image layout */
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
+                    <div style={{flex:"1 1 40%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
+                      <div style={{fontSize:isDesktop?130:100,lineHeight:1}}>{ch}</div>
+                      <div style={{fontSize:isDesktop?34:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+                      {speakBtn(ch)}
+                    </div>
+                    <img src={mnemonicImg} alt={m?m[1]:rom}
+                      onError={e=>{e.target.style.display="none";}}
+                      style={{flex:"1 1 60%",maxWidth:"55%",borderRadius:12,display:"block"}}/>
+                  </div>
+                </div>
+              }
               {/* Story card */}
-              {m&&<div style={{...card,padding:"16px 18px",border:"1px solid "+c.b,marginBottom:4}}>
+              {m&&!DAKUTEN_BASE[ch]&&<div style={{...card,padding:"16px 18px",border:"1px solid "+c.b,marginBottom:4}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                   <span style={{fontSize:22}}>{m[0]}</span>
                   <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
