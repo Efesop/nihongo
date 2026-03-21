@@ -840,7 +840,17 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
       const mnemonicImg=`/images/mnemonics/approved/${ch.codePointAt(0).toString(16)}.png`;
-      return <div style={inner}>
+      const swipeRef={startX:0,startY:0};
+      const onTouchStart=e=>{swipeRef.startX=e.touches[0].clientX;swipeRef.startY=e.touches[0].clientY;};
+      const onTouchEnd=e=>{
+        const dx=e.changedTouches[0].clientX-swipeRef.startX;
+        const dy=e.changedTouches[0].clientY-swipeRef.startY;
+        if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){
+          if(dx<0&&kLI<chars.length-1){stopAudio();setKLI(kLI+1);setKFlip(false);}
+          if(dx>0&&kLI>0){stopAudio();setKLI(kLI-1);setKFlip(false);}
+        }
+      };
+      return <div style={inner} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
           <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
@@ -852,14 +862,16 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
           : <div>
-              {/* Mnemonic image */}
-              <img src={mnemonicImg} alt={m?m[1]:rom}
-                onError={e=>{e.target.style.display="none";}}
-                style={{width:"100%",maxWidth:420,borderRadius:12,display:"block",margin:"0 auto 14px"}}/>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:14}}>
-                <div style={{fontSize:48,lineHeight:1}}>{ch}</div>
-                <div style={{fontSize:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
-                {speakBtn(ch)}
+              {/* Character + mnemonic image side by side */}
+              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
+                <div style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                  <div style={{fontSize:isDesktop?90:70,lineHeight:1}}>{ch}</div>
+                  <div style={{fontSize:isDesktop?28:22,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
+                  {speakBtn(ch)}
+                </div>
+                <img src={mnemonicImg} alt={m?m[1]:rom}
+                  onError={e=>{e.target.style.display="none";}}
+                  style={{flex:1,maxWidth:"60%",borderRadius:12,display:"block"}}/>
               </div>
               {/* Story card */}
               {m&&<div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
