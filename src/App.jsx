@@ -713,7 +713,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     };
     playKana1();
   };
-  const storyBtn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"5px 12px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:12,color:storyPlaying?c.a:c.m,marginTop:8,flexShrink:0}}>
+  const storyBtn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"10px 16px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:13,color:storyPlaying?c.a:c.m,width:"100%",flexShrink:0}}>
     {storyPlaying?"■ stop":"🔊 story"}
   </button>:null;
 
@@ -863,24 +863,24 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             </div>
           : <div>
               {/* Character + mnemonic image side by side */}
-              <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
-                <div style={{flex:"0 0 auto",display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:14}}>
+                <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
                   <div style={{fontSize:isDesktop?90:70,lineHeight:1}}>{ch}</div>
                   <div style={{fontSize:isDesktop?28:22,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
                   {speakBtn(ch)}
                 </div>
                 <img src={mnemonicImg} alt={m?m[1]:rom}
                   onError={e=>{e.target.style.display="none";}}
-                  style={{flex:1,maxWidth:"60%",borderRadius:12,display:"block"}}/>
+                  style={{flex:1,borderRadius:12,display:"block"}}/>
               </div>
               {/* Story card */}
-              {m&&<div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+              {m&&<div style={{...card,padding:"16px 18px",border:"1px solid "+c.b,marginBottom:4}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                   <span style={{fontSize:22}}>{m[0]}</span>
                   <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
                 </div>
-                <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:10}}>{m[3]||m[2]}</div>
-                {storyBtn(m,ch)}
+                <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:12}}>{m[3]||m[2]}</div>
+                <div style={{width:"100%"}}>{storyBtn(m,ch)}</div>
               </div>}
             </div>
         }
@@ -1458,7 +1458,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     {isDesktop
       ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
           <div style={{padding:"16px 16px 14px",borderBottom:"1px solid "+c.b,display:"flex",alignItems:"center",gap:10}}>
-            <img src="/images/tinysenpai2.png" alt="TinySenpai" style={{width:64,height:64,imageRendering:"pixelated",borderRadius:10}}/>
+            <img src="/images/tinysenpai1.png" alt="TinySenpai" style={{width:64,height:64,imageRendering:"pixelated",borderRadius:10}}/>
             <div>
               <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
               <div style={{fontSize:11,color:c.m,marginTop:3,fontFamily:mono,letterSpacing:".02em"}}>TinySenpai</div>
