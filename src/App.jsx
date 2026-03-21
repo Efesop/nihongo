@@ -326,8 +326,8 @@ function AuthedApp({ user, getToken }){
   const [kLI,setKLI]=useState(0);
   const [kQuizMode,setKQuizMode]=useState("visual"); // "visual" | "listen"
   const [kShowGrid,setKShowGrid]=useState(false);
-  const [kAutoReveal,setKAutoReveal]=useState(()=>localStorage.getItem("nihongo-autoReveal")==="true");
-  const [kAutoStory,setKAutoStory]=useState(()=>localStorage.getItem("nihongo-autoStory")!=="false");
+  const [kAutoReveal,setKAutoReveal]=useState(()=>data?.settings?.autoReveal||false);
+  const [kAutoStory,setKAutoStory]=useState(()=>data?.settings?.autoStory!==false);
   const [streakCelebrate,setStreakCelebrate]=useState(false);
   // phrases
   const [pCat,setPCat]=useState(null);
@@ -858,8 +858,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>{const v=!kAutoReveal;setKAutoReveal(v);localStorage.setItem("nihongo-autoReveal",v);}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoReveal?c.a+"44":c.b),background:kAutoReveal?c.a+"11":"transparent",color:kAutoReveal?c.a:c.m,fontSize:10}}>Auto-reveal {kAutoReveal?"on":"off"}</button>
-            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);localStorage.setItem("nihongo-autoStory",v);}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:10}}>Auto-story {kAutoStory?"on":"off"}</button>
+            <button onClick={()=>{const v=!kAutoReveal;setKAutoReveal(v);save({settings:{...data.settings,autoReveal:v}});}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoReveal?c.a+"44":c.b),background:kAutoReveal?c.a+"11":"transparent",color:kAutoReveal?c.a:c.m,fontSize:10}}>Auto-reveal {kAutoReveal?"on":"off"}</button>
+            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);save({settings:{...data.settings,autoStory:v}});}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:10}}>Auto-story {kAutoStory?"on":"off"}</button>
             <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
           </div>
         </div>
