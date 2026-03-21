@@ -67,15 +67,15 @@ const M = {
 "く":["🐦","Cuckoo's beak","Angle = beak opening, ku-koo!","A cuckoo's beak wide open mid-call — one sharp angled stroke."],
 "け":["🪣","Keg","Strokes form a wooden keg","A wooden keg or barrel — the vertical strokes form the sides, the horizontal is the rim."],
 "こ":["🐟","Two koi fish","Two horizontals like fish swimming","Two koi fish gliding side by side through perfectly still water."],
-"さ":["😏","Sneaky grin — sa-neaky!","Strokes form a sly face","A sneaky smirking face, one eyebrow raised — those crossing strokes are that sly grin."],
+"さ":["😢","Sad sighing face","Strokes form a crying face","A sad face sighing — the crossing strokes are X-shaped eyes and the curve below is a crying mouth."],
 "し":["🎣","Fishing hook — fi-SHI-ng","Single swooping curve = hook","A fishing hook dropped into still water — one single swooping curve."],
 "す":["🌀","Spiral straw — su-piral","Or curly Sue","A straw caught in a spiral, curling around itself."],
-"せ":["🗣️","Mouth about to say — se-y","Or sensei speaking","A sensei mid-sentence, mouth open, caught in the act of teaching."],
+"せ":["🗣️","Mouth about to say","Mouth opening to speak","A mouth about to say something — the strokes form a side profile of a face with the mouth opening."],
 "そ":["🧵","Sewing stitch — so-so","50/50 fraction = so-so","Thread being sewn through fabric in one neat crossing stroke."],
 "た":["🔤","Letters t + a = ta!","Cross = T, curve = A","Look closely — the cross at the top is a T, the curve at the bottom is an A. T plus A."],
 "ち":["📣","Cheerleader — chi-eer!","Looks like 5, groups of 5","A cheerleader throwing their arms up wide — the stroke looks just like a five."],
 "つ":["🌊","Tsunami wave","Curling stroke or sideways U","One enormous sweeping curve — a tsunami, the whole ocean bending over, about to crash."],
-"て":["🐾","Tail + letter T","te-il = tail","A letter T with a curling tail at the end."],
+"て":["🐕","Dog's tail","Curved like a wagging tail","A dog's tail wagging — the horizontal line curves down like a tail in motion."],
 "と":["🌪️","Tornado","Funny stalk on TOp","A tornado spinning at the base, with a little stalk poking out of the very top."],
 "な":["🪢","Knot — kna-t","Or X for nah + tongue out","A tangled knot of rope — all those crossing strokes tied up tight."],
 "に":["🦵","Knee","Elongated n + sideways i","A leg with a bent knee — long left stroke for the thigh, right stroke bent at the joint."],
@@ -842,7 +842,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
 
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
-      const mnemonicImg=`/images/mnemonics/approved/${ch.codePointAt(0).toString(16)}.png`;
+      const isHiragana=kScript==="h";
+      const mnemonicImg=`/images/mnemonics/approved/${isHiragana?"hiragana":"katakana"}/${ch.codePointAt(0).toString(16)}.png`;
       const swipeRef={startX:0,startY:0};
       const onTouchStart=e=>{swipeRef.startX=e.touches[0].clientX;swipeRef.startY=e.touches[0].clientY;};
       const onTouchEnd=e=>{
