@@ -312,6 +312,7 @@ function AuthedApp({ user, getToken }){
   // kana
   const [kScript,setKScript]=useState("h");
   const [kSel,setKSel]=useState([0]);
+  const [kSelChars,setKSelChars]=useState(null); // null = use kSel rows, Set = individual chars
   const [kScreen,setKScreen]=useState("menu");
   const [kCards,setKCards]=useState([]);
   const [kI,setKI]=useState(0);
@@ -494,7 +495,7 @@ function AuthedApp({ user, getToken }){
   },[kScreen,kFlip,kLI,kFb,kSel,kScript]);// eslint-disable-line
 
   const groups=kScript==="h"?H_GROUPS:K_GROUPS;
-  const allKana=kSel.flatMap(i=>groups[i]?.c||[]);
+  const allKana=kSelChars?[...kSelChars]:kSel.flatMap(i=>groups[i]?.c||[]);
 
   // kana SRS helpers
   const getKBox=(ch)=>data.kana[ch]?.box??0;
@@ -976,7 +977,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <h2 style={{fontSize:26,fontWeight:700,margin:0,letterSpacing:"-.01em"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
         </div>
         <div style={{display:"flex",background:c.s2,borderRadius:8,border:"1px solid "+c.b,overflow:"hidden"}}>
-          {[["h","ひらがな","Hiragana"],["k","カタカナ","Katakana"]].map(([s,jp,en])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);}} style={{...btn,padding:"7px 14px",borderRadius:0,border:"none",background:kScript===s?c.a+"22":"transparent",color:kScript===s?c.a:c.m,fontSize:12,fontWeight:600}}>{jp} <span style={{fontSize:10,opacity:.7,marginLeft:2}}>{en}</span></button>)}
+          {[["h","ひらがな","Hiragana"],["k","カタカナ","Katakana"]].map(([s,jp,en])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);setKSelChars(null);}} style={{...btn,padding:"7px 14px",borderRadius:0,border:"none",background:kScript===s?c.a+"22":"transparent",color:kScript===s?c.a:c.m,fontSize:12,fontWeight:600}}>{jp} <span style={{fontSize:10,opacity:.7,marginLeft:2}}>{en}</span></button>)}
         </div>
       </div>
       <div style={{...card,marginBottom:16,padding:"14px 16px"}}>
@@ -987,36 +988,29 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
               setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
             }} style={{...btn,padding:"4px 12px",borderRadius:6,background:c.go+"22",border:"1px solid "+c.go+"44",color:c.go,fontSize:11,fontWeight:600}}>🔔 Review {kDueCount} kana</button>}
-            <button onClick={()=>setKSel(groups.map((_,i)=>i))} style={{...btn,padding:"4px 10px",borderRadius:6,border:"1px solid "+c.a+"44",background:c.a+"11",color:c.a,fontSize:11,fontWeight:600}}>Select all</button>
+            <button onClick={()=>{setKSel(groups.map((_,i)=>i));setKSelChars(null);}} style={{...btn,padding:"4px 10px",borderRadius:6,border:"1px solid "+c.a+"44",background:c.a+"11",color:c.a,fontSize:11,fontWeight:600}}>Select all</button>
           </div>
         </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-          {groups.map((g,i)=>{const sel=kSel.includes(i);const mas=g.c.every(ch=>getKBox(ch)>=3);const due=g.c.filter(ch=>data.kana[ch]?.box>=1&&isKanaDue(ch)).length;
-            return <button key={i} onClick={()=>setKSel(sel?kSel.filter(x=>x!==i):[...kSel,i])} style={{...btn,padding:"8px 14px",borderRadius:8,border:"1px solid "+(sel?c.a:c.b),background:sel?c.as:"transparent",color:sel?c.tx:c.m,fontSize:13,fontWeight:sel?600:400,minWidth:48}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
+          {groups.map((g,i)=>{const sel=kSelChars?g.c.every(ch=>kSelChars.has(ch)):kSel.includes(i);const partial=kSelChars&&g.c.some(ch=>kSelChars.has(ch))&&!sel;const mas=g.c.every(ch=>getKBox(ch)>=3);const due=g.c.filter(ch=>data.kana[ch]?.box>=1&&isKanaDue(ch)).length;
+            return <button key={i} onClick={()=>{
+              if(kSelChars){const s=new Set(kSelChars);if(sel||partial){g.c.forEach(ch=>s.delete(ch));}else{g.c.forEach(ch=>s.add(ch));}setKSelChars(s.size?s:null);if(!s.size)setKSel([]);}
+              else{const newSel=sel?kSel.filter(x=>x!==i):[...kSel,i];setKSel(newSel);}
+            }} style={{...btn,padding:"8px 14px",borderRadius:8,border:"1px solid "+((sel||partial)?c.a:c.b),background:sel?c.as:partial?c.a+"0d":"transparent",color:(sel||partial)?c.tx:c.m,fontSize:13,fontWeight:sel?600:400,minWidth:48}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
           })}
         </div>
       </div>
       <div style={{display:"flex",gap:10,marginBottom:14}}>
         <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
-          <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,width:"100%",padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
-          <div style={{display:"flex",gap:4}}>
-            {[["visual","See character → type"],["listen","Hear audio → type"]].map(([m,label])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,flex:1,padding:"4px 6px",borderRadius:6,border:"1px solid "+(kQuizMode===m?c.a+"66":c.b+"44"),background:kQuizMode===m?c.a+"18":"transparent",color:kQuizMode===m?c.a:c.m,fontSize:10}}>{label}</button>)}
-          </div>
-        </div>
+        <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
       </div>
-      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:8,marginTop:4}}>Tap characters to select/deselect</div>
-      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:4}}>
         {groups.flatMap(g=>g.c).map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;const selected=allKana.includes(ch);
           return <div key={i} onClick={()=>{
-            if(selected){
-              const gi=groups.findIndex(g=>g.c.includes(ch));
-              const remaining=groups[gi].c.filter(x=>x!==ch&&allKana.includes(x));
-              if(remaining.length===0)setKSel(kSel.filter(x=>x!==gi));
-            }else{
-              const gi=groups.findIndex(g=>g.c.includes(ch));
-              if(!kSel.includes(gi))setKSel([...kSel,gi]);
-            }
+            const current=new Set(allKana);
+            if(selected){current.delete(ch);}else{current.add(ch);}
+            setKSelChars(current.size?current:null);
+            if(!current.size)setKSel([]);
           }} style={{
             width:tileSize,height:tileSize,cursor:"pointer",
             display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
