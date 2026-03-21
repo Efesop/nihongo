@@ -852,13 +852,16 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
           : <div>
-              {/* Character with emoji overlay */}
-              <div style={{...card,textAlign:"center",padding:"40px 24px",marginBottom:14}}>
-                <div style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:8}}>
-                  {m&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:130,lineHeight:1,pointerEvents:"none",userSelect:"none",opacity:.18}}>{m[0]}</div>}
-                  <div style={{position:"relative",zIndex:1,fontSize:120,lineHeight:1}}>{ch}</div>
-                </div>
-                <div style={{fontSize:36,fontWeight:700,color:c.a,fontFamily:mono,marginBottom:12}}>{rom}</div>
+              {/* Mnemonic image with CSS character overlay */}
+              <div style={{position:"relative",borderRadius:12,overflow:"hidden",marginBottom:14,background:"#faf5ef"}}>
+                <img src={mnemonicImg} alt={m?m[1]:rom}
+                  onError={e=>{e.target.style.display="none";e.target.parentElement.style.background="none";}}
+                  style={{width:"100%",display:"block"}}/>
+                <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:140,lineHeight:1,color:"#c02828",opacity:.7,fontWeight:900,pointerEvents:"none",userSelect:"none",textShadow:"0 2px 8px rgba(0,0,0,.08)"}}>{ch}</div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12,marginBottom:14}}>
+                <div style={{fontSize:48,lineHeight:1}}>{ch}</div>
+                <div style={{fontSize:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
                 {speakBtn(ch)}
               </div>
               {/* Story card */}
