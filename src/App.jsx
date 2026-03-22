@@ -920,48 +920,46 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       const showRevealed=kAutoReveal||kFlip;
       return <div style={inner} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>{const v=!kAutoReveal;setKAutoReveal(v);save({settings:{...data.settings,autoReveal:v}});}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoReveal?c.a+"44":c.b),background:kAutoReveal?c.a+"11":"transparent",color:kAutoReveal?c.a:c.m,fontSize:10}}>Auto-reveal {kAutoReveal?"on":"off"}</button>
-            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);save({settings:{...data.settings,autoStory:v}});}} style={{...btn,padding:"3px 8px",borderRadius:5,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:10}}>Auto-story {kAutoStory?"on":"off"}</button>
-            <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
+          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0"}}>← back</button>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <button onClick={()=>{const v=!kAutoReveal;setKAutoReveal(v);save({settings:{...data.settings,autoReveal:v}});}} style={{...btn,padding:"5px 10px",borderRadius:6,border:"1px solid "+(kAutoReveal?c.a+"44":c.b),background:kAutoReveal?c.a+"11":"transparent",color:kAutoReveal?c.a:c.m,fontSize:11}}>Auto-reveal {kAutoReveal?"on":"off"}</button>
+            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);save({settings:{...data.settings,autoStory:v}});}} style={{...btn,padding:"5px 10px",borderRadius:6,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:11}}>Auto-story {kAutoStory?"on":"off"}</button>
+            <div style={{fontSize:12,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
           </div>
         </div>
         <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        {!showRevealed
-          ? <div onClick={()=>{setKFlip(true);if(kAutoStory&&m)setTimeout(()=>speakStory(m,ch),300);}} style={{...card,textAlign:"center",cursor:"pointer",padding:"48px 24px"}}>
-              <div style={{fontSize:120,lineHeight:1,marginBottom:16}}>{ch}</div>
-              <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
-            </div>
-          : <div>
-              {(DAKUTEN_BASE[ch]||YOON_PARTS[ch])
-                ? /* Row-based dakuten/yōon layout — show whole group */
-                (()=>{const g=getCharGroup(ch);if(!g)return null;const audioFile=ROW_AUDIO[g.n];
-                  return <div>
-                    <div style={{...card,padding:"20px 18px",marginBottom:14}}>
-                      <div style={{fontSize:13,fontWeight:700,color:c.a,marginBottom:4,textTransform:"uppercase",fontFamily:mono,letterSpacing:".05em"}}>{g.n} row {g.dk?"— add "+(g.n.includes("P")?"゜":"゛"):"— combination sounds"}</div>
-                      <div style={{fontSize:12,color:c.m,marginBottom:16}}>{g.dk?(g.n.includes("P")?"Add the circle mark ゜ to make P sounds":"Add the two-dot mark ゛ to voice the consonant"):"Combine with small ya/yu/yo to blend sounds"}</div>
-                      {g.c.map((gch,i)=>{const base=DAKUTEN_BASE[gch];const yp=YOON_PARTS[gch];const grom=ROMAJI[gch];const isSpeaking=kSpeakingChar===gch||kSpeakingChar===base;
-                        return <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 4px",borderBottom:i<g.c.length-1?"1px solid "+c.b+"66":"none",background:isSpeaking?c.a+"15":"transparent",borderRadius:isSpeaking?8:0,transition:"background .2s"}}>
-                          {base&&<><div style={{width:44,textAlign:"center"}}><div style={{fontSize:28,lineHeight:1,opacity:.5}}>{base}</div><div style={{fontSize:10,fontFamily:mono,color:c.m}}>{ROMAJI[base]}</div></div><div style={{fontSize:16,color:c.m}}>→</div></>}
-                          {yp&&<><div style={{width:34,textAlign:"center"}}><div style={{fontSize:22,lineHeight:1,opacity:.5}}>{yp[0]}</div><div style={{fontSize:9,fontFamily:mono,color:c.m}}>{ROMAJI[yp[0]]}</div></div><div style={{fontSize:12,color:c.m}}>+</div><div style={{width:24,textAlign:"center"}}><div style={{fontSize:16,lineHeight:1,opacity:.5}}>{yp[1]}</div><div style={{fontSize:8,fontFamily:mono,color:c.m}}>sm</div></div><div style={{fontSize:12,color:c.m}}>=</div></>}
-                          <div style={{flex:1,display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:36,lineHeight:1,color:c.a}}>{gch}</div><div style={{fontSize:18,fontWeight:700,fontFamily:mono,color:c.a}}>{grom}</div></div>
-                          <button onClick={()=>speak(gch)} style={{...btn,padding:"4px 8px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:13,color:c.m}}>🔊</button>
-                        </div>;
-                      })}
-                    </div>
-                    <button onClick={e=>{e.stopPropagation();
-                      if(storyPlaying){stopAudio();setKSpeakingChar(null);return;}
-                      setStoryPlaying(true);
-                      const items=g.dk?g.c.flatMap(gch=>[DAKUTEN_BASE[gch],gch]):g.c;
-                      let i=0;
-                      const playNext=()=>{if(i>=items.length){setStoryPlaying(false);setKSpeakingChar(null);return;}const t=items[i];i++;setKSpeakingChar(t);const url=`/api/tts?lang=ja&q=${encodeURIComponent(t)}`;const a=new Audio(url);a.playbackRate=0.85;_ttsAudio=a;a.onended=()=>setTimeout(playNext,400);a.onerror=()=>{setStoryPlaying(false);setKSpeakingChar(null);};a.play().catch(()=>{setStoryPlaying(false);setKSpeakingChar(null);});};
-                      playNext();
-                    }} style={{...btn,padding:"12px 16px",borderRadius:10,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:14,color:storyPlaying?c.a:c.m,width:"100%",marginBottom:4}}>{storyPlaying?"■ stop":"🔊 hear all sounds"}</button>
+        {(DAKUTEN_BASE[ch]||YOON_PARTS[ch])
+          ? /* Dakuten/yōon always shows row — no reveal needed */
+          (()=>{const g=getCharGroup(ch);if(!g)return null;
+            return <div>
+              <div style={{...card,padding:"20px 18px",marginBottom:14}}>
+                <div style={{fontSize:16,fontWeight:700,color:c.a,marginBottom:6,fontFamily:mono}}>{g.n} row — {g.dk?(g.n.includes("P")?<>add <span style={{fontSize:22}}>゜</span></>:<>add <span style={{fontSize:22}}>゛</span></>):"combination sounds"}</div>
+                <div style={{fontSize:13,color:c.m,marginBottom:16}}>{g.dk?(g.n.includes("P")?"Add the circle mark to make P sounds":"Add the two-dot mark to voice the consonant"):"Combine with small や ゆ よ to blend sounds"}</div>
+                {g.c.map((gch,i)=>{const base=DAKUTEN_BASE[gch];const yp=YOON_PARTS[gch];const grom=ROMAJI[gch];const isSpeaking=kSpeakingChar===gch||kSpeakingChar===base;
+                  return <div key={i} onClick={()=>{setKSpeakingChar(gch);speak(gch);setTimeout(()=>setKSpeakingChar(null),1500);}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 6px",borderBottom:i<g.c.length-1?"1px solid "+c.b+"44":"none",background:isSpeaking?c.a+"18":"transparent",borderRadius:8,transition:"background .2s",cursor:"pointer"}}>
+                    {base&&<><div style={{width:52,textAlign:"center"}}><div style={{fontSize:34,lineHeight:1,opacity:.5}}>{base}</div><div style={{fontSize:11,fontFamily:mono,color:c.m}}>{ROMAJI[base]}</div></div><div style={{fontSize:18,color:c.m}}>→</div></>}
+                    {yp&&<><div style={{width:40,textAlign:"center"}}><div style={{fontSize:26,lineHeight:1,opacity:.5}}>{yp[0]}</div><div style={{fontSize:10,fontFamily:mono,color:c.m}}>{ROMAJI[yp[0]]}</div></div><div style={{fontSize:14,color:c.m}}>+</div><div style={{width:28,textAlign:"center"}}><div style={{fontSize:18,lineHeight:1,opacity:.5}}>{yp[1]}</div><div style={{fontSize:9,fontFamily:mono,color:c.m}}>small</div></div><div style={{fontSize:14,color:c.m}}>=</div></>}
+                    <div style={{flex:1,display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:42,lineHeight:1,color:c.a}}>{gch}</div><div style={{fontSize:22,fontWeight:700,fontFamily:mono,color:c.a}}>{grom}</div></div>
+                    <div style={{fontSize:14,color:c.m,opacity:.5}}>🔊</div>
                   </div>;
-                })()
-                : /* Regular mnemonic image layout */
-                <div>
+                })}
+              </div>
+              <button onClick={e=>{e.stopPropagation();
+                if(storyPlaying){stopAudio();setKSpeakingChar(null);return;}
+                setStoryPlaying(true);
+                const items=g.dk?g.c.flatMap(gch=>[DAKUTEN_BASE[gch],gch]):g.c;
+                let i=0;
+                const playNext=()=>{if(i>=items.length){setStoryPlaying(false);setKSpeakingChar(null);return;}const t=items[i];i++;setKSpeakingChar(t);const url=`/api/tts?lang=ja&q=${encodeURIComponent(t)}`;const a=new Audio(url);a.playbackRate=1;_ttsAudio=a;a.onended=()=>setTimeout(playNext,250);a.onerror=()=>{setStoryPlaying(false);setKSpeakingChar(null);};a.play().catch(()=>{setStoryPlaying(false);setKSpeakingChar(null);});};
+                playNext();
+              }} style={{...btn,padding:"12px 16px",borderRadius:10,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:14,color:storyPlaying?c.a:c.m,width:"100%",marginBottom:4}}>{storyPlaying?"■ stop":"🔊 hear all sounds"}</button>
+            </div>;
+          })()
+          : !showRevealed
+            ? <div onClick={()=>{setKFlip(true);if(kAutoStory&&m)setTimeout(()=>speakStory(m,ch),300);}} style={{...card,textAlign:"center",cursor:"pointer",padding:"48px 24px"}}>
+                <div style={{fontSize:120,lineHeight:1,marginBottom:16}}>{ch}</div>
+                <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
+              </div>
+            : <div>
                   <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
                     <div style={{flex:"1 1 40%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
                       <div style={{fontSize:isDesktop?130:100,lineHeight:1}}>{ch}</div>
@@ -972,18 +970,15 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
                       onError={e=>{e.target.style.display="none";}}
                       style={{flex:"1 1 60%",maxWidth:"55%",borderRadius:12,display:"block"}}/>
                   </div>
+                  {m&&<div style={{...card,padding:"16px 18px",border:"1px solid "+c.b,marginBottom:4}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                      <span style={{fontSize:22}}>{m[0]}</span>
+                      <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
+                    </div>
+                    <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:12}}>{m[3]||m[2]}</div>
+                    <div style={{width:"100%"}}>{storyBtn(m,ch)}</div>
+                  </div>}
                 </div>
-              }
-              {/* Story card */}
-              {m&&!DAKUTEN_BASE[ch]&&<div style={{...card,padding:"16px 18px",border:"1px solid "+c.b,marginBottom:4}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                  <span style={{fontSize:22}}>{m[0]}</span>
-                  <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
-                </div>
-                <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:12}}>{m[3]||m[2]}</div>
-                <div style={{width:"100%"}}>{storyBtn(m,ch)}</div>
-              </div>}
-            </div>
         }
         <div style={{display:"flex",gap:10,marginTop:16}}>
           <button onClick={()=>{stopAudio();setKSpeakingChar(null);
