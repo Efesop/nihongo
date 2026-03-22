@@ -353,16 +353,22 @@ function drawPlayer(ctx, p, mascot, elapsed) {
       const sdh = s * 1.05;
       ctx.drawImage(slashImg, sc.x, sc.y, sc.w, sc.h, -sdw / 2, -sdh, sdw, sdh);
 
-      // Blue lightning particles on 3rd hit
-      if (isThird && p.state === "slash2") {
-        ctx.globalAlpha = 0.6;
-        ctx.fillStyle = "#40aaff";
-        for (let i = 0; i < 5; i++) {
-          const lx = -sdw * 0.1 + Math.sin(elapsed * 20 + i * 1.3) * 15;
-          const ly = -sdh * 0.5 + Math.cos(elapsed * 15 + i * 1.7) * 10;
-          ctx.fillRect(lx - 1, ly - 4, 2, 8);
-          ctx.fillRect(lx - 4, ly - 1, 8, 2);
+      // Blue lightning effects on 3rd hit
+      if (isThird && (p.state === "slash2" || p.state === "slash3")) {
+        // Dancing lightning sparks around the blade area
+        ctx.globalAlpha = 0.7;
+        for (let i = 0; i < 8; i++) {
+          const lx = -sdw * 0.3 + Math.sin(elapsed * 25 + i * 1.1) * sdw * 0.4;
+          const ly = -sdh * 0.5 + Math.cos(elapsed * 18 + i * 1.5) * sdh * 0.2;
+          ctx.fillStyle = i % 3 === 0 ? "#ffffff" : i % 3 === 1 ? "#40aaff" : "#80ddff";
+          // Small cross shapes for lightning sparks
+          ctx.fillRect(lx - 1, ly - 5, 2, 10);
+          ctx.fillRect(lx - 5, ly - 1, 10, 2);
         }
+        // Bright blue glow around sword area
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = "#40aaff";
+        ctx.fillRect(-sdw * 0.5, -sdh * 0.6, sdw * 1.2, sdh * 0.3);
         ctx.globalAlpha = 1;
       }
     } else {

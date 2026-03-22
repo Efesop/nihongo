@@ -155,8 +155,8 @@ export function update(g, callbacks) {
     p.slashCombo = Math.min(p.slashCombo + 1, 3);
     const combo = p.slashCombo;
 
-    // Duration: 1st=normal, 2nd=normal, 3rd=longer (held pose)
-    p.slashTimer = combo === 3 ? SLASH_DURATION * 1.5 : SLASH_DURATION;
+    // Duration: 1st=normal, 2nd=normal, 3rd=longer (power-up delay + held pose)
+    p.slashTimer = combo === 3 ? SLASH_DURATION * 2 : SLASH_DURATION;
     p.frame = 0;
     p.comboWindow = 350; // ms to press next slash after this one ends
 
@@ -185,13 +185,31 @@ export function update(g, callbacks) {
       });
     }
 
-    // 3rd hit: blue lightning burst
+    // 3rd hit: epic lightning burst — blue, red, yellow particles
     if (combo === 3) {
-      for (let i = 0; i < 12; i++) {
+      // Blue lightning
+      for (let i = 0; i < 14; i++) {
         g.particles.push({
-          x: p.x + p.facing * rnd(0, 20), y: p.y + TILE * SCALE / 2,
-          vx: p.facing * rnd(80, 300), vy: rnd(-180, -30),
-          life: 450, maxLife: 450, color: rnd(0,1) > 0.5 ? "#40aaff" : "#80ccff", size: rndInt(2, 4),
+          x: p.x + p.facing * rnd(0, 30), y: p.y + TILE * SCALE / 2 + rnd(-10, 10),
+          vx: p.facing * rnd(100, 400), vy: rnd(-200, -30),
+          life: 500, maxLife: 500, color: rnd(0,1) > 0.5 ? "#40aaff" : "#80ddff", size: rndInt(2, 5),
+        });
+      }
+      // Red + yellow sparks
+      for (let i = 0; i < 8; i++) {
+        const colors = ["#ff4444", "#ffaa30", "#ffdd40", "#ff6633"];
+        g.particles.push({
+          x: p.x + p.facing * rnd(5, 25), y: p.y + TILE * SCALE / 2 + rnd(-8, 8),
+          vx: p.facing * rnd(50, 250), vy: rnd(-250, -60),
+          life: 400, maxLife: 400, color: colors[i % 4], size: rndInt(2, 4),
+        });
+      }
+      // Blue lightning bolt lines shooting off
+      for (let i = 0; i < 5; i++) {
+        g.particles.push({
+          x: p.x + p.facing * rnd(10, 40), y: p.y + rnd(0, TILE * SCALE),
+          vx: p.facing * rnd(200, 500), vy: rnd(-40, 40),
+          life: 180, maxLife: 180, color: "#60ccff", size: rnd(1.5, 2.5), isLine: true,
         });
       }
     }

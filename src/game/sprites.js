@@ -19,9 +19,14 @@ function loadImg(key, src, removeGrayBg = false) {
         const d = data.data;
         for (let i = 0; i < d.length; i += 4) {
           const r = d[i], g = d[i+1], b = d[i+2];
-          // If pixel is grayish (r≈g≈b, above 100) make it transparent
-          if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20 && r > 100) {
-            d[i+3] = 0;
+          // Remove background: gray pixels AND near-gray with slight color tint
+          const avg = (r + g + b) / 3;
+          const maxDiff = Math.max(Math.abs(r - avg), Math.abs(g - avg), Math.abs(b - avg));
+          if (avg > 100 && maxDiff < 35) {
+            d[i+3] = 0; // pure gray or near-gray
+          } else if (avg > 90 && maxDiff < 50 && r > 80 && g > 80) {
+            // Slightly tinted gray (like blue glow on gray bg) — fade out
+            d[i+3] = Math.min(d[i+3], Math.max(0, (maxDiff - 25) * 10));
           }
         }
         ctx.putImageData(data, 0, 0);
