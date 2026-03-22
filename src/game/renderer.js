@@ -301,13 +301,14 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   const drawH = s;
 
   ctx.save();
-  ctx.translate(e.x, e.y + DRAW_SIZE);
+  // Round to whole pixels — subpixel positioning on pixel art causes visible jitter
+  ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
 
   // Flip based on facing (image naturally faces left, flip for right)
   if (e.facing > 0) ctx.scale(-1, 1);
 
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -drawW / 2, -drawH, drawW, drawH);
+  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH), Math.round(drawW), Math.round(drawH));
   ctx.restore();
   return true;
 }
