@@ -506,8 +506,10 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const initGame = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
-    const W = canvas.width;
-    const H = canvas.height;
+    // Use CSS dimensions, not device pixel dimensions (canvas.width includes DPR scaling)
+    const container = canvas.parentElement;
+    const W = container ? container.clientWidth : canvas.clientWidth;
+    const H = container ? container.clientHeight : canvas.clientHeight;
     const groundY = H * GROUND_Y;
 
     // Build level from segments — keep first and last, shuffle middle
@@ -1498,10 +1500,18 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   };
 
   // ═══ STYLES ═══
-  const overlay = {
-    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+  // Fixed position container that fills the content area (next to sidebar, above bottom nav)
+  const gameContainer = {
+    position: "fixed",
+    top: 0,
+    left: isDesktop ? SIDEBAR_W : 0,
+    right: 0,
+    bottom: isDesktop ? 0 : 70,
     zIndex: 10,
+  };
+  const overlay = {
+    ...gameContainer,
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
   };
   const btn = {
     fontFamily: uiFont, cursor: "pointer", border: "none",
@@ -1524,7 +1534,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
             TINYSENPAI
           </div>
           <div style={{ fontSize: 48, color: c.tx, marginTop: 4, filter: `drop-shadow(0 0 10px ${c.a}40)` }}>斬</div>
-          <div style={{ fontSize: 11, color: c.m, fontFamily: font, letterSpacing: ".1em", marginTop: 4 }}>KATANA ZERO TRIBUTE</div>
+          <div style={{ fontSize: 11, color: c.m, fontFamily: font, letterSpacing: ".1em", marginTop: 4 }}>スラッシュ・アクション</div>
         </div>
         <button onClick={startGame} style={{ ...btn, background: c.a, color: "#fff", marginTop: 16, fontSize: 18, padding: "14px 48px" }}>
           START
@@ -1548,9 +1558,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   // ═══ PAUSED ═══
   if (screen === "paused") {
     return (
-      <div style={{ position: "relative", width: "100%", height: "100%", background: "#000" }}>
+      <div style={{ ...gameContainer, background: "#000" }}>
         <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />
-        <div style={{ ...overlay, background: "rgba(0,0,0,0.7)" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)" }}>
           <div style={{ fontSize: 32, fontWeight: 900, fontFamily: font, color: c.tx, letterSpacing: ".1em" }}>PAUSED</div>
           <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
             <button onClick={() => { if (gameRef.current) gameRef.current.time.last = performance.now(); setScreen("playing"); }} style={{ ...btn, background: c.a, color: "#fff" }}>
@@ -1614,7 +1624,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
 
   // ═══ PLAYING ═══
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%", background: "#0a0a14", overflow: "hidden", touchAction: "none" }}>
+    <div style={{ ...gameContainer, background: "#0a0a14", overflow: "hidden", touchAction: "none" }}>
       <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />
     </div>
   );
