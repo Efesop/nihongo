@@ -1,5 +1,5 @@
 import { TILE, SCALE, DASH_COOLDOWN, hash } from "./constants.js";
-import { getSprite, getMascotImage } from "./sprites.js";
+import { getSprite, getMascotImage, getImage } from "./sprites.js";
 
 const DRAW_SIZE = TILE * SCALE; // 60px
 
@@ -281,13 +281,60 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 // ═══════════════════════════════════════════════
 // ═══ DRAW ENEMY — clean procedural characters ═══
 // ═══════════════════════════════════════════════
+// Source crop rects for enemy images (remove background padding)
+const ENEMY_CROPS = {
+  oni: { x: 170, y: 160, w: 690, h: 670 },
+  // Add crops for other enemies as images are added:
+  // ninja: { x: ..., y: ..., w: ..., h: ... },
+  // samurai: { x: ..., y: ..., w: ..., h: ... },
+};
+
+function drawEnemyFromImage(ctx, e, elapsed) {
+  const img = getImage(e.type);
+  const crop = ENEMY_CROPS[e.type];
+  if (!img || !crop) return false;
+
+  const s = DRAW_SIZE;
+  const aspect = crop.w / crop.h;
+  const drawW = s * aspect;
+  const drawH = s;
+  const bobY = Math.sin(elapsed * 3 + e.x * 0.1) * 2;
+
+  ctx.save();
+  ctx.translate(e.x, e.y + DRAW_SIZE + bobY);
+
+  // Flip based on facing (image faces right, flip for left)
+  if (e.facing < 0) ctx.scale(-1, 1);
+
+  // Walk tilt
+  if (e.state === "patrol" || e.state === "chase") {
+    ctx.rotate(Math.sin(elapsed * 5) * 0.04);
+  }
+  // Attack animation
+  if (e.state === "attack" && e.attackTimer > 200) {
+    ctx.rotate(e.facing * -0.2);
+    ctx.scale(1.1, 0.95);
+  }
+
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -drawW / 2, -drawH, drawW, drawH);
+  ctx.restore();
+  return true;
+}
+
 function drawEnemy(ctx, e, elapsed, font) {
+  // Try image-based rendering first
+  if (drawEnemyFromImage(ctx, e, elapsed)) {
+    // Draw overlays (alert, HP pips, etc.) after image
+    drawEnemyOverlays(ctx, e, elapsed, font);
+    return;
+  }
+
+  // Fallback: procedural shapes for enemies without images
   const x = e.x;
   const y = e.y;
   const f = e.facing;
   const bobY = Math.sin(elapsed * 3 + x * 0.1) * 2;
-
-  // Walk animation
   const walkCycle = elapsed * 5;
   const legSwing = e.state === "patrol" || e.state === "chase" ? Math.sin(walkCycle) * 4 : 0;
 
@@ -476,7 +523,15 @@ function drawEnemy(ctx, e, elapsed, font) {
     }
   }
 
-  // ── Alert "!" indicator ──
+  drawEnemyOverlays(ctx, e, elapsed, font);
+  ctx.restore();
+}
+
+function drawEnemyOverlays(ctx, e, elapsed, font) {
+  ctx.save();
+  ctx.translate(e.x, e.y);
+
+  // Alert "!"
   if (e.alert > 0 && !e.dead) {
     const alertAlpha = Math.min(1, e.alert / 200);
     ctx.globalAlpha = alertAlpha;
@@ -490,7 +545,7 @@ function drawEnemy(ctx, e, elapsed, font) {
     ctx.globalAlpha = 1;
   }
 
-  // ── Samurai HP pips ──
+  // Samurai HP pips
   if (e.type === "samurai" && !e.dead) {
     for (let i = 0; i < 2; i++) {
       ctx.fillStyle = i < e.hp ? "#cc9933" : "#333344";

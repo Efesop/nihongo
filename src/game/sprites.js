@@ -1,21 +1,33 @@
 import { PAL, SCALE } from "./constants.js";
 
 // ═══ IMAGE LOADING ═══
-// Load the actual mascot PNG and use it directly — no hand-coded pixel arrays.
-let _mascotImg = null;
-let _mascotLoaded = false;
+// Load character PNGs directly — way better than hand-coded pixel arrays.
+const _images = {};
 
-export function loadMascotImage() {
+function loadImg(key, src) {
   return new Promise((resolve) => {
-    if (_mascotLoaded) { resolve(_mascotImg); return; }
+    if (_images[key]) { resolve(_images[key]); return; }
     const img = new Image();
-    img.onload = () => { _mascotImg = img; _mascotLoaded = true; resolve(img); };
-    img.onerror = () => { _mascotLoaded = true; resolve(null); };
-    img.src = "/images/tinysenpai2.png";
+    img.onload = () => { _images[key] = img; resolve(img); };
+    img.onerror = () => resolve(null);
+    img.src = src;
   });
 }
 
-export function getMascotImage() { return _mascotImg; }
+export function loadGameImages() {
+  return Promise.all([
+    loadImg("player", "/images/tinysenpai2.png"),
+    loadImg("oni", "/images/demon.png"),
+    // Add more enemies here as PNGs are created:
+    // loadImg("ninja", "/images/ninja.png"),
+    // loadImg("samurai", "/images/ronin.png"),
+  ]);
+}
+
+export function getImage(key) { return _images[key] || null; }
+// Backwards compat
+export function getMascotImage() { return _images["player"] || null; }
+export function loadMascotImage() { return loadGameImages(); }
 
 // ═══ MINIMAL SPRITE DATA — only for small projectiles ═══
 const SPR = {
