@@ -360,12 +360,6 @@ function drawPlayer(ctx, p, mascot, elapsed) {
       const sdw = s * sa * 1.05;
       const sdh = s * 1.05;
 
-      // Blue lightning glow behind character on 3rd hit
-      if (isThird && slashImgKey === "slash4") {
-        ctx.fillStyle = "rgba(40,120,255,0.15)";
-        ctx.fillRect(-sdw, -sdh - 10, sdw * 2.5, sdh + 30);
-      }
-
       ctx.drawImage(slashImg, sc.x, sc.y, sc.w, sc.h, -sdw / 2, -sdh, sdw, sdh);
 
       // Blue lightning sparks — visible for entire 3rd combo attack
