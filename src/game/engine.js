@@ -181,19 +181,18 @@ export function update(g, callbacks) {
     // Keep on platform + prevent walking off edges
     let onPlatform = false;
     for (const plat of g.platforms) {
-      if (e.x > plat.x && e.x < plat.x + plat.w &&
+      if (e.x > plat.x - 5 && e.x < plat.x + plat.w + 5 &&
           e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 20) {
         e.y = plat.y - TILE * SCALE;
         onPlatform = true;
-        // Clamp to platform edges so enemies don't walk off
-        const margin = 10;
-        if (e.x < plat.x + margin) { e.x = plat.x + margin; e.facing = 1; e.vx = Math.abs(e.vx); }
-        if (e.x > plat.x + plat.w - margin) { e.x = plat.x + plat.w - margin; e.facing = -1; e.vx = -Math.abs(e.vx); }
+        // Clamp to platform edges — just stop, don't flip (AI controls facing)
+        const margin = 15;
+        if (e.x < plat.x + margin) { e.x = plat.x + margin; e.vx = 0; }
+        if (e.x > plat.x + plat.w - margin) { e.x = plat.x + plat.w - margin; e.vx = 0; }
       }
     }
-    // Apply gravity if not on platform
     if (!onPlatform) {
-      e.y += 300 * dt;
+      e.y += 400 * dt;
     }
 
     // ── Slash collision (can hit multiple per slash) ──

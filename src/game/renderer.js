@@ -299,22 +299,16 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   const aspect = crop.w / crop.h;
   const drawW = s * aspect;
   const drawH = s;
-  const bobY = Math.sin(elapsed * 3 + e.x * 0.1) * 2;
 
   ctx.save();
-  ctx.translate(e.x, e.y + DRAW_SIZE + bobY);
+  ctx.translate(e.x, e.y + DRAW_SIZE);
 
   // Flip based on facing (image naturally faces left, flip for right)
   if (e.facing > 0) ctx.scale(-1, 1);
 
-  // Walk tilt
-  if (e.state === "patrol" || e.state === "chase") {
-    ctx.rotate(Math.sin(elapsed * 5) * 0.04);
-  }
-  // Attack animation
+  // Attack animation — lunge forward
   if (e.state === "attack" && e.attackTimer > 200) {
-    ctx.rotate(e.facing * -0.2);
-    ctx.scale(1.1, 0.95);
+    ctx.scale(1.08, 0.94);
   }
 
   ctx.imageSmoothingEnabled = false;
@@ -587,60 +581,41 @@ function renderBackground(ctx, W, H, cx, g) {
 
   if (bgImg) {
     // ── Image-based parallax background ──
-    // Draw the forest image as multiple parallax layers using tinting + opacity
-
-    // Layer 1: Far — slow parallax, darkened, covers full sky
     const imgAspect = bgImg.width / bgImg.height;
     const bgH = H;
     const bgW = bgH * imgAspect;
 
-    // Far layer (parallax 0.1) — dark, misty distance
-    ctx.globalAlpha = 0.4;
-    const farX = -(cx * 0.1) % bgW;
-    ctx.drawImage(bgImg, farX, 0, bgW, bgH);
-    ctx.drawImage(bgImg, farX + bgW, 0, bgW, bgH);
-    if (farX > 0) ctx.drawImage(bgImg, farX - bgW, 0, bgW, bgH);
-    ctx.globalAlpha = 1;
+    // Helper: tile an image across the screen at a given parallax rate
+    const tileLayer = (parallax, alpha, yOff, hScale) => {
+      ctx.globalAlpha = alpha;
+      // Ensure positive modulo for correct wrapping
+      const offset = ((cx * parallax) % bgW + bgW) % bgW;
+      const startX = -offset;
+      for (let tx = startX; tx < W; tx += bgW) {
+        ctx.drawImage(bgImg, tx, yOff, bgW, bgH * hScale);
+      }
+      // Also draw one before in case of fractional start
+      if (startX > 0) ctx.drawImage(bgImg, startX - bgW, yOff, bgW, bgH * hScale);
+      ctx.globalAlpha = 1;
+    };
 
-    // Dark overlay to push far layer back
-    ctx.fillStyle = "rgba(5,5,14,0.5)";
+    // Far layer — slowest, darkened
+    tileLayer(0.1, 0.5, 0, 1);
+    ctx.fillStyle = "rgba(5,5,14,0.45)";
     ctx.fillRect(0, 0, W, H);
 
-    // Mid layer (parallax 0.3) — main forest detail
-    ctx.globalAlpha = 0.7;
-    const midX = -(cx * 0.3) % bgW;
-    ctx.drawImage(bgImg, midX, H * 0.05, bgW, bgH * 0.95);
-    ctx.drawImage(bgImg, midX + bgW, H * 0.05, bgW, bgH * 0.95);
-    if (midX > 0) ctx.drawImage(bgImg, midX - bgW, H * 0.05, bgW, bgH * 0.95);
-    ctx.globalAlpha = 1;
-
-    // Subtle dark overlay
-    ctx.fillStyle = "rgba(5,5,14,0.25)";
+    // Mid layer — main forest
+    tileLayer(0.3, 0.8, 0, 1);
+    ctx.fillStyle = "rgba(5,5,14,0.15)";
     ctx.fillRect(0, 0, W, H);
 
-    // Near layer (parallax 0.5) — foreground, cropped to bottom portion, brighter
-    ctx.globalAlpha = 0.5;
-    const nearX = -(cx * 0.55) % bgW;
-    const nearY = H * 0.3;
-    const nearH = H * 0.7;
-    // Draw just the bottom half of the image for foreground feel
-    ctx.drawImage(bgImg, 0, bgImg.height * 0.4, bgImg.width, bgImg.height * 0.6,
-                  nearX, nearY, bgW, nearH);
-    ctx.drawImage(bgImg, 0, bgImg.height * 0.4, bgImg.width, bgImg.height * 0.6,
-                  nearX + bgW, nearY, bgW, nearH);
-    if (nearX > 0) {
-      ctx.drawImage(bgImg, 0, bgImg.height * 0.4, bgImg.width, bgImg.height * 0.6,
-                    nearX - bgW, nearY, bgW, nearH);
-    }
-    ctx.globalAlpha = 1;
-
-    // Fog/mist at ground level
-    const fogGrad = ctx.createLinearGradient(0, groundY - 60, 0, groundY + 14);
-    fogGrad.addColorStop(0, "rgba(15,20,30,0)");
-    fogGrad.addColorStop(0.5, "rgba(15,20,30,0.4)");
-    fogGrad.addColorStop(1, "rgba(8,8,15,0.9)");
+    // Fog at ground level
+    const fogGrad = ctx.createLinearGradient(0, groundY - 50, 0, groundY + 14);
+    fogGrad.addColorStop(0, "rgba(10,15,20,0)");
+    fogGrad.addColorStop(0.6, "rgba(10,15,20,0.5)");
+    fogGrad.addColorStop(1, "rgba(8,8,15,0.95)");
     ctx.fillStyle = fogGrad;
-    ctx.fillRect(0, groundY - 60, W, 74);
+    ctx.fillRect(0, groundY - 50, W, 64);
 
   } else {
     // ── Fallback: procedural background ──
