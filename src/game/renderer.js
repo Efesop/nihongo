@@ -353,8 +353,13 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
     const slashImg = getImage(slashImgKey);
     if (slashImg) {
-      // Slash frames face LEFT — flip for right (same as run)
-      if (p.facing < 0) ctx.scale(-1, 1);
+      // Frames 1-3 face LEFT, frame 4 faces RIGHT
+      const frameFacesRight = slashImgKey === "slash4";
+      if (frameFacesRight) {
+        if (p.facing < 0) ctx.scale(-1, 1); // flip for left
+      } else {
+        if (p.facing > 0) ctx.scale(-1, 1); // flip for right
+      }
 
       // Blue lightning glow on 3rd hit
       if (isThird) {
