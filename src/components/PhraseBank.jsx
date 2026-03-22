@@ -103,7 +103,7 @@ export default function PhraseBank({
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 14px",gap:6}}>
             <div style={{fontSize:16,color:c.m,opacity:.4}}>🔊</div>
-            {p[6]&&<div style={{fontSize:10,color:c.go}}>⚡</div>}
+            {p[6]&&<div style={{fontSize:9,color:c.go,fontWeight:600,display:"flex",alignItems:"center",gap:2}} title="Essential for first 48 hours">⚡<span style={{fontFamily:mono,fontSize:8}}>48h</span></div>}
           </div>
         </div>;
       })}
@@ -149,20 +149,23 @@ export default function PhraseBank({
         return <div key={k} onClick={()=>setPCat(k)}
           onMouseEnter={()=>setHov("cat_"+k)} onMouseLeave={()=>setHov(null)}
           style={{...card,padding:0,cursor:"pointer",background:hov==="cat_"+k?c.s2:c.s,transition:"all .15s",overflow:"hidden"}}>
-          <div style={{padding:"18px 18px 14px"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:26}}>{CAT_ICONS[k]}</span>
+          <img src={`/images/phrases/${k}.png`} alt={v}
+            style={{width:"100%",height:isDesktop?120:90,objectFit:"cover",display:"block"}}
+            onError={e=>{e.target.style.display="none";}}/>
+          <div style={{padding:"14px 16px 12px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:20}}>{CAT_ICONS[k]}</span>
                 <div>
-                  <div style={{fontSize:16,fontWeight:700}}>{v}</div>
-                  <div style={{fontSize:11,color:c.m,fontFamily:mono,marginTop:2}}>{total} phrases{mc>0&&<span style={{color:c.go,marginLeft:6}}>⚡{mc}</span>}</div>
+                  <div style={{fontSize:15,fontWeight:700}}>{v}</div>
+                  <div style={{fontSize:10,color:c.m,fontFamily:mono,marginTop:2}}>{total} phrases{mc>0&&<span style={{color:c.go,marginLeft:4}}>⚡{mc} essential</span>}</div>
                 </div>
               </div>
-              {catDue>0&&<span style={{fontSize:11,padding:"3px 8px",borderRadius:10,background:c.go+"22",color:c.go,fontWeight:600}}>{catDue} due</span>}
+              {catDue>0&&<span style={{fontSize:10,padding:"2px 7px",borderRadius:8,background:c.go+"22",color:c.go,fontWeight:600}}>{catDue} due</span>}
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{flex:1,height:6,background:c.b,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:col,borderRadius:3,transition:"width .3s"}}/></div>
-              <div style={{fontSize:12,fontFamily:mono,color:col,fontWeight:600,flexShrink:0}}>{done}/{total}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{flex:1,height:5,background:c.b,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:col,borderRadius:3,transition:"width .3s"}}/></div>
+              <div style={{fontSize:11,fontFamily:mono,color:col,fontWeight:600,flexShrink:0}}>{done}/{total}</div>
             </div>
           </div>
         </div>;
