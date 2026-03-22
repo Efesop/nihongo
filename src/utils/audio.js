@@ -25,8 +25,8 @@ export const speak = (text, lang="ja-JP") => {
 };
 
 export const speakPhrase=(id,text)=>{
-  _playAudio(`/audio/phrase/${id}.mp3`,1).catch(()=>{
-    _playAudio(`/api/tts?lang=ja&q=${encodeURIComponent(text)}`,0.85).catch(()=>{});
+  _playAudio(`/audio/phrase/${id}.mp3`,0.8).catch(()=>{
+    _playAudio(`/api/tts?lang=ja&q=${encodeURIComponent(text)}`,0.75).catch(()=>{});
   });
 };
 
@@ -40,7 +40,7 @@ export const speakPhraseWithEnglish=(id,japanese,english)=>{
     setTimeout(()=>{
       // Then play Japanese
       const jpUrl=`/audio/phrase/${id}.mp3`;
-      const a2=new Audio(jpUrl);a2.playbackRate=0.9;_ttsAudio=a2;
+      const a2=new Audio(jpUrl);a2.playbackRate=0.8;_ttsAudio=a2;
       a2.onerror=()=>{
         const a3=new Audio(`/api/tts?lang=ja&q=${encodeURIComponent(japanese)}`);
         a3.playbackRate=0.85;_ttsAudio=a3;a3.play().catch(()=>{});
