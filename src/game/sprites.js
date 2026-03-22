@@ -18,9 +18,12 @@ export function loadGameImages() {
   return Promise.all([
     loadImg("player", "/images/tinysenpai2.png"),
     loadImg("oni", "/images/demon.png"),
-    // Add more enemies here as PNGs are created:
-    // loadImg("ninja", "/images/ninja.png"),
+    loadImg("ninja", "/images/ninja.png"),
+    loadImg("bg_forest", "/images/forest.png"),
+    // Add more as PNGs are created:
     // loadImg("samurai", "/images/ronin.png"),
+    // loadImg("bg_temple", "/images/temple.png"),
+    // loadImg("bg_neon", "/images/neon.png"),
   ]);
 }
 

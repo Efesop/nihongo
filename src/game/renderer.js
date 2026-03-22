@@ -34,18 +34,20 @@ export function render(g, ctx, isDesktop, font) {
   // Platforms
   for (const plat of g.platforms) {
     if (plat.x + plat.w < cx - 50 || plat.x > cx + W + 50) continue;
+    const hasBg = !!getImage("bg_forest");
     const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
-    grad.addColorStop(0, "#1e1e30");
-    grad.addColorStop(1, "#12121e");
+    grad.addColorStop(0, hasBg ? "#1a2a20" : "#1e1e30");
+    grad.addColorStop(1, hasBg ? "#0e1a14" : "#12121e");
     ctx.fillStyle = grad;
     ctx.fillRect(plat.x, plat.y, plat.w, 14);
-    ctx.fillStyle = "#c0282a";
+    const accent = hasBg ? "#3a8a5a" : "#c0282a";
+    ctx.fillStyle = accent;
     ctx.fillRect(plat.x, plat.y, plat.w, 1);
-    ctx.fillStyle = "#c0282a55";
+    ctx.fillStyle = accent + "55";
     ctx.fillRect(plat.x, plat.y + 1, plat.w, 1);
-    ctx.fillStyle = "#c0282a18";
+    ctx.fillStyle = accent + "18";
     ctx.fillRect(plat.x, plat.y + 2, plat.w, 3);
-    ctx.fillStyle = "#c0282a22";
+    ctx.fillStyle = accent + "22";
     ctx.fillRect(plat.x, plat.y, 1, 14);
     ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, 14);
   }
@@ -284,8 +286,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 // Source crop rects for enemy images (remove background padding)
 const ENEMY_CROPS = {
   oni: { x: 170, y: 160, w: 690, h: 670 },
-  // Add crops for other enemies as images are added:
-  // ninja: { x: ..., y: ..., w: ..., h: ... },
+  ninja: { x: 150, y: 230, w: 780, h: 570 },
   // samurai: { x: ..., y: ..., w: ..., h: ... },
 };
 
@@ -582,96 +583,120 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
 // ═══ BACKGROUND ═══
 function renderBackground(ctx, W, H, cx, g) {
   const groundY = g.groundY;
+  const bgImg = getImage("bg_forest");
 
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, "#05050e");
-  sky.addColorStop(0.4, "#0a0a1e");
-  sky.addColorStop(0.8, "#0e0a20");
-  sky.addColorStop(1, "#0d0a18");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
+  if (bgImg) {
+    // ── Image-based parallax background ──
+    // Draw the forest image as multiple parallax layers using tinting + opacity
 
-  // Moon
-  ctx.fillStyle = "#1a1a30";
-  ctx.beginPath();
-  ctx.arc(W * 0.8 - cx * 0.02, H * 0.15, 30, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#222240";
-  ctx.beginPath();
-  ctx.arc(W * 0.8 - cx * 0.02, H * 0.15, 28, 0, Math.PI * 2);
-  ctx.fill();
+    // Layer 1: Far — slow parallax, darkened, covers full sky
+    const imgAspect = bgImg.width / bgImg.height;
+    const bgH = H;
+    const bgW = bgH * imgAspect;
 
-  // Stars
-  ctx.fillStyle = "#ffffff";
-  for (let i = 0; i < 60; i++) {
-    const sx = ((i * 137.5 + 50) % (W + 200)) - (cx * 0.02) % (W + 200);
-    const sy = (i * 73.7 + 20) % (H * 0.4);
-    const twinkle = Math.sin(g.time.elapsed * (1.5 + hash(i, 0) * 2) + i * 0.7);
-    ctx.globalAlpha = 0.15 + twinkle * 0.15 + hash(i, 1) * 0.25;
-    const ss = 0.6 + hash(i, 2) * 1.5;
-    ctx.fillRect(sx, sy, ss, ss);
-  }
-  ctx.globalAlpha = 1;
+    // Far layer (parallax 0.1) — dark, misty distance
+    ctx.globalAlpha = 0.4;
+    const farX = -(cx * 0.1) % bgW;
+    ctx.drawImage(bgImg, farX, 0, bgW, bgH);
+    ctx.drawImage(bgImg, farX + bgW, 0, bgW, bgH);
+    if (farX > 0) ctx.drawImage(bgImg, farX - bgW, 0, bgW, bgH);
+    ctx.globalAlpha = 1;
 
-  // Far buildings (parallax 0.1)
-  const bx1 = -cx * 0.1;
-  for (let i = 0; i < 18; i++) {
-    const bw = 35 + ((i * 31) % 65);
-    const bh = 50 + ((i * 47) % 130);
-    const x = ((i * 97 + bx1) % (W + 300) + W + 300) % (W + 300) - 50;
-    ctx.fillStyle = "#0c0c1a";
-    ctx.fillRect(x, groundY - bh, bw, bh);
-    if (i % 4 === 0) {
-      ctx.fillRect(x + bw / 2 - 1, groundY - bh - 15, 2, 15);
-      ctx.fillStyle = "#ff2020";
-      ctx.globalAlpha = 0.5 + Math.sin(g.time.elapsed * 3 + i) * 0.3;
-      ctx.fillRect(x + bw / 2 - 1, groundY - bh - 15, 2, 2);
-      ctx.globalAlpha = 1;
+    // Dark overlay to push far layer back
+    ctx.fillStyle = "rgba(5,5,14,0.5)";
+    ctx.fillRect(0, 0, W, H);
+
+    // Mid layer (parallax 0.3) — main forest detail
+    ctx.globalAlpha = 0.7;
+    const midX = -(cx * 0.3) % bgW;
+    ctx.drawImage(bgImg, midX, H * 0.05, bgW, bgH * 0.95);
+    ctx.drawImage(bgImg, midX + bgW, H * 0.05, bgW, bgH * 0.95);
+    if (midX > 0) ctx.drawImage(bgImg, midX - bgW, H * 0.05, bgW, bgH * 0.95);
+    ctx.globalAlpha = 1;
+
+    // Subtle dark overlay
+    ctx.fillStyle = "rgba(5,5,14,0.25)";
+    ctx.fillRect(0, 0, W, H);
+
+    // Near layer (parallax 0.5) — foreground, cropped to bottom portion, brighter
+    ctx.globalAlpha = 0.5;
+    const nearX = -(cx * 0.55) % bgW;
+    const nearY = H * 0.3;
+    const nearH = H * 0.7;
+    // Draw just the bottom half of the image for foreground feel
+    ctx.drawImage(bgImg, 0, bgImg.height * 0.4, bgImg.width, bgImg.height * 0.6,
+                  nearX, nearY, bgW, nearH);
+    ctx.drawImage(bgImg, 0, bgImg.height * 0.4, bgImg.width, bgImg.height * 0.6,
+                  nearX + bgW, nearY, bgW, nearH);
+    if (nearX > 0) {
+      ctx.drawImage(bgImg, 0, bgImg.height * 0.4, bgImg.width, bgImg.height * 0.6,
+                    nearX - bgW, nearY, bgW, nearH);
     }
-  }
+    ctx.globalAlpha = 1;
 
-  // Mid buildings (parallax 0.3)
-  const bx2 = -cx * 0.3;
-  for (let i = 0; i < 14; i++) {
-    const bw = 28 + ((i * 43) % 55);
-    const bh = 35 + ((i * 67) % 110);
-    const x = ((i * 130 + 20 + bx2) % (W + 400) + W + 400) % (W + 400) - 100;
-    ctx.fillStyle = "#10101e";
-    ctx.fillRect(x, groundY - bh, bw, bh);
-    if (i % 3 === 0) {
-      const colors = ["rgba(192,40,42,", "rgba(155,142,207,", "rgba(79,142,196,"];
-      const glow = 0.4 + Math.sin(g.time.elapsed * 3 + i * 1.5) * 0.2;
-      ctx.fillStyle = colors[i % 3] + glow + ")";
-      ctx.fillRect(x + 4, groundY - bh + 8, bw - 8, 5);
-      ctx.fillStyle = colors[i % 3] + (glow * 0.15) + ")";
-      ctx.fillRect(x + 2, groundY - bh + 5, bw - 4, 11);
+    // Fog/mist at ground level
+    const fogGrad = ctx.createLinearGradient(0, groundY - 60, 0, groundY + 14);
+    fogGrad.addColorStop(0, "rgba(15,20,30,0)");
+    fogGrad.addColorStop(0.5, "rgba(15,20,30,0.4)");
+    fogGrad.addColorStop(1, "rgba(8,8,15,0.9)");
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(0, groundY - 60, W, 74);
+
+  } else {
+    // ── Fallback: procedural background ──
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, "#05050e");
+    sky.addColorStop(0.4, "#0a0a1e");
+    sky.addColorStop(0.8, "#0e0a20");
+    sky.addColorStop(1, "#0d0a18");
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, H);
+
+    // Stars
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < 60; i++) {
+      const sx = ((i * 137.5 + 50) % (W + 200)) - (cx * 0.02) % (W + 200);
+      const sy = (i * 73.7 + 20) % (H * 0.4);
+      const twinkle = Math.sin(g.time.elapsed * (1.5 + hash(i, 0) * 2) + i * 0.7);
+      ctx.globalAlpha = 0.15 + twinkle * 0.15 + hash(i, 1) * 0.25;
+      const ss = 0.6 + hash(i, 2) * 1.5;
+      ctx.fillRect(sx, sy, ss, ss);
     }
-    ctx.fillStyle = "rgba(255,200,100,0.2)";
-    for (let wy = groundY - bh + 22; wy < groundY - 8; wy += 14) {
-      for (let wx = x + 5; wx < x + bw - 5; wx += 9) {
-        if (hash(i * 100 + Math.floor(wx), Math.floor(wy)) > 0.4) {
-          ctx.fillRect(wx, wy, 4, 5);
+    ctx.globalAlpha = 1;
+
+    // Far buildings (parallax 0.1)
+    const bx1 = -cx * 0.1;
+    for (let i = 0; i < 18; i++) {
+      const bw = 35 + ((i * 31) % 65);
+      const bh = 50 + ((i * 47) % 130);
+      const x = ((i * 97 + bx1) % (W + 300) + W + 300) % (W + 300) - 50;
+      ctx.fillStyle = "#0c0c1a";
+      ctx.fillRect(x, groundY - bh, bw, bh);
+    }
+
+    // Mid buildings (parallax 0.3)
+    const bx2 = -cx * 0.3;
+    for (let i = 0; i < 14; i++) {
+      const bw = 28 + ((i * 43) % 55);
+      const bh = 35 + ((i * 67) % 110);
+      const x = ((i * 130 + 20 + bx2) % (W + 400) + W + 400) % (W + 400) - 100;
+      ctx.fillStyle = "#10101e";
+      ctx.fillRect(x, groundY - bh, bw, bh);
+      ctx.fillStyle = "rgba(255,200,100,0.2)";
+      for (let wy = groundY - bh + 22; wy < groundY - 8; wy += 14) {
+        for (let wx = x + 5; wx < x + bw - 5; wx += 9) {
+          if (hash(i * 100 + Math.floor(wx), Math.floor(wy)) > 0.4) ctx.fillRect(wx, wy, 4, 5);
         }
       }
     }
   }
 
-  // Wires
-  ctx.strokeStyle = "#1a1a30";
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 3; i++) {
-    const wy = groundY - 140 - i * 35;
-    ctx.beginPath();
-    ctx.moveTo(0, wy);
-    ctx.lineTo(W, wy + Math.sin(cx * 0.003 + i) * 5);
-    ctx.stroke();
-  }
-
-  // Ground
+  // Ground (shared by both)
   ctx.fillStyle = "#08080f";
   ctx.fillRect(0, groundY + 14, W, H - groundY);
-  ctx.fillStyle = "#c0282a0a";
-  ctx.fillRect(0, groundY + 14, W, 3);
+  // Subtle ground-edge glow
+  ctx.fillStyle = "rgba(40,80,60,0.12)";
+  ctx.fillRect(0, groundY + 14, W, 2);
 }
 
 // ═══ DECORATIONS ═══
