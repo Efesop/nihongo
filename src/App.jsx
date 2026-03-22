@@ -160,6 +160,12 @@ const H_GROUPS = [
 {n:"G゛",c:["が","ぎ","ぐ","げ","ご"],dk:true},{n:"Z゛",c:["ざ","じ","ず","ぜ","ぞ"],dk:true},
 {n:"D゛",c:["だ","ぢ","づ","で","ど"],dk:true},{n:"B゛",c:["ば","び","ぶ","べ","ぼ"],dk:true},
 {n:"P゜",c:["ぱ","ぴ","ぷ","ぺ","ぽ"],dk:true},
+{n:"Ky",c:["きゃ","きゅ","きょ"],yo:true},{n:"Sh",c:["しゃ","しゅ","しょ"],yo:true},
+{n:"Ch",c:["ちゃ","ちゅ","ちょ"],yo:true},{n:"Ny",c:["にゃ","にゅ","にょ"],yo:true},
+{n:"Hy",c:["ひゃ","ひゅ","ひょ"],yo:true},{n:"My",c:["みゃ","みゅ","みょ"],yo:true},
+{n:"Ry",c:["りゃ","りゅ","りょ"],yo:true},
+{n:"Gy",c:["ぎゃ","ぎゅ","ぎょ"],yo:true},{n:"Jy",c:["じゃ","じゅ","じょ"],yo:true},
+{n:"By",c:["びゃ","びゅ","びょ"],yo:true},{n:"Py",c:["ぴゃ","ぴゅ","ぴょ"],yo:true},
 ];
 const K_GROUPS = [
 {n:"Vowels",c:["ア","イ","ウ","エ","オ"]},{n:"K",c:["カ","キ","ク","ケ","コ"]},
@@ -170,9 +176,18 @@ const K_GROUPS = [
 {n:"G゛",c:["ガ","ギ","グ","ゲ","ゴ"],dk:true},{n:"Z゛",c:["ザ","ジ","ズ","ゼ","ゾ"],dk:true},
 {n:"D゛",c:["ダ","ヂ","ヅ","デ","ド"],dk:true},{n:"B゛",c:["バ","ビ","ブ","ベ","ボ"],dk:true},
 {n:"P゜",c:["パ","ピ","プ","ペ","ポ"],dk:true},
+{n:"Ky",c:["キャ","キュ","キョ"],yo:true},{n:"Sh",c:["シャ","シュ","ショ"],yo:true},
+{n:"Ch",c:["チャ","チュ","チョ"],yo:true},{n:"Ny",c:["ニャ","ニュ","ニョ"],yo:true},
+{n:"Hy",c:["ヒャ","ヒュ","ヒョ"],yo:true},{n:"My",c:["ミャ","ミュ","ミョ"],yo:true},
+{n:"Ry",c:["リャ","リュ","リョ"],yo:true},
+{n:"Gy",c:["ギャ","ギュ","ギョ"],yo:true},{n:"Jy",c:["ジャ","ジュ","ジョ"],yo:true},
+{n:"By",c:["ビャ","ビュ","ビョ"],yo:true},{n:"Py",c:["ピャ","ピュ","ピョ"],yo:true},
 ];
 
-const ROMAJI={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","が":"ga","ぎ":"gi","ぐ":"gu","げ":"ge","ご":"go","ざ":"za","じ":"ji","ず":"zu","ぜ":"ze","ぞ":"zo","だ":"da","ぢ":"di","づ":"du","で":"de","ど":"do","ば":"ba","び":"bi","ぶ":"bu","べ":"be","ぼ":"bo","ぱ":"pa","ぴ":"pi","ぷ":"pu","ぺ":"pe","ぽ":"po","ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o","カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko","サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so","タ":"ta","チ":"chi","ツ":"tsu","テ":"te","ト":"to","ナ":"na","ニ":"ni","ヌ":"nu","ネ":"ne","ノ":"no","ハ":"ha","ヒ":"hi","フ":"fu","ヘ":"he","ホ":"ho","マ":"ma","ミ":"mi","ム":"mu","メ":"me","モ":"mo","ヤ":"ya","ユ":"yu","ヨ":"yo","ラ":"ra","リ":"ri","ル":"ru","レ":"re","ロ":"ro","ワ":"wa","ヲ":"wo","ン":"n","ガ":"ga","ギ":"gi","グ":"gu","ゲ":"ge","ゴ":"go","ザ":"za","ジ":"ji","ズ":"zu","ゼ":"ze","ゾ":"zo","ダ":"da","ヂ":"di","ヅ":"du","デ":"de","ド":"do","バ":"ba","ビ":"bi","ブ":"bu","ベ":"be","ボ":"bo","パ":"pa","ピ":"pi","プ":"pu","ペ":"pe","ポ":"po"};
+const ROMAJI={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","が":"ga","ぎ":"gi","ぐ":"gu","げ":"ge","ご":"go","ざ":"za","じ":"ji","ず":"zu","ぜ":"ze","ぞ":"zo","だ":"da","ぢ":"di","づ":"du","で":"de","ど":"do","ば":"ba","び":"bi","ぶ":"bu","べ":"be","ぼ":"bo","ぱ":"pa","ぴ":"pi","ぷ":"pu","ぺ":"pe","ぽ":"po","ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o","カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko","サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so","タ":"ta","チ":"chi","ツ":"tsu","テ":"te","ト":"to","ナ":"na","ニ":"ni","ヌ":"nu","ネ":"ne","ノ":"no","ハ":"ha","ヒ":"hi","フ":"fu","ヘ":"he","ホ":"ho","マ":"ma","ミ":"mi","ム":"mu","メ":"me","モ":"mo","ヤ":"ya","ユ":"yu","ヨ":"yo","ラ":"ra","リ":"ri","ル":"ru","レ":"re","ロ":"ro","ワ":"wa","ヲ":"wo","ン":"n","ガ":"ga","ギ":"gi","グ":"gu","ゲ":"ge","ゴ":"go","ザ":"za","ジ":"ji","ズ":"zu","ゼ":"ze","ゾ":"zo","ダ":"da","ヂ":"di","ヅ":"du","デ":"de","ド":"do","バ":"ba","ビ":"bi","ブ":"bu","ベ":"be","ボ":"bo","パ":"pa","ピ":"pi","プ":"pu","ペ":"pe","ポ":"po","きゃ":"kya","きゅ":"kyu","きょ":"kyo","しゃ":"sha","しゅ":"shu","しょ":"sho","ちゃ":"cha","ちゅ":"chu","ちょ":"cho","にゃ":"nya","にゅ":"nyu","にょ":"nyo","ひゃ":"hya","ひゅ":"hyu","ひょ":"hyo","みゃ":"mya","みゅ":"myu","みょ":"myo","りゃ":"rya","りゅ":"ryu","りょ":"ryo","ぎゃ":"gya","ぎゅ":"gyu","ぎょ":"gyo","じゃ":"ja","じゅ":"ju","じょ":"jo","びゃ":"bya","びゅ":"byu","びょ":"byo","ぴゃ":"pya","ぴゅ":"pyu","ぴょ":"pyo","キャ":"kya","キュ":"kyu","キョ":"kyo","シャ":"sha","シュ":"shu","ショ":"sho","チャ":"cha","チュ":"chu","チョ":"cho","ニャ":"nya","ニュ":"nyu","ニョ":"nyo","ヒャ":"hya","ヒュ":"hyu","ヒョ":"hyo","ミャ":"mya","ミュ":"myu","ミョ":"myo","リャ":"rya","リュ":"ryu","リョ":"ryo","ギャ":"gya","ギュ":"gyu","ギョ":"gyo","ジャ":"ja","ジュ":"ju","ジョ":"jo","ビャ":"bya","ビュ":"byu","ビョ":"byo","ピャ":"pya","ピュ":"pyu","ピョ":"pyo"};
+
+// Yōon combination mappings: combo → [consonant char, small vowel char]
+const YOON_PARTS={"きゃ":["き","ゃ"],"きゅ":["き","ゅ"],"きょ":["き","ょ"],"しゃ":["し","ゃ"],"しゅ":["し","ゅ"],"しょ":["し","ょ"],"ちゃ":["ち","ゃ"],"ちゅ":["ち","ゅ"],"ちょ":["ち","ょ"],"にゃ":["に","ゃ"],"にゅ":["に","ゅ"],"にょ":["に","ょ"],"ひゃ":["ひ","ゃ"],"ひゅ":["ひ","ゅ"],"ひょ":["ひ","ょ"],"みゃ":["み","ゃ"],"みゅ":["み","ゅ"],"みょ":["み","ょ"],"りゃ":["り","ゃ"],"りゅ":["り","ゅ"],"りょ":["り","ょ"],"ぎゃ":["ぎ","ゃ"],"ぎゅ":["ぎ","ゅ"],"ぎょ":["ぎ","ょ"],"じゃ":["じ","ゃ"],"じゅ":["じ","ゅ"],"じょ":["じ","ょ"],"びゃ":["び","ゃ"],"びゅ":["び","ゅ"],"びょ":["び","ょ"],"ぴゃ":["ぴ","ゃ"],"ぴゅ":["ぴ","ゅ"],"ぴょ":["ぴ","ょ"],"キャ":["キ","ャ"],"キュ":["キ","ュ"],"キョ":["キ","ョ"],"シャ":["シ","ャ"],"シュ":["シ","ュ"],"ショ":["シ","ョ"],"チャ":["チ","ャ"],"チュ":["チ","ュ"],"チョ":["チ","ョ"],"ニャ":["ニ","ャ"],"ニュ":["ニ","ュ"],"ニョ":["ニ","ョ"],"ヒャ":["ヒ","ャ"],"ヒュ":["ヒ","ュ"],"ヒョ":["ヒ","ョ"],"ミャ":["ミ","ャ"],"ミュ":["ミ","ュ"],"ミョ":["ミ","ョ"],"リャ":["リ","ャ"],"リュ":["リ","ュ"],"リョ":["リ","ョ"],"ギャ":["ギ","ャ"],"ギュ":["ギ","ュ"],"ギョ":["ギ","ョ"],"ジャ":["ジ","ャ"],"ジュ":["ジ","ュ"],"ジョ":["ジ","ョ"],"ビャ":["ビ","ャ"],"ビュ":["ビ","ュ"],"ビョ":["ビ","ョ"],"ピャ":["ピ","ャ"],"ピュ":["ピ","ュ"],"ピョ":["ピ","ョ"]};
 
 const DAKUTEN_BASE={"が":"か","ぎ":"き","ぐ":"く","げ":"け","ご":"こ","ざ":"さ","じ":"し","ず":"す","ぜ":"せ","ぞ":"そ","だ":"た","ぢ":"ち","づ":"つ","で":"て","ど":"と","ば":"は","び":"ひ","ぶ":"ふ","べ":"へ","ぼ":"ほ","ぱ":"は","ぴ":"ひ","ぷ":"ふ","ぺ":"へ","ぽ":"ほ","ガ":"カ","ギ":"キ","グ":"ク","ゲ":"ケ","ゴ":"コ","ザ":"サ","ジ":"シ","ズ":"ス","ゼ":"セ","ゾ":"ソ","ダ":"タ","ヂ":"チ","ヅ":"ツ","デ":"テ","ド":"ト","バ":"ハ","ビ":"ヒ","ブ":"フ","ベ":"ヘ","ボ":"ホ","パ":"ハ","ピ":"ヒ","プ":"フ","ペ":"ヘ","ポ":"ホ"};
 
@@ -703,6 +718,19 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
   const kbHint=k=>isDesktop?<span style={{fontSize:10,opacity:0.3,fontFamily:mono,marginLeft:6}}>{k}</span>:null;
   const stopAudio=()=>{if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}if(window.speechSynthesis)window.speechSynthesis.cancel();setStoryPlaying(false);};
+  const speakYoon=(ch)=>{
+    if(!ch||!YOON_PARTS[ch]) return;
+    if(storyPlaying){stopAudio();return;}
+    setStoryPlaying(true);
+    const done=()=>setStoryPlaying(false);
+    const [base]=YOON_PARTS[ch];
+    const baseUrl=`/api/tts?lang=ja&q=${encodeURIComponent(base)}`;
+    const bridgeUrl=`/audio/dakuten/bridge_yoon.mp3`;
+    const comboUrl=`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`;
+    const a1=new Audio(baseUrl);a1.playbackRate=0.85;_ttsAudio=a1;
+    a1.onended=()=>{const a2=new Audio(bridgeUrl);_ttsAudio=a2;a2.onended=()=>{const a3=new Audio(comboUrl);a3.playbackRate=0.85;_ttsAudio=a3;a3.onended=done;a3.onerror=done;a3.play().catch(done);};a2.onerror=done;a2.play().catch(done);};
+    a1.onerror=done;a1.play().catch(done);
+  };
   const speakDakuten=(ch)=>{
     if(!ch||!DAKUTEN_BASE[ch]) return;
     if(storyPlaying){stopAudio();return;}
@@ -872,8 +900,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         const dx=e.changedTouches[0].clientX-swipeRef.startX;
         const dy=e.changedTouches[0].clientY-swipeRef.startY;
         if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){
-          if(dx<0&&kLI<chars.length-1){stopAudio();setKLI(kLI+1);setKFlip(false);if(kAutoStory){const nch=chars[kLI+1];if(DAKUTEN_BASE[nch])setTimeout(()=>speakDakuten(nch),300);else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}}
-          if(dx>0&&kLI>0){stopAudio();setKLI(kLI-1);setKFlip(false);if(kAutoStory){const nch=chars[kLI-1];if(DAKUTEN_BASE[nch])setTimeout(()=>speakDakuten(nch),300);else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}}
+          if(dx<0&&kLI<chars.length-1){stopAudio();setKLI(kLI+1);setKFlip(false);if(kAutoStory){const nch=chars[kLI+1];if(YOON_PARTS[nch])setTimeout(()=>speakYoon(nch),300);else if(DAKUTEN_BASE[nch])setTimeout(()=>speakDakuten(nch),300);else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}}
+          if(dx>0&&kLI>0){stopAudio();setKLI(kLI-1);setKFlip(false);if(kAutoStory){const nch=chars[kLI-1];if(YOON_PARTS[nch])setTimeout(()=>speakYoon(nch),300);else if(DAKUTEN_BASE[nch])setTimeout(()=>speakDakuten(nch),300);else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}}}
         }
       };
       const showRevealed=kAutoReveal||kFlip;
@@ -893,7 +921,32 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
           : <div>
-              {DAKUTEN_BASE[ch]
+              {YOON_PARTS[ch]
+                ? /* Yōon combination layout */
+                <div>
+                  <div style={{...card,display:"flex",alignItems:"center",justifyContent:"center",gap:isDesktop?20:10,padding:"28px 16px",marginBottom:14}}>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                      <div style={{fontSize:isDesktop?60:44,lineHeight:1,opacity:.5}}>{YOON_PARTS[ch][0]}</div>
+                      <div style={{fontSize:isDesktop?18:14,fontFamily:mono,color:c.m}}>{ROMAJI[YOON_PARTS[ch][0]]}</div>
+                    </div>
+                    <div style={{fontSize:20,color:c.m}}>+</div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                      <div style={{fontSize:isDesktop?40:30,lineHeight:1,opacity:.5}}>{YOON_PARTS[ch][1]}</div>
+                      <div style={{fontSize:isDesktop?14:11,fontFamily:mono,color:c.m}}>small</div>
+                    </div>
+                    <div style={{fontSize:20,color:c.m}}>=</div>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+                      <div style={{fontSize:isDesktop?80:60,lineHeight:1,color:c.a}}>{ch}</div>
+                      <div style={{fontSize:isDesktop?24:18,fontWeight:700,fontFamily:mono,color:c.a}}>{rom}</div>
+                      {speakBtn(ch)}
+                    </div>
+                  </div>
+                  <div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
+                    <div style={{fontSize:14,color:c.tx,lineHeight:1.6,marginBottom:12}}>Combine {ROMAJI[YOON_PARTS[ch][0]]} + small ya/yu/yo → {rom}</div>
+                    <button onClick={e=>{e.stopPropagation();speakYoon(ch);}} style={{...btn,padding:"10px 16px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:13,color:storyPlaying?c.a:c.m,width:"100%"}}>{storyPlaying?"■ stop":"🔊 hear the combination"}</button>
+                  </div>
+                </div>
+              : DAKUTEN_BASE[ch]
                 ? /* Dakuten transformation layout */
                 <div>
                   <div style={{...card,display:"flex",alignItems:"center",justifyContent:"center",gap:isDesktop?24:12,padding:"28px 16px",marginBottom:14}}>
