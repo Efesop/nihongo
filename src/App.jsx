@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser, useAuth, useClerk, SignIn, SignUp } from "@clerk/clerk-react";
-import Game from "./Game.jsx";
+import Game from "./game/Game.jsx";
 
 // ═══ STORAGE HELPERS ═══
 const store = {
