@@ -144,14 +144,28 @@ export function update(g, callbacks) {
   }
   g.input.jumpPressed = false;
 
-  // Slash
+  // Slash — dash-cut: lunge forward through enemies
   if (g.input.slashPressed && p.slashTimer <= 0) {
     p.slashTimer = SLASH_DURATION;
     p.frame = 0;
+    // Afterimage at starting position
+    p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: 200 });
+    // Lunge forward
+    p.vx = p.facing * 400;
+    // Slash trail starts at current position, will extend outward
     g.slashEffects.push({
-      x: p.x + p.facing * 20, y: p.y + TILE * SCALE * 0.35,
-      facing: p.facing, timer: 250, maxTimer: 250,
+      x: p.x, y: p.y + TILE * SCALE * 0.4,
+      facing: p.facing, timer: 300, maxTimer: 300,
+      startX: p.x,
     });
+    // Speed lines burst
+    for (let i = 0; i < 6; i++) {
+      g.particles.push({
+        x: p.x - p.facing * rnd(5, 30), y: p.y + rnd(5, TILE * SCALE - 5),
+        vx: p.facing * rnd(150, 350), vy: rnd(-15, 15),
+        life: 120, maxLife: 120, color: "#ffffff", size: rnd(1, 1.5), isLine: true,
+      });
+    }
   }
   g.input.slashPressed = false;
 

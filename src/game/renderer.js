@@ -145,56 +145,55 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash arc — the star of the show ──
-  // Multi-layered arc: bright core + wider soft glow, like Katana Zero
+  // ── Slash effect — horizontal cut that extends outward ──
+  // The character dashes forward, leaving a massive horizontal slash trail
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
     const alpha = (1 - progress);
-    const dir = s.facing > 0 ? 1 : -1;
-    const radius = 35 + progress * 35;
-    // Horizontal outward sweep — from hip level across and slightly up
-    const sweepStart = dir > 0
-      ? Math.PI * 0.3 - progress * Math.PI * 0.4
-      : -Math.PI * 0.3 + progress * Math.PI * 0.4;
-    const sweepEnd = dir > 0
-      ? -Math.PI * 0.5 - progress * Math.PI * 0.15
-      : Math.PI * 0.5 + progress * Math.PI * 0.15;
+    const dir = s.facing;
+
+    // The slash line extends from the start position outward
+    const reach = progress * 80; // how far the cut extends
+    const sx = s.x;
+    const sy = s.y;
 
     ctx.save();
-    ctx.translate(s.x, s.y);
 
-    // Layer 1: wide soft outer glow
-    ctx.strokeStyle = `rgba(200,210,240,${alpha * 0.25})`;
-    ctx.lineWidth = 12 - progress * 8;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, sweepStart, sweepEnd);
-    ctx.stroke();
+    // Wide soft glow — the "power" of the cut
+    ctx.globalAlpha = alpha * 0.2;
+    ctx.fillStyle = "#c8d8ff";
+    ctx.fillRect(sx - (dir < 0 ? reach : 0), sy - 12, reach + 30, 24);
 
-    // Layer 2: bright mid arc
-    ctx.strokeStyle = `rgba(224,232,255,${alpha * 0.6})`;
-    ctx.lineWidth = 5 - progress * 3;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, sweepStart, sweepEnd);
-    ctx.stroke();
+    // Bright mid band
+    ctx.globalAlpha = alpha * 0.5;
+    ctx.fillStyle = "#dce4ff";
+    ctx.fillRect(sx - (dir < 0 ? reach : 0), sy - 5, reach + 30, 10);
 
-    // Layer 3: sharp bright core
-    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.9})`;
-    ctx.lineWidth = 2 - progress;
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, sweepStart, sweepEnd);
-    ctx.stroke();
+    // Sharp bright core — the blade trail
+    ctx.globalAlpha = alpha * 0.9;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(sx - (dir < 0 ? reach : 0), sy - 2, reach + 30, 4);
 
-    // Tip sparkle at the leading edge
-    if (progress < 0.5) {
-      const tipAngle = sweepEnd;
-      const tx = Math.cos(tipAngle) * radius;
-      const ty = Math.sin(tipAngle) * radius;
-      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-      ctx.fillRect(tx - 3, ty - 3, 6, 6);
-      ctx.fillStyle = `rgba(200,220,255,${alpha * 0.5})`;
-      ctx.fillRect(tx - 5, ty - 5, 10, 10);
+    // Leading edge flash — bright point at the tip of the cut
+    if (progress < 0.6) {
+      const tipX = sx + dir * (reach + 25);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(tipX - 4, sy - 6, 8, 12);
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.fillRect(tipX - 8, sy - 10, 16, 20);
     }
 
+    // Diagonal slash mark — slight upward angle for style
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sx - dir * 10, sy + 8);
+    ctx.lineTo(sx + dir * (reach + 20), sy - 10);
+    ctx.stroke();
+
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
@@ -277,82 +276,25 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   ctx.translate(p.x, p.y + DRAW_SIZE);
   if (p.facing > 0) ctx.scale(-1, 1);
 
-  let rot = 0, sx = 1, sy = 1, ox = 0, oy = 0;
+  let oy = 0;
 
-  // Minimal transforms — don't over-animate a static image.
-  // Effects (slash arc, particles, hit-stop) sell the action, not body deformation.
   if (p.state === "idle") {
     oy = Math.sin(elapsed * 2) * 0.8;
   } else if (p.state === "run") {
-    // Slight forward lean + tiny bob — clean and fast
-    rot = -0.08;
     oy = Math.abs(Math.sin(elapsed * 12)) * -1.5;
-  } else if (p.state === "jump") {
-    oy = -2;
-  } else if (p.state === "fall") {
-    oy = 1;
   } else if (p.state === "dash") {
-    sx = 1.15;
-    sy = 0.9;
-  } else if (p.state === "slash1") {
-    // Tiny crouch
-    oy = 2;
-  } else if (p.state === "slash2") {
-    // Small lunge forward — the slash arc does the work
-    ox = 6;
-  } else if (p.state === "slash3") {
-    ox = 3;
+    ctx.scale(1.12, 0.92);
   }
 
-  ctx.rotate(rot);
-  ctx.scale(sx, sy);
+  // During slash — slight horizontal stretch for speed feel
+  if (isSlashing) {
+    ctx.scale(1.05, 0.97);
+  }
 
-  // Invincibility blink
   if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
 
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + ox, -drawH + oy, drawW, drawH);
-
-  // ── Katana — ONLY during slash, positioned to match the arc ──
-  if (isSlashing) {
-    const bladeLen = 46;
-    // Blade sweeps from hip to extended outward
-    let bladeAngle, bx, by;
-    if (p.state === "slash1") {
-      bladeAngle = 1.5;   // at hip, ready to draw
-      bx = 0; by = -drawH * 0.3 + oy;
-    } else if (p.state === "slash2") {
-      bladeAngle = -0.2;  // horizontal outward cut
-      bx = ox + 8; by = -drawH * 0.45 + oy;
-    } else {
-      bladeAngle = -0.1;  // still extended, settling
-      bx = ox + 6; by = -drawH * 0.45 + oy;
-    }
-
-    ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(bladeAngle);
-
-    // Simple clean blade
-    ctx.fillStyle = "#3a2818";
-    ctx.fillRect(-2, 0, 4, 9);          // handle
-    ctx.fillStyle = "#bb8833";
-    ctx.fillRect(-4, -1, 8, 2);         // tsuba
-    ctx.fillStyle = "#9aa8c0";
-    ctx.fillRect(-1, -bladeLen, 3, bladeLen); // blade
-    ctx.fillStyle = "#d8e0f0";
-    ctx.fillRect(-1, -bladeLen, 1, bladeLen); // edge highlight
-
-    // Flash on cut frame
-    if (p.state === "slash2") {
-      ctx.globalAlpha = 0.5;
-      ctx.fillStyle = "#e8f0ff";
-      ctx.fillRect(-2, -bladeLen, 5, bladeLen);
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.restore();
-  }
+  ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + oy, drawW, drawH);
 
   ctx.globalAlpha = 1;
   ctx.restore();
