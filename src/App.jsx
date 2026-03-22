@@ -894,7 +894,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     // Find which group a character belongs to
     const getCharGroup=(ch)=>groups.find(g=>g.c.includes(ch));
     const playRowAudioFor=(ch)=>{const g=getCharGroup(ch);if(!g)return;const af=ROW_AUDIO[g.n];if(!af)return;stopAudio();setStoryPlaying(true);const a=new Audio(`/audio/rows/${af}.mp3`);_ttsAudio=a;a.onended=()=>setStoryPlaying(false);a.onerror=()=>setStoryPlaying(false);a.play().catch(()=>setStoryPlaying(false));};
-        </div>
+
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
       const isHiragana=kScript==="h";
