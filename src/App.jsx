@@ -2,293 +2,26 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser, useAuth, useClerk, SignIn, SignUp } from "@clerk/clerk-react";
 import Game from "./game/Game.jsx";
 
-// ═══ STORAGE HELPERS ═══
-const store = {
-  get: (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
-  set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} },
-  del: (key) => { try { localStorage.removeItem(key); } catch(e) {} },
-};
+// Data
+import { M, H_GROUPS, K_GROUPS, ROMAJI, YOON_PARTS, DAKUTEN_BASE } from "./data/kana.js";
+import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "./data/phrases.js";
+import { THEMES } from "./data/themes.js";
+import { SRS_DAYS, KEY, font, mono, RP_SCENARIOS } from "./data/constants.js";
 
-// ═══ SYNC HELPERS ═══
-const syncLoad = async (token) => {
-  try {
-    const r = await fetch("/api/sync", {
-      headers: { "Authorization": `Bearer ${token}` }
-    });
-    if (r.status === 404) return null;
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
-};
-const syncSave = async (token, data) => {
-  try {
-    await fetch("/api/sync", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-      body: JSON.stringify({ data }),
-    });
-  } catch { /* offline — localStorage still holds it */ }
-};
+// Utils
+import { store, syncLoad, syncSave, defaultD, migrate } from "./utils/storage.js";
+import { _ttsAudio, setTtsAudio, _playAudio, speak, speakPhrase } from "./utils/audio.js";
+import { shuffle, daysUntil } from "./utils/helpers.js";
 
-// ═══ TTS — static pre-generated files, fallback to /api/tts proxy ═══
-let _ttsAudio = null;
-const _isKana=(ch)=>/^[\u3040-\u30FF]$/.test(ch);
-const _playAudio=(src,rate=1,onEnd=null,onErr=null)=>{
-  if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
-  const a=new Audio(src); a.playbackRate=rate; _ttsAudio=a;
-  if(onEnd) a.onended=onEnd;
-  if(onErr) a.onerror=onErr;
-  return a.play();
-};
-const speak = (text, lang="ja-JP") => {
-  // All Japanese → Google Translate proxy (natural pronunciation)
-  const ttsLang=lang==="ja-JP"?"ja":"en";
-  _playAudio(`/api/tts?lang=${ttsLang}&q=${encodeURIComponent(text)}`,lang==="ja-JP"?0.85:1).catch(()=>{
-    if(!window.speechSynthesis) return;
-    const u=new SpeechSynthesisUtterance(text); u.lang=lang; u.rate=0.85;
-    window.speechSynthesis.speak(u);
-  });
-};
-const speakPhrase=(id,text)=>{
-  _playAudio(`/audio/phrase/${id}.mp3`,1).catch(()=>{
-    _playAudio(`/api/tts?lang=ja&q=${encodeURIComponent(text)}`,0.85).catch(()=>{});
-  });
-};
-
-// ═══ KANA MNEMONICS ═══
-const M = {
-"あ":["🍎","Apple","Cross stroke = stem, loop = apple shape","The cross stroke at the top is the stem of an apple, and the loop below is the round fruit hanging from it."],
-"い":["🔤","Two i's side by side","Two vertical strokes like i i","Two simple strokes side by side — just like writing lowercase i twice."],
-"う":["🥊","Boxer punched — uu!","Top = fist, curve = doubling over","A boxer just took a hit to the gut, body curving down as they double over."],
-"え":["🥷","Energetic ninja","Ninja running with arms back","A ninja sprinting with arms stretched behind — the classic anime run, full speed ahead."],
-"お":["🛸","UFO — oh!","Or face saying oh with x eyes","A UFO hovering overhead, saucer shape beneath a beam of light."],
-"か":["🔪","Blade cutting stick","Diagonal = blade, vertical = stick","A blade cutting clean through a stick — the diagonal is the blade, the vertical line is the stick being split."],
-"き":["🔑","Key","Horizontals = teeth, vertical = shaft","A key lying flat — the horizontal strokes are the teeth, the vertical line is the shaft."],
-"く":["🐦","Cuckoo's beak","Angle = beak opening, ku-koo!","A cuckoo's beak wide open mid-call — one sharp angled stroke."],
-"け":["🪣","Keg","Strokes form a wooden keg","A wooden keg or barrel — the vertical strokes form the sides, the horizontal is the rim."],
-"こ":["🐟","Two koi fish","Two horizontals like fish swimming","Two koi fish gliding side by side through perfectly still water."],
-"さ":["😢","Sad sighing face","Strokes form a crying face","A sad face sighing — the crossing strokes are X-shaped eyes and the curve below is a crying mouth."],
-"し":["🎣","Fishing hook — fi-SHI-ng","Single swooping curve = hook","A fishing hook dropped into still water — one single swooping curve."],
-"す":["🌀","Spiral straw — su-piral","Or curly Sue","A straw caught in a spiral, curling around itself."],
-"せ":["🗣️","Mouth about to say","Mouth opening to speak","A mouth about to say something — the strokes form a side profile of a face with the mouth opening."],
-"そ":["🧵","Sewing stitch — so-so","50/50 fraction = so-so","Thread being sewn through fabric in one neat crossing stroke."],
-"た":["🔤","Letters t + a = ta!","Cross = T, curve = A","Look closely — the cross at the top is a T, the curve at the bottom is an A. T plus A."],
-"ち":["📣","Cheerleader — chi-eer!","Looks like 5, groups of 5","A cheerleader throwing their arms up wide — the stroke looks just like a five."],
-"つ":["🌊","Tsunami wave","Curling stroke or sideways U","One enormous sweeping curve — a tsunami, the whole ocean bending over, about to crash."],
-"て":["🐕","Dog's tail","Curved like a wagging tail","A dog's tail wagging — the horizontal line curves down like a tail in motion."],
-"と":["🌪️","Tornado","Funny stalk on TOp","A tornado spinning at the base, with a little stalk poking out of the very top."],
-"な":["🪢","Knot — kna-t","Or X for nah + tongue out","A tangled knot of rope — all those crossing strokes tied up tight."],
-"に":["🦵","Knee","Elongated n + sideways i","A leg with a bent knee — long left stroke for the thigh, right stroke bent at the joint."],
-"ぬ":["🍜","Chopsticks + noodles","See n + angular u","Noodles twirling on chopsticks — an N shape on the left, a looping U on the right."],
-"ね":["🐌","Snail behind nail","Extra hoop = NE not RE","A nail with a snail trailing behind it. That loop at the bottom is the snail — it's what makes this ne and not re."],
-"の":["🚫","No sign","n + o in one swirl","One decisive swirl — N and O combined into a single spinning stroke."],
-"は":["🔤","Capital H + little a","Has hoop, け does not","A capital H with a hoop on the right side. One hoop is ha — two horizontal bars is ho."],
-"ひ":["😁","Smiling mouth — hihihi!","Big grinning mouth","A wide curved mouth, lips pulled right back in the silliest grin."],
-"ふ":["🗻","Mount Fuji","Or nose blowing foooo","The silhouette of Mount Fuji — that iconic pointed peak."],
-"へ":["⬆️","Arrow to heaven — he","Angled line pointing up","One simple angled line rising to a point — an arrow aimed straight at heaven."],
-"ほ":["🐴","Horse face with mane","2 HOrizontal lines vs は's 1","Two horizontal bars making a very long face — like a horse's elongated muzzle."],
-"ま":["🎵","Musical note — ma-usic","Or man with mask","A quaver note floating on a staff."],
-"み":["🎶","I + i joined — Mi and mi","Or quaver note do-re-MI","Two quaver notes joined side by side — do, re, mi."],
-"む":["🐄","Cow — mooo!","Clown imitating animals","A cow turning to look right at you — the curling strokes form that round bovine face."],
-"め":["🥨","Pretzel","Chopsticks drop hoop = MEss","A pretzel, all twisted — or noodles dropped into a chaotic tangle."],
-"も":["🦎","Monitor lizard","Two horizontals = legs, vertical = body","A monitor lizard — the two horizontal strokes are its stubby legs, the vertical stroke is its long body."],
-"ら":["🐇","Rabbit in a lasso","Bunny sitting in a loop","A rabbit sitting inside a lasso loop — the wide sweeping curve wraps around the bunny."],
-"り":["🏞️","River","Right stroke longer than い","Two strokes, but the right one is longer and curves — one riverbank higher than the other."],
-"る":["💎","Hand holding ruby","Loop = ruby being held","A hand gripping a precious gem — the loop at the bottom is the ruby held tight in the palm."],
-"れ":["🦌","Reindeer","Strokes form reindeer","Trace the strokes and you'll find a reindeer — head, neck, branching antler."],
-"ろ":["🚣","Row your boat — looks like 3","る got RObbed, no ruby","Just like ru, but the loop at the bottom is gone — the ruby got stolen."],
-"や":["🦒","Yak or giraffe — yaaa!","Animal with long neck","A yak stretching its long neck up high — the tall stroke with the outstretched curve."],
-"ゆ":["🦄","Unicorn","Or finger pointing at YOU","A unicorn rearing up, horn pointing to the sky — or a finger aimed right at you."],
-"よ":["🪀","Yo-yo on string","Y without the cup","A yo-yo mid-trick, the loop descending on its string."],
-"わ":["🦢","Swan on water","Curved neck and body","A white swan gliding on water — the curved neck and round body form the elegant shape."],
-"を":["🧱","Crack in wall — woah!","Only used as particle","Something cracked clean through a wall — those complex strokes are the drama of that split."],
-"ん":["🔤","Elongated n","Single curve like letter n","One simple flowing curve, just like the letter n — the simplest character in the whole alphabet."],
-"ア":["🪓","Axe","Angular blade + handle","The sharp angular strokes form the head of an axe — the diagonal slash is the blade, the vertical line is the handle."],
-"イ":["🎨","Easel on its side","Two strokes like easel legs","An artist's easel tipped sideways — the two leaning strokes are the legs splayed apart on the floor."],
-"ウ":["👒","Angular う","Connected angular version","The angular katakana version of hiragana う — same character straightened out with sharp corners."],
-"エ":["🛗","Elevator doors","Frame + where doors meet","Two horizontal bars with a vertical line between them — elevator doors about to slide open on the ground floor."],
-"オ":["🎤","Opera singer","Mouth shaped like O","An opera singer belting a high note — mouth wide open, one arm flung out dramatically to the side."],
-"カ":["🔪","Katana blade","Sharp angular blade","A katana blade — the angular strokes form the sharp edge of a Japanese sword."],
-"キ":["🗝️","Like き without bottom","Same key, less curve","Hiragana き with the bottom curve chopped off — the same key, but stripped down to straight lines."],
-"ク":["🐦","Cuckoo's wing","Wing feathers","If hiragana く is the cuckoo's beak, this is the wing — the curved stroke sweeps out like a wing in flight."],
-"ケ":["🔠","Sideways K","Looks like letter K on its side","Turn your head and you'll see the letter K lying on its side — that's your ke right there."],
-"コ":["📐","Two corners","Two right angles form a road","A road with two sharp corners — follow the path and you'll make exactly two right-angle turns."],
-"サ":["🐎","Saddle","Strokes = saddle on horse","A saddle sitting on a horse's back — the vertical stroke is the pommel, the horizontal stroke is the seat."],
-"シ":["🚢","Sinking ship","Dots + curve going down","A smiley face sinking beneath the waves — the two dots are eyes and the curve sweeps downward like a ship going under."],
-"ス":["⛷️","Skiing person","Angled = skiing downhill","A person carving down a ski slope — the angled strokes capture that forward lean as they fly downhill."],
-"セ":["🗣️","Angular せ","Like せ without top right part","The angular version of hiragana せ with the top-right portion stripped away — same sensei, sharper edges."],
-"ソ":["🍦","Soft serve ice cream","SO slim + one-eyed smiley","The two strokes of ソ form the cone of a soft-serve ice cream — the ice cream swirl sits on top, completing the picture."],
-"タ":["📱","Arm holding a tablet","Gripping a tablet","An arm reaching out to hold a tablet or phone — the strokes form the arm and device."],
-"チ":["🐔","Chicken","Looks nothing like a chicken!","A chicken with its beak wide open — squint hard and you might see the head and body in those strokes."],
-"ツ":["🐟","Tuna fish head","Like シ but different direction","A tuna fish head — similar to シ but the strokes face a different direction, like the fish is swimming the other way."],
-"テ":["📞","Telephone pole","Wires on a pole bent at angle","A telephone pole bent at an angle by the wind — the horizontal stroke is the crossbar with wires, the diagonal is the leaning pole."],
-"ト":["⛩️","Temple side view","Vertical + short horizontal","The side view of a temple gate — one tall vertical pillar with a short horizontal beam jutting out."],
-"ナ":["🔪","Curved knife","Curved blade with handle","A curved knife — the horizontal stroke at the top is the handle, and the diagonal slash below is the blade."],
-"ニ":["2️⃣","Two lines = ni = 2","Two straight lines","Two horizontal bars stacked — like the number 2, easy as counting ni."],
-"ヌ":["🪢","Noose","Loop + cross","A noose dangling from a rope — the crossing strokes form the knot, and the loop hangs below."],
-"ネ":["🪺","Nest in a tree","Twigs woven in branches","A bird's nest tucked into the fork of a tree — twigs woven together between the branches."],
-"ノ":["🚫","No sign slash","Single diagonal stroke","The diagonal slash from a no-entry sign — just the line itself, without the circle around it."],
-"ハ":["🏠","Roof of a house","Two strokes spread like a roof","Two strokes spreading outward like the roof of a house — the peak is at the top, eaves angling down on each side."],
-"ヒ":["👠","Side of a heel","Stroke shaped like a heel","The side profile of a high heel shoe — the vertical stroke is the stiletto, the curve is the sole."],
-"フ":["🦶","Tip of a foot","Single curved stroke","The tip of a bare foot, toes pointing up — one simple curved stroke capturing that arch."],
-"ヘ":["⛰️","Same as へ — identical!","Same in both scripts","Exactly the same as hiragana へ — one angled line pointing up, identical in both scripts."],
-"ホ":["✝️","Shining holy cross","Cross + rays of light","A holy cross with rays of light shining from it — the vertical and horizontal strokes form the cross, the extra strokes are beams of radiance."],
-"マ":["🦈","Manta ray","Wing sweeping through water","A manta ray gliding through the ocean — the horizontal stroke is one massive wing, the curve beneath is the body sweeping through water."],
-"ミ":["3️⃣","Three bars = mi = 3","Three horizontal strokes","Three horizontal bars stacked up — three bars, three sounds, mi."],
-"ム":["🫎","Moose antlers","Angular antler shape","A moose's antler viewed from the side — the angular strokes branch upward like the pointed tips of an antler."],
-"メ":["💌","Mail / male","X = back of envelope","Draw a rectangle around it and you get the back of a mail envelope — the X marks where the flap folds shut."],
-"モ":["⛵","Like も","Third stroke doesn't intersect","Just like hiragana も but the third stroke floats free instead of cutting through the first — same sailboat, slightly different rigging."],
-"ヤ":["🐐","Angular や","More angular, one less stroke","The angular version of hiragana や with one stroke removed — sharper, more geometric, but the same shape at heart."],
-"ユ":["🔭","U-boat periscope","Periscope poking above water","The periscope of a U-boat poking above the water's surface — the vertical tube rising up, the horizontal piece scanning the horizon."],
-"ヨ":["🥚","Yolk pulled by two oxen","Two horizontal bars + vertical","An egg yolk being pulled by two oxen — the two horizontal strokes are the yoke beams, the vertical stroke connects them."],
-"ラ":["🪑","Reclining chair","Simple chair shape","A reclining chair tipped back — the horizontal stroke is the headrest, the curve below is the seat and backrest."],
-"リ":["🏞️","Like り without curves","Straight flowing strokes","Hiragana り with the honey-like curves straightened out — the same river, but flowing in clean straight lines."],
-"ル":["🌳","Tree roots","Two strokes = roots","The roots of a tree splitting into the ground — two strokes diverging downward, digging deep into the earth."],
-"レ":["🪒","Razor blade","Curve = blade edge","A razor blade standing on its edge — one sharp vertical stroke with a curve at the base, ready to cut."],
-"ロ":["🤖","Robot's mouth","Rectangle = mouth","A boxy mechanical shape — a perfect rectangle like a robot's rigid mouth or a metal box."],
-"ワ":["🍷","Wine glass","Angular curve = glass","A wine glass seen from the side — the angular curve is the bowl of the glass, tapering down to the stem."],
-"ヲ":["🔥","World Olympic torch","Wine glass + extra stroke","The Olympic torch held high — like ワ (wine glass) but with an extra stroke on top for the flame reaching skyward."],
-"ン":["🛸","Spacecraft entering atmosphere","ン wider, ソ slimmer","A spacecraft streaking into Earth's atmosphere — wider and flatter than ソ, like a capsule heating up on re-entry."],
-};
-
-const H_GROUPS = [
-{n:"Vowels",c:["あ","い","う","え","お"]},{n:"K",c:["か","き","く","け","こ"]},
-{n:"S",c:["さ","し","す","せ","そ"]},{n:"T",c:["た","ち","つ","て","と"]},
-{n:"N",c:["な","に","ぬ","ね","の"]},{n:"H",c:["は","ひ","ふ","へ","ほ"]},
-{n:"M",c:["ま","み","む","め","も"]},{n:"Y",c:["や","ゆ","よ"]},
-{n:"R",c:["ら","り","る","れ","ろ"]},{n:"W+N",c:["わ","を","ん"]},
-{n:"G゛",c:["が","ぎ","ぐ","げ","ご"],dk:true},{n:"Z゛",c:["ざ","じ","ず","ぜ","ぞ"],dk:true},
-{n:"D゛",c:["だ","ぢ","づ","で","ど"],dk:true},{n:"B゛",c:["ば","び","ぶ","べ","ぼ"],dk:true},
-{n:"P゜",c:["ぱ","ぴ","ぷ","ぺ","ぽ"],dk:true},
-{n:"Ky",c:["きゃ","きゅ","きょ"],yo:true},{n:"Sh",c:["しゃ","しゅ","しょ"],yo:true},
-{n:"Ch",c:["ちゃ","ちゅ","ちょ"],yo:true},{n:"Ny",c:["にゃ","にゅ","にょ"],yo:true},
-{n:"Hy",c:["ひゃ","ひゅ","ひょ"],yo:true},{n:"My",c:["みゃ","みゅ","みょ"],yo:true},
-{n:"Ry",c:["りゃ","りゅ","りょ"],yo:true},
-{n:"Gy",c:["ぎゃ","ぎゅ","ぎょ"],yo:true},{n:"Jy",c:["じゃ","じゅ","じょ"],yo:true},
-{n:"By",c:["びゃ","びゅ","びょ"],yo:true},{n:"Py",c:["ぴゃ","ぴゅ","ぴょ"],yo:true},
-];
-const K_GROUPS = [
-{n:"Vowels",c:["ア","イ","ウ","エ","オ"]},{n:"K",c:["カ","キ","ク","ケ","コ"]},
-{n:"S",c:["サ","シ","ス","セ","ソ"]},{n:"T",c:["タ","チ","ツ","テ","ト"]},
-{n:"N",c:["ナ","ニ","ヌ","ネ","ノ"]},{n:"H",c:["ハ","ヒ","フ","ヘ","ホ"]},
-{n:"M",c:["マ","ミ","ム","メ","モ"]},{n:"Y",c:["ヤ","ユ","ヨ"]},
-{n:"R",c:["ラ","リ","ル","レ","ロ"]},{n:"W+N",c:["ワ","ヲ","ン"]},
-{n:"G゛",c:["ガ","ギ","グ","ゲ","ゴ"],dk:true},{n:"Z゛",c:["ザ","ジ","ズ","ゼ","ゾ"],dk:true},
-{n:"D゛",c:["ダ","ヂ","ヅ","デ","ド"],dk:true},{n:"B゛",c:["バ","ビ","ブ","ベ","ボ"],dk:true},
-{n:"P゜",c:["パ","ピ","プ","ペ","ポ"],dk:true},
-{n:"Ky",c:["キャ","キュ","キョ"],yo:true},{n:"Sh",c:["シャ","シュ","ショ"],yo:true},
-{n:"Ch",c:["チャ","チュ","チョ"],yo:true},{n:"Ny",c:["ニャ","ニュ","ニョ"],yo:true},
-{n:"Hy",c:["ヒャ","ヒュ","ヒョ"],yo:true},{n:"My",c:["ミャ","ミュ","ミョ"],yo:true},
-{n:"Ry",c:["リャ","リュ","リョ"],yo:true},
-{n:"Gy",c:["ギャ","ギュ","ギョ"],yo:true},{n:"Jy",c:["ジャ","ジュ","ジョ"],yo:true},
-{n:"By",c:["ビャ","ビュ","ビョ"],yo:true},{n:"Py",c:["ピャ","ピュ","ピョ"],yo:true},
-];
-
-const ROMAJI={"あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","が":"ga","ぎ":"gi","ぐ":"gu","げ":"ge","ご":"go","ざ":"za","じ":"ji","ず":"zu","ぜ":"ze","ぞ":"zo","だ":"da","ぢ":"di","づ":"du","で":"de","ど":"do","ば":"ba","び":"bi","ぶ":"bu","べ":"be","ぼ":"bo","ぱ":"pa","ぴ":"pi","ぷ":"pu","ぺ":"pe","ぽ":"po","ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o","カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko","サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so","タ":"ta","チ":"chi","ツ":"tsu","テ":"te","ト":"to","ナ":"na","ニ":"ni","ヌ":"nu","ネ":"ne","ノ":"no","ハ":"ha","ヒ":"hi","フ":"fu","ヘ":"he","ホ":"ho","マ":"ma","ミ":"mi","ム":"mu","メ":"me","モ":"mo","ヤ":"ya","ユ":"yu","ヨ":"yo","ラ":"ra","リ":"ri","ル":"ru","レ":"re","ロ":"ro","ワ":"wa","ヲ":"wo","ン":"n","ガ":"ga","ギ":"gi","グ":"gu","ゲ":"ge","ゴ":"go","ザ":"za","ジ":"ji","ズ":"zu","ゼ":"ze","ゾ":"zo","ダ":"da","ヂ":"di","ヅ":"du","デ":"de","ド":"do","バ":"ba","ビ":"bi","ブ":"bu","ベ":"be","ボ":"bo","パ":"pa","ピ":"pi","プ":"pu","ペ":"pe","ポ":"po","きゃ":"kya","きゅ":"kyu","きょ":"kyo","しゃ":"sha","しゅ":"shu","しょ":"sho","ちゃ":"cha","ちゅ":"chu","ちょ":"cho","にゃ":"nya","にゅ":"nyu","にょ":"nyo","ひゃ":"hya","ひゅ":"hyu","ひょ":"hyo","みゃ":"mya","みゅ":"myu","みょ":"myo","りゃ":"rya","りゅ":"ryu","りょ":"ryo","ぎゃ":"gya","ぎゅ":"gyu","ぎょ":"gyo","じゃ":"ja","じゅ":"ju","じょ":"jo","びゃ":"bya","びゅ":"byu","びょ":"byo","ぴゃ":"pya","ぴゅ":"pyu","ぴょ":"pyo","キャ":"kya","キュ":"kyu","キョ":"kyo","シャ":"sha","シュ":"shu","ショ":"sho","チャ":"cha","チュ":"chu","チョ":"cho","ニャ":"nya","ニュ":"nyu","ニョ":"nyo","ヒャ":"hya","ヒュ":"hyu","ヒョ":"hyo","ミャ":"mya","ミュ":"myu","ミョ":"myo","リャ":"rya","リュ":"ryu","リョ":"ryo","ギャ":"gya","ギュ":"gyu","ギョ":"gyo","ジャ":"ja","ジュ":"ju","ジョ":"jo","ビャ":"bya","ビュ":"byu","ビョ":"byo","ピャ":"pya","ピュ":"pyu","ピョ":"pyo"};
-
-// Yōon combination mappings: combo → [consonant char, small vowel char]
-const YOON_PARTS={"きゃ":["き","ゃ"],"きゅ":["き","ゅ"],"きょ":["き","ょ"],"しゃ":["し","ゃ"],"しゅ":["し","ゅ"],"しょ":["し","ょ"],"ちゃ":["ち","ゃ"],"ちゅ":["ち","ゅ"],"ちょ":["ち","ょ"],"にゃ":["に","ゃ"],"にゅ":["に","ゅ"],"にょ":["に","ょ"],"ひゃ":["ひ","ゃ"],"ひゅ":["ひ","ゅ"],"ひょ":["ひ","ょ"],"みゃ":["み","ゃ"],"みゅ":["み","ゅ"],"みょ":["み","ょ"],"りゃ":["り","ゃ"],"りゅ":["り","ゅ"],"りょ":["り","ょ"],"ぎゃ":["ぎ","ゃ"],"ぎゅ":["ぎ","ゅ"],"ぎょ":["ぎ","ょ"],"じゃ":["じ","ゃ"],"じゅ":["じ","ゅ"],"じょ":["じ","ょ"],"びゃ":["び","ゃ"],"びゅ":["び","ゅ"],"びょ":["び","ょ"],"ぴゃ":["ぴ","ゃ"],"ぴゅ":["ぴ","ゅ"],"ぴょ":["ぴ","ょ"],"キャ":["キ","ャ"],"キュ":["キ","ュ"],"キョ":["キ","ョ"],"シャ":["シ","ャ"],"シュ":["シ","ュ"],"ショ":["シ","ョ"],"チャ":["チ","ャ"],"チュ":["チ","ュ"],"チョ":["チ","ョ"],"ニャ":["ニ","ャ"],"ニュ":["ニ","ュ"],"ニョ":["ニ","ョ"],"ヒャ":["ヒ","ャ"],"ヒュ":["ヒ","ュ"],"ヒョ":["ヒ","ョ"],"ミャ":["ミ","ャ"],"ミュ":["ミ","ュ"],"ミョ":["ミ","ョ"],"リャ":["リ","ャ"],"リュ":["リ","ュ"],"リョ":["リ","ョ"],"ギャ":["ギ","ャ"],"ギュ":["ギ","ュ"],"ギョ":["ギ","ョ"],"ジャ":["ジ","ャ"],"ジュ":["ジ","ュ"],"ジョ":["ジ","ョ"],"ビャ":["ビ","ャ"],"ビュ":["ビ","ュ"],"ビョ":["ビ","ョ"],"ピャ":["ピ","ャ"],"ピュ":["ピ","ュ"],"ピョ":["ピ","ョ"]};
-
-const DAKUTEN_BASE={"が":"か","ぎ":"き","ぐ":"く","げ":"け","ご":"こ","ざ":"さ","じ":"し","ず":"す","ぜ":"せ","ぞ":"そ","だ":"た","ぢ":"ち","づ":"つ","で":"て","ど":"と","ば":"は","び":"ひ","ぶ":"ふ","べ":"へ","ぼ":"ほ","ぱ":"は","ぴ":"ひ","ぷ":"ふ","ぺ":"へ","ぽ":"ほ","ガ":"カ","ギ":"キ","グ":"ク","ゲ":"ケ","ゴ":"コ","ザ":"サ","ジ":"シ","ズ":"ス","ゼ":"セ","ゾ":"ソ","ダ":"タ","ヂ":"チ","ヅ":"ツ","デ":"テ","ド":"ト","バ":"ハ","ビ":"ヒ","ブ":"フ","ベ":"ヘ","ボ":"ホ","パ":"ハ","ピ":"ヒ","プ":"フ","ペ":"ヘ","ポ":"ホ"};
-
-// mc=true → mission critical (first 48h survival phrases)
-const PHRASES = [
-["g1","こんにちは","kon-ni-chi-wa","Hello (daytime)","greet","Most universal greeting",true],
-["g2","おはようございます","o-ha-you go-zai-ma-su","Good morning (polite)","greet","Use before ~10am"],
-["g3","こんばんは","kon-ban-wa","Good evening","greet","Use after sunset"],
-["g4","ありがとうございます","a-ri-ga-tou go-zai-ma-su","Thank you (polite)","greet","Use this version with strangers",true],
-["g5","すみません","su-mi-ma-sen","Excuse me / sorry","greet","Swiss army knife phrase",true],
-["g6","はい","hai","Yes","greet","Nod slightly when saying it",true],
-["g7","いいえ","ii-e","No","greet","Can sound blunt — use daijoubu desu instead"],
-["g8","おねがいします","o-ne-gai-shi-ma-su","Please","greet","Add after any request",true],
-["g9","だいじょうぶです","dai-jou-bu de-su","I'm fine / no thank you","greet","Polite way to decline",true],
-["g10","さようなら","sa-you-na-ra","Goodbye (formal)","greet","For when you won't see them again soon"],
-["f1","これをください","ko-re o ku-da-sai","This one please","food","Point at menu + say this",true],
-["f2","おかんじょうおねがいします","o-kan-jou o-ne-gai-shi-ma-su","Bill please","food","Or gesture writing in air",true],
-["f3","みずをください","mi-zu o ku-da-sai","Water please","food","Water is free at restaurants",true],
-["f4","おいしいです","oi-shii de-su","It's delicious","food","Staff love hearing this"],
-["f5","いただきます","i-ta-da-ki-ma-su","(Before eating)","food","Say before every meal",true],
-["f6","ごちそうさまでした","go-chi-sou-sa-ma de-shi-ta","(After eating)","food","Thanks for the meal — say when leaving"],
-["f7","おすすめはなんですか","o-su-su-me wa nan de-su ka","What do you recommend?","food","Great for trying local specialties"],
-["f8","ひとりです","hi-to-ri de-su","One person","food","When entering, say party size",true],
-["f9","ふたりです","fu-ta-ri de-su","Two people","food","For when you're with someone"],
-["f10","アレルギーがあります","a-re-ru-gii ga a-ri-ma-su","I have allergies","food","Follow with the allergen name"],
-["t1","...えきはどこですか","...e-ki wa do-ko de-su ka","Where is ... station?","train","Insert station name before えき",true],
-["t2","...までいくらですか","...ma-de i-ku-ra de-su ka","How much to ...?","train","For buying tickets"],
-["t3","つぎのえきはなんですか","tsu-gi no e-ki wa nan de-su ka","What's the next station?","train","Useful on trains"],
-["t4","のりかえはどこですか","no-ri-ka-e wa do-ko de-su ka","Where do I transfer?","train","For complex routes"],
-["t5","...までおねがいします","...ma-de o-ne-gai-shi-ma-su","To ... please (taxi)","train","Give destination to taxi driver",true],
-["t6","ここでおろしてください","ko-ko de o-ro-shi-te ku-da-sai","Let me off here please","train","For taxis"],
-["t7","スイカ / パスモ","sui-ka / pa-su-mo","IC transit cards","train","Tap on/off at gates"],
-["t8","しゅうでんはなんじですか","shuu-den wa nan-ji de-su ka","When is the last train?","train","Critical for nightlife"],
-["h1","チェックインおねがいします","chek-ku-in o-ne-gai-shi-ma-su","Check in please","hotel","Hand over passport with this",true],
-["h2","よやくがあります","yo-ya-ku ga a-ri-ma-su","I have a reservation","hotel","Follow with your name",true],
-["h3","チェックアウトはなんじですか","chek-ku-au-to wa nan-ji de-su ka","What time is checkout?","hotel","Usually 10-11am"],
-["h4","WiFiのパスワードはなんですか","wai-fai no pa-su-waa-do wa nan de-su ka","What's the WiFi password?","hotel","Most hotels have free WiFi"],
-["h5","かぎ","ka-gi","Key","hotel","If you need a room key"],
-["h6","もういっぱくおねがいします","mou ip-pa-ku o-ne-gai-shi-ma-su","One more night please","hotel","To extend your stay"],
-["s1","これはいくらですか","ko-re wa i-ku-ra de-su ka","How much is this?","shop","Point at item",true],
-["s2","ふくろはいらないです","fu-ku-ro wa i-ra-nai de-su","I don't need a bag","shop","Bags cost extra in Japan",true],
-["s3","カードでおねがいします","kaa-do de o-ne-gai-shi-ma-su","By card please","shop","Most places take IC cards"],
-["s4","げんきんでおねがいします","gen-kin de o-ne-gai-shi-ma-su","Cash please","shop","Japan is still very cash-friendly"],
-["s5","あたためますか？","a-ta-ta-me-ma-su ka","Shall I heat it up?","shop","Conbini staff ask this for bento"],
-["s6","これをふたつください","ko-re o fu-ta-tsu ku-da-sai","Two of these please","shop","Point + quantity"],
-["s7","レシートはいらないです","re-shii-to wa i-ra-nai de-su","No receipt needed","shop","Common at convenience stores"],
-["d1","...はどこですか","...wa do-ko de-su ka","Where is ...?","dir","Universal direction question",true],
-["d2","みぎ","mi-gi","Right","dir","",true],
-["d3","ひだり","hi-da-ri","Left","dir","",true],
-["d4","まっすぐ","mas-su-gu","Straight ahead","dir","",true],
-["d5","ちかいですか","chi-kai de-su ka","Is it close?","dir","Good follow-up"],
-["d6","あるいていけますか","a-ru-i-te i-ke-ma-su ka","Can I walk there?","dir","Walk vs taxi decision"],
-["d7","ちずをみせてください","chi-zu o mi-se-te ku-da-sai","Show me on the map please","dir","Hand them your phone"],
-["d8","トイレはどこですか","toi-re wa do-ko de-su ka","Where is the toilet?","dir","Essential",true],
-["e1","たすけてください","ta-su-ke-te ku-da-sai","Help me please","sos","For emergencies",true],
-["e2","びょういんはどこですか","byou-in wa do-ko de-su ka","Where is the hospital?","sos",""],
-["e3","けいさつをよんでください","kei-sa-tsu o yon-de ku-da-sai","Please call the police","sos","Emergency: 110"],
-["e4","えいごをはなせますか","ei-go o ha-na-se-ma-su ka","Do you speak English?","sos","Try in tourist areas",true],
-["e5","にほんごがわかりません","ni-hon-go ga wa-ka-ri-ma-sen","I don't understand Japanese","sos","Signal language barrier",true],
-["e6","もういちどいってください","mou i-chi-do it-te ku-da-sai","Please say that again","sos","When someone speaks too fast"],
-];
-
-const CATS={greet:"Greetings",food:"Restaurants",train:"Transport",hotel:"Hotels",shop:"Shopping",dir:"Directions",sos:"Emergencies"};
-const CAT_ICONS={greet:"👋",food:"🍜",train:"🚃",hotel:"🏨",shop:"🏪",dir:"🗺️",sos:"🆘"};
-const CAT_COLORS={greet:"#5a9e6f",food:"#c45d4c",train:"#5a8ec4",hotel:"#8b6ec4",shop:"#c45d8b",dir:"#5ac4a0",sos:"#c44444"};
-const SRS_DAYS=[0,0.5,1,3,7,14];
-const KEY="nihongo-v4";
-
-const font='"Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
-const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
-
-// ═══ ROLE-PLAY SCENARIOS ═══
-const RP_SCENARIOS = [
-  {id:"hotel", icon:"🏨", name:"Hotel Check-In", prompt:"Let's role-play. You are the front desk staff at a Japanese hotel. Speak in Japanese with English translation in parentheses after each line. Start by greeting me as I approach the desk to check in."},
-  {id:"food",  icon:"🍜", name:"Ordering Food",  prompt:"Let's role-play. You are a waiter at a Japanese restaurant. Speak in Japanese with English in parentheses. I've just sat down — start the scene."},
-  {id:"train", icon:"🚃", name:"Buying a Ticket",prompt:"Let's role-play. You are a helpful Japanese train station attendant. Speak in Japanese with English in parentheses. I approach your window looking a bit lost — start the scene."},
-  {id:"shop",  icon:"🏪", name:"Shopping",       prompt:"Let's role-play. You are staff at a Japanese convenience store. Speak in Japanese with English in parentheses. I walk up to the counter — start the scene."},
-  {id:"dir",   icon:"🗺️", name:"Asking Directions",prompt:"Let's role-play. You are a friendly Japanese local on the street. Speak in Japanese with English in parentheses. I approach you looking confused with my phone — start the scene."},
-];
-
-// ═══ THEMES ═══
-const THEMES = {
-  dark: {
-    name:"Dark",
-    bg:"#0d0d10", s:"#161619", s2:"#1e1e23", s3:"#26262d", b:"#2e2e36",
-    tx:"#f0eee9", m:"#64646a",
-    a:"#c0282a", g:"#4f8ec4", go:"#9b8ecf", bl:"#5a8ec4",
-    as:"rgba(192,40,42,.15)", gs:"rgba(79,142,196,.13)", gos:"rgba(155,142,207,.13)", rs:"rgba(192,40,42,.11)",
-  },
-  light: {
-    name:"Light",
-    bg:"#f7f6f3", s:"#ffffff", s2:"#f0efec", s3:"#e8e7e3", b:"#dddcD8",
-    tx:"#111114", m:"#888580",
-    a:"#a81e20", g:"#3a6ea0", go:"#7c6fcd", bl:"#3a6ea0",
-    as:"rgba(168,30,32,.10)", gs:"rgba(58,110,160,.10)", gos:"rgba(124,111,205,.10)", rs:"rgba(168,30,32,.09)",
-  },
-};
-
-function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;}
-function daysUntil(dateStr){if(!dateStr)return 0;return Math.max(0,Math.ceil((new Date(dateStr)-Date.now())/(864e5)));}
+// Components
+import Home from "./components/Home.jsx";
+import KanaTrainer from "./components/KanaTrainer.jsx";
+import PhraseBank from "./components/PhraseBank.jsx";
+import SenpaiChat from "./components/SenpaiChat.jsx";
+import DailyDrill from "./components/DailyDrill.jsx";
+import Onboarding from "./components/Onboarding.jsx";
+import Profile from "./components/Profile.jsx";
+import Layout from "./components/Layout.jsx";
 
 export default function App(){
   const { user, isLoaded: clerkLoaded } = useUser();
@@ -418,19 +151,6 @@ function AuthedApp({ user, getToken }){
     return()=>window.speechSynthesis?.removeEventListener?.("voiceschanged",h);
   },[]);
 
-  const migrate=(raw)=>{
-    if(!raw) return null;
-    const migratedKana={};
-    Object.entries(raw.kana||{}).forEach(([ch,v])=>{
-      migratedKana[ch]=typeof v==="number"?{box:Math.min(v,5),next:Date.now()}:v;
-    });
-    const today=new Date().toDateString();
-    const yesterday=new Date(Date.now()-864e5).toDateString();
-    const lastDay=raw.lastDay;
-    const streak=lastDay===today?raw.streak||1:lastDay===yesterday?(raw.streak||0)+1:1;
-    return {...raw,kana:migratedKana,phr:raw.phr||{},streak,lastDay:today};
-  };
-
   useEffect(()=>{
     const init=async()=>{
       const token=await getToken();
@@ -459,7 +179,6 @@ function AuthedApp({ user, getToken }){
     init();
   },[]);// eslint-disable-line
 
-  const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,streak:1,lastDay:new Date().toDateString(),started:new Date().toISOString(),onboarded:false,onboarding:{}});
   const data=d||defaultD();
 
   // atomic save — localStorage + DB
@@ -717,9 +436,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const card={background:c.s,border:"1px solid "+c.b,borderRadius:12,padding:16};
   const btn={fontFamily:font,cursor:"pointer",border:"none",transition:"all .15s"};
   const chip=(color)=>({display:"inline-flex",alignItems:"center",padding:"3px 9px",borderRadius:20,fontSize:11,fontWeight:600,background:color+"22",color:color,border:"1px solid "+color+"44"});
-  const speakBtn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
+  const speakBtnFn=(text)=><button onClick={e=>{e.stopPropagation();speak(text);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>;
   const kbHint=k=>isDesktop?<span style={{fontSize:10,opacity:0.3,fontFamily:mono,marginLeft:6}}>{k}</span>:null;
-  const stopAudio=()=>{if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}if(window.speechSynthesis)window.speechSynthesis.cancel();setStoryPlaying(false);};
+  const stopAudio=()=>{if(_ttsAudio){_ttsAudio.pause();setTtsAudio(null);}if(window.speechSynthesis)window.speechSynthesis.cancel();setStoryPlaying(false);};
   const speakYoon=(ch)=>{
     if(!ch||!YOON_PARTS[ch]) return;
     if(storyPlaying){stopAudio();return;}
@@ -729,8 +448,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const baseUrl=`/api/tts?lang=ja&q=${encodeURIComponent(base)}`;
     const bridgeUrl=`/audio/dakuten/bridge_yoon.mp3`;
     const comboUrl=`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`;
-    const a1=new Audio(baseUrl);a1.playbackRate=0.85;_ttsAudio=a1;
-    a1.onended=()=>{const a2=new Audio(bridgeUrl);_ttsAudio=a2;a2.onended=()=>{const a3=new Audio(comboUrl);a3.playbackRate=0.85;_ttsAudio=a3;a3.onended=done;a3.onerror=done;a3.play().catch(done);};a2.onerror=done;a2.play().catch(done);};
+    const a1=new Audio(baseUrl);a1.playbackRate=0.85;setTtsAudio(a1);
+    a1.onended=()=>{const a2=new Audio(bridgeUrl);setTtsAudio(a2);a2.onended=()=>{const a3=new Audio(comboUrl);a3.playbackRate=0.85;setTtsAudio(a3);a3.onended=done;a3.onerror=done;a3.play().catch(done);};a2.onerror=done;a2.play().catch(done);};
     a1.onerror=done;a1.play().catch(done);
   };
   const speakDakuten=(ch)=>{
@@ -743,8 +462,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const bridgeUrl=`/audio/dakuten/bridge_${isHdk?"handakuten":"dakuten"}.mp3`;
     const baseUrl=`/api/tts?lang=ja&q=${encodeURIComponent(baseCh)}`;
     const modUrl=`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`;
-    const a1=new Audio(baseUrl);a1.playbackRate=0.85;_ttsAudio=a1;
-    a1.onended=()=>{const a2=new Audio(bridgeUrl);_ttsAudio=a2;a2.onended=()=>{const a3=new Audio(modUrl);a3.playbackRate=0.85;_ttsAudio=a3;a3.onended=done;a3.onerror=done;a3.play().catch(done);};a2.onerror=done;a2.play().catch(done);};
+    const a1=new Audio(baseUrl);a1.playbackRate=0.85;setTtsAudio(a1);
+    a1.onended=()=>{const a2=new Audio(bridgeUrl);setTtsAudio(a2);a2.onended=()=>{const a3=new Audio(modUrl);a3.playbackRate=0.85;setTtsAudio(a3);a3.onended=done;a3.onerror=done;a3.play().catch(done);};a2.onerror=done;a2.play().catch(done);};
     a1.onerror=done;a1.play().catch(done);
   };
   const speakStory=(m,ch)=>{
@@ -758,37 +477,19 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const kanaUrl=`/api/tts?lang=ja&q=${encodeURIComponent(ch)}`;
     const preStory=new Audio(storyUrl); preStory.playbackRate=1.1;
     const preKana2=new Audio(kanaUrl); preKana2.playbackRate=0.85;
-    // Chain: JP kana → English story → JP kana again
+    // Chain: JP kana -> English story -> JP kana again
     const playKana1=()=>{
       const k=new Audio(kanaUrl);
-      k.playbackRate=0.85; _ttsAudio=k;
-      k.onended=()=>{_ttsAudio=preStory;preStory.onended=()=>{_ttsAudio=preKana2;preKana2.onended=done;preKana2.onerror=done;preKana2.play().catch(done);};preStory.onerror=done;preStory.play().catch(done);};
+      k.playbackRate=0.85; setTtsAudio(k);
+      k.onended=()=>{setTtsAudio(preStory);preStory.onended=()=>{setTtsAudio(preKana2);preKana2.onended=done;preKana2.onerror=done;preKana2.play().catch(done);};preStory.onerror=done;preStory.play().catch(done);};
       k.onerror=done;
       k.play().catch(done);
     };
     playKana1();
   };
-  const storyBtn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"10px 16px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:13,color:storyPlaying?c.a:c.m,width:"100%",flexShrink:0}}>
+  const storyBtnFn=(m,ch)=>m?<button onClick={e=>{e.stopPropagation();speakStory(m,ch);}} style={{...btn,padding:"10px 16px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:13,color:storyPlaying?c.a:c.m,width:"100%",flexShrink:0}}>
     {storyPlaying?"■ stop":"🔊 story"}
   </button>:null;
-
-  const sideTabBtn=(active)=>({
-    ...btn,width:"100%",padding:"9px 12px",
-    background:active?c.as:"transparent",
-    display:"flex",flexDirection:"row",alignItems:"center",gap:10,
-    color:active?c.a:c.m,fontSize:14,fontWeight:active?600:400,
-    borderRadius:8,border:"none",textAlign:"left",
-  });
-
-  const bottomTabBtn=(active)=>({
-    ...btn,flex:1,padding:"10px 0 8px",background:"transparent",
-    display:"flex",flexDirection:"column",alignItems:"center",gap:3,
-    color:active?c.a:c.m,fontSize:10,fontWeight:active?600:400,
-  });
-
-  const redGlow=theme==="dark"?"radial-gradient(ellipse 70% 35% at 50% 105%, rgba(192,40,42,0.13) 0%, transparent 100%)":"none";
-  const wrap={fontFamily:font,background:theme==="dark"?`${redGlow}, ${c.bg}`:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
-  const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
 
   const progressBar=(pct,color)=>(
     <div style={{flex:1,height:8,background:c.s3,borderRadius:4,overflow:"hidden"}}>
@@ -796,834 +497,14 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     </div>
   );
 
+  const redGlow=theme==="dark"?"radial-gradient(ellipse 70% 35% at 50% 105%, rgba(192,40,42,0.13) 0%, transparent 100%)":"none";
+  const wrap={fontFamily:font,background:theme==="dark"?`${redGlow}, ${c.bg}`:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
+  const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
+
   if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
   const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}`;
 
-  // ═══ HOME ═══
-  const renderHome=()=>{
-    const ob=data.onboarding||{};
-    const dl=ob.tripDate?daysUntil(ob.tripDate):0;
-    const kanaPct=Math.round(kMastered/92*100);
-    const phrPct=Math.round(learnedPhr/PHRASES.length*100);
-    const totalDue=kDueCount+dueCount;
-    const stats=[
-      {l:"Kana",v:kanaPct+"%",cl:c.a},
-      {l:"Phrases",v:phrPct+"%",cl:c.g},
-      {l:"Streak",v:(data.streak||1)+"🔥",cl:c.go},
-      {l:"To Review",v:totalDue,cl:totalDue>0?c.go:c.g},
-    ];
-    const actions=[
-      {id:"drill",icon:"🔥",title:"Daily Drill",desc:"5 kana + 5 phrases mixed",action:startDrill},
-      {id:"study",icon:"💬",title:"Review Phrases",desc:dueCount>0?`${dueCount} phrases due`:"Learn new phrases",action:()=>{setTab("phrases");setPMode("review");}},
-      {id:"kana",icon:"あ",title:"Kana Practice",desc:`${kMastered}/92 mastered${kDueCount>0?" · "+kDueCount+" due":""}`,action:()=>{setTab("kana");setKScreen("menu");}},
-      {id:"sensei",icon:"🎌",title:"Ask Senpai",desc:"Roleplay, questions, grammar",action:()=>setTab("sensei")},
-    ];
-    return <div style={inner}>
-      <div style={{marginBottom:24}}>
-        <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em",textShadow:theme==="dark"?"0 0 30px rgba(192,40,42,0.35)":"none"}}>{profile.name?`こんにちは, ${profile.name}!`:"日本語 Journey"}</h1>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to go</span>}
-          {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono,display:"inline-block",animation:streakCelebrate?"streakPop .6s ease-out, streakGlow 1.5s ease-in-out 3":"none"}}>🔥 {data.streak} day streak</span>}
-        </div>
-      </div>
-      <div style={{display:"flex",gap:6,marginBottom:16}}>
-        {stats.map((s,i)=><div key={i} style={{flex:1,...card,textAlign:"center",padding:"12px 6px"}}>
-          <div style={{fontSize:19,fontWeight:800,fontFamily:mono,color:s.cl,marginBottom:3}}>{s.v}</div>
-          <div style={{fontSize:10,color:c.m,textTransform:"uppercase",letterSpacing:".04em"}}>{s.l}</div>
-        </div>)}
-      </div>
-      {(kDueCount>0||dueCount>0)&&<div style={{...card,marginBottom:8,padding:"14px 16px",background:c.go+"0d",border:"1px solid "+c.go+"33"}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.go,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10}}>🔔 Ready to review</div>
-        <div style={{display:"flex",gap:8}}>
-          {kDueCount>0&&<button onClick={()=>{
-            const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
-            setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");setTab("kana");
-          }} onMouseEnter={()=>setHov("rk")} onMouseLeave={()=>setHov(null)}
-            style={{...btn,flex:1,padding:"10px 14px",borderRadius:9,background:hov==="rk"?c.go+"33":c.go+"18",border:"1px solid "+c.go+"44",color:c.go,fontSize:13,fontWeight:600}}>あ {kDueCount} kana</button>}
-          {dueCount>0&&<button onClick={()=>{setTab("phrases");setPMode("review");}}
-            onMouseEnter={()=>setHov("rp")} onMouseLeave={()=>setHov(null)}
-            style={{...btn,flex:1,padding:"10px 14px",borderRadius:9,background:hov==="rp"?c.go+"33":c.go+"18",border:"1px solid "+c.go+"44",color:c.go,fontSize:13,fontWeight:600}}>💬 {dueCount} phrases</button>}
-        </div>
-      </div>}
-      {kMastered>=20&&learnedPhr===0&&!data.settings?.phrasesNudgeShown&&<div onClick={()=>{save({settings:{...data.settings,phrasesNudgeShown:true}});setTab("phrases");setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
-        style={{...card,marginBottom:8,cursor:"pointer",padding:"14px 16px",background:c.g+"0d",border:"1px solid "+c.g+"33"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontSize:20}}>🎯</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:600,color:c.g}}>Ready for phrases!</div>
-            <div style={{fontSize:12,color:c.m,marginTop:2}}>You can read {kMastered} characters — time to learn survival phrases</div>
-          </div>
-          <span style={{color:c.g,opacity:.5}}>→</span>
-        </div>
-      </div>}
-      {mcLeft>0&&<div onClick={()=>{setTab("phrases");setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
-        onMouseEnter={()=>setHov("ft")} onMouseLeave={()=>setHov(null)}
-        style={{...card,marginBottom:8,cursor:"pointer",padding:"11px 16px",background:hov==="ft"?c.as:c.s,border:"1px solid "+c.a+"50",transition:"background .15s"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontSize:20,flexShrink:0}}>⚡</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:13,fontWeight:600,color:c.a}}>Fast Track</div>
-            <div style={{fontSize:11,color:c.m,marginTop:1}}>{mcLeft} mission-critical phrases left</div>
-          </div>
-          <span style={{fontSize:14,color:c.m,opacity:.4}}>›</span>
-        </div>
-      </div>}
-      {actions.map(item=><div key={item.id} onClick={item.action}
-        onMouseEnter={()=>setHov(item.id)} onMouseLeave={()=>setHov(null)}
-        style={{...card,marginBottom:8,cursor:"pointer",padding:"13px 16px",background:hov===item.id?c.s2:c.s,transition:"background .15s"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontSize:22,lineHeight:1,flexShrink:0}}>{item.icon}</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:600}}>{item.title}</div>
-            <div style={{fontSize:12,color:c.m,marginTop:1}}>{item.desc}</div>
-          </div>
-          <span style={{fontSize:14,color:c.m,opacity:.4}}>›</span>
-        </div>
-      </div>)}
-      <div style={{...card,marginTop:8,padding:"16px 18px"}}>
-        <div style={{fontSize:11,color:c.m,textTransform:"uppercase",letterSpacing:".07em",fontFamily:mono,marginBottom:2}}>Scenarios</div>
-        {Object.entries(CATS).map(([k,v],i,arr)=>{
-          const total=PHRASES.filter(p=>p[4]===k).length;
-          const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
-          const pct=Math.round(done/total*100);
-          const col=CAT_COLORS[k];
-          return <div key={k} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<arr.length-1?"1px solid "+c.b+"88":"none"}}>
-            <span style={{fontSize:15,width:22,flexShrink:0,textAlign:"center"}}>{CAT_ICONS[k]}</span>
-            <span style={{fontSize:13,width:88,flexShrink:0,color:c.tx}}>{v}</span>
-            {progressBar(pct,col)}
-            <span style={{fontSize:11,fontFamily:mono,color:c.m,width:30,textAlign:"right",flexShrink:0}}>{done}/{total}</span>
-          </div>;
-        })}
-      </div>
-    </div>;
-  };
-
-  // ═══ KANA ═══
-  const renderKana=()=>{
-    const tileSize=isDesktop?48:42;
-    const tileFont=isDesktop?19:16;
-
-    const ROW_AUDIO={"G゛":"dk_k_to_g","Z゛":"dk_s_to_z","D゛":"dk_t_to_d","B゛":"dk_h_to_b","P゜":"hdk_h_to_p","Ky":"yo_ky","Sh":"yo_sh","Ch":"yo_ch","Ny":"yo_ny","Hy":"yo_hy","My":"yo_my","Ry":"yo_ry","Gy":"yo_gy","Jy":"yo_jy","By":"yo_by","Py":"yo_py"};
-    // Find which group a character belongs to
-    const getCharGroup=(ch)=>groups.find(g=>g.c.includes(ch));
-    const playRowChain=(g)=>{if(!g)return;
-      setStoryPlaying(true);
-      const items=g.dk?g.c.flatMap(gch=>[DAKUTEN_BASE[gch],gch]):g.c;
-      let i=0;
-      const playNext=()=>{if(i>=items.length){setStoryPlaying(false);setKSpeakingChar(null);return;}const t=items[i];const isBase=g.dk&&i%2===0;i++;setKSpeakingChar(t);const url=`/api/tts?lang=ja&q=${encodeURIComponent(t)}`;const a=new Audio(url);a.playbackRate=1;_ttsAudio=a;a.onended=()=>setTimeout(playNext,isBase?100:350);a.onerror=()=>{setStoryPlaying(false);setKSpeakingChar(null);};a.play().catch(()=>{setStoryPlaying(false);setKSpeakingChar(null);});};
-      playNext();
-    };
-    const autoPlayForChar=(nch)=>{
-      const ng=getCharGroup(nch);
-      if(ng&&(ng.dk||ng.yo)){setTimeout(()=>playRowChain(ng),300);}
-      else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}
-    };
-
-    if(kScreen==="learn"){
-      const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
-      const isHiragana=kScript==="h";
-      const mnemonicImg=`/images/mnemonics/approved/${isHiragana?"hiragana":"katakana"}/${ch.codePointAt(0).toString(16)}.png`;
-      const swipeRef={startX:0,startY:0};
-      const onTouchStart=e=>{swipeRef.startX=e.touches[0].clientX;swipeRef.startY=e.touches[0].clientY;};
-      const onTouchEnd=e=>{
-        const dx=e.changedTouches[0].clientX-swipeRef.startX;
-        const dy=e.changedTouches[0].clientY-swipeRef.startY;
-        if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>50){
-          if(dx<0&&kLI<chars.length-1){stopAudio();setKSpeakingChar(null);
-            const cg=getCharGroup(ch);let ni=kLI+1;
-            if(cg&&(cg.dk||cg.yo)){const li=chars.indexOf(cg.c[cg.c.length-1]);if(li>=0)ni=li+1;}
-            if(ni>=chars.length)ni=chars.length-1;setKLI(ni);setKFlip(false);
-            if(kAutoStory)autoPlayForChar(chars[ni]);}
-          if(dx>0&&kLI>0){stopAudio();setKSpeakingChar(null);
-            let ni=kLI-1;if(ni>=0){const pg=getCharGroup(chars[ni]);if(pg&&(pg.dk||pg.yo))ni=Math.max(0,chars.indexOf(pg.c[0]));}
-            setKLI(ni);setKFlip(false);
-            if(kAutoStory)autoPlayForChar(chars[ni]);}
-        }
-      };
-      const showRevealed=kAutoReveal||kFlip;
-      return <div style={inner} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0"}}>← back</button>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <button onClick={()=>{const v=!kAutoReveal;setKAutoReveal(v);save({settings:{...data.settings,autoReveal:v}});}} style={{...btn,padding:"5px 10px",borderRadius:6,border:"1px solid "+(kAutoReveal?c.a+"44":c.b),background:kAutoReveal?c.a+"11":"transparent",color:kAutoReveal?c.a:c.m,fontSize:11}}>Auto-reveal {kAutoReveal?"on":"off"}</button>
-            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);if(v&&!kAutoReveal){setKAutoReveal(true);save({settings:{...data.settings,autoStory:v,autoReveal:true}});}else{save({settings:{...data.settings,autoStory:v}});}}} style={{...btn,padding:"5px 10px",borderRadius:6,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:11}}>Auto-story {kAutoStory?"on":"off"}</button>
-            <div style={{fontSize:12,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
-          </div>
-        </div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((kLI+1)/chars.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        {(DAKUTEN_BASE[ch]||YOON_PARTS[ch])
-          ? /* Dakuten/yōon always shows row — no reveal needed */
-          (()=>{const g=getCharGroup(ch);if(!g)return null;
-            return <div>
-              <div style={{...card,padding:"20px 18px",marginBottom:14}}>
-                <div style={{fontSize:16,fontWeight:700,color:c.a,marginBottom:6,fontFamily:mono}}>{g.n} row — {g.dk?(g.n.includes("P")?<>add <span style={{fontSize:22}}>゜</span></>:<>add <span style={{fontSize:22}}>゛</span></>):"combination sounds"}</div>
-                <div style={{fontSize:13,color:c.m,marginBottom:16}}>{g.dk?(g.n.includes("P")?"Add the circle mark to make P sounds":"Add the two-dot mark to voice the consonant"):"Combine with small や ゆ よ to blend sounds"}</div>
-                {g.c.map((gch,i)=>{const base=DAKUTEN_BASE[gch];const yp=YOON_PARTS[gch];const grom=ROMAJI[gch];const isSpeaking=kSpeakingChar===gch||kSpeakingChar===base;
-                  return <div key={i} onClick={()=>{setKSpeakingChar(gch);
-                    if(base){const url1=`/api/tts?lang=ja&q=${encodeURIComponent(base)}`;const a1=new Audio(url1);a1.playbackRate=1;_ttsAudio=a1;a1.onended=()=>{setTimeout(()=>{const url2=`/api/tts?lang=ja&q=${encodeURIComponent(gch)}`;const a2=new Audio(url2);a2.playbackRate=1;_ttsAudio=a2;a2.onended=()=>setTimeout(()=>setKSpeakingChar(null),500);a2.play().catch(()=>{});},100);};a1.play().catch(()=>{});}
-                    else{speak(gch);setTimeout(()=>setKSpeakingChar(null),1500);}}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 6px",borderBottom:i<g.c.length-1?"1px solid "+c.b+"44":"none",background:isSpeaking?c.a+"18":"transparent",borderRadius:8,transition:"background .2s",cursor:"pointer"}}>
-                    {base&&<><div style={{width:52,textAlign:"center"}}><div style={{fontSize:34,lineHeight:1,opacity:.5}}>{base}</div><div style={{fontSize:11,fontFamily:mono,color:c.m}}>{ROMAJI[base]}</div></div><div style={{fontSize:18,color:c.m}}>→</div></>}
-                    {yp&&<><div style={{width:40,textAlign:"center"}}><div style={{fontSize:26,lineHeight:1,opacity:.5}}>{yp[0]}</div><div style={{fontSize:10,fontFamily:mono,color:c.m}}>{ROMAJI[yp[0]]}</div></div><div style={{fontSize:14,color:c.m}}>+</div><div style={{width:28,textAlign:"center"}}><div style={{fontSize:18,lineHeight:1,opacity:.5}}>{yp[1]}</div><div style={{fontSize:9,fontFamily:mono,color:c.m}}>small</div></div><div style={{fontSize:14,color:c.m}}>=</div></>}
-                    <div style={{flex:1,display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:42,lineHeight:1,color:c.a}}>{gch}</div><div style={{fontSize:22,fontWeight:700,fontFamily:mono,color:c.a}}>{grom}</div></div>
-                    <div style={{fontSize:14,color:c.m,opacity:.5}}>🔊</div>
-                  </div>;
-                })}
-              </div>
-              <button onClick={e=>{e.stopPropagation();
-                if(storyPlaying){stopAudio();setKSpeakingChar(null);return;}
-                playRowChain(g);
-              }} style={{...btn,padding:"12px 16px",borderRadius:10,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:14,color:storyPlaying?c.a:c.m,width:"100%",marginBottom:4}}>{storyPlaying?"■ stop":"🔊 hear all sounds"}</button>
-            </div>;
-          })()
-          : !showRevealed
-            ? <div onClick={()=>{setKFlip(true);if(kAutoStory&&m)setTimeout(()=>speakStory(m,ch),300);}} style={{...card,textAlign:"center",cursor:"pointer",padding:"48px 24px"}}>
-                <div style={{fontSize:120,lineHeight:1,marginBottom:16}}>{ch}</div>
-                <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
-              </div>
-            : <div>
-                  <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
-                    <div style={{flex:"1 1 40%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:8}}>
-                      <div style={{fontSize:isDesktop?130:100,lineHeight:1}}>{ch}</div>
-                      <div style={{fontSize:isDesktop?34:28,fontWeight:700,color:c.a,fontFamily:mono}}>{rom}</div>
-                      {speakBtn(ch)}
-                    </div>
-                    <img src={mnemonicImg} alt={m?m[1]:rom}
-                      onError={e=>{e.target.style.display="none";}}
-                      style={{flex:"1 1 60%",maxWidth:"55%",borderRadius:12,display:"block"}}/>
-                  </div>
-                  {m&&<div style={{...card,padding:"16px 18px",border:"1px solid "+c.b,marginBottom:4}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                      <span style={{fontSize:22}}>{m[0]}</span>
-                      <div style={{fontSize:15,fontWeight:700,color:c.tx}}>{m[1]}</div>
-                    </div>
-                    <div style={{fontSize:13,color:c.m,lineHeight:1.6,marginBottom:12}}>{m[3]||m[2]}</div>
-                    <div style={{width:"100%"}}>{storyBtn(m,ch)}</div>
-                  </div>}
-                </div>
-        }
-        <div style={{display:"flex",gap:10,marginTop:16}}>
-          <button onClick={()=>{stopAudio();setKSpeakingChar(null);
-            // Skip back past group if current is dakuten/yōon
-            let ni=kLI-1;
-            if(ni>=0){const pch=chars[ni];const pg=getCharGroup(pch);if(pg&&(pg.dk||pg.yo)){ni=Math.max(0,chars.indexOf(pg.c[0])-1);}}
-            ni=Math.max(0,ni);setKLI(ni);setKFlip(false);
-            if(kAutoStory)autoPlayForChar(chars[ni]);
-          }} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
-          {kLI<chars.length-1
-            ?<button onClick={()=>{stopAudio();setKSpeakingChar(null);
-              // Skip past group if current is dakuten/yōon
-              const cg=getCharGroup(ch);let ni=kLI+1;
-              if(cg&&(cg.dk||cg.yo)){const lastInGroup=cg.c[cg.c.length-1];const lastIdx=chars.indexOf(lastInGroup);if(lastIdx>=0)ni=lastIdx+1;}
-              if(ni>=chars.length)ni=chars.length-1;setKLI(ni);setKFlip(false);
-              if(kAutoStory)autoPlayForChar(chars[ni]);
-            }} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →{kbHint("↵")}</button>
-            :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Quiz</button>}
-        </div>
-      </div>;
-    }
-
-    if(kScreen==="quiz"){
-      const ch=kCards[kI];const rom=ROMAJI[ch];const m=M[ch];
-      const prog=kCards.length>0?((kI+(kFb?1:0))/kCards.length*100):0;
-      return <div style={inner}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
-          <div style={{fontFamily:mono,fontSize:12,color:c.m}}><span style={{color:c.g}}>{kScore.c}</span>{" / "}<span style={{color:c.a}}>{kScore.w}</span></div>
-        </div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:16,overflow:"hidden"}}><div style={{height:"100%",width:prog+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        <div style={{display:"flex",justifyContent:"center",gap:4,marginBottom:20}}>
-          {[["visual","👁"],["listen","👂"]].map(([m,ico])=><button key={m} onClick={()=>setKQuizMode(m)} style={{...btn,padding:"4px 12px",borderRadius:6,border:"1px solid "+(kQuizMode===m?c.go+"66":c.b),background:kQuizMode===m?c.go+"18":"transparent",color:kQuizMode===m?c.go:c.m,fontSize:12}}>{ico}</button>)}
-        </div>
-        <div style={{textAlign:"center",marginBottom:kFb?8:28}}>
-          {kQuizMode==="listen"&&!kFb
-            ?<><div onClick={()=>speak(ch)} style={{fontSize:108,lineHeight:1,marginBottom:10,color:c.m,cursor:"pointer",userSelect:"none"}}>?</div>
-              <button onClick={()=>speak(ch)} style={{...btn,padding:"6px 16px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:13,color:c.m}}>🔊 play again</button></>
-            :<div onClick={()=>speak(ch)} title="Listen" style={{fontSize:108,lineHeight:1,marginBottom:10,color:kFb==="ok"?c.g:kFb==="no"?c.a:c.tx,cursor:"pointer"}}>{ch}</div>}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginTop:6}}>
-            <span style={{fontSize:12,fontFamily:mono,color:c.m}}>{kI+1} of {kCards.length}</span>
-            {kQuizMode!=="listen"&&<button onClick={()=>speak(ch)} style={{...btn,padding:"3px 9px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:11,color:c.m}}>🔊 listen</button>}
-          </div>
-        </div>
-        {!kFb?<>
-          <div style={{display:"flex",gap:8}}>
-            <input ref={inputRef} value={kInput} onChange={e=>setKInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")submitKana();}}
-              placeholder="romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
-              style={{flex:1,padding:"13px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:mono,fontSize:20,outline:"none",textAlign:"center"}}/>
-            <button onClick={submitKana} style={{...btn,padding:"13px 22px",borderRadius:10,background:kInput.trim()?c.a:c.b,color:kInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go{kbHint("↵")}</button>
-          </div>
-          <button onClick={()=>setKPeek(!kPeek)} style={{...btn,display:"block",margin:"14px auto 0",background:"none",color:c.m,fontFamily:mono,fontSize:11,opacity:.55}}>{kPeek?`"${rom}"`:"peek"}</button>
-        </>:<>
-          <div style={{...card,marginTop:14,background:kFb==="ok"?c.gs:c.rs,border:"1px solid "+(kFb==="ok"?c.g+"50":c.a+"50"),position:"relative",overflow:"hidden"}}>
-            {m&&<div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",fontSize:130,opacity:0.1,pointerEvents:"none",lineHeight:1,userSelect:"none"}}>{m[0]}</div>}
-            <div style={{position:"relative",zIndex:1,textAlign:"center"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:4,marginBottom:6}}>
-                <span style={{fontSize:56}}>{ch}</span>
-                <div style={{fontFamily:mono,fontSize:26,fontWeight:700,color:kFb==="ok"?c.g:c.a,marginLeft:8}}>{rom}</div>
-              </div>
-              {kFb==="no"&&<div style={{fontSize:12,color:c.m,marginBottom:8}}>you typed: <span style={{color:c.a,textDecoration:"line-through"}}>{kInput}</span></div>}
-              {m&&<div style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",background:kFb==="ok"?c.gs:c.rs,borderRadius:10,border:"1px solid "+(kFb==="ok"?c.g+"30":c.a+"30"),textAlign:"left",marginTop:4}}>
-                <span style={{fontSize:32,flexShrink:0}}>{m[0]}</span>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:c.tx,marginBottom:2}}>{m[1]}</div>
-                  <div style={{fontSize:11,color:c.m,fontStyle:"italic",lineHeight:1.4}}>{m[2]}</div>
-                </div>
-              </div>}
-              <div style={{marginTop:10,display:"flex",gap:8,justifyContent:"center"}}>{speakBtn(ch)}{storyBtn(m,ch)}</div>
-            </div>
-          </div>
-          <button onClick={nextKana} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kI+1>=kCards.length?"See results":"Next →"}{kbHint("↵")}</button>
-        </>}
-      </div>;
-    }
-
-    if(kScreen==="results"){
-      const pct=kCards.length>0?Math.round(kScore.c/kCards.length*100):0;
-      return <div style={inner}>
-        <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{fontSize:60,marginBottom:14}}>{pct>=90?"🎌":pct>=70?"📖":"🔄"}</div>
-          <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.01em"}}>{pct>=90?"Excellent!":pct>=70?"Good progress":"Keep going"}</h2>
-          <div style={{fontSize:44,fontWeight:800,fontFamily:mono,color:pct>=70?c.g:c.go}}>{pct}%</div>
-        </div>
-        {kMistakes.length>0&&<div style={{...card,marginBottom:16}}>
-          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:10}}>Review</div>
-          {kMistakes.map((m,i)=>{const mn=M[m.ch];return <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"9px 0",borderBottom:i<kMistakes.length-1?"1px solid "+c.b:"none"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:26}}>{m.ch}</span>{mn&&<span style={{fontSize:18}}>{mn[0]}</span>}<span style={{fontFamily:mono,fontWeight:700,color:c.g}}>{m.rom}</span></div>
-            <span style={{fontFamily:mono,fontSize:12,color:c.a,textDecoration:"line-through"}}>{m.ans}</span>
-          </div>;})}
-        </div>}
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={()=>setKScreen("menu")} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Back</button>
-          <button onClick={()=>{if(kMistakes.length>0){setKCards(shuffle(kMistakes.map(m=>m.ch)));setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKScreen("quiz");}else startKanaQuiz();}} style={{...btn,flex:1,padding:13,borderRadius:10,background:kMistakes.length?c.go:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{kMistakes.length?"Retry misses":"Again"}</button>
-        </div>
-      </div>;
-    }
-
-    return <div style={inner}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
-        <div>
-          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:4}}>Kana Trainer</div>
-          <h2 style={{fontSize:26,fontWeight:700,margin:0,letterSpacing:"-.01em"}}>{kScript==="h"?"ひらがな Hiragana":"カタカナ Katakana"}</h2>
-        </div>
-        <div style={{display:"flex",background:c.s2,borderRadius:8,border:"1px solid "+c.b,overflow:"hidden"}}>
-          {[["h","ひらがな","Hiragana"],["k","カタカナ","Katakana"]].map(([s,jp,en])=><button key={s} onClick={()=>{setKScript(s);setKSel([0]);setKSelChars(null);}} style={{...btn,padding:"7px 14px",borderRadius:0,border:"none",background:kScript===s?c.a+"22":"transparent",color:kScript===s?c.a:c.m,fontSize:12,fontWeight:600}}>{jp} <span style={{fontSize:10,opacity:.7,marginLeft:2}}>{en}</span></button>)}
-        </div>
-      </div>
-      <div style={{...card,marginBottom:16,padding:"14px 16px"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase"}}>Select rows</div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            {kDueCount>0&&<button onClick={()=>{
-              const due=shuffle(Object.keys(data.kana).filter(ch=>(data.kana[ch]?.box??0)>=1&&isKanaDue(ch)));
-              setKCards(due);setKI(0);setKInput("");setKFb(null);setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
-            }} style={{...btn,padding:"4px 12px",borderRadius:6,background:c.go+"22",border:"1px solid "+c.go+"44",color:c.go,fontSize:11,fontWeight:600}}>🔔 Review {kDueCount} kana</button>}
-            <button onClick={()=>{setKSel(groups.map((_,i)=>i));setKSelChars(null);}} style={{...btn,padding:"4px 10px",borderRadius:6,border:"1px solid "+c.a+"44",background:c.a+"11",color:c.a,fontSize:11,fontWeight:600}}>Select all</button>
-          </div>
-        </div>
-        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-          {groups.map((g,i)=>{const sel=kSelChars?g.c.every(ch=>kSelChars.has(ch)):kSel.includes(i);const partial=kSelChars&&g.c.some(ch=>kSelChars.has(ch))&&!sel;const mas=g.c.every(ch=>getKBox(ch)>=3);const due=g.c.filter(ch=>data.kana[ch]?.box>=1&&isKanaDue(ch)).length;
-            return <button key={i} onClick={()=>{
-              setKSelChars(null);const newSel=kSel.includes(i)?kSel.filter(x=>x!==i):[...kSel,i];setKSel(newSel);
-            }} style={{...btn,padding:"8px 14px",borderRadius:8,border:"1px solid "+((sel||partial)?c.a:c.b),background:sel?c.as:partial?c.a+"0d":"transparent",color:(sel||partial)?c.tx:c.m,fontSize:13,fontWeight:sel?600:400,minWidth:48}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
-          })}
-        </div>
-      </div>
-      <div style={{display:"flex",gap:10,marginBottom:14}}>
-        <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
-        <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
-      </div>
-      {/* Base kana grid — individual tiles */}
-      <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:4}}>
-        {groups.filter(g=>!g.dk&&!g.yo).flatMap(g=>g.c).map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;const selected=allKana.includes(ch);
-          return <div key={i} onClick={()=>{
-            const current=new Set(allKana);
-            if(selected){current.delete(ch);}else{current.add(ch);}
-            setKSelChars(current.size?current:null);
-            if(!current.size)setKSel([]);
-          }} style={{
-            width:tileSize,height:tileSize,cursor:"pointer",
-            display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-            borderRadius:9,
-            background:selected?(mastered?c.gs:learning?c.go+"1a":c.as):(c.s2+"66"),
-            border:"1px solid "+(selected?(mastered?c.g+"55":learning?c.go+"44":c.a):c.b+"44"),
-            outline:due?"2px solid "+c.a+"50":"none",
-            position:"relative",
-            opacity:selected?1:.4,
-            transition:"opacity .15s",
-          }}>
-            <div style={{fontSize:tileFont,lineHeight:1}}>{ch}</div>
-            <div style={{fontSize:8,color:c.m,marginTop:2}}>{ROMAJI[ch]}</div>
-            {mastered&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.g}}>✓</div>}
-            {learning&&<div style={{position:"absolute",top:2,right:4,fontSize:7,color:c.go,fontFamily:mono,fontWeight:700}}>{box}</div>}
-          </div>;
-        })}
-      </div>
-      {/* Dakuten/Yōon as compact selectable tiles */}
-      {groups.filter(g=>g.dk||g.yo).length>0&&<>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginTop:14,marginBottom:6}}>Dakuten & Combinations</div>
-        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-          {groups.filter(g=>g.dk||g.yo).map((g,gi)=>{
-            const gIdx=groups.indexOf(g);const sel=kSel.includes(gIdx);
-            return <button key={gi} onClick={()=>{setKSelChars(null);const newSel=kSel.includes(gIdx)?kSel.filter(x=>x!==gIdx):[...kSel,gIdx];setKSel(newSel);}} style={{...btn,padding:"6px 10px",borderRadius:8,border:"1px solid "+(sel?c.a:c.b+"44"),background:sel?c.as:"transparent",color:sel?c.a:c.m,fontSize:12,opacity:sel?1:.5}}>
-              {g.c.map(ch=>ch).join(" ")}
-            </button>;
-          })}
-        </div>
-      </>}
-    </div>;
-  };
-
-  // ═══ PHRASES ═══
-  const renderPhrases=()=>{
-    if(pMode==="review"&&!pDone){
-      let reviewable=fastTrack?MC_PHRASES:pCat?PHRASES.filter(p=>p[4]===pCat):PHRASES;
-      let due=reviewable.filter(p=>isPhrDue(p[0]));
-      if(due.length===0)due=reviewable.filter(p=>!data.phr[p[0]]).slice(0,5);
-      if(pCards.length===0&&due.length>0){setPCards(shuffle(due));setPI(0);setPFlip(false);return null;}
-      if(pCards.length===0)return <div style={inner}>
-        <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:20}}>← back</button>
-        <div style={{textAlign:"center",padding:48}}><div style={{fontSize:52,marginBottom:14}}>✅</div><h3 style={{fontSize:20,fontWeight:600}}>All caught up!</h3><div style={{fontSize:13,color:c.m,marginTop:8}}>No phrases due. Check back later.</div></div>
-      </div>;
-      const p=pCards[pI];if(!p){setPDone(true);return null;}
-      const catCol=CAT_COLORS[p[4]];
-      // Situation prompts per category
-      const situations={greet:"You meet someone. What do you say?",food:"You're at a restaurant.",train:"You're navigating transport.",hotel:"You're at your hotel.",shop:"You're at a store.",dir:"You need directions.",sos:"It's an emergency."};
-      return <div style={inner}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0"}}>← back</button>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            {fastTrack&&<span style={chip(c.a)}>⚡ Survival</span>}
-            <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{pI+1}/{pCards.length}</div>
-          </div>
-        </div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:catCol,borderRadius:4,transition:"width .3s"}}/></div>
-
-        <div onClick={()=>{if(!pFlip){setPFlip(true);setTimeout(()=>speakPhrase(p[0],p[1]),300);}}} style={{...card,padding:0,overflow:"hidden",cursor:!pFlip?"pointer":"default",minHeight:240}}>
-          {/* Situation header */}
-          <div style={{padding:"14px 20px",background:catCol+"12",borderBottom:"1px solid "+catCol+"22"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:18}}>{CAT_ICONS[p[4]]}</span>
-              <span style={{fontSize:12,color:catCol,fontWeight:600}}>{CATS[p[4]]}</span>
-            </div>
-            <div style={{fontSize:13,color:c.m,marginTop:4}}>{situations[p[4]]||""}</div>
-          </div>
-
-          {!pFlip
-            ? <div style={{padding:"32px 24px",textAlign:"center"}}>
-                <div style={{fontSize:20,fontWeight:600,color:c.tx,lineHeight:1.5,marginBottom:16}}>{p[3]}</div>
-                {p[5]&&<div style={{fontSize:13,color:c.m,fontStyle:"italic",marginBottom:16}}>{p[5]}</div>}
-                <div style={{fontSize:13,color:c.m,opacity:.6}}>tap to see the Japanese</div>
-              </div>
-            : <div style={{padding:"24px 24px 20px"}}>
-                <div style={{fontSize:isDesktop?34:28,fontWeight:700,lineHeight:1.3,marginBottom:8}}>{p[1]}</div>
-                <div style={{fontSize:14,fontFamily:mono,color:c.a,marginBottom:6,opacity:.7}}>{p[2]}</div>
-                <div style={{fontSize:15,color:c.tx,marginBottom:4}}>{p[3]}</div>
-                {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:8,padding:"8px 14px",background:c.s2,borderRadius:8,borderLeft:"3px solid "+catCol}}>{p[5]}</div>}
-                <button onClick={e=>{e.stopPropagation();speakPhrase(p[0],p[1]);}} style={{...btn,width:"100%",padding:"10px 16px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:14,color:c.m,marginTop:14}}>🔊 hear again</button>
-              </div>
-          }
-        </div>
-
-        {pFlip&&<div style={{display:"flex",gap:10,marginTop:14}}>
-          <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Not yet</button>
-          <button onClick={()=>{reviewPhr(p[0],true);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it</button>
-        </div>}
-      </div>;
-    }
-    if(pDone)return <div style={inner}>
-      <div style={{textAlign:"center",padding:40}}>
-        <div style={{fontSize:60,marginBottom:14}}>🎌</div>
-        <h3 style={{fontSize:24,fontWeight:600,margin:"0 0 8px"}}>Well done!</h3>
-        <div style={{fontSize:14,color:c.m,marginTop:6}}>You've reviewed all phrases in this session.</div>
-        <div style={{display:"flex",gap:10,marginTop:28}}>
-          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);setFastTrack(false);}} style={{...btn,flex:1,padding:14,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
-          <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Practice more</button>
-        </div>
-      </div>
-    </div>;
-    if(pCat){
-      const phrases=PHRASES.filter(p=>p[4]===pCat);
-      const catDone=phrases.filter(p=>(data.phr[p[0]]?.box||0)>=1).length;
-      const catCol=CAT_COLORS[pCat];
-      return <div style={inner}>
-        <button onClick={()=>setPCat(null)} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0",marginBottom:14}}>← scenarios</button>
-        <div style={{marginBottom:18}}>
-          <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 6px"}}>{CAT_ICONS[pCat]} {CATS[pCat]}</h2>
-          <div style={{fontSize:12,color:c.m,fontFamily:mono}}>{catDone}/{phrases.length} learned</div>
-        </div>
-        <button onClick={()=>{setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:catCol,color:"#fff",fontSize:15,fontWeight:600,marginBottom:18}}>Practice ({phrases.length})</button>
-        {phrases.map((p,i)=>{const box=getPhrBox(p[0]);
-          const srsColor=box>=4?c.g:box>=1?c.go:"transparent";
-          return <div key={i} onClick={()=>speakPhrase(p[0],p[1])} style={{...card,marginBottom:8,padding:0,cursor:"pointer",display:"flex",overflow:"hidden",transition:"background .15s"}}
-            onMouseEnter={e=>e.currentTarget.style.background=c.s2} onMouseLeave={e=>e.currentTarget.style.background=c.s}>
-            <div style={{width:4,background:srsColor,flexShrink:0,borderRadius:"12px 0 0 12px"}}/>
-            <div style={{flex:1,padding:"14px 16px"}}>
-              <div style={{fontSize:isDesktop?28:24,fontWeight:600,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
-              <div style={{fontSize:14,fontFamily:mono,color:c.a,marginBottom:4}}>{p[2]}</div>
-              <div style={{fontSize:14,color:c.tx,marginBottom:2}}>{p[3]}</div>
-              {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:4}}>{p[5]}</div>}
-            </div>
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 14px",gap:6}}>
-              <div style={{fontSize:16,color:c.m,opacity:.4}}>🔊</div>
-              {p[6]&&<div style={{fontSize:10,color:c.go}}>⚡</div>}
-            </div>
-          </div>;
-        })}
-      </div>;
-    }
-    return <div style={inner}>
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Travel Phrases</div>
-        <h2 style={{fontSize:26,fontWeight:700,margin:0,letterSpacing:"-.01em"}}>Scenarios</h2>
-        <div style={{fontSize:13,color:c.m,marginTop:4}}>{learnedPhr}/{PHRASES.length} phrases learned</div>
-      </div>
-      {mcLeft>0&&<div onClick={()=>{setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
-        style={{...card,marginBottom:10,padding:"16px 18px",cursor:"pointer",background:c.a+"0d",border:"1px solid "+c.a+"33"}}
-        onMouseEnter={()=>setHov("ft")} onMouseLeave={()=>setHov(null)}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontSize:22}}>⚡</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:600,color:c.a}}>Survival Phrases</div>
-            <div style={{fontSize:12,color:c.m,marginTop:2}}>{mcLeft} essential phrases for your first 48 hours</div>
-          </div>
-          <span style={{color:c.a,opacity:.5}}>→</span>
-        </div>
-      </div>}
-      {dueCount>0&&<div onClick={()=>{setFastTrack(false);setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
-        style={{...card,marginBottom:10,padding:"16px 18px",cursor:"pointer",background:c.go+"0d",border:"1px solid "+c.go+"33"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <span style={{fontSize:22}}>🔔</span>
-          <div style={{flex:1}}>
-            <div style={{fontSize:14,fontWeight:600,color:c.go}}>Review {dueCount} phrases</div>
-            <div style={{fontSize:12,color:c.m,marginTop:2}}>Phrases ready for practice</div>
-          </div>
-          <span style={{color:c.go,opacity:.5}}>→</span>
-        </div>
-      </div>}
-      <div style={{display:"grid",gridTemplateColumns:isDesktop?"1fr 1fr":"1fr",gap:10,marginTop:6}}>
-        {Object.entries(CATS).map(([k,v])=>{
-          const total=PHRASES.filter(p=>p[4]===k).length;
-          const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
-          const pct=Math.round(done/total*100);
-          const col=CAT_COLORS[k];
-          const catDue=PHRASES.filter(p=>p[4]===k&&data.phr[p[0]]?.box>=1&&isPhrDue(p[0])).length;
-          const mc=PHRASES.filter(p=>p[4]===k&&p[6]).length;
-          return <div key={k} onClick={()=>setPCat(k)}
-            onMouseEnter={()=>setHov("cat_"+k)} onMouseLeave={()=>setHov(null)}
-            style={{...card,padding:0,cursor:"pointer",background:hov==="cat_"+k?c.s2:c.s,transition:"all .15s",overflow:"hidden"}}>
-            <div style={{padding:"18px 18px 14px"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:26}}>{CAT_ICONS[k]}</span>
-                  <div>
-                    <div style={{fontSize:16,fontWeight:700}}>{v}</div>
-                    <div style={{fontSize:11,color:c.m,fontFamily:mono,marginTop:2}}>{total} phrases{mc>0&&<span style={{color:c.go,marginLeft:6}}>⚡{mc}</span>}</div>
-                  </div>
-                </div>
-                {catDue>0&&<span style={{fontSize:11,padding:"3px 8px",borderRadius:10,background:c.go+"22",color:c.go,fontWeight:600}}>{catDue} due</span>}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{flex:1,height:6,background:c.b,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:col,borderRadius:3,transition:"width .3s"}}/></div>
-                <div style={{fontSize:12,fontFamily:mono,color:col,fontWeight:600,flexShrink:0}}>{done}/{total}</div>
-              </div>
-            </div>
-          </div>;
-        })}
-      </div>
-    </div>;
-  };
-
-  // ═══ SENSEI ═══
-  const renderSensei=()=>{
-    const chatW=isDesktop?800:540;
-    return <div style={{fontFamily:font,background:c.bg,color:c.tx,display:"flex",flexDirection:"column",position:"fixed",top:0,right:0,bottom:0,left:isDesktop?SIDEBAR_W:0}}>
-      <style>{`@keyframes pulse{0%,100%{opacity:.2}50%{opacity:.9}}.dot1{animation:pulse 1.4s ease-in-out infinite}.dot2{animation:pulse 1.4s ease-in-out .22s infinite}.dot3{animation:pulse 1.4s ease-in-out .44s infinite}`}</style>
-      <div style={{padding:"18px 24px 14px",borderBottom:"1px solid "+c.b,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <div style={{fontSize:26}}>🎌</div>
-          <div>
-            <div style={{fontSize:16,fontWeight:700}}>Senpai{profile.name?` · ${profile.name}`:""}</div>
-            <div style={{fontSize:11,color:c.m}}>AI Japanese tutor · {data.streak||1} day streak</div>
-          </div>
-        </div>
-        {msgs.length>0&&<button onClick={()=>setMsgs([])} style={{...btn,padding:"5px 10px",borderRadius:7,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m}}>New</button>}
-      </div>
-      <div style={{flex:1,overflow:"auto",padding:"20px 24px"}}>
-        {msgs.length===0&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60%",textAlign:"center",padding:"40px 20px"}}>
-          <div style={{fontSize:52,marginBottom:16}}>🎌</div>
-          <div style={{fontSize:18,fontWeight:600,marginBottom:6}}>Hey{profile.name?`, ${profile.name}`:""}. I'm your Senpai.</div>
-          <div style={{fontSize:13,color:c.m,marginBottom:24,lineHeight:1.6}}>I know your progress and trip details.</div>
-          {/* Role-play scenarios */}
-          <div style={{width:"100%",maxWidth:460,marginBottom:20}}>
-            <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10,textAlign:"left"}}>Role-play a scenario</div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {RP_SCENARIOS.map((sc,i)=>
-                <button key={sc.id} onClick={()=>startRolePlay(sc)}
-                  onMouseEnter={()=>setHov("rp"+i)} onMouseLeave={()=>setHov(null)}
-                  style={{...btn,padding:"11px 14px",borderRadius:10,background:hov==="rp"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
-                  <span>{sc.icon} {sc.name}</span><span style={{color:c.m,opacity:.4,fontSize:16}}>→</span>
-                </button>
-              )}
-            </div>
-          </div>
-          {/* Free questions */}
-          <div style={{width:"100%",maxWidth:460}}>
-            <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10,textAlign:"left"}}>Or ask a question</div>
-            <div style={{display:"flex",flexDirection:"column",gap:6}}>
-              {["Quiz me on what I've learned","Explain how to count in Japanese","What phrases should I focus on?",data.onboarding?.why==="travel"?"Cultural tips for Japan":data.onboarding?.why==="anime"?"Anime phrases I should know":"What should I learn next?"].map((s,i)=>
-                <button key={i} onClick={()=>setChatIn(s)}
-                  onMouseEnter={()=>setHov("sg"+i)} onMouseLeave={()=>setHov(null)}
-                  style={{...btn,padding:"11px 14px",borderRadius:10,background:hov==="sg"+i?c.s2:c.s,border:"1px solid "+c.b,color:c.tx,fontSize:13,textAlign:"left",display:"flex",justifyContent:"space-between",alignItems:"center",transition:"all .15s"}}>
-                  <span>{s}</span><span style={{color:c.m,opacity:.4,fontSize:16}}>→</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>}
-        <div style={{maxWidth:chatW,margin:"0 auto"}}>
-          {msgs.map((m,i)=>m.role!=="user"||!m.content.startsWith("Let's role-play")&&!m.content.startsWith("Let's do a role-play")?<div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
-            <div style={{
-              maxWidth:"80%",padding:"10px 14px",
-              borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",
-              background:m.role==="user"?c.a+"18":c.s,
-              border:"1px solid "+(m.role==="user"?c.a+"30":c.b),
-              fontSize:14,lineHeight:1.65,whiteSpace:"pre-wrap",
-            }}>{m.content}</div>
-          </div>:null)}
-          {loading&&<div style={{display:"flex",marginBottom:10}}>
-            <div style={{padding:"12px 18px",borderRadius:"14px 14px 14px 4px",background:c.s,border:"1px solid "+c.b,display:"flex",gap:5,alignItems:"center"}}>
-              <span className="dot1" style={{fontSize:22,color:c.m,lineHeight:1}}>·</span>
-              <span className="dot2" style={{fontSize:22,color:c.m,lineHeight:1}}>·</span>
-              <span className="dot3" style={{fontSize:22,color:c.m,lineHeight:1}}>·</span>
-            </div>
-          </div>}
-          <div ref={chatEndRef}/>
-        </div>
-      </div>
-      <div style={{padding:"12px 24px",borderTop:"1px solid "+c.b,paddingBottom:"max(14px, env(safe-area-inset-bottom))",background:c.bg}}>
-        <div style={{maxWidth:chatW,margin:"0 auto",display:"flex",gap:8}}>
-          <input value={chatIn} onChange={e=>setChatIn(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToSensei();}}}
-            placeholder="Ask senpai..." style={{flex:1,padding:"11px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none"}}/>
-          <button onClick={()=>sendToSensei()} disabled={!chatIn.trim()||loading} style={{...btn,padding:"11px 20px",borderRadius:10,background:chatIn.trim()&&!loading?c.a:c.b,color:chatIn.trim()&&!loading?"#fff":c.m,fontSize:14,fontWeight:600}}>Send</button>
-        </div>
-      </div>
-    </div>;
-  };
-
-  // ═══ DAILY DRILL ═══
-  const renderDrill=()=>{
-    if(drillDone||drillCards.length===0){
-      const total=drillCards.length;
-      const pct=total>0?Math.round(drillScore.c/total*100):0;
-      return <div style={inner}>
-        <div style={{textAlign:"center",padding:"40px 20px"}}>
-          <div style={{fontSize:60,marginBottom:14}}>{pct>=80?"🔥":pct>=60?"👍":"🔄"}</div>
-          <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 6px"}}>Drill complete!</h2>
-          <div style={{fontSize:44,fontWeight:800,fontFamily:mono,color:pct>=80?c.g:c.go,marginBottom:24}}>{pct}%</div>
-          <div style={{fontSize:13,color:c.m,marginBottom:24}}>{drillScore.c} correct · {drillScore.w} missed</div>
-          <div style={{display:"flex",gap:10,justifyContent:"center"}}>
-            <button onClick={()=>setTab("home")} style={{...btn,flex:1,maxWidth:160,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Home</button>
-            <button onClick={startDrill} style={{...btn,flex:1,maxWidth:160,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Again</button>
-          </div>
-        </div>
-      </div>;
-    }
-    const card_=drillCards[drillI];
-    const progress=(drillI/(drillCards.length))*100;
-    if(card_.type==="kana"){
-      const ch=card_.ch;const rom=ROMAJI[ch];const m=M[ch];
-      return <div style={inner}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <button onClick={()=>setTab("home")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← exit</button>
-          <span style={chip(c.a)}>🔥 Daily Drill</span>
-          <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{drillI+1}/{drillCards.length}</div>
-        </div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:36,overflow:"hidden"}}><div style={{height:"100%",width:progress+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        <div style={{textAlign:"center",marginBottom:drillFb?8:28}}>
-          <div style={{fontSize:12,fontFamily:mono,color:c.m,marginBottom:8}}>Kana</div>
-          <div style={{fontSize:108,lineHeight:1,marginBottom:10,color:drillFb==="ok"?c.g:drillFb==="no"?c.a:c.tx}}>{ch}</div>
-        </div>
-        {!drillFb?<>
-          <div style={{display:"flex",gap:8}}>
-            <input ref={drillRef} value={drillInput} onChange={e=>setDrillInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")submitDrillKana();}}
-              placeholder="romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
-              style={{flex:1,padding:"13px 16px",borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:mono,fontSize:20,outline:"none",textAlign:"center"}}/>
-            <button onClick={submitDrillKana} style={{...btn,padding:"13px 22px",borderRadius:10,background:drillInput.trim()?c.a:c.b,color:drillInput.trim()?"#fff":c.m,fontSize:14,fontWeight:600}}>Go</button>
-          </div>
-        </>:<>
-          <div style={{...card,textAlign:"center",marginTop:14,background:drillFb==="ok"?c.gs:c.rs,border:"1px solid "+(drillFb==="ok"?c.g+"50":c.a+"50")}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginBottom:10}}>
-              <span style={{fontSize:48}}>{ch}</span>{m&&<span style={{fontSize:32}}>{m[0]}</span>}
-            </div>
-            <div style={{fontFamily:mono,fontSize:22,fontWeight:700,color:drillFb==="ok"?c.g:c.a}}>{rom}</div>
-            {m&&<div style={{fontSize:14,color:c.tx,marginTop:6}}>{m[1]}</div>}
-            {drillFb==="no"&&<div style={{fontSize:12,color:c.m,marginTop:4}}>you typed: <span style={{color:c.a,textDecoration:"line-through"}}>{drillInput}</span></div>}
-            <div style={{marginTop:8}}>{speakBtn(ch)}</div>
-          </div>
-          <button onClick={advanceDrill} style={{...btn,width:"100%",padding:13,borderRadius:10,marginTop:12,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>{drillI+1>=drillCards.length?"Finish":"Next →"}</button>
-        </>}
-      </div>;
-    }
-    // phrase card in drill
-    const p=card_.p;
-    return <div style={inner}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-        <button onClick={()=>setTab("home")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← exit</button>
-        <span style={chip(c.g)}>🔥 Daily Drill</span>
-        <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{drillI+1}/{drillCards.length}</div>
-      </div>
-      <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:progress+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-      <div style={{...card,padding:"36px 24px",textAlign:"center",minHeight:220,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!drillFlip?"pointer":"default"}} onClick={()=>!drillFlip&&setDrillFlip(true)}>
-        {!drillFlip
-          ?<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
-            <div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div>
-            <div style={{fontSize:12,color:c.m}}>think of it... then tap to reveal</div></>
-          :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
-            <div style={{fontSize:30,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
-            <button onClick={e=>{e.stopPropagation();speakPhrase(p[0],p[1]);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>
-            <div style={{fontSize:19,fontFamily:mono,color:c.a,marginTop:6,marginBottom:8}}>{p[2]}</div>
-            <div style={{fontSize:14,color:c.m}}>{p[3]}</div></>}
-      </div>
-      {drillFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
-        <button onClick={()=>{reviewPhr(p[0],false);setDrillScore(s=>({...s,w:s.w+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
-        <button onClick={()=>{reviewPhr(p[0],true);setDrillScore(s=>({...s,c:s.c+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it</button>
-      </div>}
-    </div>;
-  };
-
-  // ═══ ONBOARDING ═══
-  const WHY_OPTIONS=[
-    {id:"travel",icon:"🗾",label:"Travelling to Japan"},
-    {id:"anime",icon:"🎌",label:"Anime & culture"},
-    {id:"work",icon:"💼",label:"Work or study"},
-    {id:"moving",icon:"🏠",label:"Living / moving there"},
-    {id:"curious",icon:"✨",label:"Just curious"},
-  ];
-  const LEVEL_OPTIONS=[
-    {id:"beginner",label:"Complete beginner — I know nothing yet"},
-    {id:"basics",label:"I know a few words or phrases"},
-    {id:"refresh",label:"Studied before, need a refresh"},
-    {id:"intermediate",label:"Intermediate — want to level up"},
-  ];
-
-  const finishOnboarding=()=>{
-    const ob={...onboardAnswers,completedAt:new Date().toISOString()};
-    save({onboarded:true,onboarding:ob});
-  };
-
-  const renderOnboarding=()=>{
-    const stepCount=3;
-    const progressPct=Math.round((onboardStep/stepCount)*100);
-    const ans=onboardAnswers;
-    return(
-      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:theme==="dark"?`radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.16) 0%, transparent 70%), ${c.bg}`:c.bg,padding:24,color:c.tx,fontFamily:font}}>
-        <div style={{width:"100%",maxWidth:420}}>
-          <div style={{textAlign:"center",marginBottom:32}}>
-            <div style={{fontSize:36,fontWeight:800,letterSpacing:"-.02em",marginBottom:4}}>日本語</div>
-            <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".08em"}}>TinySenpai</div>
-          </div>
-          {/* progress bar */}
-          <div style={{height:3,background:c.b,borderRadius:2,marginBottom:32}}>
-            <div style={{height:3,width:progressPct+"%",background:c.a,borderRadius:2,transition:"width .3s"}}/>
-          </div>
-
-          {onboardStep===0&&(
-            <div>
-              <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>Why are you learning Japanese?</div>
-              <div style={{fontSize:14,color:c.m,marginBottom:20}}>We'll personalise your experience around your goal.</div>
-              {WHY_OPTIONS.map(o=>(
-                <div key={o.id} onClick={()=>{setOnboardAnswers(a=>({...a,why:o.id}));setOnboardStep(1);}}
-                  style={{...card,padding:"14px 18px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:14,border:"1px solid "+(ans.why===o.id?c.a:c.b),transition:"border .15s"}}>
-                  <span style={{fontSize:22}}>{o.icon}</span>
-                  <span style={{fontSize:15,fontWeight:500,color:c.tx}}>{o.label}</span>
-                </div>
-              ))}
-              <button onClick={()=>setOnboardStep(1)} style={{...btn,width:"100%",padding:12,marginTop:8,background:"transparent",color:c.m,fontSize:13}}>Skip</button>
-            </div>
-          )}
-
-          {onboardStep===1&&(
-            <div>
-              <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>What's your current level?</div>
-              <div style={{fontSize:14,color:c.m,marginBottom:20}}>Be honest — this helps your AI tutor pitch things right.</div>
-              {LEVEL_OPTIONS.map(o=>(
-                <div key={o.id} onClick={()=>{setOnboardAnswers(a=>({...a,level:o.id}));setOnboardStep(2);}}
-                  style={{...card,padding:"14px 18px",marginBottom:8,cursor:"pointer",border:"1px solid "+(ans.level===o.id?c.a:c.b),transition:"border .15s"}}>
-                  <span style={{fontSize:14,fontWeight:500,color:c.tx}}>{o.label}</span>
-                </div>
-              ))}
-              <button onClick={()=>setOnboardStep(2)} style={{...btn,width:"100%",padding:12,marginTop:8,background:"transparent",color:c.m,fontSize:13}}>Skip</button>
-            </div>
-          )}
-
-          {onboardStep===2&&(
-            <div>
-              <div style={{fontSize:20,fontWeight:700,marginBottom:6}}>Anything else to know?</div>
-              <div style={{fontSize:14,color:c.m,marginBottom:20}}>Optional — helps your Senpai give better answers.</div>
-              {ans.why==="travel"&&(
-                <div style={{marginBottom:16}}>
-                  <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Trip date (optional)</div>
-                  <input type="date" value={ans.tripDate||""} onChange={e=>setOnboardAnswers(a=>({...a,tripDate:e.target.value}))}
-                    style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:12}}/>
-                </div>
-              )}
-              <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}}>Anything to focus on? (optional)</div>
-              <textarea value={ans.focus||""} onChange={e=>setOnboardAnswers(a=>({...a,focus:e.target.value.slice(0,200)}))}
-                placeholder="e.g. ordering food, reading menus, anime without subtitles, business meetings..."
-                rows={3} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5,marginBottom:16}}/>
-              <button onClick={finishOnboarding} style={{...btn,width:"100%",padding:14,borderRadius:10,background:c.a,color:"#fff",fontSize:15,fontWeight:600}}>Let's go →</button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  // ═══ PROFILE MODAL ═══
-  const renderProfile=()=>(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setShowProfile(false)}>
-      <div style={{...card,width:"100%",maxWidth:360,padding:24}} onClick={e=>e.stopPropagation()}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-          <div style={{fontSize:16,fontWeight:700}}>Your Profile</div>
-          <div style={{fontSize:11,color:c.m}}>{user.primaryEmailAddress?.emailAddress}</div>
-        </div>
-        <div style={{fontSize:12,color:c.m,marginBottom:18}}>Changes save automatically to the cloud</div>
-
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Display Name</div>
-        <input value={profile.name} onChange={e=>saveProfile({name:e.target.value})} placeholder="e.g. Ollie"
-          style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:14,boxSizing:"border-box"}}/>
-
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Why learning Japanese</div>
-        <select value={data.onboarding?.why||""} onChange={e=>save({onboarding:{...data.onboarding,why:e.target.value}})}
-          style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:12,boxSizing:"border-box"}}>
-          <option value="">Select a reason...</option>
-          <option value="travel">Travelling to Japan</option>
-          <option value="anime">Anime & culture</option>
-          <option value="work">Work or study</option>
-          <option value="moving">Living / moving there</option>
-          <option value="curious">Just curious</option>
-        </select>
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Trip date (optional)</div>
-        <input type="date" value={data.onboarding?.tripDate||""} onChange={e=>save({onboarding:{...data.onboarding,tripDate:e.target.value}})}
-          style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:14,outline:"none",marginBottom:12,boxSizing:"border-box"}}/>
-        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Extra context for Senpai</div>
-        <textarea value={profile.notes} onChange={e=>saveProfile({notes:e.target.value.slice(0,200)})} placeholder="e.g. vegetarian, solo traveller, interested in anime, need business phrases..."
-          rows={2} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
-        <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
-
-        <div style={{display:"flex",gap:8,fontSize:12,color:c.m,marginBottom:18,padding:"10px 12px",background:c.s2,borderRadius:8}}>
-          <span>🔥 {data.streak||1} day streak</span>
-          <span style={{marginLeft:"auto"}}>📚 {data.sessions} sessions</span>
-          <span>✅ {data.totalC} correct</span>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>setShowProfile(false)} style={{...btn,flex:1,padding:11,borderRadius:9,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>
-          <button onClick={()=>signOut()} style={{...btn,padding:"11px 14px",borderRadius:9,background:"transparent",border:"1px solid "+c.b,color:c.m,fontSize:13}}>Sign out</button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ═══ RENDER ═══
+  // ═══ TABS & ROUTING ═══
   const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
   const handleTabClick=(id)=>{
     setTab(id);
@@ -1632,56 +513,80 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     if(id==="sensei"){}
   };
 
-  if(loaded&&!data.onboarded)return renderOnboarding();
+  if(loaded&&!data.onboarded)return <Onboarding
+    c={c} theme={theme} card={card} btn={btn}
+    onboardStep={onboardStep} setOnboardStep={setOnboardStep}
+    onboardAnswers={onboardAnswers} setOnboardAnswers={setOnboardAnswers}
+    save={save}
+  />;
 
   return <div style={wrap}>
     <style>{globalCSS}</style>
-    {tab==="home"&&renderHome()}
-    {tab==="kana"&&renderKana()}
-    {tab==="phrases"&&renderPhrases()}
-    {tab==="sensei"&&renderSensei()}
-    {tab==="drill"&&renderDrill()}
+    {tab==="home"&&<Home
+      data={data} save={save} c={c} theme={theme} inner={inner} card={card} btn={btn} chip={chip} mono={mono}
+      isDesktop={isDesktop} hov={hov} setHov={setHov} profile={profile} streakCelebrate={streakCelebrate}
+      kMastered={kMastered} kDueCount={kDueCount} dueCount={dueCount} learnedPhr={learnedPhr} mcLeft={mcLeft}
+      setTab={setTab} setPMode={setPMode} setPCat={setPCat} setPCards={setPCards} setPDone={setPDone} setPFlip={setPFlip} setPI={setPI} setFastTrack={setFastTrack}
+      setKCards={setKCards} setKI={setKI} setKInput={setKInput} setKFb={setKFb} setKScore={setKScore} setKMistakes={setKMistakes} setKPeek={setKPeek} setKScreen={setKScreen}
+      startDrill={startDrill} isKanaDue={isKanaDue} progressBar={progressBar}
+    />}
+    {tab==="kana"&&<KanaTrainer
+      data={data} save={save} c={c} theme={theme} inner={inner} card={card} btn={btn} speakBtn={speakBtnFn} storyBtn={storyBtnFn} kbHint={kbHint}
+      isDesktop={isDesktop}
+      kScript={kScript} setKScript={setKScript} kSel={kSel} setKSel={setKSel} kSelChars={kSelChars} setKSelChars={setKSelChars}
+      kScreen={kScreen} setKScreen={setKScreen} kCards={kCards} setKCards={setKCards} kI={kI} setKI={setKI} kInput={kInput} setKInput={setKInput}
+      kFb={kFb} setKFb={setKFb} kScore={kScore} setKScore={setKScore} kMistakes={kMistakes} setKMistakes={setKMistakes} kPeek={kPeek} setKPeek={setKPeek}
+      kFlip={kFlip} setKFlip={setKFlip} kLI={kLI} setKLI={setKLI} kQuizMode={kQuizMode} setKQuizMode={setKQuizMode}
+      kShowGrid={kShowGrid} setKShowGrid={setKShowGrid} kAutoReveal={kAutoReveal} setKAutoReveal={setKAutoReveal} kAutoStory={kAutoStory} setKAutoStory={setKAutoStory}
+      kSpeakingChar={kSpeakingChar} setKSpeakingChar={setKSpeakingChar}
+      storyPlaying={storyPlaying} setStoryPlaying={setStoryPlaying}
+      inputRef={inputRef} allKana={allKana}
+      getKBox={getKBox} isKanaDue={isKanaDue} kMastered={kMastered} kDueCount={kDueCount}
+      startKanaQuiz={startKanaQuiz} submitKana={submitKana} nextKana={nextKana} updateKanaSRS={updateKanaSRS}
+      stopAudio={stopAudio} speakStory={speakStory} speakYoon={speakYoon} speakDakuten={speakDakuten}
+    />}
+    {tab==="phrases"&&<PhraseBank
+      data={data} c={c} inner={inner} card={card} btn={btn} chip={chip}
+      isDesktop={isDesktop} hov={hov} setHov={setHov}
+      pCat={pCat} setPCat={setPCat} pMode={pMode} setPMode={setPMode} pCards={pCards} setPCards={setPCards} pI={pI} setPI={setPI}
+      pFlip={pFlip} setPFlip={setPFlip} pDone={pDone} setPDone={setPDone} pRecall={pRecall} setPRecall={setPRecall}
+      fastTrack={fastTrack} setFastTrack={setFastTrack}
+      reviewPhr={reviewPhr} getPhrBox={getPhrBox} isPhrDue={isPhrDue} dueCount={dueCount} learnedPhr={learnedPhr} mcLeft={mcLeft}
+    />}
+    {tab==="sensei"&&<SenpaiChat
+      data={data} c={c} btn={btn}
+      isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W} hov={hov} setHov={setHov}
+      profile={profile}
+      msgs={msgs} setMsgs={setMsgs} chatIn={chatIn} setChatIn={setChatIn} loading={loading} setLoading={setLoading}
+      chatEndRef={chatEndRef}
+      learnedPhr={learnedPhr} dueCount={dueCount}
+      sendToSensei={sendToSensei} startRolePlay={startRolePlay}
+    />}
+    {tab==="drill"&&<DailyDrill
+      c={c} inner={inner} card={card} btn={btn} chip={chip} speakBtn={speakBtnFn}
+      isDesktop={isDesktop}
+      drillCards={drillCards} setDrillCards={setDrillCards} drillI={drillI} setDrillI={setDrillI}
+      drillFlip={drillFlip} setDrillFlip={setDrillFlip} drillInput={drillInput} setDrillInput={setDrillInput}
+      drillFb={drillFb} setDrillFb={setDrillFb} drillScore={drillScore} setDrillScore={setDrillScore}
+      drillDone={drillDone} setDrillDone={setDrillDone}
+      drillRef={drillRef}
+      submitDrillKana={submitDrillKana} advanceDrill={advanceDrill} startDrill={startDrill} reviewPhr={reviewPhr}
+      setTab={setTab}
+    />}
     {tab==="game"&&<Game theme={theme} c={c} isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W}/>}
-    {showProfile&&renderProfile()}
+    {showProfile&&<Profile
+      c={c} card={card} btn={btn}
+      user={user} data={data} save={save} profile={profile} saveProfile={saveProfile}
+      syncStatus={syncStatus} showProfile={showProfile} setShowProfile={setShowProfile} signOut={signOut}
+    />}
 
-    {isDesktop
-      ? <div style={{position:"fixed",top:0,left:0,bottom:0,width:SIDEBAR_W,background:c.s,borderRight:"1px solid "+c.b,display:"flex",flexDirection:"column",zIndex:100}}>
-          <div style={{padding:"16px 16px 14px",borderBottom:"1px solid "+c.b,display:"flex",alignItems:"center",gap:10}}>
-            <img src="/images/tinysenpai2.png" alt="TinySenpai" style={{width:64,height:64,imageRendering:"pixelated",borderRadius:10}}/>
-            <div>
-              <div style={{fontSize:18,fontWeight:700,letterSpacing:"-.02em",lineHeight:1}}>日本語</div>
-              <div style={{fontSize:11,color:c.m,marginTop:3,fontFamily:mono,letterSpacing:".02em"}}>TinySenpai</div>
-            </div>
-          </div>
-          <div style={{flex:1,padding:"12px 8px"}}>
-            {tabs.map(tb=><button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={{...sideTabBtn(tab===tb.id||tab==="drill"&&tb.id==="home"),position:"relative"}}>
-              <span style={{fontSize:18,lineHeight:1}}>{tb.icon}</span>
-              <span>{tb.label}</span>
-              {tb.id==="kana"&&kDueCount>0&&<span style={{marginLeft:"auto",fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:10,background:c.go+"22",color:c.go,fontFamily:mono}}>{kDueCount}</span>}
-            </button>)}
-          </div>
-          <div style={{padding:"10px 8px",borderTop:"1px solid "+c.b}}>
-            <button onClick={()=>setShowProfile(true)} style={{...sideTabBtn(false),gap:10,marginBottom:2}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.m} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-              <span style={{fontSize:13}}>{profile.name||"Profile"}</span>
-              <div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:syncStatus==="saved"?c.g:syncStatus==="saving"?c.go:syncStatus==="error"?c.a:c.b,transition:"background .3s",flexShrink:0}}/>
-            </button>
-            <button onClick={toggleTheme} style={{...sideTabBtn(false),gap:10}}>
-              {theme==="dark"
-                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.m} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={c.m} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>}
-              <span style={{fontSize:13}}>{theme==="dark"?"Light mode":"Dark mode"}</span>
-              {daysUntil(data.onboarding?.tripDate)>0&&<span style={{marginLeft:"auto",fontSize:10,fontFamily:mono,color:c.m,flexShrink:0}}>{daysUntil(data.onboarding?.tripDate)}d</span>}
-            </button>
-          </div>
-        </div>
-      : <div style={{position:"fixed",bottom:0,left:0,right:0,background:c.s,borderTop:"1px solid "+c.b,display:"flex",zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
-          {tabs.map(tb=>{const active=tab===tb.id||(tab==="drill"&&tb.id==="home");return <button key={tb.id} onClick={()=>handleTabClick(tb.id)} style={{...bottomTabBtn(active),position:"relative"}}>
-            <span style={{fontSize:20}}>{tb.icon}</span><span>{tb.label}</span>
-            {active&&<div style={{width:4,height:4,borderRadius:2,background:c.a,marginTop:1}}/>}
-            {tb.id==="kana"&&kDueCount>0&&<span style={{position:"absolute",top:4,right:"50%",transform:"translateX(14px)",fontSize:9,fontWeight:700,minWidth:16,padding:"1px 4px",borderRadius:8,background:c.go,color:"#fff",textAlign:"center",lineHeight:"14px"}}>{kDueCount}</span>}
-          </button>;})}
-        </div>
-    }
+    <Layout
+      c={c} theme={theme} btn={btn}
+      isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W}
+      tab={tab} handleTabClick={handleTabClick} tabs={tabs}
+      profile={profile} setShowProfile={setShowProfile}
+      toggleTheme={toggleTheme} syncStatus={syncStatus} kDueCount={kDueCount}
+      data={data}
+    />
   </div>;
 }
