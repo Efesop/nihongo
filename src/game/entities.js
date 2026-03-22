@@ -5,10 +5,10 @@ export function makePlayer(groundY) {
   return {
     x: 100, y: groundY - TILE * SCALE, vx: 0, vy: 0,
     facing: 1, state: "idle", frame: 0, frameTimer: 0,
-    slashTimer: 0, dashTimer: 0, dashCooldown: 0, dead: false,
+    slashTimer: 0, slashDuration: 0, dashTimer: 0, dashCooldown: 0, dead: false,
     grounded: false, invincible: 0,
     afterimages: [],
-    slashCombo: 0, comboWindow: 0, // 3-hit combo chain
+    slashCombo: 0, comboWindow: 0,
   };
 }
 

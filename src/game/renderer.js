@@ -334,21 +334,15 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     const combo = p.slashCombo;
     const isThird = combo === 3;
 
-    // Pick which sprite frame to show based on combo + slash phase
+    // Pick sprite frame based on combo level + phase
     let slashImgKey;
-    if (p.state === "slash1") {
-      // Wind-up: use the previous combo's cut frame or frame 1
-      slashImgKey = combo <= 1 ? "slash1" : combo === 2 ? "slash1" : "slash3";
-    } else if (p.state === "slash2") {
-      // THE CUT — each combo level uses a different frame
-      if (combo === 1) slashImgKey = "slash1";      // horizontal cut
-      else if (combo === 2) slashImgKey = "slash2";  // upward arc
-      else slashImgKey = "slash4";                   // lightning slide
+    if (combo === 1) {
+      slashImgKey = "slash1"; // horizontal cut — all phases
+    } else if (combo === 2) {
+      slashImgKey = p.state === "slash1" ? "slash1" : "slash2"; // wind-up → upward arc
     } else {
-      // Follow-through — hold the cut frame briefly
-      if (combo === 1) slashImgKey = "slash1";
-      else if (combo === 2) slashImgKey = "slash2";
-      else slashImgKey = "slash4";
+      // 3rd combo: spin wind-up → lightning slide for most of the duration
+      slashImgKey = p.state === "slash1" ? "slash3" : "slash4";
     }
 
     const slashImg = getImage(slashImgKey);
@@ -361,20 +355,21 @@ function drawPlayer(ctx, p, mascot, elapsed) {
         if (p.facing > 0) ctx.scale(-1, 1); // flip for right
       }
 
-      // Blue lightning glow on 3rd hit
-      if (isThird) {
-        ctx.fillStyle = "rgba(40,120,255,0.12)";
-        ctx.fillRect(-drawW, -drawH - 10, drawW * 2.5, drawH + 30);
-      }
-
       const sc = SLASH_CROP;
       const sa = sc.w / sc.h;
-      const sdw = s * sa * 1.05; // slightly larger for slash poses
+      const sdw = s * sa * 1.05;
       const sdh = s * 1.05;
+
+      // Blue lightning glow behind character on 3rd hit
+      if (isThird && slashImgKey === "slash4") {
+        ctx.fillStyle = "rgba(40,120,255,0.15)";
+        ctx.fillRect(-sdw, -sdh - 10, sdw * 2.5, sdh + 30);
+      }
+
       ctx.drawImage(slashImg, sc.x, sc.y, sc.w, sc.h, -sdw / 2, -sdh, sdw, sdh);
 
-      // Blue lightning sparks on 3rd hit — tiny, fast
-      if (isThird && (p.state === "slash2" || p.state === "slash3")) {
+      // Blue lightning sparks — visible for entire 3rd combo attack
+      if (isThird && slashImgKey === "slash4") {
         ctx.globalAlpha = 0.8;
         for (let i = 0; i < 10; i++) {
           const lx = -sdw * 0.3 + Math.sin(elapsed * 30 + i * 0.9) * sdw * 0.4;

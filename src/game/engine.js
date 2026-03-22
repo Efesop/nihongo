@@ -156,7 +156,9 @@ export function update(g, callbacks) {
     const combo = p.slashCombo;
 
     // Duration: 1st=normal, 2nd=normal, 3rd=held longer for dramatic pose
-    p.slashTimer = combo === 3 ? SLASH_DURATION * 2.5 : SLASH_DURATION;
+    const dur = combo === 3 ? SLASH_DURATION * 2.5 : SLASH_DURATION;
+    p.slashTimer = dur;
+    p.slashDuration = dur;
     p.frame = 0;
     p.comboWindow = 350; // ms to press next slash after this one ends
 
@@ -250,8 +252,8 @@ export function update(g, callbacks) {
   if (p.dashTimer > 0) {
     p.state = "dash";
   } else if (p.slashTimer > 0) {
-    const progress = 1 - p.slashTimer / SLASH_DURATION;
-    p.state = progress < 0.33 ? "slash1" : progress < 0.66 ? "slash2" : "slash3";
+    const progress = 1 - p.slashTimer / (p.slashDuration || SLASH_DURATION);
+    p.state = progress < 0.2 ? "slash1" : progress < 0.85 ? "slash2" : "slash3";
   } else if (!p.grounded && p.vy < 0) {
     p.state = "jump";
   } else if (!p.grounded) {
