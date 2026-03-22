@@ -890,67 +890,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const tileSize=isDesktop?48:42;
     const tileFont=isDesktop?19:16;
 
-    // Row audio mapping for dakuten/yōon groups
     const ROW_AUDIO={"G゛":"dk_k_to_g","Z゛":"dk_s_to_z","D゛":"dk_t_to_d","B゛":"dk_h_to_b","P゜":"hdk_h_to_p","Ky":"yo_ky","Sh":"yo_sh","Ch":"yo_ch","Ny":"yo_ny","Hy":"yo_hy","My":"yo_my","Ry":"yo_ry","Gy":"yo_gy","Jy":"yo_jy","By":"yo_by","Py":"yo_py"};
-    const selectedGroups=kSelChars?[]:kSel.map(i=>groups[i]).filter(Boolean);
-    const selectedDkYoGroups=selectedGroups.filter(g=>g.dk||g.yo);
-    const selectedBaseGroups=selectedGroups.filter(g=>!g.dk&&!g.yo);
-    const hasOnlyDkYo=selectedDkYoGroups.length>0&&selectedBaseGroups.length===0&&!kSelChars;
-
-    if(kScreen==="learn"&&hasOnlyDkYo){
-      const dkGroups=selectedDkYoGroups;
-      const gi=Math.min(kLI,dkGroups.length-1);
-      const g=dkGroups[gi];
-      const audioFile=ROW_AUDIO[g.n];
-      const playRowAudio=()=>{if(audioFile){stopAudio();setStoryPlaying(true);const a=new Audio(`/audio/rows/${audioFile}.mp3`);_ttsAudio=a;a.onended=()=>setStoryPlaying(false);a.onerror=()=>setStoryPlaying(false);a.play().catch(()=>setStoryPlaying(false));}};
-      return <div style={inner}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
-          <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{gi+1}/{dkGroups.length}</div>
+    // Find which group a character belongs to
+    const getCharGroup=(ch)=>groups.find(g=>g.c.includes(ch));
+    const playRowAudioFor=(ch)=>{const g=getCharGroup(ch);if(!g)return;const af=ROW_AUDIO[g.n];if(!af)return;stopAudio();setStoryPlaying(true);const a=new Audio(`/audio/rows/${af}.mp3`);_ttsAudio=a;a.onended=()=>setStoryPlaying(false);a.onerror=()=>setStoryPlaying(false);a.play().catch(()=>setStoryPlaying(false));};
         </div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((gi+1)/dkGroups.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
-        <div style={{...card,padding:"20px 18px",marginBottom:14}}>
-          <div style={{fontSize:13,fontWeight:700,color:c.a,marginBottom:4,textTransform:"uppercase",fontFamily:mono,letterSpacing:".05em"}}>{g.n} row {g.dk?"— add "+(g.n.includes("P")?"゜":"゛"):"— combination sounds"}</div>
-          <div style={{fontSize:12,color:c.m,marginBottom:16}}>{g.dk?(g.n.includes("P")?"Add the circle mark ゜ to make P sounds":"Add the two-dot mark ゛ to voice the consonant"):"Combine with small ya/yu/yo to blend sounds"}</div>
-          {g.c.map((ch,i)=>{const base=DAKUTEN_BASE[ch];const yp=YOON_PARTS[ch];const rom=ROMAJI[ch];
-            return <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<g.c.length-1?"1px solid "+c.b+"66":"none"}}>
-              {base&&<>
-                <div style={{width:44,textAlign:"center"}}>
-                  <div style={{fontSize:28,lineHeight:1,opacity:.5}}>{base}</div>
-                  <div style={{fontSize:10,fontFamily:mono,color:c.m}}>{ROMAJI[base]}</div>
-                </div>
-                <div style={{fontSize:16,color:c.m}}>→</div>
-              </>}
-              {yp&&<>
-                <div style={{width:34,textAlign:"center"}}>
-                  <div style={{fontSize:22,lineHeight:1,opacity:.5}}>{yp[0]}</div>
-                  <div style={{fontSize:9,fontFamily:mono,color:c.m}}>{ROMAJI[yp[0]]}</div>
-                </div>
-                <div style={{fontSize:12,color:c.m}}>+</div>
-                <div style={{width:24,textAlign:"center"}}>
-                  <div style={{fontSize:16,lineHeight:1,opacity:.5}}>{yp[1]}</div>
-                  <div style={{fontSize:8,fontFamily:mono,color:c.m}}>sm</div>
-                </div>
-                <div style={{fontSize:12,color:c.m}}>=</div>
-              </>}
-              <div style={{flex:1,display:"flex",alignItems:"center",gap:10}}>
-                <div style={{fontSize:36,lineHeight:1,color:c.a}}>{ch}</div>
-                <div style={{fontSize:18,fontWeight:700,fontFamily:mono,color:c.a}}>{rom}</div>
-              </div>
-              <button onClick={()=>speak(ch)} style={{...btn,padding:"4px 8px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:13,color:c.m}}>🔊</button>
-            </div>;
-          })}
-        </div>
-        <button onClick={e=>{e.stopPropagation();playRowAudio();}} style={{...btn,padding:"12px 16px",borderRadius:10,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:14,color:storyPlaying?c.a:c.m,width:"100%",marginBottom:14}}>{storyPlaying?"■ stop":"🔊 hear all transformations"}</button>
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={()=>{stopAudio();setKLI(Math.max(0,gi-1));}} disabled={gi===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:gi>0?c.tx:c.m,fontSize:14}}>← Prev</button>
-          {gi<dkGroups.length-1
-            ?<button onClick={()=>{stopAudio();setKLI(gi+1);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
-            :<button onClick={()=>setKScreen("menu")} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>}
-        </div>
-      </div>;
-    }
-
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
       const isHiragana=kScript==="h";
@@ -982,55 +926,25 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               <div style={{fontSize:12,color:c.m}}>tap to reveal</div>
             </div>
           : <div>
-              {YOON_PARTS[ch]
-                ? /* Yōon combination layout */
-                <div>
-                  <div style={{...card,display:"flex",alignItems:"center",justifyContent:"center",gap:isDesktop?20:10,padding:"28px 16px",marginBottom:14}}>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <div style={{fontSize:isDesktop?60:44,lineHeight:1,opacity:.5}}>{YOON_PARTS[ch][0]}</div>
-                      <div style={{fontSize:isDesktop?18:14,fontFamily:mono,color:c.m}}>{ROMAJI[YOON_PARTS[ch][0]]}</div>
+              {(DAKUTEN_BASE[ch]||YOON_PARTS[ch])
+                ? /* Row-based dakuten/yōon layout — show whole group */
+                (()=>{const g=getCharGroup(ch);if(!g)return null;const audioFile=ROW_AUDIO[g.n];
+                  return <div>
+                    <div style={{...card,padding:"20px 18px",marginBottom:14}}>
+                      <div style={{fontSize:13,fontWeight:700,color:c.a,marginBottom:4,textTransform:"uppercase",fontFamily:mono,letterSpacing:".05em"}}>{g.n} row {g.dk?"— add "+(g.n.includes("P")?"゜":"゛"):"— combination sounds"}</div>
+                      <div style={{fontSize:12,color:c.m,marginBottom:16}}>{g.dk?(g.n.includes("P")?"Add the circle mark ゜ to make P sounds":"Add the two-dot mark ゛ to voice the consonant"):"Combine with small ya/yu/yo to blend sounds"}</div>
+                      {g.c.map((gch,i)=>{const base=DAKUTEN_BASE[gch];const yp=YOON_PARTS[gch];const grom=ROMAJI[gch];
+                        return <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<g.c.length-1?"1px solid "+c.b+"66":"none"}}>
+                          {base&&<><div style={{width:44,textAlign:"center"}}><div style={{fontSize:28,lineHeight:1,opacity:.5}}>{base}</div><div style={{fontSize:10,fontFamily:mono,color:c.m}}>{ROMAJI[base]}</div></div><div style={{fontSize:16,color:c.m}}>→</div></>}
+                          {yp&&<><div style={{width:34,textAlign:"center"}}><div style={{fontSize:22,lineHeight:1,opacity:.5}}>{yp[0]}</div><div style={{fontSize:9,fontFamily:mono,color:c.m}}>{ROMAJI[yp[0]]}</div></div><div style={{fontSize:12,color:c.m}}>+</div><div style={{width:24,textAlign:"center"}}><div style={{fontSize:16,lineHeight:1,opacity:.5}}>{yp[1]}</div><div style={{fontSize:8,fontFamily:mono,color:c.m}}>sm</div></div><div style={{fontSize:12,color:c.m}}>=</div></>}
+                          <div style={{flex:1,display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:36,lineHeight:1,color:c.a}}>{gch}</div><div style={{fontSize:18,fontWeight:700,fontFamily:mono,color:c.a}}>{grom}</div></div>
+                          <button onClick={()=>speak(gch)} style={{...btn,padding:"4px 8px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:13,color:c.m}}>🔊</button>
+                        </div>;
+                      })}
                     </div>
-                    <div style={{fontSize:20,color:c.m}}>+</div>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <div style={{fontSize:isDesktop?40:30,lineHeight:1,opacity:.5}}>{YOON_PARTS[ch][1]}</div>
-                      <div style={{fontSize:isDesktop?14:11,fontFamily:mono,color:c.m}}>small</div>
-                    </div>
-                    <div style={{fontSize:20,color:c.m}}>=</div>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <div style={{fontSize:isDesktop?80:60,lineHeight:1,color:c.a}}>{ch}</div>
-                      <div style={{fontSize:isDesktop?24:18,fontWeight:700,fontFamily:mono,color:c.a}}>{rom}</div>
-                      {speakBtn(ch)}
-                    </div>
-                  </div>
-                  <div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
-                    <div style={{fontSize:14,color:c.tx,lineHeight:1.6,marginBottom:12}}>Combine {ROMAJI[YOON_PARTS[ch][0]]} + small ya/yu/yo → {rom}</div>
-                    <button onClick={e=>{e.stopPropagation();speakYoon(ch);}} style={{...btn,padding:"10px 16px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:13,color:storyPlaying?c.a:c.m,width:"100%"}}>{storyPlaying?"■ stop":"🔊 hear the combination"}</button>
-                  </div>
-                </div>
-              : DAKUTEN_BASE[ch]
-                ? /* Dakuten transformation layout */
-                <div>
-                  <div style={{...card,display:"flex",alignItems:"center",justifyContent:"center",gap:isDesktop?24:12,padding:"28px 16px",marginBottom:14}}>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <div style={{fontSize:isDesktop?70:50,lineHeight:1,opacity:.5}}>{DAKUTEN_BASE[ch]}</div>
-                      <div style={{fontSize:isDesktop?22:16,fontFamily:mono,color:c.m}}>{ROMAJI[DAKUTEN_BASE[ch]]}</div>
-                      <button onClick={()=>speak(DAKUTEN_BASE[ch])} style={{...btn,padding:"4px 10px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:11,color:c.m}}>🔊</button>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                      <div style={{fontSize:24,color:c.m}}>→</div>
-                      <div style={{fontSize:16,color:c.go,fontWeight:700}}>{ch.includes("ぱ")||ch.includes("ぴ")||ch.includes("ぷ")||ch.includes("ぺ")||ch.includes("ぽ")||ch.includes("パ")||ch.includes("ピ")||ch.includes("プ")||ch.includes("ペ")||ch.includes("ポ")?"゜":"゛"}</div>
-                    </div>
-                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                      <div style={{fontSize:isDesktop?90:70,lineHeight:1,color:c.a}}>{ch}</div>
-                      <div style={{fontSize:isDesktop?26:20,fontWeight:700,fontFamily:mono,color:c.a}}>{rom}</div>
-                      {speakBtn(ch)}
-                    </div>
-                  </div>
-                  <div style={{...card,padding:"14px 18px",border:"1px solid "+c.b,marginBottom:4}}>
-                    <div style={{fontSize:14,color:c.tx,lineHeight:1.6,marginBottom:12}}>{ROMAJI[DAKUTEN_BASE[ch]]} → {rom} — {["ぱ","ぴ","ぷ","ぺ","ぽ","パ","ピ","プ","ペ","ポ"].includes(ch)?"add ゜ to make the P sound":"add ゛ to voice the consonant"}</div>
-                    <button onClick={e=>{e.stopPropagation();speakDakuten(ch);}} style={{...btn,padding:"10px 16px",borderRadius:8,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:13,color:storyPlaying?c.a:c.m,width:"100%"}}>{storyPlaying?"■ stop":"🔊 hear the change"}</button>
-                  </div>
-                </div>
+                    <button onClick={e=>{e.stopPropagation();playRowAudioFor(ch);}} style={{...btn,padding:"12px 16px",borderRadius:10,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:14,color:storyPlaying?c.a:c.m,width:"100%",marginBottom:4}}>{storyPlaying?"■ stop":"🔊 hear all transformations"}</button>
+                  </div>;
+                })()
                 : /* Regular mnemonic image layout */
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
@@ -1200,18 +1114,17 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           </div>;
         })}
       </div>
-      {/* Dakuten/Yōon grouped rows */}
+      {/* Dakuten/Yōon as compact selectable tiles */}
       {groups.filter(g=>g.dk||g.yo).length>0&&<>
-        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginTop:16,marginBottom:8}}>Dakuten & Combinations</div>
-        {groups.filter(g=>g.dk||g.yo).map((g,gi)=>{
-          const gIdx=groups.indexOf(g);const sel=kSel.includes(gIdx);
-          return <div key={gi} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid "+c.b+"33"}}>
-            <div style={{fontSize:12,fontWeight:600,color:sel?c.a:c.m,width:32,flexShrink:0,fontFamily:mono}}>{g.n}</div>
-            <div style={{display:"flex",gap:4,flex:1,flexWrap:"wrap"}}>
-              {g.c.map((ch,ci)=><span key={ci} style={{fontSize:14,color:sel?c.a:c.m,opacity:sel?1:.4}}>{ch}<span style={{fontSize:9,color:c.m,marginLeft:1,marginRight:ci<g.c.length-1?6:0}}>{ROMAJI[ch]}</span></span>)}
-            </div>
-          </div>;
-        })}
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginTop:14,marginBottom:6}}>Dakuten & Combinations</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+          {groups.filter(g=>g.dk||g.yo).map((g,gi)=>{
+            const gIdx=groups.indexOf(g);const sel=kSel.includes(gIdx);
+            return <button key={gi} onClick={()=>{setKSelChars(null);const newSel=kSel.includes(gIdx)?kSel.filter(x=>x!==gIdx):[...kSel,gIdx];setKSel(newSel);}} style={{...btn,padding:"6px 10px",borderRadius:8,border:"1px solid "+(sel?c.a:c.b+"44"),background:sel?c.as:"transparent",color:sel?c.a:c.m,fontSize:12,opacity:sel?1:.5}}>
+              {g.c.map(ch=>ch).join(" ")}
+            </button>;
+          })}
+        </div>
       </>}
     </div>;
   };
