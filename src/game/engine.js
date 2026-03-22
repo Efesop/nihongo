@@ -266,7 +266,7 @@ export function update(g, callbacks) {
     if (p.slashTimer <= 0) e._hitThisSlash = false;
 
     // Enemy attack → player
-    if (e.state === "attack" && e.attackTimer > 200 && e.attackTimer < 350 &&
+    if (e.state === "attack" && e.attackTimer > 100 && e.attackTimer < 300 &&
         !e.dead && !p.dead && p.invincible <= 0) {
       if (Math.abs(e.x - p.x) < 50 && Math.abs(e.y - p.y) < TILE * SCALE) {
         killPlayer(g, callbacks);

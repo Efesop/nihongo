@@ -61,7 +61,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.state = "chase";
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.55;
-      if (dist < 50) { e.state = "attack"; e.attackTimer = 400; }
+      if (dist < 50) { e.state = "attack"; e.attackTimer = 600; }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
@@ -81,7 +81,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
           type: "shuriken", timer: 3000, rotation: 0, trail: [],
         });
         e.attackTimer = e.attackCooldown;
-        e.throwAnim = 300;
+        e.throwAnim = 500;
       }
       if (dist < 80) e.vx = -toPlayer * 120;
     } else {
