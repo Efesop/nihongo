@@ -35,6 +35,8 @@ export default function PhraseBank({
     let reviewable=fastTrack?MC_PHRASES:pCat?PHRASES.filter(p=>p[4]===pCat):PHRASES;
     let due=reviewable.filter(p=>isPhrDue(p[0]));
     if(due.length===0)due=reviewable.filter(p=>!data.phr[p[0]]).slice(0,5);
+    // If nothing due and nothing unseen, let user practice all anyway
+    if(due.length===0)due=shuffle([...reviewable]);
     if(pCards.length===0&&due.length>0){setPCards(shuffle(due));setPI(0);setPFlip(false);setQuizAnswer(null);return null;}
     if(pCards.length===0)return <div style={inner}>
       <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0",marginBottom:20}}>← back</button>
@@ -236,10 +238,12 @@ export default function PhraseBank({
     <div style={{textAlign:"center",padding:40}}>
       <div style={{fontSize:60,marginBottom:14}}>🎌</div>
       <h3 style={{fontSize:24,fontWeight:600,margin:"0 0 8px"}}>Well done!</h3>
-      <div style={{fontSize:14,color:c.m,marginTop:6}}>You've reviewed all phrases in this session.</div>
-      <div style={{display:"flex",gap:10,marginTop:28}}>
-        <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);setFastTrack(false);}} style={{...btn,flex:1,padding:14,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
-        <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);setQuizAnswer(null);setMatchPairs([]);}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Practice more</button>
+      <div style={{fontSize:14,color:c.m,marginTop:6}}>Session complete. Try a different practice mode!</div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:24}}>
+        {[["situation","🎯 Scenario Quiz"],["listen","👂 Listening"],["match","🔗 Match Pairs"]].map(([m,label])=>
+          <button key={m} onClick={()=>{setQuizMode(m);setPCards([]);setPDone(false);setPFlip(false);setPI(0);setQuizAnswer(null);setMatchPairs([]);}} style={{...btn,padding:14,borderRadius:10,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontSize:14,fontWeight:500}}>{label}</button>
+        )}
+        <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);setFastTrack(false);}} style={{...btn,padding:14,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.m,fontSize:14}}>← Back to scenarios</button>
       </div>
     </div>
   </div>;
