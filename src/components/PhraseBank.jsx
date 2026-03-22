@@ -15,6 +15,7 @@ export default function PhraseBank({
   const MC_PHRASES=PHRASES.filter(p=>p[6]);
   const [quizAnswer,setQuizAnswer]=useState(null);
   const [quizMode,setQuizMode]=useState("situation"); // "situation" | "listen" | "match"
+  const [showRomaji,setShowRomaji]=useState(true);
   const [matchPairs,setMatchPairs]=useState([]);
   const [matchSelected,setMatchSelected]=useState(null);
   const [matchMatched,setMatchMatched]=useState([]);
@@ -43,11 +44,12 @@ export default function PhraseBank({
     const catCol=CAT_COLORS[p[4]];
     const advance=(correct)=>{reviewPhr(p[0],correct);setQuizAnswer(null);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}};
 
-    // Quiz mode selector
-    const modeSelector=<div style={{display:"flex",gap:4,marginBottom:14}}>
+    // Quiz mode selector + romaji toggle
+    const modeSelector=<div style={{display:"flex",gap:4,marginBottom:14,alignItems:"center"}}>
       {[["situation","🎯 Scenario"],["listen","👂 Listen"],["match","🔗 Match"]].map(([m,label])=>
         <button key={m} onClick={()=>setQuizMode(m)} style={{...btn,flex:1,padding:"6px 4px",borderRadius:7,border:"1px solid "+(quizMode===m?catCol+"66":c.b),background:quizMode===m?catCol+"15":"transparent",color:quizMode===m?catCol:c.m,fontSize:11,fontWeight:600}}>{label}</button>
       )}
+      <button onClick={()=>setShowRomaji(!showRomaji)} style={{...btn,padding:"6px 8px",borderRadius:7,border:"1px solid "+(showRomaji?c.a+"44":c.b),background:showRomaji?c.a+"11":"transparent",color:showRomaji?c.a:c.m,fontSize:10,fontWeight:600,flexShrink:0}}>Aa</button>
     </div>;
 
     // ─── SCENARIO MULTIPLE CHOICE ───
@@ -86,7 +88,7 @@ export default function PhraseBank({
               setTimeout(()=>advance(correct),correct?2500:1800);
             }} style={{...btn,padding:"14px 16px",borderRadius:10,border:"1px solid "+border,background:bg,color:col,fontSize:isDesktop?18:16,fontWeight:500,textAlign:"left",transition:"all .2s"}}>
               {choice[1]}
-              {answered&&isCorrect&&<span style={{float:"right",fontSize:12,fontFamily:mono,color:c.a}}>{choice[2]}</span>}
+              {showRomaji&&<div style={{fontSize:11,fontFamily:mono,color:c.m,marginTop:2,opacity:.6}}>{choice[2]}</div>}
             </button>;
           })}
         </div>
@@ -108,7 +110,7 @@ export default function PhraseBank({
           <div style={{fontSize:48,marginBottom:12}}>👂</div>
           <div style={{fontSize:14,color:c.m,marginBottom:16}}>What did you hear?</div>
           <button onClick={()=>speakPhrase(p[0],p[1])} style={{...btn,padding:"10px 24px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:14,color:c.m}}>🔊 play again</button>
-          {quizAnswer?.correct!==null&&quizAnswer?.correct!==undefined&&<div style={{marginTop:14,fontSize:isDesktop?28:22,fontWeight:700}}>{p[1]}</div>}
+          {quizAnswer?.correct!==null&&quizAnswer?.correct!==undefined&&<><div style={{marginTop:14,fontSize:isDesktop?28:22,fontWeight:700}}>{p[1]}</div>{showRomaji&&<div style={{fontSize:13,fontFamily:mono,color:c.a,marginTop:4,opacity:.7}}>{p[2]}</div>}</>}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {(quizAnswer?.choices||choices).map((choice,i)=>{
@@ -162,8 +164,9 @@ export default function PhraseBank({
                 if(!matchSelected){setMatchSelected(item);speakPhrase(item.id,item.text);}
                 else if(matchSelected.type==="en"&&matchSelected.id===item.id){setMatchMatched([...matchMatched,item.id]);setMatchSelected(null);speakPhraseWithEnglish(item.id,item.text,matchPairs.find(p=>p.id===item.id&&p.type==="en")?.text||"");}
                 else{setMatchSelected(item);speakPhrase(item.id,item.text);}
-              }} style={{...btn,padding:"12px 10px",borderRadius:8,border:"1px solid "+(matched?c.g+"44":selected?c.a:c.b),background:matched?c.gs:selected?c.a+"15":"transparent",color:matched?c.g:c.tx,fontSize:isDesktop?16:14,fontWeight:500,opacity:matched?.6:1,transition:"all .15s"}}>
+              }} style={{...btn,padding:"12px 10px",borderRadius:8,border:"1px solid "+(matched?c.g+"44":selected?c.a:c.b),background:matched?c.gs:selected?c.a+"15":"transparent",color:matched?c.g:c.tx,fontSize:isDesktop?16:14,fontWeight:500,opacity:matched?.6:1,transition:"all .15s",textAlign:"left"}}>
                 {item.text}
+                {showRomaji&&<div style={{fontSize:9,fontFamily:mono,color:c.m,marginTop:2,opacity:.5}}>{PHRASES.find(p=>p[0]===item.id)?.[2]}</div>}
               </button>;
             })}
           </div>
@@ -214,7 +217,7 @@ export default function PhraseBank({
             </div>
           : <div style={{padding:"24px 24px 20px"}}>
               <div style={{fontSize:isDesktop?34:28,fontWeight:700,lineHeight:1.3,marginBottom:8}}>{p[1]}</div>
-              <div style={{fontSize:14,fontFamily:mono,color:c.a,marginBottom:6}}>{p[2]}</div>
+              {showRomaji&&<div style={{fontSize:14,fontFamily:mono,color:c.a,marginBottom:6}}>{p[2]}</div>}
               <div style={{fontSize:15,color:c.tx,marginBottom:4}}>{p[3]}</div>
               {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:8,padding:"8px 14px",background:c.s2,borderRadius:8,borderLeft:"3px solid "+catCol}}>{p[5]}</div>}
               <button onClick={e=>{e.stopPropagation();speakPhraseWithEnglish(p[0],p[1],p[3]);}} style={{...btn,width:"100%",padding:"10px 16px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:14,color:c.m,marginTop:14}}>🔊 hear again</button>
