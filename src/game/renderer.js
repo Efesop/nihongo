@@ -264,51 +264,46 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   let ox = 0, oy = 0;
 
   if (p.state === "idle") {
-    // Gentle breathing — slow, subtle
+    // Gentle breathing
     const breath = Math.sin(elapsed * 2.5);
-    sy = 1 + breath * 0.02;
-    oy = breath * 1.5;
+    sy = 1 + breath * 0.015;
+    oy = breath * 1;
   } else if (p.state === "run") {
-    // Pronounced run cycle — big bob, lean forward, squash/stretch
-    const t = elapsed * 12;
-    const step = Math.sin(t);
-    oy = Math.abs(step) * -6;                    // vertical bob
-    rot = 0.08 + step * 0.07;                    // lean forward + oscillate
-    sx = 1 - Math.abs(step) * 0.05;              // squash on ground contact
-    sy = 1 + Math.abs(step) * 0.05;              // stretch at peak
-    ox = Math.sin(t * 2) * 1.5;                  // subtle horizontal sway
+    // Samurai sprint — lean forward with determined stride
+    const t = elapsed * 11;
+    const stride = Math.sin(t);
+    rot = 0.12;                                   // constant forward lean
+    oy = Math.abs(stride) * -3;                   // subtle vertical bounce
+    sy = 1 + Math.abs(stride) * 0.02;             // tiny stretch at peak
+    ox = stride * 1;                              // slight sway
   } else if (p.state === "jump") {
-    // Stretch upward, arms up feel
-    rot = -0.18;
-    sy = 1.12;
-    sx = 0.90;
-    oy = -3;
+    rot = -0.15;
+    sy = 1.10;
+    sx = 0.92;
+    oy = -2;
   } else if (p.state === "fall") {
-    // Squash down, spread out
-    rot = 0.12;
-    sy = 0.90;
-    sx = 1.08;
-    oy = 2;
-  } else if (p.state === "dash") {
-    // Speed stretch
-    sx = 1.3;
-    sy = 0.80;
-    rot = p.facing > 0 ? 0.1 : -0.1;
-  } else if (p.state === "slash1") {
-    // Wind-up — coil back slightly
-    rot = -0.1;
-    ox = -3;
-    sy = 1.03;
-  } else if (p.state === "slash2") {
-    // Strike — lunge forward
-    rot = 0.05;
-    ox = 5;
+    rot = 0.08;
+    sy = 0.93;
     sx = 1.06;
-    sy = 0.96;
+  } else if (p.state === "dash") {
+    sx = 1.3;
+    sy = 0.82;
+  } else if (p.state === "slash1") {
+    // Draw back — crouch and prepare
+    rot = -0.05;
+    ox = -6;
+    sy = 0.95;
+    sx = 1.02;
+  } else if (p.state === "slash2") {
+    // STRIKE — explosive lunge forward
+    rot = 0.08;
+    ox = 12;
+    sx = 1.08;
+    sy = 0.94;
   } else if (p.state === "slash3") {
-    // Follow-through
-    rot = 0.12;
-    ox = 3;
+    // Follow-through — settling
+    rot = 0.04;
+    ox = 6;
   }
 
   ctx.rotate(rot);
@@ -327,55 +322,85 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + ox, -drawH + oy, drawW, drawH);
 
-  // ── Draw katana during slash ──
-  if (p.state === "slash1" || p.state === "slash2" || p.state === "slash3") {
-    const bladeLen = 38;
-    const handleLen = 10;
-    // Blade angle through the 3 phases: raised → horizontal → swept down
-    let bladeAngle;
-    if (p.state === "slash1") bladeAngle = -1.8;      // raised behind
-    else if (p.state === "slash2") bladeAngle = -0.3;  // mid-swing, slightly above horizontal
-    else bladeAngle = 0.8;                             // swept down past
+  // ── Draw katana ──
+  const isSlashing = p.state === "slash1" || p.state === "slash2" || p.state === "slash3";
+  const bladeLen = 42;
+  const handleLen = 12;
 
-    const bx = ox + 8;   // blade origin offset from center
-    const by = -drawH * 0.55 + oy;  // roughly at hand level
+  // Blade origin at character's hand area
+  const bx = ox + 6;
+  const by = -drawH * 0.5 + oy;
 
-    ctx.save();
-    ctx.translate(bx, by);
-    ctx.rotate(bladeAngle);
-
-    // Handle (dark)
-    ctx.fillStyle = "#3a2010";
-    ctx.fillRect(-2, 0, 4, handleLen);
-    // Guard (tsuba)
-    ctx.fillStyle = "#cc9933";
-    ctx.fillRect(-5, -1, 10, 3);
-
-    // Blade
-    ctx.fillStyle = "#a0b0c8";
-    ctx.fillRect(-1.5, -bladeLen, 3, bladeLen);
-    // Blade edge highlight
-    ctx.fillStyle = "#e0e8ff";
-    ctx.fillRect(-1.5, -bladeLen, 1.5, bladeLen);
-    // Tip
-    ctx.fillStyle = "#e0e8ff";
-    ctx.beginPath();
-    ctx.moveTo(-1.5, -bladeLen);
-    ctx.lineTo(0, -bladeLen - 5);
-    ctx.lineTo(1.5, -bladeLen);
-    ctx.fill();
-
-    // Blade glow during strike
-    if (p.state === "slash2") {
-      ctx.shadowColor = "#e0e8ff";
-      ctx.shadowBlur = 10;
-      ctx.fillStyle = "rgba(224,232,255,0.3)";
-      ctx.fillRect(-2, -bladeLen, 4, bladeLen);
-      ctx.shadowBlur = 0;
-    }
-
-    ctx.restore();
+  // Blade angle: sheathed on back → draw → horizontal slash → swept past
+  let bladeAngle;
+  let bladeAlpha = 1;
+  if (p.state === "slash1") {
+    bladeAngle = -2.2;  // drawn from behind, raised high
+  } else if (p.state === "slash2") {
+    bladeAngle = -0.1;  // horizontal slash — the money shot
+  } else if (p.state === "slash3") {
+    bladeAngle = 0.9;   // swept past, follow-through
+  } else if (p.state === "run") {
+    // Katana held trailing behind while running
+    bladeAngle = 2.4;
+    bladeAlpha = 0.7;
+  } else if (p.state === "idle") {
+    // Resting at side
+    bladeAngle = 1.6;
+    bladeAlpha = 0.5;
+  } else {
+    bladeAngle = 1.8;
+    bladeAlpha = 0.4;
   }
+
+  ctx.save();
+  ctx.globalAlpha = (ctx.globalAlpha || 1) * bladeAlpha;
+  ctx.translate(bx, by);
+  ctx.rotate(bladeAngle);
+
+  // Handle wrap
+  ctx.fillStyle = "#2a1808";
+  ctx.fillRect(-2.5, 0, 5, handleLen);
+  ctx.fillStyle = "#3a2010";
+  for (let i = 1; i < handleLen; i += 3) ctx.fillRect(-2.5, i, 5, 1); // wrap pattern
+
+  // Guard (tsuba)
+  ctx.fillStyle = "#cc9933";
+  ctx.fillRect(-6, -2, 12, 3);
+  ctx.fillStyle = "#e8b840";
+  ctx.fillRect(-5, -2, 10, 1);
+
+  // Blade body
+  ctx.fillStyle = "#8898b0";
+  ctx.fillRect(-2, -bladeLen, 4, bladeLen);
+  // Bright edge (ha)
+  ctx.fillStyle = "#d0d8ee";
+  ctx.fillRect(-2, -bladeLen, 1.5, bladeLen);
+  // Hamon line (temper pattern)
+  ctx.fillStyle = "#a0b0cc";
+  ctx.fillRect(-0.5, -bladeLen, 1, bladeLen);
+  // Tip (kissaki)
+  ctx.fillStyle = "#d0d8ee";
+  ctx.beginPath();
+  ctx.moveTo(-2, -bladeLen);
+  ctx.lineTo(0, -bladeLen - 7);
+  ctx.lineTo(2, -bladeLen);
+  ctx.fill();
+
+  // Strike glow — blade glows bright during the actual cut
+  if (p.state === "slash2") {
+    ctx.shadowColor = "#e0e8ff";
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = "rgba(224,232,255,0.6)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -bladeLen - 7);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.restore();
 
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
@@ -453,6 +478,69 @@ function drawEnemyFromImage(ctx, e, elapsed) {
 
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH + oy), Math.round(drawW), Math.round(drawH));
+
+  // ── Enemy weapon animations ──
+  if (e.type === "oni" && e.state === "attack") {
+    // Club swing — overhead smash
+    const progress = e.attackTimer / 400;
+    let clubAngle;
+    if (progress > 0.6) clubAngle = -2.0;       // raised overhead
+    else if (progress > 0.3) clubAngle = 0.3;   // smashing down
+    else clubAngle = 0.8;                        // ground impact
+
+    ctx.save();
+    ctx.translate(8, -drawH * 0.4 + oy);
+    ctx.rotate(clubAngle);
+    // Club handle
+    ctx.fillStyle = "#6b4830";
+    ctx.fillRect(-2, 0, 4, 30);
+    // Club head
+    ctx.fillStyle = "#4a4a4a";
+    ctx.fillRect(-6, -10, 12, 12);
+    ctx.fillStyle = "#5a5a5a";
+    ctx.fillRect(-5, -9, 10, 2);
+    // Studs
+    ctx.fillStyle = "#888";
+    ctx.fillRect(-5, -8, 2, 2);
+    ctx.fillRect(3, -8, 2, 2);
+    ctx.fillRect(-1, -5, 2, 2);
+    // Impact flash
+    if (progress < 0.35 && progress > 0.25) {
+      ctx.shadowColor = "#ffaa00";
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "rgba(255,170,0,0.4)";
+      ctx.fillRect(-8, -12, 16, 14);
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+  }
+
+  if (e.type === "ninja" && e.throwAnim > 0) {
+    // Throwing star — arm extended with visible shuriken
+    const throwProgress = e.throwAnim / 300;
+    ctx.save();
+    ctx.translate(8, -drawH * 0.45 + oy);
+    // Extended arm line
+    const armLen = (1 - throwProgress) * 20 + 5;
+    ctx.fillStyle = "#3a2a4a";
+    ctx.fillRect(0, -1, armLen, 3);
+    // Shuriken at tip (only at start of throw)
+    if (throwProgress > 0.5) {
+      const starX = armLen + 3;
+      ctx.fillStyle = "#8888cc";
+      ctx.shadowColor = "#8888ff";
+      ctx.shadowBlur = 4;
+      ctx.save();
+      ctx.translate(starX, 0);
+      ctx.rotate(e.throwAnim * 0.05);
+      ctx.fillRect(-4, -1, 8, 2);
+      ctx.fillRect(-1, -4, 2, 8);
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    }
+    ctx.restore();
+  }
+
   ctx.restore();
   return true;
 }
