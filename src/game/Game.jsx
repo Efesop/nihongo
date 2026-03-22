@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TILE, SCALE, GROUND_Y } from "./constants.js";
-import { getSprite } from "./sprites.js";
+import { getSprite, loadMascotImage } from "./sprites.js";
 import { SEGMENTS } from "./levels.js";
 import { makePlayer, makeEnemy } from "./entities.js";
 import { update } from "./engine.js";
@@ -133,7 +133,8 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [screen]);
 
-  const startGame = () => {
+  const startGame = async () => {
+    await loadMascotImage();
     setScore(0);
     setMaxCombo(0);
     setScreen("playing");

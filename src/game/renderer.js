@@ -1,5 +1,7 @@
 import { TILE, SCALE, DASH_COOLDOWN, hash } from "./constants.js";
-import { getSprite } from "./sprites.js";
+import { getSprite, getMascotImage } from "./sprites.js";
+
+const DRAW_SIZE = TILE * SCALE; // 60px
 
 // ═══ MAIN RENDER ═══
 export function render(g, ctx, isDesktop, font) {
@@ -9,10 +11,9 @@ export function render(g, ctx, isDesktop, font) {
 
   ctx.fillStyle = "#0a0a14";
   ctx.fillRect(0, 0, W, H);
-
   renderBackground(ctx, W, H, cx, g);
 
-  // ── Ambient embers (behind world) ──
+  // Ambient embers
   for (const em of g.embers) {
     const sx = em.x - cx;
     if (sx < -10 || sx > W + 10) continue;
@@ -33,120 +34,43 @@ export function render(g, ctx, isDesktop, font) {
   // Platforms
   for (const plat of g.platforms) {
     if (plat.x + plat.w < cx - 50 || plat.x > cx + W + 50) continue;
-    // Platform body
     const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
     grad.addColorStop(0, "#1e1e30");
     grad.addColorStop(1, "#12121e");
     ctx.fillStyle = grad;
     ctx.fillRect(plat.x, plat.y, plat.w, 14);
-    // Neon top edge
     ctx.fillStyle = "#c0282a";
     ctx.fillRect(plat.x, plat.y, plat.w, 1);
     ctx.fillStyle = "#c0282a55";
     ctx.fillRect(plat.x, plat.y + 1, plat.w, 1);
-    // Subtle glow under edge
     ctx.fillStyle = "#c0282a18";
     ctx.fillRect(plat.x, plat.y + 2, plat.w, 3);
-    // Side edges
     ctx.fillStyle = "#c0282a22";
     ctx.fillRect(plat.x, plat.y, 1, 14);
     ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, 14);
   }
 
-  // ── Enemies ──
+  // ── Enemies (procedural shapes) ──
   for (const e of g.enemies) {
     if (e.x < cx - 100 || e.x > cx + W + 100) continue;
-
-    // Enemy glow (colored outline)
-    if (!e.dead) {
-      const glowColor = e.type === "oni" ? "rgba(210,180,100," : e.type === "ninja" ? "rgba(60,140,80," : "rgba(170,100,200,";
-      ctx.shadowColor = glowColor + "0.4)";
-      ctx.shadowBlur = 8;
-    }
-
     if (e.dead) {
-      ctx.globalAlpha = e.deathTimer / 400;
-      // White flash at start of death
       if (e.deathTimer > 300) {
+        // White flash
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(e.x - TILE * SCALE / 2, e.y, TILE * SCALE, TILE * SCALE);
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
+        ctx.fillRect(e.x - 20, e.y + 5, 40, 50);
         continue;
       }
+      ctx.globalAlpha = e.deathTimer / 400;
     }
-
-    let sprName;
-    if (e.type === "oni") {
-      sprName = e.frame === 0 ? "oni1" : "oni2";
-    } else if (e.type === "ninja") {
-      sprName = e.throwAnim > 0 ? "ninja_throw" : (e.frame === 0 ? "ninja1" : "ninja2");
-    } else {
-      if (e.blocking) sprName = "samurai_block";
-      else if (e.state === "attack" && e.attackTimer > 200) sprName = "samurai_atk";
-      else sprName = e.frame === 0 ? "samurai1" : "samurai2";
-    }
-
-    const spr = getSprite(sprName, e.facing > 0);
-    if (spr) ctx.drawImage(spr, e.x - spr.width / 2, e.y, spr.width, spr.height);
-    ctx.shadowBlur = 0;
-
-    // ── Alert "!" indicator ──
-    if (e.alert > 0 && !e.dead) {
-      const alertAlpha = Math.min(1, e.alert / 200);
-      const bounce = Math.sin(e.alert * 0.02) * 3;
-      ctx.globalAlpha = alertAlpha;
-      ctx.fillStyle = "#ff4444";
-      ctx.font = `bold 14px ${font}`;
-      ctx.textAlign = "center";
-      ctx.shadowColor = "#ff4444";
-      ctx.shadowBlur = 6;
-      ctx.fillText("!", e.x, e.y - 8 + bounce);
-      ctx.shadowBlur = 0;
-    }
-
-    // ── Samurai HP pips ──
-    if (e.type === "samurai" && !e.dead && e.hp > 0) {
-      const pipY = e.y - 6;
-      for (let i = 0; i < 2; i++) {
-        const px = e.x - 6 + i * 12;
-        ctx.fillStyle = i < e.hp ? "#ffaa44" : "#333344";
-        ctx.fillRect(px - 3, pipY, 6, 3);
-        if (i < e.hp) {
-          ctx.fillStyle = "#ffdd88";
-          ctx.fillRect(px - 3, pipY, 6, 1);
-        }
-      }
-    }
-
-    // Block shield
-    if (e.blocking && !e.dead) {
-      ctx.strokeStyle = "#ffe08066";
-      ctx.lineWidth = 2;
-      ctx.shadowColor = "#ffe080";
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y + TILE * SCALE / 2, 28, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-
-    // Attack telegraph
-    if (e.state === "attack" && e.attackTimer > 200 && !e.dead) {
-      const pulse = 0.25 + Math.sin(g.time.elapsed * 20) * 0.15;
-      ctx.fillStyle = `rgba(255,60,60,${pulse})`;
-      ctx.fillRect(e.x - 30, e.y, 60, TILE * SCALE);
-    }
+    drawEnemy(ctx, e, g.time.elapsed, font);
     ctx.globalAlpha = 1;
   }
 
-  // ── Projectiles with trails ──
+  // Projectiles with trails
   for (const proj of g.projectiles) {
-    // Trail
     if (proj.trail && proj.trail.length > 1) {
       for (let i = 0; i < proj.trail.length - 1; i++) {
-        const alpha = (i / proj.trail.length) * 0.4;
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = (i / proj.trail.length) * 0.4;
         ctx.fillStyle = "#8888cc";
         const t = proj.trail[i];
         const size = 2 + (i / proj.trail.length) * 3;
@@ -154,8 +78,6 @@ export function render(g, ctx, isDesktop, font) {
       }
       ctx.globalAlpha = 1;
     }
-
-    // Shuriken with glow
     ctx.save();
     ctx.translate(proj.x, proj.y);
     ctx.rotate(proj.rotation);
@@ -168,39 +90,27 @@ export function render(g, ctx, isDesktop, font) {
     ctx.restore();
   }
 
-  // ── Player afterimages (dash trail) ──
-  for (const ai of g.player.afterimages) {
-    ctx.globalAlpha = (ai.life / 200) * 0.35;
-    const spr = getSprite("dash", ai.facing < 0);
-    if (spr) ctx.drawImage(spr, ai.x - spr.width / 2, ai.y, spr.width, spr.height);
-  }
-  ctx.globalAlpha = 1;
-
-  // ── Player ──
-  if (!g.player.dead) {
-    const p = g.player;
-    let sprName;
-    if (p.state === "dash") sprName = "dash";
-    else if (p.state.startsWith("slash")) sprName = p.state;
-    else if (p.state === "run") sprName = "run" + (p.frame % 4 + 1);
-    else if (p.state === "idle") sprName = "idle" + (p.frame % 2 + 1);
-    else sprName = p.state;
-
-    const flip = p.facing < 0;
-    const spr = getSprite(sprName, flip);
-    if (spr) {
-      if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
-      if (p.dashTimer > 0) {
-        ctx.shadowColor = "#c0282a";
-        ctx.shadowBlur = 15;
-      }
-      ctx.drawImage(spr, p.x - spr.width / 2, p.y, spr.width, spr.height);
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 1;
+  // Player afterimages (dash trail)
+  const mascot = getMascotImage();
+  if (mascot) {
+    for (const ai of g.player.afterimages) {
+      ctx.globalAlpha = (ai.life / 200) * 0.3;
+      const s = DRAW_SIZE;
+      ctx.save();
+      ctx.translate(ai.x, ai.y + s / 2);
+      if (ai.facing < 0) ctx.scale(-1, 1);
+      ctx.drawImage(mascot, -s / 2, -s / 2, s, s);
+      ctx.restore();
     }
+    ctx.globalAlpha = 1;
   }
 
-  // ── Slash effects ──
+  // ── Player (actual mascot PNG with transforms) ──
+  if (!g.player.dead && mascot) {
+    drawPlayer(ctx, g.player, mascot, g.time.elapsed);
+  }
+
+  // Slash effects
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
     const alpha = (1 - progress) * 0.9;
@@ -223,7 +133,7 @@ export function render(g, ctx, isDesktop, font) {
     ctx.restore();
   }
 
-  // ── Particles ──
+  // Particles
   for (const part of g.particles) {
     ctx.globalAlpha = part.life / part.maxLife;
     ctx.fillStyle = part.color;
@@ -235,7 +145,7 @@ export function render(g, ctx, isDesktop, font) {
   }
   ctx.globalAlpha = 1;
 
-  // ── Floating texts ──
+  // Floating texts
   for (const ft of g.floatingTexts) {
     const alpha = ft.life / ft.maxLife;
     const scale = 1 + (1 - alpha) * 0.3;
@@ -256,12 +166,11 @@ export function render(g, ctx, isDesktop, font) {
 
   ctx.restore(); // end camera
 
-  // ── Post-processing ──
+  // Post-processing
   if (g.flashTimer > 0) {
     ctx.fillStyle = `rgba(255,255,255,${(g.flashTimer / 60) * 0.2})`;
     ctx.fillRect(0, 0, W, H);
   }
-
   if (g.slowMo.active) {
     ctx.fillStyle = "rgba(80,60,180,0.12)";
     ctx.fillRect(0, 0, W, H);
@@ -283,6 +192,321 @@ export function render(g, ctx, isDesktop, font) {
   ctx.fillRect(0, 0, W, H);
 
   renderHUD(ctx, g, W, isDesktop, font);
+}
+
+// ═══════════════════════════════════════════
+// ═══ DRAW PLAYER — actual mascot PNG ═══
+// ═══════════════════════════════════════════
+function drawPlayer(ctx, p, mascot, elapsed) {
+  const s = DRAW_SIZE;
+  ctx.save();
+
+  // Position at center-bottom of the sprite
+  ctx.translate(p.x, p.y + s);
+
+  // Flip based on facing direction
+  if (p.facing < 0) ctx.scale(-1, 1);
+
+  // Apply state-based transforms
+  let rot = 0;
+  let sx = 1, sy = 1;
+  let ox = 0, oy = 0;
+
+  if (p.state === "idle") {
+    // Gentle breathing
+    sy = 1 + Math.sin(elapsed * 3) * 0.015;
+    oy = Math.sin(elapsed * 3) * 1;
+  } else if (p.state === "run") {
+    // Running bob + slight tilt
+    const runCycle = elapsed * 10;
+    oy = Math.abs(Math.sin(runCycle)) * -4;
+    rot = Math.sin(runCycle) * 0.06;
+    sx = 1 + Math.sin(runCycle * 2) * 0.03;
+  } else if (p.state === "jump") {
+    rot = -0.15;
+    sy = 1.08;
+    sx = 0.94;
+  } else if (p.state === "fall") {
+    rot = 0.1;
+    sy = 0.94;
+    sx = 1.05;
+  } else if (p.state === "dash") {
+    sx = 1.25;
+    sy = 0.85;
+  } else if (p.state === "slash1") {
+    rot = -0.25;
+  } else if (p.state === "slash2") {
+    rot = 0.15;
+    sx = 1.05;
+  } else if (p.state === "slash3") {
+    rot = 0.35;
+  }
+
+  ctx.rotate(rot);
+  ctx.scale(sx, sy);
+
+  // Invincibility blink
+  if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
+
+  // Dash glow
+  if (p.dashTimer > 0) {
+    ctx.shadowColor = "#c0282a";
+    ctx.shadowBlur = 15;
+  }
+
+  // Draw the actual mascot image — crisp pixel art
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(mascot, -s / 2 + ox, -s + oy, s, s);
+
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════
+// ═══ DRAW ENEMY — clean procedural characters ═══
+// ═══════════════════════════════════════════════
+function drawEnemy(ctx, e, elapsed, font) {
+  const x = e.x;
+  const y = e.y;
+  const f = e.facing;
+  const bobY = Math.sin(elapsed * 3 + x * 0.1) * 2;
+
+  // Walk animation
+  const walkCycle = elapsed * 5;
+  const legSwing = e.state === "patrol" || e.state === "chase" ? Math.sin(walkCycle) * 4 : 0;
+
+  ctx.save();
+  ctx.translate(x, y + bobY);
+
+  if (e.type === "oni") {
+    // ── BANDIT — round head, headband, staff ──
+    const bodyColor = "#6b4830";
+    const skinColor = "#e8c090";
+    const headbandColor = "#cc9933";
+
+    // Body
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(-12, 22, 24, 22);
+    ctx.fillStyle = "#5a3a24";
+    ctx.fillRect(-10, 30, 20, 4); // belt
+
+    // Legs
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(-8, 44, 6, 14 + legSwing);
+    ctx.fillRect(2, 44, 6, 14 - legSwing);
+
+    // Head
+    ctx.fillStyle = skinColor;
+    ctx.beginPath();
+    ctx.arc(0, 14, 14, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(-6, 12, 3, 3);
+    ctx.fillRect(3, 12, 3, 3);
+    // Angry brow
+    ctx.fillRect(-7, 9, 5, 2);
+    ctx.fillRect(2, 9, 5, 2);
+
+    // Headband
+    ctx.fillStyle = headbandColor;
+    ctx.fillRect(-15, 4, 30, 5);
+    // Headband tail
+    ctx.fillStyle = headbandColor;
+    ctx.fillRect(14, 4, 8, 3);
+    ctx.fillRect(18, 7, 6, 2);
+
+    // Staff
+    ctx.fillStyle = "#8b6840";
+    ctx.fillRect(f * 16, 8, 3, 48);
+    ctx.fillStyle = "#a08050";
+    ctx.fillRect(f * 16, 8, 3, 2);
+
+    // Arms
+    ctx.fillStyle = skinColor;
+    ctx.fillRect(-14, 24, 5, 12);
+    ctx.fillRect(9, 24, 5, 12);
+
+  } else if (e.type === "ninja") {
+    // ── ARCHER — conical hat, bow, green outfit ──
+    const outfitColor = "#2a5040";
+    const hatColor = "#8b7340";
+    const skinColor = "#e8c090";
+
+    // Body
+    ctx.fillStyle = outfitColor;
+    ctx.fillRect(-10, 22, 20, 20);
+    ctx.fillStyle = "#1e3a2e";
+    ctx.fillRect(-8, 30, 16, 3); // belt
+
+    // Legs
+    ctx.fillStyle = outfitColor;
+    ctx.fillRect(-7, 42, 5, 14 + legSwing);
+    ctx.fillRect(2, 42, 5, 14 - legSwing);
+
+    // Head
+    ctx.fillStyle = skinColor;
+    ctx.beginPath();
+    ctx.arc(0, 16, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mask (lower face cover)
+    ctx.fillStyle = "#1e3a2e";
+    ctx.fillRect(-8, 18, 16, 8);
+
+    // Eyes
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(-5, 13, 3, 2);
+    ctx.fillRect(2, 13, 3, 2);
+
+    // Conical hat
+    ctx.fillStyle = hatColor;
+    ctx.beginPath();
+    ctx.moveTo(0, -4);
+    ctx.lineTo(-18, 10);
+    ctx.lineTo(18, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#766030";
+    ctx.fillRect(-16, 8, 32, 2);
+
+    // Bow (on the side)
+    ctx.strokeStyle = "#6b4830";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(f * 18, 28, 16, -Math.PI * 0.4, Math.PI * 0.4);
+    ctx.stroke();
+    // Bowstring
+    ctx.strokeStyle = "#aaa";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(f * 18, 28 - 14);
+    ctx.lineTo(f * 18, 28 + 14);
+    ctx.stroke();
+
+    // Throw animation — arm extended
+    if (e.throwAnim > 0) {
+      ctx.fillStyle = skinColor;
+      ctx.fillRect(f * 10, 22, f * 18, 4);
+    }
+
+  } else if (e.type === "samurai") {
+    // ── GUARD — armored, helmet with crest, sword ──
+    const armorColor = "#4a3858";
+    const armorLight = "#6a5078";
+    const goldColor = "#cc9933";
+    const skinColor = "#e8c090";
+
+    // Body (armored)
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(-13, 22, 26, 24);
+    // Shoulder plates
+    ctx.fillStyle = armorLight;
+    ctx.fillRect(-16, 22, 8, 8);
+    ctx.fillRect(8, 22, 8, 8);
+    // Gold trim
+    ctx.fillStyle = goldColor;
+    ctx.fillRect(-13, 22, 26, 2);
+    ctx.fillRect(-13, 32, 26, 2);
+
+    // Legs (armored)
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(-8, 46, 6, 14 + legSwing);
+    ctx.fillRect(2, 46, 6, 14 - legSwing);
+
+    // Head
+    ctx.fillStyle = skinColor;
+    ctx.beginPath();
+    ctx.arc(0, 14, 13, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(-5, 12, 3, 3);
+    ctx.fillRect(2, 12, 3, 3);
+
+    // Helmet
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(-14, 0, 28, 12);
+    ctx.fillStyle = armorLight;
+    ctx.fillRect(-14, 0, 28, 3);
+    // Crest
+    ctx.fillStyle = goldColor;
+    ctx.fillRect(-2, -8, 4, 10);
+    ctx.fillRect(-4, -8, 8, 3);
+
+    // Face guard
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(-10, 12, 4, 6);
+    ctx.fillRect(6, 12, 4, 6);
+
+    // Katana
+    if (e.blocking) {
+      // Held horizontally (blocking)
+      ctx.fillStyle = "#a0b0c8";
+      ctx.fillRect(-25, 18, 50, 2);
+      ctx.fillStyle = "#e0e8ff";
+      ctx.fillRect(-25, 18, 50, 1);
+    } else {
+      // Held at side
+      ctx.fillStyle = "#a0b0c8";
+      ctx.fillRect(f * 16, 10, 2, 40);
+      ctx.fillStyle = "#e0e8ff";
+      ctx.fillRect(f * 16, 10, 1, 40);
+      // Handle
+      ctx.fillStyle = "#4a3020";
+      ctx.fillRect(f * 16 - 1, 38, 4, 10);
+    }
+  }
+
+  // ── Alert "!" indicator ──
+  if (e.alert > 0 && !e.dead) {
+    const alertAlpha = Math.min(1, e.alert / 200);
+    ctx.globalAlpha = alertAlpha;
+    ctx.fillStyle = "#ff4444";
+    ctx.font = `bold 16px ${font}`;
+    ctx.textAlign = "center";
+    ctx.shadowColor = "#ff4444";
+    ctx.shadowBlur = 8;
+    ctx.fillText("!", 0, -8);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Samurai HP pips ──
+  if (e.type === "samurai" && !e.dead) {
+    for (let i = 0; i < 2; i++) {
+      ctx.fillStyle = i < e.hp ? "#cc9933" : "#333344";
+      ctx.fillRect(-6 + i * 12, -12, 8, 4);
+      if (i < e.hp) {
+        ctx.fillStyle = "#ffcc66";
+        ctx.fillRect(-6 + i * 12, -12, 8, 1);
+      }
+    }
+  }
+
+  // Block shield
+  if (e.blocking && !e.dead) {
+    ctx.strokeStyle = "#ffe08066";
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "#ffe080";
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(0, 30, 30, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Attack telegraph
+  if (e.state === "attack" && e.attackTimer > 200 && !e.dead) {
+    const pulse = 0.2 + Math.sin(elapsed * 20) * 0.15;
+    ctx.fillStyle = `rgba(255,60,60,${pulse})`;
+    ctx.fillRect(-25, 5, 50, 55);
+  }
+
+  ctx.restore();
 }
 
 // ═══ BACKGROUND ═══
@@ -327,7 +551,6 @@ function renderBackground(ctx, W, H, cx, g) {
     const x = ((i * 97 + bx1) % (W + 300) + W + 300) % (W + 300) - 50;
     ctx.fillStyle = "#0c0c1a";
     ctx.fillRect(x, groundY - bh, bw, bh);
-    // Antenna/spire on some
     if (i % 4 === 0) {
       ctx.fillRect(x + bw / 2 - 1, groundY - bh - 15, 2, 15);
       ctx.fillStyle = "#ff2020";
@@ -337,7 +560,7 @@ function renderBackground(ctx, W, H, cx, g) {
     }
   }
 
-  // Mid buildings with neon (parallax 0.3)
+  // Mid buildings (parallax 0.3)
   const bx2 = -cx * 0.3;
   for (let i = 0; i < 14; i++) {
     const bw = 28 + ((i * 43) % 55);
@@ -345,19 +568,14 @@ function renderBackground(ctx, W, H, cx, g) {
     const x = ((i * 130 + 20 + bx2) % (W + 400) + W + 400) % (W + 400) - 100;
     ctx.fillStyle = "#10101e";
     ctx.fillRect(x, groundY - bh, bw, bh);
-
-    // Neon signs
     if (i % 3 === 0) {
       const colors = ["rgba(192,40,42,", "rgba(155,142,207,", "rgba(79,142,196,"];
-      const neonColor = colors[i % 3];
       const glow = 0.4 + Math.sin(g.time.elapsed * 3 + i * 1.5) * 0.2;
-      ctx.fillStyle = neonColor + glow + ")";
+      ctx.fillStyle = colors[i % 3] + glow + ")";
       ctx.fillRect(x + 4, groundY - bh + 8, bw - 8, 5);
-      // Glow bloom
-      ctx.fillStyle = neonColor + (glow * 0.15) + ")";
+      ctx.fillStyle = colors[i % 3] + (glow * 0.15) + ")";
       ctx.fillRect(x + 2, groundY - bh + 5, bw - 4, 11);
     }
-    // Windows (deterministic)
     ctx.fillStyle = "rgba(255,200,100,0.2)";
     for (let wy = groundY - bh + 22; wy < groundY - 8; wy += 14) {
       for (let wx = x + 5; wx < x + bw - 5; wx += 9) {
@@ -368,7 +586,7 @@ function renderBackground(ctx, W, H, cx, g) {
     }
   }
 
-  // Wires (parallax 0.7)
+  // Wires
   ctx.strokeStyle = "#1a1a30";
   ctx.lineWidth = 1;
   for (let i = 0; i < 3; i++) {
@@ -382,7 +600,6 @@ function renderBackground(ctx, W, H, cx, g) {
   // Ground
   ctx.fillStyle = "#08080f";
   ctx.fillRect(0, groundY + 14, W, H - groundY);
-  // Ground edge glow
   ctx.fillStyle = "#c0282a0a";
   ctx.fillRect(0, groundY + 14, W, 3);
 }
@@ -391,22 +608,18 @@ function renderBackground(ctx, W, H, cx, g) {
 function renderDeco(ctx, d, groundY, elapsed) {
   if (d.type === "lantern") {
     const glow = 0.5 + Math.sin(elapsed * 3 + d.x * 0.1) * 0.2;
-    // Outer glow
     ctx.fillStyle = `rgba(255,100,50,${glow * 0.15})`;
     ctx.beginPath();
     ctx.arc(d.x, groundY - 60, 30, 0, Math.PI * 2);
     ctx.fill();
-    // Inner glow
     ctx.fillStyle = `rgba(255,100,50,${glow * 0.35})`;
     ctx.beginPath();
     ctx.arc(d.x, groundY - 60, 14, 0, Math.PI * 2);
     ctx.fill();
-    // Lantern body
     ctx.fillStyle = "#c0282a";
     ctx.fillRect(d.x - 6, groundY - 70, 12, 18);
     ctx.fillStyle = "#dd4444";
     ctx.fillRect(d.x - 5, groundY - 69, 10, 2);
-    // String
     ctx.strokeStyle = "#444";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -419,16 +632,11 @@ function renderDeco(ctx, d, groundY, elapsed) {
     ctx.fillRect(d.x + 24, groundY - 100, 6, 100);
     ctx.fillRect(d.x - 36, groundY - 100, 72, 6);
     ctx.fillRect(d.x - 32, groundY - 85, 64, 4);
-    // Highlights
     ctx.fillStyle = "#aa2222";
     ctx.fillRect(d.x - 36, groundY - 100, 72, 2);
-    ctx.fillRect(d.x - 30, groundY - 100, 2, 100);
-    ctx.fillRect(d.x + 24, groundY - 100, 2, 100);
-    // Glow
     ctx.fillStyle = "rgba(192,40,42,0.08)";
     ctx.fillRect(d.x - 40, groundY - 110, 80, 120);
   } else if (d.type === "sign") {
-    // Neon sign with kanji
     ctx.fillStyle = "#1a1a2e";
     ctx.fillRect(d.x - 18, groundY - 85, 36, 24);
     ctx.strokeStyle = "#2a2a3e";
@@ -448,7 +656,6 @@ function renderDeco(ctx, d, groundY, elapsed) {
 
 // ═══ HUD ═══
 function renderHUD(ctx, g, W, isDesktop, font) {
-  // Score
   ctx.font = `bold 16px ${font}`;
   ctx.textAlign = "left";
   ctx.shadowColor = "#c0282a";
@@ -457,7 +664,6 @@ function renderHUD(ctx, g, W, isDesktop, font) {
   ctx.fillText(`SCORE: ${String(g.score).padStart(5, "0")}`, 16, 30);
   ctx.shadowBlur = 0;
 
-  // Combo
   if (g.combo > 1) {
     const comboScale = Math.min(1.4, 1 + (g.comboTimer / 2000) * 0.4);
     ctx.save();
@@ -472,7 +678,6 @@ function renderHUD(ctx, g, W, isDesktop, font) {
     ctx.restore();
   }
 
-  // Focus meter
   const mW = 100, mH = 8, mX = W - mW - 16, mY = 20;
   ctx.fillStyle = "#1a1a2e";
   ctx.fillRect(mX, mY, mW, mH);
@@ -493,7 +698,6 @@ function renderHUD(ctx, g, W, isDesktop, font) {
   ctx.textAlign = "right";
   ctx.fillText("FOCUS", mX - 6, mY + 8);
 
-  // Dash indicator
   const p = g.player;
   if (p.dashCooldown > 0) {
     const dFill = 1 - p.dashCooldown / DASH_COOLDOWN;
@@ -508,7 +712,6 @@ function renderHUD(ctx, g, W, isDesktop, font) {
     ctx.fillText("DASH READY", W - 16, mY + 24);
   }
 
-  // Mobile touch hints
   if (!isDesktop) {
     ctx.globalAlpha = 0.15;
     ctx.fillStyle = "#ffffff";
