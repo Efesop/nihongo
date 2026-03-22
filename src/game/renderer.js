@@ -151,14 +151,14 @@ export function render(g, ctx, isDesktop, font) {
     const progress = 1 - s.timer / s.maxTimer;
     const alpha = (1 - progress);
     const dir = s.facing > 0 ? 1 : -1;
-    const radius = 35 + progress * 30;
-    // Arc sweeps from behind to in front
+    const radius = 35 + progress * 35;
+    // Horizontal outward sweep — from hip level across and slightly up
     const sweepStart = dir > 0
-      ? -Math.PI * 0.8 + progress * Math.PI * 0.6
-      : Math.PI * 0.8 - progress * Math.PI * 0.6;
+      ? Math.PI * 0.3 - progress * Math.PI * 0.4
+      : -Math.PI * 0.3 + progress * Math.PI * 0.4;
     const sweepEnd = dir > 0
-      ? Math.PI * 0.6 + progress * Math.PI * 0.2
-      : -Math.PI * 0.6 - progress * Math.PI * 0.2;
+      ? -Math.PI * 0.5 - progress * Math.PI * 0.15
+      : Math.PI * 0.5 + progress * Math.PI * 0.15;
 
     ctx.save();
     ctx.translate(s.x, s.y);
@@ -300,19 +300,20 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     sx = 1.25;
     sy = 0.85;
   } else if (p.state === "slash1") {
-    // Crouch to draw from hip
-    sy = 0.93;
-    rot = -0.06;
+    // Hand on hilt, crouch to draw
+    sy = 0.94;
+    rot = 0.04;
+    ox = -2;
   } else if (p.state === "slash2") {
-    // Explosive upward diagonal cut — lunge forward
-    ox = 8;
-    rot = -0.08;
-    sx = 1.04;
-    sy = 1.02;
+    // Draw and slash outward — lunge forward, body extends
+    ox = 10;
+    rot = -0.05;
+    sx = 1.06;
+    sy = 0.97;
   } else if (p.state === "slash3") {
-    // Extended pose — sword overhead after the cut
-    ox = 4;
-    rot = -0.03;
+    // Blade fully extended outward, settling
+    ox = 6;
+    sy = 0.98;
   }
 
   ctx.rotate(rot);
@@ -328,12 +329,14 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (isSlashing) {
     const bladeLen = 44;
     let bladeAngle;
-    if (p.state === "slash1") bladeAngle = 1.2;       // at hip, about to draw
-    else if (p.state === "slash2") bladeAngle = -0.8;  // diagonal upward cut
-    else bladeAngle = -1.8;                            // overhead, follow-through
+    if (p.state === "slash1") bladeAngle = 1.4;       // sheathed at hip, pointing down-back
+    else if (p.state === "slash2") bladeAngle = -0.15; // horizontal, extended outward (THE CUT)
+    else bladeAngle = 0.2;                             // slightly past horizontal, still extended
 
     ctx.save();
-    ctx.translate(ox + 6, -drawH * 0.5 + oy);
+    // Blade origin moves forward during the cut
+    const bladeOx = p.state === "slash2" ? ox + 12 : p.state === "slash3" ? ox + 10 : ox + 2;
+    ctx.translate(bladeOx, -drawH * 0.5 + oy);
     ctx.rotate(bladeAngle);
 
     // Handle
