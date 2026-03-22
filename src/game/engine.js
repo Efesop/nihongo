@@ -194,7 +194,10 @@ export function update(g, callbacks) {
 
     updateEnemyAI(e, p, dt, g.projectiles);
 
-    // Clamp to platform bounds AFTER AI has moved the enemy
+    // Move enemy AFTER AI sets velocity, BEFORE platform clamping
+    e.x += e.vx * dt;
+
+    // Clamp to platform bounds
     if (onPlatform) {
       e.x = Math.max(platLeft, Math.min(platRight, e.x));
     }

@@ -68,7 +68,8 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = e.facing * 40;
     }
   } else if (e.type === "ninja") {
-    e.facing = toPlayer;
+    // Only update facing when player is clearly to one side (dead zone prevents flicker)
+    if (dist > 20) e.facing = toPlayer;
     e.vx = 0;
     if (dist < e.alertRange) {
       if (e.state === "patrol") e.alert = 600;
@@ -109,5 +110,5 @@ export function updateEnemyAI(e, player, dt, projectiles) {
     }
   }
 
-  e.x += e.vx * dt;
+  // Movement is handled by engine.js (after AI, before platform clamping)
 }
