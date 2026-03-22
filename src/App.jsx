@@ -281,8 +281,9 @@ function AuthedApp({ user, getToken }){
     });
   };
 
-  const startKanaQuiz=()=>{
-    setKCards(shuffle(allKana));setKI(0);setKInput("");setKFb(null);
+  const startKanaQuiz=(chars)=>{
+    const pool=chars||allKana;
+    setKCards(shuffle(pool));setKI(0);setKInput("");setKFb(null);
     setKScore({c:0,w:0});setKMistakes([]);setKPeek(false);setKScreen("quiz");
   };
 
@@ -293,6 +294,7 @@ function AuthedApp({ user, getToken }){
     if(ok){setKFb("ok");setKScore(s=>({...s,c:s.c+1}));}
     else{setKFb("no");setKScore(s=>({...s,w:s.w+1}));setKMistakes(m=>[...m,{ch,rom,ans:kInput.trim()}]);}
     updateKanaSRS(ch,ok);
+    setTimeout(()=>speak(ch),250);
   };
 
   const nextKana=()=>{

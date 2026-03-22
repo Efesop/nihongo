@@ -248,9 +248,35 @@ export default function KanaTrainer({
         })}
       </div>
     </div>
+    {/* Quick Quiz — random characters */}
+    {kMastered>0&&<div style={{marginBottom:14}}>
+      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginBottom:6}}>Quick Quiz (random)</div>
+      <div style={{display:"flex",gap:6}}>
+        {[10,20,46].filter(n=>n<=kMastered||n===46).map(n=>{
+          const allLearned=groups.filter(g=>!g.dk&&!g.yo).flatMap(g=>g.c).filter(ch=>getKBox(ch)>=1);
+          return <button key={n} onClick={()=>startKanaQuiz(shuffle([...allLearned]).slice(0,Math.min(n,allLearned.length)))} disabled={allLearned.length===0}
+            style={{...btn,flex:1,padding:"10px 8px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,color:c.tx,fontSize:13,fontWeight:600}}>{n>=46?"All":n}</button>;
+        })}
+      </div>
+    </div>}
+    {/* Struggling characters */}
+    {(()=>{
+      const struggling=groups.filter(g=>!g.dk&&!g.yo).flatMap(g=>g.c).filter(ch=>{const b=getKBox(ch);return b>=1&&b<3&&isKanaDue(ch);});
+      if(struggling.length<3)return null;
+      return <div style={{marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+          <div style={{fontSize:11,fontFamily:mono,color:c.go,textTransform:"uppercase"}}>Needs practice ({struggling.length})</div>
+          <button onClick={()=>startKanaQuiz(struggling)} style={{...btn,padding:"4px 10px",borderRadius:6,background:c.go+"18",border:"1px solid "+c.go+"44",color:c.go,fontSize:11,fontWeight:600}}>Drill these</button>
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+          {struggling.slice(0,15).map((ch,i)=><span key={i} style={{fontSize:16,padding:"4px 8px",borderRadius:6,background:c.go+"15",border:"1px solid "+c.go+"33",color:c.go}}>{ch}</span>)}
+          {struggling.length>15&&<span style={{fontSize:11,color:c.m,alignSelf:"center"}}>+{struggling.length-15}</span>}
+        </div>
+      </div>;
+    })()}
     <div style={{display:"flex",gap:10,marginBottom:14}}>
       <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
-      <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
+      <button onClick={()=>startKanaQuiz()} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
     </div>
     {/* Base kana grid — individual tiles */}
     <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:4}}>
