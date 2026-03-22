@@ -150,7 +150,7 @@ export function update(g, callbacks) {
   if (p.comboWindow > 0) p.comboWindow -= rawDt * 1000;
   if (p.comboWindow <= 0 && p.slashTimer <= 0) p.slashCombo = 0;
 
-  if (g.input.slashPressed && p.slashTimer <= 0 && p.comboWindow >= 0) {
+  if (g.input.slashPressed && p.slashTimer <= 0 && (p.slashCombo === 0 || p.comboWindow > 0)) {
     // Advance combo (0→1, 1→2, 2→3, max 3)
     p.slashCombo = Math.min(p.slashCombo + 1, 3);
     const combo = p.slashCombo;
@@ -312,7 +312,28 @@ export function update(g, callbacks) {
     if (e.state === "attack" && e.attackTimer > 100 && e.attackTimer < 300 &&
         !e.dead && !p.dead && p.invincible <= 0) {
       if (Math.abs(e.x - p.x) < 50 && Math.abs(e.y - p.y) < TILE * SCALE) {
-        killPlayer(g, callbacks);
+        if (p.slashTimer > 0) {
+          // Clash! Player is slashing too — daze the enemy instead
+          e.dazed = 800;
+          e.state = "dazed";
+          e.vx = 0;
+          g.hitStop = 100;
+          g.camera.shakeTimer = 80;
+          g.floatingTexts.push({
+            x: (p.x + e.x) / 2, y: Math.min(p.y, e.y) - 15,
+            text: "CLASH!", color: "#ffdd44", life: 900, maxLife: 900,
+          });
+          // Sparks
+          for (let i = 0; i < 10; i++) {
+            g.particles.push({
+              x: (p.x + e.x) / 2, y: p.y + TILE * SCALE * 0.4,
+              vx: rnd(-250, 250), vy: rnd(-350, -80),
+              life: 350, maxLife: 350, color: i < 4 ? "#ffffff" : "#ffdd44", size: rndInt(2, 4),
+            });
+          }
+        } else {
+          killPlayer(g, callbacks);
+        }
       }
     }
   }

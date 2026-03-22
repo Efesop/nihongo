@@ -712,11 +712,51 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
     ctx.stroke();
   }
 
-  // Attack telegraph
-  if (e.state === "attack" && e.attackTimer > 200 && !e.dead) {
-    const pulse = 0.2 + Math.sin(elapsed * 20) * 0.15;
-    ctx.fillStyle = `rgba(255,60,60,${pulse})`;
-    ctx.fillRect(-25, 5, 50, 55);
+  // Attack telegraph — pulsing red danger zone
+  if (e.state === "attack" && !e.dead) {
+    const progress = e.attackTimer / 600;
+    if (progress > 0.4) {
+      // Wind-up — growing danger indicator
+      const pulse = 0.15 + Math.sin(elapsed * 25) * 0.1;
+      const size = (1 - progress) * 40 + 20;
+      ctx.fillStyle = `rgba(255,40,40,${pulse})`;
+      ctx.fillRect(-size, 0, size * 2, 60);
+      // Red "!" warning
+      ctx.globalAlpha = 0.8;
+      ctx.fillStyle = "#ff3333";
+      ctx.font = `bold 18px ${font}`;
+      ctx.textAlign = "center";
+      ctx.fillText("!", 0, -5);
+      ctx.globalAlpha = 1;
+    } else {
+      // Strike frame — bright flash
+      ctx.fillStyle = "rgba(255,100,50,0.3)";
+      ctx.fillRect(-35, -5, 70, 65);
+    }
+  }
+
+  // Dazed — spinning stars above head
+  if (e.dazed > 0 && !e.dead) {
+    const t = elapsed * 6;
+    for (let i = 0; i < 3; i++) {
+      const angle = t + i * (Math.PI * 2 / 3);
+      const sx = Math.cos(angle) * 14;
+      const sy = Math.sin(angle) * 5 - 15;
+      ctx.fillStyle = "#ffdd44";
+      // 4-pointed star shape
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(t * 2 + i);
+      ctx.fillRect(-3, -1, 6, 2);
+      ctx.fillRect(-1, -3, 2, 6);
+      ctx.restore();
+    }
+    // Dizzy swirl lines
+    ctx.strokeStyle = "rgba(255,220,70,0.4)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(0, -12, 16, t, t + Math.PI * 1.2);
+    ctx.stroke();
   }
 
   ctx.restore();

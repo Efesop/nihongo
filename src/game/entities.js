@@ -25,13 +25,22 @@ export function makeEnemy(type, x, platformY) {
     attackCooldown: type === "ninja" ? 1400 : 800,
     blocking: false, blockTimer: 0,
     throwAnim: 0,
-    alert: 0, // "!" indicator timer
+    alert: 0,
+    dazed: 0, // stun timer — can't act while > 0
     _hitThisSlash: false,
   };
 }
 
 // ═══ ENEMY AI ═══
 export function updateEnemyAI(e, player, dt, projectiles) {
+  // Dazed — can't do anything
+  if (e.dazed > 0) {
+    e.dazed -= dt * 1000;
+    e.vx = 0;
+    if (e.dazed <= 0) { e.dazed = 0; e.state = "patrol"; }
+    return;
+  }
+
   const dx = player.x - e.x;
   const dist = Math.abs(dx);
   const toPlayer = dx > 0 ? 1 : -1;
