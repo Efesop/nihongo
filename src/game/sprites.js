@@ -19,6 +19,10 @@ export function loadGameImages() {
     loadImg("player", "/images/tinysenpai2.png"),
     loadImg("oni", "/images/demon.png"),
     loadImg("ninja", "/images/ninja.png"),
+    loadImg("run1", "/images/tinysenpairun/ts1.png"),
+    loadImg("run2", "/images/tinysenpairun/ts2.png"),
+    loadImg("run3", "/images/tinysenpairun/ts3.png"),
+    loadImg("run4", "/images/tinysenpairun/ts4.png"),
     loadImg("bg_forest", "/images/forest.png"),
     // Add more as PNGs are created:
     // loadImg("samurai", "/images/ronin.png"),

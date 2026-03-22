@@ -267,34 +267,48 @@ export function render(g, ctx, isDesktop, font) {
 // ═══════════════════════════════════════════
 // The mascot PNG is 1024x1024 but the character only occupies the center.
 // Source crop removes empty padding (character spans ~rows 6-24 in a 32-cell grid).
-const SRC_X = 64;    // left crop (px in 1024 image)
-const SRC_Y = 160;   // top crop
-const SRC_W = 896;   // cropped width
-const SRC_H = 660;   // cropped height
+// Crop rects for player images (remove gray/transparent padding)
+const SRC_X = 64, SRC_Y = 160, SRC_W = 896, SRC_H = 660; // idle mascot
+const RUN_CROP = { x: 140, y: 140, w: 750, h: 730 }; // run frames (generous shared crop)
 
 function drawPlayer(ctx, p, mascot, elapsed) {
   const s = DRAW_SIZE;
-  const aspect = SRC_W / SRC_H;
-  const drawW = s * aspect * 0.95;
-  const drawH = s * 0.95;
   const isSlashing = p.state.startsWith("slash");
 
   ctx.save();
   ctx.translate(p.x, p.y + DRAW_SIZE);
   if (p.facing > 0) ctx.scale(-1, 1);
 
+  if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
+  ctx.imageSmoothingEnabled = false;
+
+  // ── RUN — use actual sprite frames ──
+  if (p.state === "run") {
+    const frameIndex = (Math.floor(elapsed * 8) % 4) + 1; // 8fps, frames 1-4
+    const runImg = getImage("run" + frameIndex);
+    if (runImg) {
+      const rc = RUN_CROP;
+      const aspect = rc.w / rc.h;
+      const dw = s * aspect * 0.95;
+      const dh = s * 0.95;
+      ctx.drawImage(runImg, rc.x, rc.y, rc.w, rc.h, -dw / 2, -dh, dw, dh);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+      return;
+    }
+  }
+
+  // ── All other states — use mascot + transforms ──
+  const aspect = SRC_W / SRC_H;
+  const drawW = s * aspect * 0.95;
+  const drawH = s * 0.95;
   let oy = 0;
 
   if (p.state === "idle") {
     oy = Math.sin(elapsed * 2) * 0.8;
-  } else if (p.state === "run") {
-    oy = Math.abs(Math.sin(elapsed * 12)) * -1.5;
   } else if (p.state === "dash") {
     ctx.scale(1.12, 0.92);
   }
-
-  if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
-  ctx.imageSmoothingEnabled = false;
 
   if (isSlashing) {
     const combo = p.slashCombo;
