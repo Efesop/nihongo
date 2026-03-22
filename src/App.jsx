@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser, useAuth, useClerk, SignIn, SignUp } from "@clerk/clerk-react";
+import Game from "./Game.jsx";
 
 // ═══ STORAGE HELPERS ═══
 const store = {
@@ -1220,62 +1221,93 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     </div>;
     if(pCat){
       const phrases=PHRASES.filter(p=>p[4]===pCat);
+      const catDone=phrases.filter(p=>(data.phr[p[0]]?.box||0)>=1).length;
+      const catCol=CAT_COLORS[pCat];
       return <div style={inner}>
-        <button onClick={()=>setPCat(null)} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0,marginBottom:14}}>← scenarios</button>
-        <h2 style={{fontSize:22,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>{CAT_ICONS[pCat]} {CATS[pCat]}</h2>
-        <button onClick={()=>{setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600,marginBottom:16}}>Practice</button>
+        <button onClick={()=>setPCat(null)} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0",marginBottom:14}}>← scenarios</button>
+        <div style={{marginBottom:18}}>
+          <h2 style={{fontSize:24,fontWeight:700,margin:"0 0 6px"}}>{CAT_ICONS[pCat]} {CATS[pCat]}</h2>
+          <div style={{fontSize:12,color:c.m,fontFamily:mono}}>{catDone}/{phrases.length} learned</div>
+        </div>
+        <button onClick={()=>{setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:14,borderRadius:10,background:catCol,color:"#fff",fontSize:15,fontWeight:600,marginBottom:18}}>Practice ({phrases.length})</button>
         {phrases.map((p,i)=>{const box=getPhrBox(p[0]);
-          const badgeColor=box>=4?c.g:box>=1?c.go:c.m;
-          return <div key={i} style={{...card,marginBottom:8,padding:14}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-                  <div style={{fontSize:17,fontWeight:600}}>{p[1]}</div>
-                  <button onClick={()=>speakPhrase(p[0],p[1])} style={{...btn,padding:"2px 7px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:12,color:c.m}}>🔊</button>
-                </div>
-                <div style={{fontSize:13,fontFamily:mono,color:c.a,marginBottom:2}}>{p[2]}</div>
-                <div style={{fontSize:13,color:c.m}}>{p[3]}</div>
-                {p[5]&&<div style={{fontSize:11,color:c.m,fontStyle:"italic",marginTop:3,opacity:.65}}>{p[5]}</div>}
-              </div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-                <span style={chip(badgeColor)}>{box>=4?"mastered":box>=1?"learning":"new"}</span>
-                {p[6]&&<span style={{...chip(c.a),fontSize:9}}>⚡</span>}
-              </div>
+          const srsColor=box>=4?c.g:box>=1?c.go:"transparent";
+          return <div key={i} onClick={()=>speakPhrase(p[0],p[1])} style={{...card,marginBottom:8,padding:0,cursor:"pointer",display:"flex",overflow:"hidden",transition:"background .15s"}}
+            onMouseEnter={e=>e.currentTarget.style.background=c.s2} onMouseLeave={e=>e.currentTarget.style.background=c.s}>
+            <div style={{width:4,background:srsColor,flexShrink:0,borderRadius:"12px 0 0 12px"}}/>
+            <div style={{flex:1,padding:"14px 16px"}}>
+              <div style={{fontSize:isDesktop?26:22,fontWeight:600,marginBottom:4,lineHeight:1.3}}>{p[1]}</div>
+              <div style={{fontSize:12,fontFamily:mono,color:c.a,marginBottom:4,opacity:.7}}>{p[2]}</div>
+              <div style={{fontSize:14,color:c.tx,marginBottom:2}}>{p[3]}</div>
+              {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:4}}>{p[5]}</div>}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 14px",gap:6}}>
+              <div style={{fontSize:16,color:c.m,opacity:.4}}>🔊</div>
+              {p[6]&&<div style={{fontSize:10,color:c.go}}>⚡</div>}
             </div>
           </div>;
         })}
       </div>;
     }
     return <div style={inner}>
-      <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:8}}>Phrase Bank</div>
-      <h2 style={{fontSize:26,fontWeight:700,margin:"0 0 18px",letterSpacing:"-.01em"}}>Scenarios</h2>
-      {mcLeft>0&&<button onClick={()=>{setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
-        style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600,marginBottom:10}}>
-        ⚡ Fast Track — {mcLeft} mission-critical left
-      </button>}
-      {dueCount>0&&<button onClick={()=>{setFastTrack(false);setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,width:"100%",padding:13,borderRadius:10,background:c.go,color:"#fff",fontSize:15,fontWeight:600,marginBottom:16}}>Review {dueCount} due</button>}
-      {Object.entries(CATS).map(([k,v])=>{
-        const total=PHRASES.filter(p=>p[4]===k).length;
-        const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
-        const pct=Math.round(done/total*100);
-        const col=CAT_COLORS[k];
-        return <div key={k} onClick={()=>setPCat(k)}
-          onMouseEnter={()=>setHov("cat_"+k)} onMouseLeave={()=>setHov(null)}
-          style={{...card,marginBottom:8,padding:14,cursor:"pointer",background:hov==="cat_"+k?c.s2:c.s,transition:"all .15s"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <span style={{fontSize:22,flexShrink:0}}>{CAT_ICONS[k]}</span>
-            <div style={{flex:1}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-                <span style={{fontSize:15,fontWeight:600}}>{v}</span>
-                <span style={chip(col)}>{done}/{total}</span>
-                {(()=>{const catDue=PHRASES.filter(p=>p[4]===k&&data.phr[p[0]]?.box>=1&&isPhrDue(p[0])).length;return catDue>0?<span style={chip(c.go)}>{catDue} due</span>:null;})()}
-              </div>
-              {progressBar(pct,col)}
-            </div>
-            <div style={{color:c.m,opacity:.4,fontSize:14,marginLeft:4}}>→</div>
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Travel Phrases</div>
+        <h2 style={{fontSize:26,fontWeight:700,margin:0,letterSpacing:"-.01em"}}>Scenarios</h2>
+        <div style={{fontSize:13,color:c.m,marginTop:4}}>{learnedPhr}/{PHRASES.length} phrases learned</div>
+      </div>
+      {mcLeft>0&&<div onClick={()=>{setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
+        style={{...card,marginBottom:10,padding:"16px 18px",cursor:"pointer",background:c.a+"0d",border:"1px solid "+c.a+"33"}}
+        onMouseEnter={()=>setHov("ft")} onMouseLeave={()=>setHov(null)}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:22}}>⚡</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:600,color:c.a}}>Survival Phrases</div>
+            <div style={{fontSize:12,color:c.m,marginTop:2}}>{mcLeft} essential phrases for your first 48 hours</div>
           </div>
-        </div>;
-      })}
+          <span style={{color:c.a,opacity:.5}}>→</span>
+        </div>
+      </div>}
+      {dueCount>0&&<div onClick={()=>{setFastTrack(false);setPCat(null);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
+        style={{...card,marginBottom:10,padding:"16px 18px",cursor:"pointer",background:c.go+"0d",border:"1px solid "+c.go+"33"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:22}}>🔔</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:600,color:c.go}}>Review {dueCount} phrases</div>
+            <div style={{fontSize:12,color:c.m,marginTop:2}}>Phrases ready for practice</div>
+          </div>
+          <span style={{color:c.go,opacity:.5}}>→</span>
+        </div>
+      </div>}
+      <div style={{display:"grid",gridTemplateColumns:isDesktop?"1fr 1fr":"1fr",gap:10,marginTop:6}}>
+        {Object.entries(CATS).map(([k,v])=>{
+          const total=PHRASES.filter(p=>p[4]===k).length;
+          const done=PHRASES.filter(p=>p[4]===k&&(data.phr[p[0]]?.box||0)>=1).length;
+          const pct=Math.round(done/total*100);
+          const col=CAT_COLORS[k];
+          const catDue=PHRASES.filter(p=>p[4]===k&&data.phr[p[0]]?.box>=1&&isPhrDue(p[0])).length;
+          const mc=PHRASES.filter(p=>p[4]===k&&p[6]).length;
+          return <div key={k} onClick={()=>setPCat(k)}
+            onMouseEnter={()=>setHov("cat_"+k)} onMouseLeave={()=>setHov(null)}
+            style={{...card,padding:0,cursor:"pointer",background:hov==="cat_"+k?c.s2:c.s,transition:"all .15s",overflow:"hidden"}}>
+            <div style={{padding:"18px 18px 14px"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:26}}>{CAT_ICONS[k]}</span>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:700}}>{v}</div>
+                    <div style={{fontSize:11,color:c.m,fontFamily:mono,marginTop:2}}>{total} phrases{mc>0&&<span style={{color:c.go,marginLeft:6}}>⚡{mc}</span>}</div>
+                  </div>
+                </div>
+                {catDue>0&&<span style={{fontSize:11,padding:"3px 8px",borderRadius:10,background:c.go+"22",color:c.go,fontWeight:600}}>{catDue} due</span>}
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1,height:6,background:c.b,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:pct+"%",background:col,borderRadius:3,transition:"width .3s"}}/></div>
+                <div style={{fontSize:12,fontFamily:mono,color:col,fontWeight:600,flexShrink:0}}>{done}/{total}</div>
+              </div>
+            </div>
+          </div>;
+        })}
+      </div>
     </div>;
   };
 
@@ -1571,7 +1603,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   );
 
   // ═══ RENDER ═══
-  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"}];
+  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
   const handleTabClick=(id)=>{
     setTab(id);
     if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);setFastTrack(false);}
@@ -1588,6 +1620,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     {tab==="phrases"&&renderPhrases()}
     {tab==="sensei"&&renderSensei()}
     {tab==="drill"&&renderDrill()}
+    {tab==="game"&&<Game theme={theme} c={c} isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W}/>}
     {showProfile&&renderProfile()}
 
     {isDesktop
