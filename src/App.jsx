@@ -845,6 +845,17 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             style={{...btn,flex:1,padding:"10px 14px",borderRadius:9,background:hov==="rp"?c.go+"33":c.go+"18",border:"1px solid "+c.go+"44",color:c.go,fontSize:13,fontWeight:600}}>💬 {dueCount} phrases</button>}
         </div>
       </div>}
+      {kMastered>=20&&learnedPhr===0&&!data.settings?.phrasesNudgeShown&&<div onClick={()=>{save({settings:{...data.settings,phrasesNudgeShown:true}});setTab("phrases");setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
+        style={{...card,marginBottom:8,cursor:"pointer",padding:"14px 16px",background:c.g+"0d",border:"1px solid "+c.g+"33"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <span style={{fontSize:20}}>🎯</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:14,fontWeight:600,color:c.g}}>Ready for phrases!</div>
+            <div style={{fontSize:12,color:c.m,marginTop:2}}>You can read {kMastered} characters — time to learn survival phrases</div>
+          </div>
+          <span style={{color:c.g,opacity:.5}}>→</span>
+        </div>
+      </div>}
       {mcLeft>0&&<div onClick={()=>{setTab("phrases");setFastTrack(true);setPMode("review");setPCards([]);setPDone(false);setPFlip(false);setPI(0);}}
         onMouseEnter={()=>setHov("ft")} onMouseLeave={()=>setHov(null)}
         style={{...card,marginBottom:8,cursor:"pointer",padding:"11px 16px",background:hov==="ft"?c.as:c.s,border:"1px solid "+c.a+"50",transition:"background .15s"}}>
@@ -1173,49 +1184,59 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <div style={{textAlign:"center",padding:48}}><div style={{fontSize:52,marginBottom:14}}>✅</div><h3 style={{fontSize:20,fontWeight:600}}>All caught up!</h3><div style={{fontSize:13,color:c.m,marginTop:8}}>No phrases due. Check back later.</div></div>
       </div>;
       const p=pCards[pI];if(!p){setPDone(true);return null;}
+      const catCol=CAT_COLORS[p[4]];
+      // Situation prompts per category
+      const situations={greet:"You meet someone. What do you say?",food:"You're at a restaurant.",train:"You're navigating transport.",hotel:"You're at your hotel.",shop:"You're at a store.",dir:"You need directions.",sos:"It's an emergency."};
       return <div style={inner}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-          <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
+          <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0"}}>← back</button>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            {fastTrack&&<span style={chip(c.a)}>⚡ Fast Track</span>}
+            {fastTrack&&<span style={chip(c.a)}>⚡ Survival</span>}
             <div style={{fontFamily:mono,fontSize:12,color:c.m}}>{pI+1}/{pCards.length}</div>
           </div>
         </div>
-        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:28,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:c.g,borderRadius:4,transition:"width .3s"}}/></div>
-        {/* recall mode toggle */}
-        <div style={{display:"flex",gap:6,marginBottom:14}}>
-          {[["recognise","Show Japanese"],["recall","Recall Mode"]].map(([mode,label])=>(
-            <button key={mode} onClick={()=>setPRecall(mode==="recall")}
-              style={{...btn,flex:1,padding:"7px 0",borderRadius:8,border:"1px solid "+(pRecall===(mode==="recall")?c.g:c.b),background:pRecall===(mode==="recall")?c.gs:"transparent",color:pRecall===(mode==="recall")?c.g:c.m,fontSize:11,fontWeight:600}}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <div style={{...card,padding:"36px 24px",textAlign:"center",minHeight:220,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:!pFlip?"pointer":"default"}} onClick={()=>!pFlip&&setPFlip(true)}>
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((pI+1)/pCards.length*100)+"%",background:catCol,borderRadius:4,transition:"width .3s"}}/></div>
+
+        <div onClick={()=>{if(!pFlip){setPFlip(true);setTimeout(()=>speakPhrase(p[0],p[1]),300);}}} style={{...card,padding:0,overflow:"hidden",cursor:!pFlip?"pointer":"default",minHeight:240}}>
+          {/* Situation header */}
+          <div style={{padding:"14px 20px",background:catCol+"12",borderBottom:"1px solid "+catCol+"22"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:18}}>{CAT_ICONS[p[4]]}</span>
+              <span style={{fontSize:12,color:catCol,fontWeight:600}}>{CATS[p[4]]}</span>
+            </div>
+            <div style={{fontSize:13,color:c.m,marginTop:4}}>{situations[p[4]]||""}</div>
+          </div>
+
           {!pFlip
-            ?<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
-              <div style={{fontSize:19,fontWeight:600,marginBottom:14,lineHeight:1.4}}>{p[3]}</div>
-              <div style={{fontSize:12,color:c.m}}>{pRecall?"think of the Japanese... then flip":"tap to reveal"}</div></>
-            :<><span style={{...chip(CAT_COLORS[p[4]]),marginBottom:12}}>{CAT_ICONS[p[4]]} {CATS[p[4]]}</span>
-              <div style={{fontSize:30,fontWeight:700,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
-              <button onClick={e=>{e.stopPropagation();speakPhrase(p[0],p[1]);}} style={{...btn,padding:"5px 10px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:15,color:c.m,marginTop:8,flexShrink:0}} title="Listen">🔊</button>
-              <div style={{fontSize:19,fontFamily:mono,color:c.a,marginTop:6,marginBottom:8}}>{p[2]}</div>
-              <div style={{fontSize:14,color:c.m}}>{p[3]}</div>
-              {p[5]&&<div style={{fontSize:12,color:c.m,marginTop:10,padding:"8px 12px",borderLeft:"3px solid "+c.a+"50",background:c.s2,borderRadius:"0 6px 6px 0",fontStyle:"italic",textAlign:"left"}}>{p[5]}</div>}</>}
+            ? <div style={{padding:"32px 24px",textAlign:"center"}}>
+                <div style={{fontSize:20,fontWeight:600,color:c.tx,lineHeight:1.5,marginBottom:16}}>{p[3]}</div>
+                {p[5]&&<div style={{fontSize:13,color:c.m,fontStyle:"italic",marginBottom:16}}>{p[5]}</div>}
+                <div style={{fontSize:13,color:c.m,opacity:.6}}>tap to see the Japanese</div>
+              </div>
+            : <div style={{padding:"24px 24px 20px"}}>
+                <div style={{fontSize:isDesktop?34:28,fontWeight:700,lineHeight:1.3,marginBottom:8}}>{p[1]}</div>
+                <div style={{fontSize:14,fontFamily:mono,color:c.a,marginBottom:6,opacity:.7}}>{p[2]}</div>
+                <div style={{fontSize:15,color:c.tx,marginBottom:4}}>{p[3]}</div>
+                {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:8,padding:"8px 14px",background:c.s2,borderRadius:8,borderLeft:"3px solid "+catCol}}>{p[5]}</div>}
+                <button onClick={e=>{e.stopPropagation();speakPhrase(p[0],p[1]);}} style={{...btn,width:"100%",padding:"10px 16px",borderRadius:8,background:c.s2,border:"1px solid "+c.b,fontSize:14,color:c.m,marginTop:14}}>🔊 hear again</button>
+              </div>
+          }
         </div>
-        {pFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
-          <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
+
+        {pFlip&&<div style={{display:"flex",gap:10,marginTop:14}}>
+          <button onClick={()=>{reviewPhr(p[0],false);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Not yet</button>
           <button onClick={()=>{reviewPhr(p[0],true);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it</button>
         </div>}
       </div>;
     }
     if(pDone)return <div style={inner}>
       <div style={{textAlign:"center",padding:40}}>
-        <div style={{fontSize:60,marginBottom:14}}>🎉</div>
-        <h3 style={{fontSize:24,fontWeight:600,margin:"0 0 8px",letterSpacing:"-.01em"}}>Session complete!</h3>
-        <div style={{display:"flex",gap:10,marginTop:24}}>
-          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);setFastTrack(false);}} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
-          <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>More</button>
+        <div style={{fontSize:60,marginBottom:14}}>🎌</div>
+        <h3 style={{fontSize:24,fontWeight:600,margin:"0 0 8px"}}>Well done!</h3>
+        <div style={{fontSize:14,color:c.m,marginTop:6}}>You've reviewed all phrases in this session.</div>
+        <div style={{display:"flex",gap:10,marginTop:28}}>
+          <button onClick={()=>{setPMode("browse");setPCards([]);setPDone(false);setPFlip(false);setPI(0);setFastTrack(false);}} style={{...btn,flex:1,padding:14,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:c.tx,fontSize:14}}>Browse</button>
+          <button onClick={()=>{setPCards([]);setPDone(false);setPFlip(false);setPI(0);}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Practice more</button>
         </div>
       </div>
     </div>;
