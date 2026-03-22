@@ -145,55 +145,70 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash trails — vary by combo level ──
+  // ── Slash trails — tear/rip shapes, not rectangles ──
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
-    const alpha = progress < 0.1 ? progress / 0.1 : Math.pow(1 - progress, 0.6);
+    const alpha = progress < 0.08 ? progress / 0.08 : Math.pow(1 - progress, 0.5);
     const dir = s.facing;
     const combo = s.combo || 1;
     const isThird = combo === 3;
 
-    // Each combo hit has a different slash angle
     let len, angle;
-    if (combo === 1) { len = 70; angle = -0.45; }       // diagonal up
-    else if (combo === 2) { len = 80; angle = 0.35; }   // diagonal down (reverse)
-    else { len = 100; angle = -0.15; }                   // nearly horizontal, longest
+    if (combo === 1) { len = 75; angle = -0.5; }
+    else if (combo === 2) { len = 85; angle = 0.4; }
+    else { len = 110; angle = -0.12; }
 
     const x1 = s.x - dir * 5;
     const y1 = s.y;
     const x2 = x1 + dir * Math.cos(angle) * len;
     const y2 = y1 + Math.sin(angle) * len;
 
-    // Color: white normally, purple on 3rd
     const glowCol = isThird ? "#2070cc" : "#aabbee";
     const midCol = isThird ? "#40aaff" : "#dde4ff";
     const coreCol = isThird ? "#80ddff" : "#ffffff";
 
     ctx.save();
+
+    // Draw tear/rip shape — tapered: thick at start, thin at tip
+    // Outer glow tear
+    ctx.globalAlpha = alpha * 0.25;
+    ctx.fillStyle = glowCol;
+    ctx.beginPath();
+    const perpX = Math.sin(angle) * (isThird ? 14 : 10);
+    const perpY = -Math.cos(angle) * (isThird ? 14 : 10);
+    ctx.moveTo(x1 + perpX, y1 + perpY);
+    ctx.lineTo(x1 - perpX, y1 - perpY);
+    ctx.lineTo(x2, y2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Mid tear
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.fillStyle = midCol;
+    ctx.beginPath();
+    const mp = 0.5;
+    ctx.moveTo(x1 + perpX * mp, y1 + perpY * mp);
+    ctx.lineTo(x1 - perpX * mp, y1 - perpY * mp);
+    ctx.lineTo(x2, y2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Core tear — brightest, thinnest
+    ctx.globalAlpha = alpha * 0.9;
+    ctx.fillStyle = coreCol;
+    ctx.beginPath();
+    const cp = 0.2;
+    ctx.moveTo(x1 + perpX * cp, y1 + perpY * cp);
+    ctx.lineTo(x1 - perpX * cp, y1 - perpY * cp);
+    ctx.lineTo(x2, y2);
+    ctx.closePath();
+    ctx.fill();
+
     ctx.lineCap = "round";
-
-    // Wide soft glow
-    ctx.globalAlpha = alpha * 0.3;
-    ctx.strokeStyle = glowCol;
-    ctx.lineWidth = isThird ? 24 : 18;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    // Bright mid
-    ctx.globalAlpha = alpha * 0.65;
-    ctx.strokeStyle = midCol;
-    ctx.lineWidth = isThird ? 9 : 7;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-
-    // Core
+    // Thin core line through center for sharpness
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = coreCol;
-    ctx.lineWidth = isThird ? 3 : 2.5;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
