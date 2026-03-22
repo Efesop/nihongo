@@ -95,11 +95,14 @@ export function render(g, ctx, isDesktop, font) {
   if (mascot) {
     for (const ai of g.player.afterimages) {
       ctx.globalAlpha = (ai.life / 200) * 0.3;
-      const s = DRAW_SIZE;
+      const aspect = SRC_W / SRC_H;
+      const dw = DRAW_SIZE * aspect * 0.95;
+      const dh = DRAW_SIZE * 0.95;
       ctx.save();
-      ctx.translate(ai.x, ai.y + s / 2);
-      if (ai.facing < 0) ctx.scale(-1, 1);
-      ctx.drawImage(mascot, -s / 2, -s / 2, s, s);
+      ctx.translate(ai.x, ai.y + DRAW_SIZE);
+      if (ai.facing > 0) ctx.scale(-1, 1);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -dw / 2, -dh, dw, dh);
       ctx.restore();
     }
     ctx.globalAlpha = 1;
@@ -197,15 +200,27 @@ export function render(g, ctx, isDesktop, font) {
 // ═══════════════════════════════════════════
 // ═══ DRAW PLAYER — actual mascot PNG ═══
 // ═══════════════════════════════════════════
+// The mascot PNG is 1024x1024 but the character only occupies the center.
+// Source crop removes empty padding (character spans ~rows 6-24 in a 32-cell grid).
+const SRC_X = 64;    // left crop (px in 1024 image)
+const SRC_Y = 160;   // top crop
+const SRC_W = 896;   // cropped width
+const SRC_H = 660;   // cropped height
+
 function drawPlayer(ctx, p, mascot, elapsed) {
   const s = DRAW_SIZE;
+  // Aspect ratio of cropped region — character is wider than tall
+  const aspect = SRC_W / SRC_H;
+  const drawW = s * aspect * 0.95;
+  const drawH = s * 0.95;
+
   ctx.save();
 
   // Position at center-bottom of the sprite
-  ctx.translate(p.x, p.y + s);
+  ctx.translate(p.x, p.y + DRAW_SIZE);
 
-  // Flip based on facing direction
-  if (p.facing < 0) ctx.scale(-1, 1);
+  // Flip when facing right (mascot image naturally faces left-ish)
+  if (p.facing > 0) ctx.scale(-1, 1);
 
   // Apply state-based transforms
   let rot = 0;
@@ -254,9 +269,9 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     ctx.shadowBlur = 15;
   }
 
-  // Draw the actual mascot image — crisp pixel art
+  // Draw cropped mascot — no padding, crisp pixel art
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(mascot, -s / 2 + ox, -s + oy, s, s);
+  ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + ox, -drawH + oy, drawW, drawH);
 
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
