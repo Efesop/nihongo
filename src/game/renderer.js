@@ -303,8 +303,8 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   ctx.save();
   ctx.translate(e.x, e.y + DRAW_SIZE + bobY);
 
-  // Flip based on facing (image faces right, flip for left)
-  if (e.facing < 0) ctx.scale(-1, 1);
+  // Flip based on facing (image naturally faces left, flip for right)
+  if (e.facing > 0) ctx.scale(-1, 1);
 
   // Walk tilt
   if (e.state === "patrol" || e.state === "chase") {

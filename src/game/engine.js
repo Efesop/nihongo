@@ -178,12 +178,22 @@ export function update(g, callbacks) {
 
     updateEnemyAI(e, p, dt, g.projectiles);
 
-    // Keep on platform
+    // Keep on platform + prevent walking off edges
+    let onPlatform = false;
     for (const plat of g.platforms) {
       if (e.x > plat.x && e.x < plat.x + plat.w &&
           e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 20) {
         e.y = plat.y - TILE * SCALE;
+        onPlatform = true;
+        // Clamp to platform edges so enemies don't walk off
+        const margin = 10;
+        if (e.x < plat.x + margin) { e.x = plat.x + margin; e.facing = 1; e.vx = Math.abs(e.vx); }
+        if (e.x > plat.x + plat.w - margin) { e.x = plat.x + plat.w - margin; e.facing = -1; e.vx = -Math.abs(e.vx); }
       }
+    }
+    // Apply gravity if not on platform
+    if (!onPlatform) {
+      e.y += 300 * dt;
     }
 
     // ── Slash collision (can hit multiple per slash) ──
