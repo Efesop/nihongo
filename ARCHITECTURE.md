@@ -301,7 +301,7 @@ Or push to `main` — Vercel auto-deploys.
 
 ## Design Principles
 
-- **Single file**: Everything in App.jsx. No component splitting. Inline styles only.
+- **Single file (temporary)**: Currently everything is in App.jsx (~1600+ lines). Planned refactor to split into components (KanaTrainer, PhraseBank, SenpaiChat, Home, etc.) after phrases overhaul. Inline styles only.
 - **Offline-first**: localStorage always has latest data, DB sync is async
 - **Static audio**: Pre-generated MP3s for stories/phrases (zero runtime TTS cost)
 - **Clean UX**: Minimal UI, dark-first, beginner-friendly. Don't overwhelm.
