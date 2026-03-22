@@ -6,8 +6,9 @@ const DRAW_SIZE = TILE * SCALE; // 60px
 // ═══ MAIN RENDER ═══
 export function render(g, ctx, isDesktop, font) {
   const { W, H, camera: cam } = g;
-  const cx = cam.x + cam.shakeX;
-  const cy = cam.y + cam.shakeY;
+  // Round camera position to prevent subpixel jitter on all world objects
+  const cx = Math.round(cam.x + cam.shakeX);
+  const cy = Math.round(cam.y + cam.shakeY);
 
   ctx.fillStyle = "#0a0a14";
   ctx.fillRect(0, 0, W, H);
@@ -330,7 +331,7 @@ function drawEnemy(ctx, e, elapsed, font) {
   const legSwing = e.state === "patrol" || e.state === "chase" ? Math.sin(walkCycle) * 4 : 0;
 
   ctx.save();
-  ctx.translate(x, y + bobY);
+  ctx.translate(Math.round(x), Math.round(y));
 
   if (e.type === "oni") {
     // ── BANDIT — round head, headband, staff ──
@@ -520,7 +521,7 @@ function drawEnemy(ctx, e, elapsed, font) {
 
 function drawEnemyOverlays(ctx, e, elapsed, font) {
   ctx.save();
-  ctx.translate(e.x, e.y);
+  ctx.translate(Math.round(e.x), Math.round(e.y));
 
   // Alert "!"
   if (e.alert > 0 && !e.dead) {
