@@ -31,19 +31,54 @@ export function update(g, callbacks) {
   g.time.dt = dt;
   g.time.elapsed += dt;
 
-  // Ambient embers
-  if (Math.random() < dt * 3) {
+  // ── Ambient particles ──
+
+  // Fireflies / spirit orbs — float gently, pulse
+  if (Math.random() < dt * 2) {
     g.embers.push({
-      x: g.camera.x + rnd(0, g.W), y: g.H + 5,
-      vx: rnd(-15, 15), vy: rnd(-40, -20),
-      life: rnd(3000, 6000), maxLife: 6000,
-      size: rnd(1, 2.5), color: Math.random() > 0.5 ? "#ff6030" : "#ffa050",
+      x: g.camera.x + rnd(-50, g.W + 50), y: rnd(g.H * 0.1, g.H * 0.7),
+      vx: rnd(-8, 8), vy: rnd(-12, -4),
+      life: rnd(4000, 8000), maxLife: 8000,
+      size: rnd(1.5, 3), color: "#80ff80", type: "firefly",
+      phase: rnd(0, Math.PI * 2),
     });
   }
+  // Drifting leaves — fall slowly, sway side to side
+  if (Math.random() < dt * 1.5) {
+    g.embers.push({
+      x: g.camera.x + rnd(0, g.W), y: -10,
+      vx: rnd(-20, -5), vy: rnd(15, 35),
+      life: rnd(5000, 10000), maxLife: 10000,
+      size: rnd(2, 4), color: rnd(0, 1) > 0.6 ? "#3a6a40" : "#2a5030", type: "leaf",
+      phase: rnd(0, Math.PI * 2),
+    });
+  }
+  // Tiny dust motes — gentle float
+  if (Math.random() < dt * 4) {
+    g.embers.push({
+      x: g.camera.x + rnd(0, g.W), y: rnd(g.H * 0.3, g.H * 0.8),
+      vx: rnd(-5, 5), vy: rnd(-8, -2),
+      life: rnd(3000, 6000), maxLife: 6000,
+      size: rnd(0.5, 1.5), color: "#ffffff", type: "dust",
+      phase: rnd(0, Math.PI * 2),
+    });
+  }
+
   for (const em of g.embers) {
-    em.x += em.vx * dt;
-    em.y += em.vy * dt;
-    em.vx += Math.sin(g.time.elapsed * 2 + em.x * 0.01) * dt * 10;
+    if (em.type === "firefly") {
+      // Gentle drift with sine wave movement
+      em.x += em.vx * dt + Math.sin(g.time.elapsed * 1.5 + em.phase) * dt * 15;
+      em.y += em.vy * dt + Math.cos(g.time.elapsed * 1.2 + em.phase) * dt * 10;
+    } else if (em.type === "leaf") {
+      // Sway side to side while falling
+      em.x += em.vx * dt + Math.sin(g.time.elapsed * 2 + em.phase) * dt * 25;
+      em.y += em.vy * dt;
+      em.phase += dt * 3; // rotation
+    } else {
+      // Dust — gentle float
+      em.x += em.vx * dt + Math.sin(g.time.elapsed * 0.8 + em.phase) * dt * 5;
+      em.y += em.vy * dt;
+    }
     em.life -= dt * 1000;
   }
   g.embers = g.embers.filter(em => em.life > 0);

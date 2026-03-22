@@ -90,9 +90,37 @@ Use these prompts to generate game assets in a consistent pixel art style matchi
 | Enemy sprites | `public/images/game/oni.png` (etc.) | `renderer.js` drawEnemy() |
 | Player sprite sheets | (in Downloads, not yet integrated) | Future: frame-by-frame animation |
 
+## Technical Gotchas (learned the hard way)
+
+### Subpixel rendering jitter
+**THE biggest gotcha.** All pixel art (`imageSmoothingEnabled = false`) must be drawn at whole-pixel coordinates. The camera position lerps and produces floats like `142.337px` — if you `ctx.translate(-cx, -cy)` with floats, every world object snaps between pixels each frame = visible vibration. **Fix**: `Math.round()` the camera translation in `render()`. Also round enemy draw positions.
+
+### Enemy platform detection: `>=` not `>`
+After snapping `e.y = plat.y - TILE*SCALE`, the feet are at exactly `plat.y`. If the platform check uses `> plat.y` (strict), the enemy fails the check next frame, gravity drops it 1px, then it's re-detected and snapped = vertical jitter. **Fix**: use `>=` in `e.y + TILE * SCALE >= plat.y`.
+
+### Enemy movement must happen BETWEEN AI and clamping
+The update order matters: (1) AI sets `e.vx`, (2) `e.x += e.vx * dt`, (3) clamp to platform bounds. If movement happens inside the AI function (before engine can clamp), the enemy oscillates past platform edges.
+
+### Enemy attack state cycling
+Enemies that enter attack → timer expires → patrol → immediately re-enter attack (player still close) will visually flicker. **Fix**: add a `cooldown` state (500-600ms) between attack and patrol.
+
+### Canvas DPR scaling
+`canvas.width/height` are device pixels (multiplied by DPR). All game logic must use CSS pixels. `initGame()` reads `container.clientWidth/Height` (CSS), not `canvas.width/height`. The `ctx.setTransform(dpr, ...)` handles the scaling.
+
+### Image source cropping
+Character PNGs (1024x1024) have transparent/gray padding around the actual character. Must use 9-argument `drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh)` to crop. Crop rects are determined via Python PIL pixel analysis.
+
+### Game container positioning
+The game uses `position: fixed` with `left: SIDEBAR_W` (desktop) and `bottom: 70px` (mobile bottom nav). Parent `wrap` div uses `minHeight: 100vh` not fixed height, so `height: 100%` on children doesn't resolve — fixed positioning is required.
+
+### Background panning (not tiling)
+Single background images should be scaled to cover the viewport (`Math.max(scaleW, scaleH)`) and panned slowly, NOT tiled. Tiling creates visible seams. Pan range maps camera position to image overflow.
+
 ## Notes
 - The game runs entirely on HTML5 Canvas — no external game libraries
 - All rendering uses CSS pixel coordinates (DPR handled via canvas transform)
 - Game state lives in a `useRef` to avoid React re-renders at 60fps
 - Enemy AI, collision, and combat are in `engine.js`
 - The game is integrated into the main app with just 3 lines in `App.jsx`
+- Player animations use canvas transforms on the mascot PNG (rotation, scale, translate)
+- Enemy images loaded via `sprites.js` `loadGameImages()`, crop rects in `renderer.js`

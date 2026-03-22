@@ -14,17 +14,50 @@ export function render(g, ctx, isDesktop, font) {
   ctx.fillRect(0, 0, W, H);
   renderBackground(ctx, W, H, cx, g);
 
-  // Ambient embers
+  // Ambient particles (behind world objects)
   for (const em of g.embers) {
     const sx = em.x - cx;
-    if (sx < -10 || sx > W + 10) continue;
-    ctx.globalAlpha = Math.min(1, em.life / em.maxLife) * 0.6;
-    ctx.fillStyle = em.color;
-    ctx.beginPath();
-    ctx.arc(sx, em.y, em.size, 0, Math.PI * 2);
-    ctx.fill();
+    if (sx < -20 || sx > W + 20) continue;
+    const lifeAlpha = Math.min(1, em.life / em.maxLife);
+
+    if (em.type === "firefly") {
+      // Pulsing glow orb
+      const pulse = 0.4 + Math.sin(g.time.elapsed * 4 + em.phase) * 0.3;
+      ctx.globalAlpha = lifeAlpha * pulse;
+      // Outer glow
+      ctx.fillStyle = em.color;
+      ctx.shadowColor = em.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(sx, em.y, em.size * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Bright core
+      ctx.globalAlpha = lifeAlpha * pulse * 1.5;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(sx, em.y, em.size * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    } else if (em.type === "leaf") {
+      // Rotating leaf shape
+      ctx.globalAlpha = lifeAlpha * 0.5;
+      ctx.fillStyle = em.color;
+      ctx.save();
+      ctx.translate(sx, em.y);
+      ctx.rotate(em.phase);
+      ctx.fillRect(-em.size, -em.size * 0.3, em.size * 2, em.size * 0.6);
+      ctx.restore();
+    } else {
+      // Dust mote
+      ctx.globalAlpha = lifeAlpha * 0.25;
+      ctx.fillStyle = em.color;
+      ctx.beginPath();
+      ctx.arc(sx, em.y, em.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
 
   ctx.save();
   ctx.translate(-cx, -cy);
@@ -231,33 +264,53 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   let ox = 0, oy = 0;
 
   if (p.state === "idle") {
-    // Gentle breathing
-    sy = 1 + Math.sin(elapsed * 3) * 0.015;
-    oy = Math.sin(elapsed * 3) * 1;
+    // Gentle breathing — slow, subtle
+    const breath = Math.sin(elapsed * 2.5);
+    sy = 1 + breath * 0.02;
+    oy = breath * 1.5;
   } else if (p.state === "run") {
-    // Running bob + slight tilt
-    const runCycle = elapsed * 10;
-    oy = Math.abs(Math.sin(runCycle)) * -4;
-    rot = Math.sin(runCycle) * 0.06;
-    sx = 1 + Math.sin(runCycle * 2) * 0.03;
+    // Pronounced run cycle — big bob, lean forward, squash/stretch
+    const t = elapsed * 12;
+    const step = Math.sin(t);
+    oy = Math.abs(step) * -6;                    // vertical bob
+    rot = 0.08 + step * 0.07;                    // lean forward + oscillate
+    sx = 1 - Math.abs(step) * 0.05;              // squash on ground contact
+    sy = 1 + Math.abs(step) * 0.05;              // stretch at peak
+    ox = Math.sin(t * 2) * 1.5;                  // subtle horizontal sway
   } else if (p.state === "jump") {
-    rot = -0.15;
-    sy = 1.08;
-    sx = 0.94;
+    // Stretch upward, arms up feel
+    rot = -0.18;
+    sy = 1.12;
+    sx = 0.90;
+    oy = -3;
   } else if (p.state === "fall") {
-    rot = 0.1;
-    sy = 0.94;
-    sx = 1.05;
+    // Squash down, spread out
+    rot = 0.12;
+    sy = 0.90;
+    sx = 1.08;
+    oy = 2;
   } else if (p.state === "dash") {
-    sx = 1.25;
-    sy = 0.85;
+    // Speed stretch
+    sx = 1.3;
+    sy = 0.80;
+    rot = p.facing > 0 ? 0.1 : -0.1;
   } else if (p.state === "slash1") {
-    rot = -0.25;
+    // Wind-up — pull back, coil
+    rot = -0.3;
+    ox = -p.facing * 4;
+    sy = 1.05;
+    sx = 0.95;
   } else if (p.state === "slash2") {
-    rot = 0.15;
-    sx = 1.05;
+    // Mid-swing — lunge forward
+    rot = 0.2;
+    ox = p.facing * 6;
+    sx = 1.1;
+    sy = 0.92;
   } else if (p.state === "slash3") {
-    rot = 0.35;
+    // Follow-through — overswing
+    rot = 0.45;
+    ox = p.facing * 3;
+    sy = 1.05;
   }
 
   ctx.rotate(rot);
@@ -302,14 +355,56 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   const drawH = s;
 
   ctx.save();
-  // Round to whole pixels — subpixel positioning on pixel art causes visible jitter
   ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
 
-  // Flip based on facing (image naturally faces left, flip for right)
+  // Flip based on facing
   if (e.facing > 0) ctx.scale(-1, 1);
 
+  // State-based animation transforms
+  let rot = 0, sx = 1, sy = 1, oy = 0;
+
+  if (e.state === "patrol") {
+    // Slow waddle
+    const t = elapsed * 4 + e.patrolOrigin * 0.1;
+    oy = Math.abs(Math.sin(t)) * -2;
+    rot = Math.sin(t) * 0.04;
+    sx = 1 - Math.abs(Math.sin(t)) * 0.03;
+    sy = 1 + Math.abs(Math.sin(t)) * 0.03;
+  } else if (e.state === "chase") {
+    // Faster, more aggressive movement
+    const t = elapsed * 8 + e.patrolOrigin * 0.1;
+    oy = Math.abs(Math.sin(t)) * -4;
+    rot = 0.06 + Math.sin(t) * 0.06;
+    sx = 1 - Math.abs(Math.sin(t)) * 0.04;
+    sy = 1 + Math.abs(Math.sin(t)) * 0.04;
+  } else if (e.state === "attack") {
+    // Lunge / strike
+    const progress = e.attackTimer / 400;
+    if (progress > 0.6) {
+      // Wind-up — pull back
+      rot = -0.15;
+      sx = 0.95;
+      sy = 1.08;
+    } else if (progress > 0.3) {
+      // Strike — lunge forward
+      rot = 0.2;
+      sx = 1.12;
+      sy = 0.90;
+    } else {
+      // Recovery
+      rot = 0.1;
+    }
+  } else if (e.state === "cooldown") {
+    // Standing still, slight settle
+    const t = elapsed * 3;
+    sy = 1 + Math.sin(t) * 0.01;
+  }
+
+  ctx.rotate(rot);
+  ctx.scale(sx, sy);
+
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH), Math.round(drawW), Math.round(drawH));
+  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH + oy), Math.round(drawW), Math.round(drawH));
   ctx.restore();
   return true;
 }
