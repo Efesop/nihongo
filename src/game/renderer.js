@@ -295,22 +295,20 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     sy = 0.80;
     rot = p.facing > 0 ? 0.1 : -0.1;
   } else if (p.state === "slash1") {
-    // Wind-up — pull back, coil
-    rot = -0.3;
-    ox = -p.facing * 4;
-    sy = 1.05;
-    sx = 0.95;
+    // Wind-up — coil back slightly
+    rot = -0.1;
+    ox = -3;
+    sy = 1.03;
   } else if (p.state === "slash2") {
-    // Mid-swing — lunge forward
-    rot = 0.2;
-    ox = p.facing * 6;
-    sx = 1.1;
-    sy = 0.92;
+    // Strike — lunge forward
+    rot = 0.05;
+    ox = 5;
+    sx = 1.06;
+    sy = 0.96;
   } else if (p.state === "slash3") {
-    // Follow-through — overswing
-    rot = 0.45;
-    ox = p.facing * 3;
-    sy = 1.05;
+    // Follow-through
+    rot = 0.12;
+    ox = 3;
   }
 
   ctx.rotate(rot);
@@ -328,6 +326,56 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   // Draw cropped mascot — no padding, crisp pixel art
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + ox, -drawH + oy, drawW, drawH);
+
+  // ── Draw katana during slash ──
+  if (p.state === "slash1" || p.state === "slash2" || p.state === "slash3") {
+    const bladeLen = 38;
+    const handleLen = 10;
+    // Blade angle through the 3 phases: raised → horizontal → swept down
+    let bladeAngle;
+    if (p.state === "slash1") bladeAngle = -1.8;      // raised behind
+    else if (p.state === "slash2") bladeAngle = -0.3;  // mid-swing, slightly above horizontal
+    else bladeAngle = 0.8;                             // swept down past
+
+    const bx = ox + 8;   // blade origin offset from center
+    const by = -drawH * 0.55 + oy;  // roughly at hand level
+
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.rotate(bladeAngle);
+
+    // Handle (dark)
+    ctx.fillStyle = "#3a2010";
+    ctx.fillRect(-2, 0, 4, handleLen);
+    // Guard (tsuba)
+    ctx.fillStyle = "#cc9933";
+    ctx.fillRect(-5, -1, 10, 3);
+
+    // Blade
+    ctx.fillStyle = "#a0b0c8";
+    ctx.fillRect(-1.5, -bladeLen, 3, bladeLen);
+    // Blade edge highlight
+    ctx.fillStyle = "#e0e8ff";
+    ctx.fillRect(-1.5, -bladeLen, 1.5, bladeLen);
+    // Tip
+    ctx.fillStyle = "#e0e8ff";
+    ctx.beginPath();
+    ctx.moveTo(-1.5, -bladeLen);
+    ctx.lineTo(0, -bladeLen - 5);
+    ctx.lineTo(1.5, -bladeLen);
+    ctx.fill();
+
+    // Blade glow during strike
+    if (p.state === "slash2") {
+      ctx.shadowColor = "#e0e8ff";
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = "rgba(224,232,255,0.3)";
+      ctx.fillRect(-2, -bladeLen, 4, bladeLen);
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+  }
 
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 1;
