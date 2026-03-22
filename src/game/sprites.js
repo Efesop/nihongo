@@ -19,8 +19,8 @@ function loadImg(key, src, removeGrayBg = false) {
         const d = data.data;
         for (let i = 0; i < d.length; i += 4) {
           const r = d[i], g = d[i+1], b = d[i+2];
-          // If pixel is grayish (r≈g≈b, above 150) make it transparent
-          if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20 && r > 150) {
+          // If pixel is grayish (r≈g≈b, above 100) make it transparent
+          if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20 && r > 100) {
             d[i+3] = 0;
           }
         }
