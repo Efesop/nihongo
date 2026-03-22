@@ -1257,8 +1257,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             onMouseEnter={e=>e.currentTarget.style.background=c.s2} onMouseLeave={e=>e.currentTarget.style.background=c.s}>
             <div style={{width:4,background:srsColor,flexShrink:0,borderRadius:"12px 0 0 12px"}}/>
             <div style={{flex:1,padding:"14px 16px"}}>
-              <div style={{fontSize:isDesktop?26:22,fontWeight:600,marginBottom:4,lineHeight:1.3}}>{p[1]}</div>
-              <div style={{fontSize:12,fontFamily:mono,color:c.a,marginBottom:4,opacity:.7}}>{p[2]}</div>
+              <div style={{fontSize:isDesktop?28:24,fontWeight:600,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
+              <div style={{fontSize:14,fontFamily:mono,color:c.a,marginBottom:4}}>{p[2]}</div>
               <div style={{fontSize:14,color:c.tx,marginBottom:2}}>{p[3]}</div>
               {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:4}}>{p[5]}</div>}
             </div>
