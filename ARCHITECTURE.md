@@ -278,8 +278,10 @@ apply_language_text_normalization: true  // CRITICAL for single characters
 | `kana2/` | Lily (with `language_code: "ja"`) | BACKUP | Better, but app uses Google TTS instead |
 | `story/` | Daniel | BACKUP | First attempt, wrong voice |
 | `story2/` | Matilda (verbose scripts) | BACKUP | Stories were too long |
-| `story3/` | Matilda (concise scripts) | **ACTIVE** | Current — 1-2 sentence stories |
+| `story3/` | Matilda (concise scripts) | **ACTIVE** | 92 base kana mnemonic stories |
 | `phrase/` | Lily (with `language_code: "ja"`) | **ACTIVE** | 55 phrase MP3s |
+| `rows/` | Lily (multilingual) | **ACTIVE** | 16 row-level dakuten/yōon explanations |
+| `dakuten/` | Matilda | LEGACY | Bridge audio (old spliced approach, kept for reference) |
 
 ### ElevenLabs API key
 
@@ -323,24 +325,36 @@ Or push to `main` — Vercel auto-deploys.
 
 ## Roadmap / Feature Ideas
 
-These have been discussed but not all implemented:
-
-- [ ] **Drawing practice** — trace kana with finger/mouse on canvas, motor memory
-- [ ] **Minimal pair drilling** — characters that look alike (は/ほ, ね/れ, る/ろ, シ/ツ, ソ/ン) drilled together
-- [ ] **Progress dashboard** — visual grid of all 46 hiragana showing mastery per character (red→yellow→green)
-- [ ] **Auto-play story on first flip** — when learning a card and flipping it for the first time, auto-play the JP→story→JP chain
-- [ ] **Katakana stories** — only hiragana has mnemonics currently, katakana needs them too
-- [ ] **Grammar module** — basic particles, sentence structure
-- [ ] **Kanji introduction** — basic kanji (numbers, days, common signs)
+### Completed
+- [x] All 92 base kana with mnemonic images (watercolor + red calligraphy)
+- [x] All 92 kana story text + audio (ElevenLabs Matilda)
+- [x] Katakana mnemonic images and stories (matched to JapanesePod101 video)
+- [x] Hiragana mnemonic images and stories (matched to JapanesePod101 video)
+- [x] Dakuten/handakuten support (50 characters, row-based learn)
+- [x] Yōon combinations (66 characters, row-based learn)
+- [x] Row-level audio for dakuten/yōon (Lily voice, 16 files)
+- [x] Side-by-side learn layout (character + mnemonic image)
+- [x] Auto-reveal and auto-story toggles
+- [x] Swipe navigation for learn cards
+- [x] Individual character selection in grid
 - [x] Listening quiz mode (👂 hear kana, type romaji)
-- [x] SRS due indicators per group/category
+- [x] SRS due indicators + review badges on nav
+- [x] Home page review card
 - [x] Streak celebration animation
 - [x] Keyboard shortcut hints (↵)
-- [x] Mobile bottom nav active dot
-- [x] Phrase context enhancement
+- [x] Mobile bottom nav + swipe
 - [x] Pre-generated ElevenLabs audio (stories + phrases)
 - [x] Google Translate TTS proxy for kana
-- [x] Kana menu UI cleanup (collapsible grid, compact layout)
+
+### Not Yet Implemented
+- [ ] **Speed recognition drill** — timed kana flash, track response time
+- [ ] **Reverse quiz (production)** — see romaji, pick correct kana from choices
+- [ ] **Confused pairs drilling** — シ/ツ, ソ/ン, は/ほ targeted practice
+- [ ] **Achievement badges** — unlock milestones for motivation
+- [ ] **Drawing practice** — trace kana on canvas, motor memory
+- [ ] **Story-based trip journey** — simulated day in Japan using phrases in context
+- [ ] **Grammar module** — basic particles, sentence structure
+- [ ] **Kanji introduction** — basic kanji (numbers, days, common signs)
 
 ---
 
