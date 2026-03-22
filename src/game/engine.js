@@ -177,7 +177,7 @@ export function update(g, callbacks) {
     // Speed lines — more on higher combos
     const lineCount = combo === 1 ? 4 : combo === 2 ? 6 : 10;
     for (let i = 0; i < lineCount; i++) {
-      const color = combo === 3 ? (i % 2 === 0 ? "#d0a0ff" : "#ffffff") : "#ffffff";
+      const color = combo === 3 ? (i % 2 === 0 ? "#60bbff" : "#ffffff") : "#ffffff";
       g.particles.push({
         x: p.x - p.facing * rnd(5, 30), y: p.y + rnd(5, TILE * SCALE - 5),
         vx: p.facing * rnd(150, 400), vy: rnd(-20, 20),
@@ -185,13 +185,13 @@ export function update(g, callbacks) {
       });
     }
 
-    // 3rd hit: purple burst particles
+    // 3rd hit: blue lightning burst
     if (combo === 3) {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 12; i++) {
         g.particles.push({
-          x: p.x, y: p.y + TILE * SCALE / 2,
-          vx: p.facing * rnd(50, 200), vy: rnd(-150, -30),
-          life: 400, maxLife: 400, color: rnd(0,1) > 0.5 ? "#b070e0" : "#8040c0", size: rndInt(2, 4),
+          x: p.x + p.facing * rnd(0, 20), y: p.y + TILE * SCALE / 2,
+          vx: p.facing * rnd(80, 300), vy: rnd(-180, -30),
+          life: 450, maxLife: 450, color: rnd(0,1) > 0.5 ? "#40aaff" : "#80ccff", size: rndInt(2, 4),
         });
       }
     }

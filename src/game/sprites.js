@@ -48,6 +48,10 @@ export function loadGameImages() {
     loadImg("run2", "/images/tinysenpairun/ts2.png", true),
     loadImg("run3", "/images/tinysenpairun/ts3.png", true),
     loadImg("run4", "/images/tinysenpairun/ts4.png", true),
+    loadImg("slash1", "/images/tinysenpaistrike/1.png", true),
+    loadImg("slash2", "/images/tinysenpaistrike/2.png", true),
+    loadImg("slash3", "/images/tinysenpaistrike/3.png", true),
+    loadImg("slash4", "/images/tinysenpaistrike/4.png", true),
     loadImg("bg_forest", "/images/forest.png"),
     // Add more as PNGs are created:
     // loadImg("samurai", "/images/ronin.png"),

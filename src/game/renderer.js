@@ -165,9 +165,9 @@ export function render(g, ctx, isDesktop, font) {
     const y2 = y1 + Math.sin(angle) * len;
 
     // Color: white normally, purple on 3rd
-    const glowCol = isThird ? "#9060cc" : "#aabbee";
-    const midCol = isThird ? "#c090ee" : "#dde4ff";
-    const coreCol = isThird ? "#e0c0ff" : "#ffffff";
+    const glowCol = isThird ? "#2070cc" : "#aabbee";
+    const midCol = isThird ? "#40aaff" : "#dde4ff";
+    const coreCol = isThird ? "#80ddff" : "#ffffff";
 
     ctx.save();
     ctx.lineCap = "round";
@@ -269,7 +269,8 @@ export function render(g, ctx, isDesktop, font) {
 // Source crop removes empty padding (character spans ~rows 6-24 in a 32-cell grid).
 // Crop rects for player images (remove gray/transparent padding)
 const SRC_X = 64, SRC_Y = 160, SRC_W = 896, SRC_H = 660; // idle mascot
-const RUN_CROP = { x: 140, y: 140, w: 750, h: 730 }; // run frames (generous shared crop)
+const RUN_CROP = { x: 140, y: 140, w: 750, h: 730 }; // run frames
+const SLASH_CROP = { x: 80, y: 100, w: 860, h: 800 }; // slash frames (generous)
 
 function drawPlayer(ctx, p, mascot, elapsed) {
   const s = DRAW_SIZE;
@@ -317,49 +318,56 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (isSlashing) {
     const combo = p.slashCombo;
     const isThird = combo === 3;
-    const bladeColor = isThird ? "#b080e0" : "#9aa8c0";
-    const edgeColor = isThird ? "#d8b0ff" : "#dde4f0";
-    const bladeLen = isThird ? 52 : 44;
 
-    // Purple glow on 3rd hit
-    if (isThird) {
-      ctx.fillStyle = "rgba(160,80,220,0.15)";
-      ctx.fillRect(-drawW, -drawH - 10, drawW * 2.5, drawH + 30);
+    // Pick which sprite frame to show based on combo + slash phase
+    let slashImgKey;
+    if (p.state === "slash1") {
+      // Wind-up: use the previous combo's cut frame or frame 1
+      slashImgKey = combo <= 1 ? "slash1" : combo === 2 ? "slash1" : "slash3";
+    } else if (p.state === "slash2") {
+      // THE CUT — each combo level uses a different frame
+      if (combo === 1) slashImgKey = "slash1";      // horizontal cut
+      else if (combo === 2) slashImgKey = "slash2";  // upward arc
+      else slashImgKey = "slash4";                   // lightning slide
+    } else {
+      // Follow-through — hold the cut frame briefly
+      if (combo === 1) slashImgKey = "slash1";
+      else if (combo === 2) slashImgKey = "slash2";
+      else slashImgKey = "slash4";
     }
 
-    if (p.state === "slash1") {
-      // Crouch — preparing
-      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + 8, drawW, drawH);
+    const slashImg = getImage(slashImgKey);
+    if (slashImg) {
+      // Slash frames face LEFT — flip for right (same as run)
+      if (p.facing < 0) ctx.scale(-1, 1);
 
-    } else if (p.state === "slash2") {
-      // ── THE CUT — different pose per combo ──
-      if (combo === 1) {
-        // 1st: low horizontal slash — crouched, blade out
-        ctx.scale(1.08, 0.88);
-        ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 4, -drawH + 10, drawW, drawH);
-        drawBlade(ctx, drawW * 0.3, -drawH * 0.42, 0, bladeLen, bladeColor, edgeColor);
-      } else if (combo === 2) {
-        // 2nd: upward diagonal cut — standing taller, blade angled up
-        ctx.scale(1.02, 1.02);
-        ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 2, -drawH - 2, drawW, drawH);
-        drawBlade(ctx, drawW * 0.25, -drawH * 0.55, -0.5, bladeLen, bladeColor, edgeColor);
-      } else {
-        // 3rd: deep lunge — low and extended, longest reach
-        ctx.scale(1.12, 0.82);
-        ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 6, -drawH + 14, drawW, drawH);
-        drawBlade(ctx, drawW * 0.3, -drawH * 0.38, -0.08, bladeLen, bladeColor, edgeColor);
-        // Purple energy trailing off blade
-        ctx.globalAlpha = 0.4;
-        ctx.fillStyle = "#b070e0";
-        ctx.fillRect(drawW * 0.3 + 10, -drawH * 0.38 - 4, bladeLen, 8);
-        ctx.globalAlpha = 1;
+      // Blue lightning glow on 3rd hit
+      if (isThird) {
+        ctx.fillStyle = "rgba(40,120,255,0.12)";
+        ctx.fillRect(-drawW, -drawH - 10, drawW * 2.5, drawH + 30);
       }
 
-    } else if (p.state === "slash3") {
-      // Follow-through — settling, blade lowering
-      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 2, -drawH + 4, drawW, drawH);
-      const settleAngle = combo === 2 ? 0.5 : combo === 3 ? 0.15 : 0.3;
-      drawBlade(ctx, drawW * 0.22, -drawH * 0.35, settleAngle, bladeLen * 0.85, bladeColor, edgeColor);
+      const sc = SLASH_CROP;
+      const sa = sc.w / sc.h;
+      const sdw = s * sa * 1.05; // slightly larger for slash poses
+      const sdh = s * 1.05;
+      ctx.drawImage(slashImg, sc.x, sc.y, sc.w, sc.h, -sdw / 2, -sdh, sdw, sdh);
+
+      // Blue lightning particles on 3rd hit
+      if (isThird && p.state === "slash2") {
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = "#40aaff";
+        for (let i = 0; i < 5; i++) {
+          const lx = -sdw * 0.1 + Math.sin(elapsed * 20 + i * 1.3) * 15;
+          const ly = -sdh * 0.5 + Math.cos(elapsed * 15 + i * 1.7) * 10;
+          ctx.fillRect(lx - 1, ly - 4, 2, 8);
+          ctx.fillRect(lx - 4, ly - 1, 8, 2);
+        }
+        ctx.globalAlpha = 1;
+      }
+    } else {
+      // Fallback if images not loaded
+      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH, drawW, drawH);
     }
   } else {
     // Normal draw for all other states
