@@ -283,15 +283,51 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     ctx.scale(1.12, 0.92);
   }
 
-  // During slash — slight horizontal stretch for speed feel
-  if (isSlashing) {
-    ctx.scale(1.05, 0.97);
-  }
-
   if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
-
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + oy, drawW, drawH);
+
+  if (p.state === "slash1") {
+    // Crouch down — preparing to draw
+    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + 8, drawW, drawH);
+  } else if (p.state === "slash2") {
+    // Low crouching pose — dropped down, leaning forward
+    // Character is lower and slightly compressed
+    ctx.scale(1.08, 0.88);
+    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 4, -drawH + 10, drawW, drawH);
+
+    // Extended sword arm — horizontal blade reaching outward
+    ctx.fillStyle = "#3a2818";
+    ctx.fillRect(drawW * 0.3, -drawH * 0.42, 10, 4);  // hand/handle
+    ctx.fillStyle = "#bb8833";
+    ctx.fillRect(drawW * 0.3 + 10, -drawH * 0.42 - 1, 3, 6);  // tsuba
+    ctx.fillStyle = "#9aa8c0";
+    ctx.fillRect(drawW * 0.3 + 13, -drawH * 0.42, 44, 3);  // blade
+    ctx.fillStyle = "#dde4f0";
+    ctx.fillRect(drawW * 0.3 + 13, -drawH * 0.42, 44, 1.5);  // edge
+    // Blade tip
+    ctx.fillStyle = "#dde4f0";
+    ctx.beginPath();
+    ctx.moveTo(drawW * 0.3 + 57, -drawH * 0.42);
+    ctx.lineTo(drawW * 0.3 + 63, -drawH * 0.42 + 1.5);
+    ctx.lineTo(drawW * 0.3 + 57, -drawH * 0.42 + 3);
+    ctx.fill();
+  } else if (p.state === "slash3") {
+    // Rising back up, sword still extended but lowering
+    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 2, -drawH + 4, drawW, drawH);
+
+    // Sword lowering
+    ctx.fillStyle = "#9aa8c0";
+    ctx.save();
+    ctx.translate(drawW * 0.25, -drawH * 0.35);
+    ctx.rotate(0.3);
+    ctx.fillRect(0, 0, 40, 2.5);
+    ctx.fillStyle = "#dde4f0";
+    ctx.fillRect(0, 0, 40, 1.2);
+    ctx.restore();
+  } else {
+    // Normal draw for all other states
+    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + oy, drawW, drawH);
+  }
 
   ctx.globalAlpha = 1;
   ctx.restore();
