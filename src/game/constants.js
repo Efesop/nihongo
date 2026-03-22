@@ -10,47 +10,63 @@ export const DASH_COOLDOWN = 400;
 
 // ═══ RENDERING ═══
 export const SCALE = 3;
-export const TILE = 20; // 20x20 sprites
+export const TILE = 20;
 export const GROUND_Y = 0.78;
 
-// ═══ EXPANDED COLOR PALETTE ═══
-// Single-char keys for compact sprite data
+// ═══ COLOR PALETTE ═══
+// Extracted from actual TinySenpai mascot PNG + enemy colors.
+// Single-char keys for compact 20x20 sprite data.
 export const PAL = {
   "0": null,               // transparent
-  "1": "#1a1a2e",          // body dark
-  "2": "#c0282a",          // red accent
-  "3": "#e8c8a0",          // skin
-  "4": "#d4a850",          // hat straw
-  "5": "#b08030",          // hat straw dark
-  "6": "#e0e8ff",          // blade highlight
-  "7": "#a0b0c8",          // blade
-  "8": "#222238",          // shadow/dark
-  "9": "#ff4444",          // oni red bright
-  "A": "#6e3080",          // purple
-  "B": "#303040",          // armor dark
-  "C": "#f0f0ff",          // white/eye glint
-  "D": "#80404a",          // dark red
-  "E": "#50a050",          // green
-  "F": "#ffa040",          // orange
-  "G": "#e8c060",          // hat highlight
-  "H": "#181828",          // deepest shadow
-  "I": "#8a6010",          // hat band dark
-  "J": "#3a3a52",          // body mid
-  "K": "#dd3333",          // bright red
-  "L": "#3a5080",          // ninja blue-gray
-  "M": "#705010",          // hat edge
-  "N": "#c8a040",          // hat mid
-  "O": "#cc6666",          // oni skin mid
-  "P": "#aa2020",          // oni skin dark
-  "Q": "#ffdd44",          // oni eyes / gold
-  "R": "#2a3a5a",          // ninja dark blue
-  "S": "#4a6090",          // ninja mid blue
-  "T": "#886644",          // club/wood
-  "U": "#664422",          // club dark
-  "V": "#8888cc",          // ninja scarf
-  "W": "#555588",          // samurai armor mid
-  "X": "#aaaadd",          // samurai armor light
-  "Y": "#44446a",          // samurai armor dark
+
+  // ── Mascot hat (from real pixel data) ──
+  "1": "#000000",          // outline black
+  "2": "#804023",          // hat brown dark / band
+  "3": "#e9ae51",          // hat golden
+  "4": "#ffd976",          // hat highlight bright
+  "5": "#dfa44e",          // hat golden mid
+  "6": "#cb8c40",          // hat amber
+  "7": "#90542e",          // hat band dark
+  "8": "#ffd275",          // hat bright gold
+
+  // ── Face + body (from real pixel data) ──
+  "9": "#ffce80",          // skin warm
+  "A": "#292e33",          // body dark blue-gray (NOT pure black)
+  "B": "#cd1608",          // red accent bright
+  "C": "#8b0f17",          // red accent dark
+  "D": "#404145",          // body mid gray
+  "E": "#f0f0ff",          // eye glint white
+
+  // ── Blade ──
+  "F": "#e0e8ff",          // blade highlight
+  "G": "#a0b0c8",          // blade mid
+
+  // ── Bandit enemy (warm brown tones) ──
+  "H": "#8b6840",          // bandit cloth brown
+  "I": "#6b4830",          // bandit dark brown
+  "J": "#c4a060",          // bandit headband
+  "K": "#d4b070",          // bandit skin
+
+  // ── Archer enemy (dark green/teal) ──
+  "L": "#2a4a3a",          // archer dark green
+  "M": "#3a6a50",          // archer mid green
+  "N": "#1a3a2a",          // archer deep green
+  "O": "#4a8a60",          // archer light green
+
+  // ── Guard enemy (armored red/gold) ──
+  "P": "#4a3050",          // guard armor dark
+  "Q": "#6a4870",          // guard armor mid
+  "R": "#8a6090",          // guard armor light
+  "S": "#cc9933",          // guard gold trim
+  "T": "#aa7722",          // guard gold dark
+
+  // ── Shared ──
+  "U": "#666680",          // metal gray
+  "V": "#8888aa",          // metal light
+  "W": "#555566",          // dark metal
+  "X": "#ffaa44",          // orange glow
+  "Y": "#ff6644",          // fire/danger
+  "Z": "#6666cc",          // projectile blue
 };
 
 // ═══ HELPERS ═══

@@ -347,7 +347,7 @@ function killEnemy(g, e, p, callbacks) {
   }
 
   // Death particles — flash white then burst
-  const pColor = e.type === "oni" ? "#ff4444" : e.type === "ninja" ? "#6666cc" : "#ffaa44";
+  const pColor = e.type === "oni" ? "#c4a060" : e.type === "ninja" ? "#4a8a60" : "#8a6090";
   for (let i = 0; i < 14; i++) {
     g.particles.push({
       x: e.x + rnd(-10, 10), y: e.y + TILE * SCALE / 2 + rnd(-10, 10),

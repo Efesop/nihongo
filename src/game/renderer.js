@@ -59,7 +59,7 @@ export function render(g, ctx, isDesktop, font) {
 
     // Enemy glow (colored outline)
     if (!e.dead) {
-      const glowColor = e.type === "oni" ? "rgba(255,68,68," : e.type === "ninja" ? "rgba(100,100,200," : "rgba(255,170,68,";
+      const glowColor = e.type === "oni" ? "rgba(210,180,100," : e.type === "ninja" ? "rgba(60,140,80," : "rgba(170,100,200,";
       ctx.shadowColor = glowColor + "0.4)";
       ctx.shadowBlur = 8;
     }
