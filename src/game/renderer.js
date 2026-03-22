@@ -306,11 +306,6 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   // Flip based on facing (image naturally faces left, flip for right)
   if (e.facing > 0) ctx.scale(-1, 1);
 
-  // Attack animation — lunge forward
-  if (e.state === "attack" && e.attackTimer > 200) {
-    ctx.scale(1.08, 0.94);
-  }
-
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -drawW / 2, -drawH, drawW, drawH);
   ctx.restore();
@@ -581,41 +576,30 @@ function renderBackground(ctx, W, H, cx, g) {
 
   if (bgImg) {
     // ── Image-based parallax background ──
+    // Single image panned slowly — no tiling, no seams
     const imgAspect = bgImg.width / bgImg.height;
+    // Make the image tall enough to fill the viewport, wide enough to pan
     const bgH = H;
     const bgW = bgH * imgAspect;
+    // How far the image can pan before running out
+    const panRange = Math.max(0, bgW - W);
+    // Map camera position to pan range (slow parallax)
+    const maxCx = Math.max(1, g.levelW - W);
+    const panX = panRange > 0 ? -(cx / maxCx) * panRange : (W - bgW) / 2;
 
-    // Helper: tile an image across the screen at a given parallax rate
-    const tileLayer = (parallax, alpha, yOff, hScale) => {
-      ctx.globalAlpha = alpha;
-      // Ensure positive modulo for correct wrapping
-      const offset = ((cx * parallax) % bgW + bgW) % bgW;
-      const startX = -offset;
-      for (let tx = startX; tx < W; tx += bgW) {
-        ctx.drawImage(bgImg, tx, yOff, bgW, bgH * hScale);
-      }
-      // Also draw one before in case of fractional start
-      if (startX > 0) ctx.drawImage(bgImg, startX - bgW, yOff, bgW, bgH * hScale);
-      ctx.globalAlpha = 1;
-    };
+    ctx.drawImage(bgImg, panX, 0, bgW, bgH);
 
-    // Far layer — slowest, darkened
-    tileLayer(0.1, 0.5, 0, 1);
-    ctx.fillStyle = "rgba(5,5,14,0.45)";
+    // Subtle dark overlay for depth + so characters pop
+    ctx.fillStyle = "rgba(5,8,15,0.2)";
     ctx.fillRect(0, 0, W, H);
 
-    // Mid layer — main forest
-    tileLayer(0.3, 0.8, 0, 1);
-    ctx.fillStyle = "rgba(5,5,14,0.15)";
-    ctx.fillRect(0, 0, W, H);
-
-    // Fog at ground level
-    const fogGrad = ctx.createLinearGradient(0, groundY - 50, 0, groundY + 14);
-    fogGrad.addColorStop(0, "rgba(10,15,20,0)");
-    fogGrad.addColorStop(0.6, "rgba(10,15,20,0.5)");
-    fogGrad.addColorStop(1, "rgba(8,8,15,0.95)");
+    // Fog at ground level blending into platforms
+    const fogGrad = ctx.createLinearGradient(0, groundY - 40, 0, groundY + 14);
+    fogGrad.addColorStop(0, "rgba(8,12,18,0)");
+    fogGrad.addColorStop(0.5, "rgba(8,12,18,0.6)");
+    fogGrad.addColorStop(1, "rgba(6,8,12,0.95)");
     ctx.fillStyle = fogGrad;
-    ctx.fillRect(0, groundY - 50, W, 64);
+    ctx.fillRect(0, groundY - 40, W, 54);
 
   } else {
     // ── Fallback: procedural background ──

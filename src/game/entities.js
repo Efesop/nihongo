@@ -48,16 +48,20 @@ export function updateEnemyAI(e, player, dt, projectiles) {
   if (e.alert > 0) e.alert -= dt * 1000;
 
   if (e.type === "oni") {
-    if (dist < e.alertRange && e.state !== "attack") {
-      if (e.state === "patrol") e.alert = 600; // show "!" when first spotting
+    if (e.state === "attack") {
+      e.attackTimer -= dt * 1000;
+      e.vx = 0;
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 500; }
+    } else if (e.state === "cooldown") {
+      e.attackTimer -= dt * 1000;
+      e.vx = 0;
+      if (e.attackTimer <= 0) e.state = "patrol";
+    } else if (dist < e.alertRange) {
+      if (e.state === "patrol") e.alert = 600;
       e.state = "chase";
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.55;
       if (dist < 50) { e.state = "attack"; e.attackTimer = 400; }
-    } else if (e.state === "attack") {
-      e.attackTimer -= dt * 1000;
-      e.vx = 0;
-      if (e.attackTimer <= 0) e.state = "patrol";
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
@@ -85,16 +89,19 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = e.facing * 30;
     }
   } else if (e.type === "samurai") {
-    if (dist < e.alertRange) {
+    if (e.state === "attack") {
+      e.attackTimer -= dt * 1000;
+      e.vx = 0;
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 600; }
+    } else if (e.state === "cooldown") {
+      e.attackTimer -= dt * 1000;
+      e.vx = 0;
+      if (e.attackTimer <= 0) e.state = "patrol";
+    } else if (dist < e.alertRange) {
       if (e.state === "patrol") e.alert = 600;
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.4;
-      if (dist < 55) {
-        e.state = "attack";
-        e.attackTimer -= dt * 1000;
-        e.vx = 0;
-        if (e.attackTimer <= 0) e.attackTimer = e.attackCooldown;
-      }
+      if (dist < 55) { e.state = "attack"; e.attackTimer = e.attackCooldown; }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
