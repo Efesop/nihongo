@@ -145,61 +145,51 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash effect — big sweeping arc ──
+  // ── Slash effect — anime diagonal cut line ──
+  // Clean straight slash mark that appears where the cut happened
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
-    const alpha = Math.pow(1 - progress, 0.5); // fade out with curve
+    const alpha = progress < 0.15 ? progress / 0.15 : Math.pow(1 - progress, 0.6);
     const dir = s.facing;
-    const radius = 45 + progress * 40;
+
+    // Diagonal cut line — from bottom-near to top-far
+    const len = 70;
+    const x1 = s.x - dir * 5;
+    const y1 = s.y + 25;
+    const x2 = s.x + dir * len;
+    const y2 = s.y - 30;
 
     ctx.save();
-    ctx.translate(s.x, s.y);
 
-    // The arc sweeps from low-behind to high-forward
-    // This creates a big visible slash across the screen
-    const arcStart = dir > 0
-      ? Math.PI * 0.4 - progress * 0.5
-      : -Math.PI * 0.4 + progress * 0.5;
-    const arcEnd = dir > 0
-      ? -Math.PI * 0.7 - progress * 0.3
-      : Math.PI * 0.7 + progress * 0.3;
-
-    // Layer 1: wide soft glow
-    ctx.globalAlpha = alpha * 0.3;
+    // Wide soft glow
+    ctx.globalAlpha = alpha * 0.25;
     ctx.strokeStyle = "#aabbee";
-    ctx.lineWidth = 16 - progress * 12;
+    ctx.lineWidth = 18;
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.arc(0, 0, radius, arcStart, arcEnd, dir > 0);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
 
-    // Layer 2: bright band
-    ctx.globalAlpha = alpha * 0.7;
+    // Bright mid
+    ctx.globalAlpha = alpha * 0.6;
     ctx.strokeStyle = "#dde4ff";
-    ctx.lineWidth = 6 - progress * 4;
+    ctx.lineWidth = 7;
     ctx.beginPath();
-    ctx.arc(0, 0, radius, arcStart, arcEnd, dir > 0);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
 
-    // Layer 3: white hot core
+    // Sharp white core
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2.5 - progress * 1.5;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.arc(0, 0, radius, arcStart, arcEnd, dir > 0);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
 
-    // Bright tip at leading edge
-    if (progress < 0.5) {
-      const tipAngle = arcEnd;
-      const tx = Math.cos(tipAngle) * radius;
-      const ty = Math.sin(tipAngle) * radius;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(tx, ty, 4 - progress * 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
+    ctx.lineCap = "butt";
     ctx.globalAlpha = 1;
     ctx.restore();
   }
