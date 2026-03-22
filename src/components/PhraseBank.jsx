@@ -166,9 +166,9 @@ export default function PhraseBank({
                 if(!matchSelected){setMatchSelected(item);speakPhrase(item.id,item.text);}
                 else if(matchSelected.type==="en"&&matchSelected.id===item.id){setMatchMatched([...matchMatched,item.id]);setMatchSelected(null);speakPhraseWithEnglish(item.id,item.text,matchPairs.find(p=>p.id===item.id&&p.type==="en")?.text||"");}
                 else{setMatchSelected(item);speakPhrase(item.id,item.text);}
-              }} style={{...btn,padding:"12px 10px",borderRadius:8,border:"1px solid "+(matched?c.g+"44":selected?c.a:c.b),background:matched?c.gs:selected?c.a+"15":"transparent",color:matched?c.g:c.tx,fontSize:isDesktop?16:14,fontWeight:500,opacity:matched?.6:1,transition:"all .15s",textAlign:"left"}}>
+              }} style={{...btn,padding:"14px 12px",borderRadius:8,border:"1px solid "+(matched?c.g+"44":selected?c.a:c.b),background:matched?c.gs:selected?c.a+"15":"transparent",color:matched?c.g:c.tx,fontSize:isDesktop?20:18,fontWeight:500,opacity:matched?.6:1,transition:"all .15s",textAlign:"left"}}>
                 {item.text}
-                {showRomaji&&<div style={{fontSize:9,fontFamily:mono,color:c.m,marginTop:2,opacity:.5}}>{PHRASES.find(p=>p[0]===item.id)?.[2]}</div>}
+                {showRomaji&&<div style={{fontSize:12,fontFamily:mono,color:c.m,marginTop:3}}>{PHRASES.find(p=>p[0]===item.id)?.[2]}</div>}
               </button>;
             })}
           </div>
