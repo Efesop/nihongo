@@ -35,7 +35,21 @@
       "WebSearch",
       "Bash(vercel domains:*)",
       "Bash(vercel dns:*)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tinysenpai.com)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://tinysenpai.com)",
+      "mcp__Neon__list_projects",
+      "Bash(npx vercel:*)",
+      "Bash(node --input-type=module --experimental-vm-modules /dev/null)",
+      "WebFetch(domain:elevenlabs.io)",
+      "WebFetch(domain:help.elevenlabs.io)",
+      "Bash(ELEVENLABS_API_KEY=sk_b8e9428db71ffe6dd97c1f14317272e36ee3d2521441cbb7 MODE=story node scripts/generate-audio.mjs)",
+      "WebFetch(domain:community.elevenlabs.io)",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:deepmind.google)",
+      "WebFetch(domain:www.tofugu.com)",
+      "Bash(find /Users/ollie/Documents/Github/nihongo/public -type f \\\\\\(-iname *logo* -o -iname *mascot* -o -iname *character* -o -iname *sprite* \\\\\\))",
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/ollie/Documents/Github/nihongo/public/images/tinysenpai2.png)",
+      "Bash(ls -lt /Users/ollie/Downloads/*.png)",
+      "Bash(ls -lt /Users/ollie/Downloads/*.png /Users/ollie/Downloads/*.jpg)"
     ]
   }
 }

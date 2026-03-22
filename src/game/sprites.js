@@ -46,17 +46,17 @@ function loadImg(key, src, removeGrayBg = false) {
 
 export function loadGameImages() {
   return Promise.all([
-    loadImg("player", "/images/tinysenpai2.png", true),
-    loadImg("oni", "/images/demon.png", true),
-    loadImg("ninja", "/images/ninja.png", true),
-    loadImg("run1", "/images/tinysenpairun/ts1.png", true),
-    loadImg("run2", "/images/tinysenpairun/ts2.png", true),
-    loadImg("run3", "/images/tinysenpairun/ts3.png", true),
-    loadImg("run4", "/images/tinysenpairun/ts4.png", true),
-    loadImg("slash1", "/images/tinysenpaistrike/1.png", true),
-    loadImg("slash2", "/images/tinysenpaistrike/2.png", true),
-    loadImg("slash3", "/images/tinysenpaistrike/3.png", true),
-    loadImg("slash4", "/images/tinysenpaistrike/4.png", true),
+    loadImg("player", "/images/tinysenpai2.png"),
+    loadImg("oni", "/images/demon.png"),
+    loadImg("ninja", "/images/ninja.png"),
+    loadImg("run1", "/images/tinysenpairun/ts1.png"),
+    loadImg("run2", "/images/tinysenpairun/ts2.png"),
+    loadImg("run3", "/images/tinysenpairun/ts3.png"),
+    loadImg("run4", "/images/tinysenpairun/ts4.png"),
+    loadImg("slash1", "/images/tinysenpaistrike/1.png"),
+    loadImg("slash2", "/images/tinysenpaistrike/2.png"),
+    loadImg("slash3", "/images/tinysenpaistrike/3.png"),
+    loadImg("slash4", "/images/tinysenpaistrike/4.png"),
     loadImg("bg_forest", "/images/forest.png"),
     // Add more as PNGs are created:
     // loadImg("samurai", "/images/ronin.png"),
