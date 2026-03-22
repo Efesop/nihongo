@@ -347,13 +347,8 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
     const slashImg = getImage(slashImgKey);
     if (slashImg) {
-      // Frames 1-3 face LEFT, frame 4 faces RIGHT
-      const frameFacesRight = slashImgKey === "slash4";
-      if (frameFacesRight) {
-        if (p.facing < 0) ctx.scale(-1, 1); // flip for left
-      } else {
-        if (p.facing > 0) ctx.scale(-1, 1); // flip for right
-      }
+      // All slash frames face LEFT — flip for right
+      if (p.facing > 0) ctx.scale(-1, 1);
 
       const sc = SLASH_CROP;
       const sa = sc.w / sc.h;
