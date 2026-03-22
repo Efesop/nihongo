@@ -115,7 +115,8 @@ export function update(g, callbacks) {
       });
     }
   } else if (p.slashTimer > 0) {
-    p.vx *= 0.8;
+    // Keep momentum during slash — don't dampen the lunge
+    p.vx *= 0.95;
   } else {
     p.vx = moveDir * MOVE_SPEED;
     if (moveDir !== 0) p.facing = moveDir;
@@ -150,8 +151,8 @@ export function update(g, callbacks) {
     p.frame = 0;
     // Afterimage at starting position
     p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: 200 });
-    // Lunge forward
-    p.vx = p.facing * 400;
+    // Lunge forward — big dash through enemies
+    p.vx = p.facing * 600;
     // Slash trail starts at current position, will extend outward
     g.slashEffects.push({
       x: p.x, y: p.y + TILE * SCALE * 0.4,

@@ -145,53 +145,60 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash effect — horizontal cut that extends outward ──
-  // The character dashes forward, leaving a massive horizontal slash trail
+  // ── Slash effect — big sweeping arc ──
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
-    const alpha = (1 - progress);
+    const alpha = Math.pow(1 - progress, 0.5); // fade out with curve
     const dir = s.facing;
-
-    // The slash line extends from the start position outward
-    const reach = progress * 80; // how far the cut extends
-    const sx = s.x;
-    const sy = s.y;
+    const radius = 45 + progress * 40;
 
     ctx.save();
+    ctx.translate(s.x, s.y);
 
-    // Wide soft glow — the "power" of the cut
-    ctx.globalAlpha = alpha * 0.2;
-    ctx.fillStyle = "#c8d8ff";
-    ctx.fillRect(sx - (dir < 0 ? reach : 0), sy - 12, reach + 30, 24);
+    // The arc sweeps from low-behind to high-forward
+    // This creates a big visible slash across the screen
+    const arcStart = dir > 0
+      ? Math.PI * 0.4 - progress * 0.5
+      : -Math.PI * 0.4 + progress * 0.5;
+    const arcEnd = dir > 0
+      ? -Math.PI * 0.7 - progress * 0.3
+      : Math.PI * 0.7 + progress * 0.3;
 
-    // Bright mid band
-    ctx.globalAlpha = alpha * 0.5;
-    ctx.fillStyle = "#dce4ff";
-    ctx.fillRect(sx - (dir < 0 ? reach : 0), sy - 5, reach + 30, 10);
+    // Layer 1: wide soft glow
+    ctx.globalAlpha = alpha * 0.3;
+    ctx.strokeStyle = "#aabbee";
+    ctx.lineWidth = 16 - progress * 12;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, arcStart, arcEnd, dir > 0);
+    ctx.stroke();
 
-    // Sharp bright core — the blade trail
-    ctx.globalAlpha = alpha * 0.9;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(sx - (dir < 0 ? reach : 0), sy - 2, reach + 30, 4);
+    // Layer 2: bright band
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.strokeStyle = "#dde4ff";
+    ctx.lineWidth = 6 - progress * 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, arcStart, arcEnd, dir > 0);
+    ctx.stroke();
 
-    // Leading edge flash — bright point at the tip of the cut
-    if (progress < 0.6) {
-      const tipX = sx + dir * (reach + 25);
+    // Layer 3: white hot core
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2.5 - progress * 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, arcStart, arcEnd, dir > 0);
+    ctx.stroke();
+
+    // Bright tip at leading edge
+    if (progress < 0.5) {
+      const tipAngle = arcEnd;
+      const tx = Math.cos(tipAngle) * radius;
+      const ty = Math.sin(tipAngle) * radius;
       ctx.globalAlpha = alpha;
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(tipX - 4, sy - 6, 8, 12);
-      ctx.globalAlpha = alpha * 0.4;
-      ctx.fillRect(tipX - 8, sy - 10, 16, 20);
+      ctx.beginPath();
+      ctx.arc(tx, ty, 4 - progress * 4, 0, Math.PI * 2);
+      ctx.fill();
     }
-
-    // Diagonal slash mark — slight upward angle for style
-    ctx.globalAlpha = alpha * 0.7;
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(sx - dir * 10, sy + 8);
-    ctx.lineTo(sx + dir * (reach + 20), sy - 10);
-    ctx.stroke();
 
     ctx.globalAlpha = 1;
     ctx.restore();
