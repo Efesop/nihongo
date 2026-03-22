@@ -892,8 +892,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
 
     // Row audio mapping for dakuten/yōon groups
     const ROW_AUDIO={"G゛":"dk_k_to_g","Z゛":"dk_s_to_z","D゛":"dk_t_to_d","B゛":"dk_h_to_b","P゜":"hdk_h_to_p","Ky":"yo_ky","Sh":"yo_sh","Ch":"yo_ch","Ny":"yo_ny","Hy":"yo_hy","My":"yo_my","Ry":"yo_ry","Gy":"yo_gy","Jy":"yo_jy","By":"yo_by","Py":"yo_py"};
-    const selectedDkYoGroups=(kSelChars?[]:kSel.map(i=>groups[i])).filter(g=>g&&(g.dk||g.yo));
-    const selectedBaseGroups=(kSelChars?[]:kSel.map(i=>groups[i])).filter(g=>g&&!g.dk&&!g.yo);
+    const selectedGroups=kSelChars?[]:kSel.map(i=>groups[i]).filter(Boolean);
+    const selectedDkYoGroups=selectedGroups.filter(g=>g.dk||g.yo);
+    const selectedBaseGroups=selectedGroups.filter(g=>!g.dk&&!g.yo);
     const hasOnlyDkYo=selectedDkYoGroups.length>0&&selectedBaseGroups.length===0&&!kSelChars;
 
     if(kScreen==="learn"&&hasOnlyDkYo){
@@ -1164,8 +1165,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
           {groups.map((g,i)=>{const sel=kSelChars?g.c.every(ch=>kSelChars.has(ch)):kSel.includes(i);const partial=kSelChars&&g.c.some(ch=>kSelChars.has(ch))&&!sel;const mas=g.c.every(ch=>getKBox(ch)>=3);const due=g.c.filter(ch=>data.kana[ch]?.box>=1&&isKanaDue(ch)).length;
             return <button key={i} onClick={()=>{
-              if(kSelChars){const s=new Set(kSelChars);if(sel||partial){g.c.forEach(ch=>s.delete(ch));}else{g.c.forEach(ch=>s.add(ch));}setKSelChars(s.size?s:null);if(!s.size)setKSel([]);}
-              else{const newSel=sel?kSel.filter(x=>x!==i):[...kSel,i];setKSel(newSel);}
+              setKSelChars(null);const newSel=kSel.includes(i)?kSel.filter(x=>x!==i):[...kSel,i];setKSel(newSel);
             }} style={{...btn,padding:"8px 14px",borderRadius:8,border:"1px solid "+((sel||partial)?c.a:c.b),background:sel?c.as:partial?c.a+"0d":"transparent",color:(sel||partial)?c.tx:c.m,fontSize:13,fontWeight:sel?600:400,minWidth:48}}>{g.n}{mas&&<span style={{marginLeft:4,color:c.g,fontSize:10}}>✓</span>}{due>0&&<span style={{marginLeft:4,fontSize:9,padding:"1px 5px",borderRadius:10,background:c.a+"22",color:c.a}}>{due}</span>}</button>;
           })}
         </div>
@@ -1174,8 +1174,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
         <button onClick={()=>{setKLI(0);setKFlip(false);setKScreen("learn");}} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.s2:c.b,border:"1px solid "+c.b,color:allKana.length?c.tx:c.m,fontSize:14,fontWeight:600}}>Learn ({allKana.length})</button>
         <button onClick={startKanaQuiz} disabled={!allKana.length} style={{...btn,flex:1,padding:14,borderRadius:10,background:allKana.length?c.a:c.b,color:allKana.length?"#fff":c.m,fontSize:14,fontWeight:600}}>Quiz ({allKana.length})</button>
       </div>
+      {/* Base kana grid — individual tiles */}
       <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:4}}>
-        {groups.flatMap(g=>g.c).map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;const selected=allKana.includes(ch);
+        {groups.filter(g=>!g.dk&&!g.yo).flatMap(g=>g.c).map((ch,i)=>{const box=getKBox(ch);const mastered=box>=3;const learning=box>=1&&box<3;const due=isKanaDue(ch)&&box>=1;const selected=allKana.includes(ch);
           return <div key={i} onClick={()=>{
             const current=new Set(allKana);
             if(selected){current.delete(ch);}else{current.add(ch);}
@@ -1199,6 +1200,19 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           </div>;
         })}
       </div>
+      {/* Dakuten/Yōon grouped rows */}
+      {groups.filter(g=>g.dk||g.yo).length>0&&<>
+        <div style={{fontSize:11,fontFamily:mono,color:c.m,textTransform:"uppercase",marginTop:16,marginBottom:8}}>Dakuten & Combinations</div>
+        {groups.filter(g=>g.dk||g.yo).map((g,gi)=>{
+          const gIdx=groups.indexOf(g);const sel=kSel.includes(gIdx);
+          return <div key={gi} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 0",borderBottom:"1px solid "+c.b+"33"}}>
+            <div style={{fontSize:12,fontWeight:600,color:sel?c.a:c.m,width:32,flexShrink:0,fontFamily:mono}}>{g.n}</div>
+            <div style={{display:"flex",gap:4,flex:1,flexWrap:"wrap"}}>
+              {g.c.map((ch,ci)=><span key={ci} style={{fontSize:14,color:sel?c.a:c.m,opacity:sel?1:.4}}>{ch}<span style={{fontSize:9,color:c.m,marginLeft:1,marginRight:ci<g.c.length-1?6:0}}>{ROMAJI[ch]}</span></span>)}
+            </div>
+          </div>;
+        })}
+      </>}
     </div>;
   };
 
