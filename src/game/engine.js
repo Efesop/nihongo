@@ -149,8 +149,8 @@ export function update(g, callbacks) {
     p.slashTimer = SLASH_DURATION;
     p.frame = 0;
     g.slashEffects.push({
-      x: p.x + p.facing * 24, y: p.y + 8,
-      facing: p.facing, timer: 200, maxTimer: 200,
+      x: p.x + p.facing * 20, y: p.y + TILE * SCALE * 0.35,
+      facing: p.facing, timer: 250, maxTimer: 250,
     });
   }
   g.input.slashPressed = false;
@@ -374,9 +374,9 @@ export function update(g, callbacks) {
 // ═══ HELPERS ═══
 function killEnemy(g, e, p, callbacks) {
   e.dead = true;
-  e.deathTimer = 400;
-  g.hitStop = 50;
-  g.camera.shakeTimer = 120;
+  e.deathTimer = 500;
+  g.hitStop = 70;
+  g.camera.shakeTimer = 150;
   g.comboTimer = 2000;
   g.combo++;
   if (g.combo > g.maxCombo) g.maxCombo = g.combo;
@@ -406,7 +406,7 @@ function killEnemy(g, e, p, callbacks) {
       life: 550, maxLife: 550, color: i < 4 ? "#ffffff" : pColor, size: rndInt(2, 5),
     });
   }
-  g.flashTimer = 60;
+  g.flashTimer = 80;
 }
 
 function killPlayer(g, callbacks) {

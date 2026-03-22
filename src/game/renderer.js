@@ -86,13 +86,16 @@ export function render(g, ctx, isDesktop, font) {
   for (const e of g.enemies) {
     if (e.x < cx - 100 || e.x > cx + W + 100) continue;
     if (e.dead) {
-      if (e.deathTimer > 300) {
-        // White flash
+      if (e.deathTimer > 400) {
+        // Bright white flash on death frame
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(e.x - 20, e.y + 5, 40, 50);
+        ctx.globalAlpha = (e.deathTimer - 400) / 100;
+        ctx.fillRect(e.x - 25, e.y, 50, 60);
+        ctx.globalAlpha = 1;
         continue;
       }
-      ctx.globalAlpha = e.deathTimer / 400;
+      // Fade out
+      ctx.globalAlpha = Math.max(0, e.deathTimer / 400);
     }
     drawEnemy(ctx, e, g.time.elapsed, font);
     ctx.globalAlpha = 1;
@@ -142,23 +145,56 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // Slash effects
+  // ── Slash arc — the star of the show ──
+  // Multi-layered arc: bright core + wider soft glow, like Katana Zero
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
-    const alpha = (1 - progress) * 0.9;
+    const alpha = (1 - progress);
+    const dir = s.facing > 0 ? 1 : -1;
+    const radius = 35 + progress * 30;
+    // Arc sweeps from behind to in front
+    const sweepStart = dir > 0
+      ? -Math.PI * 0.8 + progress * Math.PI * 0.6
+      : Math.PI * 0.8 - progress * Math.PI * 0.6;
+    const sweepEnd = dir > 0
+      ? Math.PI * 0.6 + progress * Math.PI * 0.2
+      : -Math.PI * 0.6 - progress * Math.PI * 0.2;
+
     ctx.save();
     ctx.translate(s.x, s.y);
-    ctx.strokeStyle = `rgba(224,232,255,${alpha})`;
-    ctx.lineWidth = 4 - progress * 3;
+
+    // Layer 1: wide soft outer glow
+    ctx.strokeStyle = `rgba(200,210,240,${alpha * 0.25})`;
+    ctx.lineWidth = 12 - progress * 8;
     ctx.beginPath();
-    const start = s.facing > 0
-      ? -Math.PI * 0.7 + progress * Math.PI * 0.5
-      : Math.PI * 0.7 - progress * Math.PI * 0.5;
-    const end = s.facing > 0
-      ? Math.PI * 0.5 + progress * Math.PI * 0.3
-      : -Math.PI * 0.5 - progress * Math.PI * 0.3;
-    ctx.arc(0, 0, 30 + progress * 28, start, end);
+    ctx.arc(0, 0, radius, sweepStart, sweepEnd);
     ctx.stroke();
+
+    // Layer 2: bright mid arc
+    ctx.strokeStyle = `rgba(224,232,255,${alpha * 0.6})`;
+    ctx.lineWidth = 5 - progress * 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, sweepStart, sweepEnd);
+    ctx.stroke();
+
+    // Layer 3: sharp bright core
+    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.9})`;
+    ctx.lineWidth = 2 - progress;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, sweepStart, sweepEnd);
+    ctx.stroke();
+
+    // Tip sparkle at the leading edge
+    if (progress < 0.5) {
+      const tipAngle = sweepEnd;
+      const tx = Math.cos(tipAngle) * radius;
+      const ty = Math.sin(tipAngle) * radius;
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.fillRect(tx - 3, ty - 3, 6, 6);
+      ctx.fillStyle = `rgba(200,220,255,${alpha * 0.5})`;
+      ctx.fillRect(tx - 5, ty - 5, 10, 10);
+    }
+
     ctx.restore();
   }
 
@@ -248,10 +284,10 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     sy = 1 + breath * 0.012;
     oy = breath * 0.8;
   } else if (p.state === "run") {
-    // Determined forward lean — like sprinting into battle
-    rot = 0.13;
+    // Lean INTO the run direction (negative = forward when facing left, the default)
+    rot = -0.12;
     const t = elapsed * 11;
-    oy = Math.abs(Math.sin(t)) * -2.5;
+    oy = Math.abs(Math.sin(t)) * -2;
   } else if (p.state === "jump") {
     rot = -0.12;
     sy = 1.08;
@@ -264,16 +300,19 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     sx = 1.25;
     sy = 0.85;
   } else if (p.state === "slash1") {
-    // Quick crouch — instant draw
-    sy = 0.92;
-    ox = -4;
+    // Crouch to draw from hip
+    sy = 0.93;
+    rot = -0.06;
   } else if (p.state === "slash2") {
-    // Horizontal cut — lunge into it
-    ox = 10;
-    sx = 1.05;
-    sy = 0.96;
+    // Explosive upward diagonal cut — lunge forward
+    ox = 8;
+    rot = -0.08;
+    sx = 1.04;
+    sy = 1.02;
   } else if (p.state === "slash3") {
-    ox = 5;
+    // Extended pose — sword overhead after the cut
+    ox = 4;
+    rot = -0.03;
   }
 
   ctx.rotate(rot);
@@ -289,9 +328,9 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (isSlashing) {
     const bladeLen = 44;
     let bladeAngle;
-    if (p.state === "slash1") bladeAngle = -2.0;     // drawn from behind
-    else if (p.state === "slash2") bladeAngle = -0.05; // horizontal cut
-    else bladeAngle = 0.7;                            // follow-through
+    if (p.state === "slash1") bladeAngle = 1.2;       // at hip, about to draw
+    else if (p.state === "slash2") bladeAngle = -0.8;  // diagonal upward cut
+    else bladeAngle = -1.8;                            // overhead, follow-through
 
     ctx.save();
     ctx.translate(ox + 6, -drawH * 0.5 + oy);
