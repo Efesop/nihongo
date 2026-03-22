@@ -46,7 +46,7 @@ export const speakPhraseWithEnglish=(id,japanese,english)=>{
         a3.playbackRate=0.85;_ttsAudio=a3;a3.play().catch(()=>{});
       };
       a2.play().catch(()=>{});
-    },400);
+    },150);
   };
   a1.play().catch(()=>{});
 };
