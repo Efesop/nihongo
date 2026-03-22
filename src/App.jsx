@@ -894,7 +894,18 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     const ROW_AUDIO={"G゛":"dk_k_to_g","Z゛":"dk_s_to_z","D゛":"dk_t_to_d","B゛":"dk_h_to_b","P゜":"hdk_h_to_p","Ky":"yo_ky","Sh":"yo_sh","Ch":"yo_ch","Ny":"yo_ny","Hy":"yo_hy","My":"yo_my","Ry":"yo_ry","Gy":"yo_gy","Jy":"yo_jy","By":"yo_by","Py":"yo_py"};
     // Find which group a character belongs to
     const getCharGroup=(ch)=>groups.find(g=>g.c.includes(ch));
-    const playRowAudioFor=(ch)=>{const g=getCharGroup(ch);if(!g)return;const af=ROW_AUDIO[g.n];if(!af)return;stopAudio();setStoryPlaying(true);const a=new Audio(`/audio/rows/${af}.mp3`);_ttsAudio=a;a.onended=()=>setStoryPlaying(false);a.onerror=()=>setStoryPlaying(false);a.play().catch(()=>setStoryPlaying(false));};
+    const playRowChain=(g)=>{if(!g)return;
+      setStoryPlaying(true);
+      const items=g.dk?g.c.flatMap(gch=>[DAKUTEN_BASE[gch],gch]):g.c;
+      let i=0;
+      const playNext=()=>{if(i>=items.length){setStoryPlaying(false);setKSpeakingChar(null);return;}const t=items[i];const isBase=g.dk&&i%2===0;i++;setKSpeakingChar(t);const url=`/api/tts?lang=ja&q=${encodeURIComponent(t)}`;const a=new Audio(url);a.playbackRate=1;_ttsAudio=a;a.onended=()=>setTimeout(playNext,isBase?100:350);a.onerror=()=>{setStoryPlaying(false);setKSpeakingChar(null);};a.play().catch(()=>{setStoryPlaying(false);setKSpeakingChar(null);});};
+      playNext();
+    };
+    const autoPlayForChar=(nch)=>{
+      const ng=getCharGroup(nch);
+      if(ng&&(ng.dk||ng.yo)){setTimeout(()=>playRowChain(ng),300);}
+      else{const nm=M[nch];if(nm)setTimeout(()=>speakStory(nm,nch),300);}
+    };
 
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
@@ -910,11 +921,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             const cg=getCharGroup(ch);let ni=kLI+1;
             if(cg&&(cg.dk||cg.yo)){const li=chars.indexOf(cg.c[cg.c.length-1]);if(li>=0)ni=li+1;}
             if(ni>=chars.length)ni=chars.length-1;setKLI(ni);setKFlip(false);
-            if(kAutoStory){const nch=chars[ni];const nm=M[nch];if(nm&&!DAKUTEN_BASE[nch]&&!YOON_PARTS[nch])setTimeout(()=>speakStory(nm,nch),300);}}
+            if(kAutoStory)autoPlayForChar(chars[ni]);}
           if(dx>0&&kLI>0){stopAudio();setKSpeakingChar(null);
             let ni=kLI-1;if(ni>=0){const pg=getCharGroup(chars[ni]);if(pg&&(pg.dk||pg.yo))ni=Math.max(0,chars.indexOf(pg.c[0]));}
             setKLI(ni);setKFlip(false);
-            if(kAutoStory){const nch=chars[ni];const nm=M[nch];if(nm&&!DAKUTEN_BASE[nch]&&!YOON_PARTS[nch])setTimeout(()=>speakStory(nm,nch),300);}}
+            if(kAutoStory)autoPlayForChar(chars[ni]);}
         }
       };
       const showRevealed=kAutoReveal||kFlip;
@@ -923,7 +934,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
           <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0"}}>← back</button>
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <button onClick={()=>{const v=!kAutoReveal;setKAutoReveal(v);save({settings:{...data.settings,autoReveal:v}});}} style={{...btn,padding:"5px 10px",borderRadius:6,border:"1px solid "+(kAutoReveal?c.a+"44":c.b),background:kAutoReveal?c.a+"11":"transparent",color:kAutoReveal?c.a:c.m,fontSize:11}}>Auto-reveal {kAutoReveal?"on":"off"}</button>
-            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);save({settings:{...data.settings,autoStory:v}});}} style={{...btn,padding:"5px 10px",borderRadius:6,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:11}}>Auto-story {kAutoStory?"on":"off"}</button>
+            <button onClick={()=>{const v=!kAutoStory;setKAutoStory(v);if(v&&!kAutoReveal){setKAutoReveal(true);save({settings:{...data.settings,autoStory:v,autoReveal:true}});}else{save({settings:{...data.settings,autoStory:v}});}}} style={{...btn,padding:"5px 10px",borderRadius:6,border:"1px solid "+(kAutoStory?c.a+"44":c.b),background:kAutoStory?c.a+"11":"transparent",color:kAutoStory?c.a:c.m,fontSize:11}}>Auto-story {kAutoStory?"on":"off"}</button>
             <div style={{fontSize:12,fontFamily:mono,color:c.m}}>{kLI+1}/{chars.length}</div>
           </div>
         </div>
@@ -948,11 +959,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               </div>
               <button onClick={e=>{e.stopPropagation();
                 if(storyPlaying){stopAudio();setKSpeakingChar(null);return;}
-                setStoryPlaying(true);
-                const items=g.dk?g.c.flatMap(gch=>[DAKUTEN_BASE[gch],gch]):g.c;
-                let i=0;
-                const playNext=()=>{if(i>=items.length){setStoryPlaying(false);setKSpeakingChar(null);return;}const t=items[i];const isBase=g.dk&&i%2===0;i++;setKSpeakingChar(t);const url=`/api/tts?lang=ja&q=${encodeURIComponent(t)}`;const a=new Audio(url);a.playbackRate=1;_ttsAudio=a;a.onended=()=>setTimeout(playNext,isBase?100:350);a.onerror=()=>{setStoryPlaying(false);setKSpeakingChar(null);};a.play().catch(()=>{setStoryPlaying(false);setKSpeakingChar(null);});};
-                playNext();
+                playRowChain(g);
               }} style={{...btn,padding:"12px 16px",borderRadius:10,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:14,color:storyPlaying?c.a:c.m,width:"100%",marginBottom:4}}>{storyPlaying?"■ stop":"🔊 hear all sounds"}</button>
             </div>;
           })()
@@ -988,7 +995,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
             let ni=kLI-1;
             if(ni>=0){const pch=chars[ni];const pg=getCharGroup(pch);if(pg&&(pg.dk||pg.yo)){ni=Math.max(0,chars.indexOf(pg.c[0])-1);}}
             ni=Math.max(0,ni);setKLI(ni);setKFlip(false);
-            if(kAutoStory){const nch=chars[ni];const nm=M[nch];if(nm&&!DAKUTEN_BASE[nch]&&!YOON_PARTS[nch])setTimeout(()=>speakStory(nm,nch),300);}
+            if(kAutoStory)autoPlayForChar(chars[ni]);
           }} disabled={kLI===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:kLI>0?c.tx:c.m,fontSize:14}}>← Prev</button>
           {kLI<chars.length-1
             ?<button onClick={()=>{stopAudio();setKSpeakingChar(null);
@@ -996,7 +1003,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
               const cg=getCharGroup(ch);let ni=kLI+1;
               if(cg&&(cg.dk||cg.yo)){const lastInGroup=cg.c[cg.c.length-1];const lastIdx=chars.indexOf(lastInGroup);if(lastIdx>=0)ni=lastIdx+1;}
               if(ni>=chars.length)ni=chars.length-1;setKLI(ni);setKFlip(false);
-              if(kAutoStory){const nch=chars[ni];const nm=M[nch];if(nm&&!DAKUTEN_BASE[nch]&&!YOON_PARTS[nch])setTimeout(()=>speakStory(nm,nch),300);}
+              if(kAutoStory)autoPlayForChar(chars[ni]);
             }} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →{kbHint("↵")}</button>
             :<button onClick={startKanaQuiz} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Quiz</button>}
         </div>
