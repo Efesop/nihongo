@@ -8,6 +8,7 @@ export function makePlayer(groundY) {
     slashTimer: 0, dashTimer: 0, dashCooldown: 0, dead: false,
     grounded: false, invincible: 0,
     afterimages: [],
+    slashCombo: 0, comboWindow: 0, // 3-hit combo chain
   };
 }
 

@@ -145,27 +145,55 @@ export function update(g, callbacks) {
   }
   g.input.jumpPressed = false;
 
-  // Slash — dash-cut: lunge forward through enemies
-  if (g.input.slashPressed && p.slashTimer <= 0) {
-    p.slashTimer = SLASH_DURATION;
+  // ── Slash — 3-hit combo chain ──
+  // Combo window: press slash again within 300ms of previous slash ending
+  if (p.comboWindow > 0) p.comboWindow -= rawDt * 1000;
+  if (p.comboWindow <= 0 && p.slashTimer <= 0) p.slashCombo = 0;
+
+  if (g.input.slashPressed && p.slashTimer <= 0 && p.comboWindow >= 0) {
+    // Advance combo (0→1, 1→2, 2→3, max 3)
+    p.slashCombo = Math.min(p.slashCombo + 1, 3);
+    const combo = p.slashCombo;
+
+    // Duration: 1st=normal, 2nd=normal, 3rd=longer (held pose)
+    p.slashTimer = combo === 3 ? SLASH_DURATION * 1.5 : SLASH_DURATION;
     p.frame = 0;
-    // Afterimage at starting position
-    p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: 200 });
-    // Dash through enemies — same speed as actual dash
-    p.vx = p.facing * DASH_SPEED;
-    // Slash trail starts at current position, will extend outward
+    p.comboWindow = 350; // ms to press next slash after this one ends
+
+    // Afterimage
+    p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
+
+    // Lunge — each hit goes further
+    const lungeSpeed = combo === 1 ? DASH_SPEED * 0.8 : combo === 2 ? DASH_SPEED : DASH_SPEED * 1.3;
+    p.vx = p.facing * lungeSpeed;
+
+    // Slash trail — combo level passed through for visual variation
     g.slashEffects.push({
       x: p.x, y: p.y + TILE * SCALE * 0.4,
       facing: p.facing, timer: 300, maxTimer: 300,
-      startX: p.x,
+      combo,
     });
-    // Speed lines burst
-    for (let i = 0; i < 6; i++) {
+
+    // Speed lines — more on higher combos
+    const lineCount = combo === 1 ? 4 : combo === 2 ? 6 : 10;
+    for (let i = 0; i < lineCount; i++) {
+      const color = combo === 3 ? (i % 2 === 0 ? "#d0a0ff" : "#ffffff") : "#ffffff";
       g.particles.push({
         x: p.x - p.facing * rnd(5, 30), y: p.y + rnd(5, TILE * SCALE - 5),
-        vx: p.facing * rnd(150, 350), vy: rnd(-15, 15),
-        life: 120, maxLife: 120, color: "#ffffff", size: rnd(1, 1.5), isLine: true,
+        vx: p.facing * rnd(150, 400), vy: rnd(-20, 20),
+        life: 140, maxLife: 140, color, size: rnd(1, 1.5), isLine: true,
       });
+    }
+
+    // 3rd hit: purple burst particles
+    if (combo === 3) {
+      for (let i = 0; i < 8; i++) {
+        g.particles.push({
+          x: p.x, y: p.y + TILE * SCALE / 2,
+          vx: p.facing * rnd(50, 200), vy: rnd(-150, -30),
+          life: 400, maxLife: 400, color: rnd(0,1) > 0.5 ? "#b070e0" : "#8040c0", size: rndInt(2, 4),
+        });
+      }
     }
   }
   g.input.slashPressed = false;

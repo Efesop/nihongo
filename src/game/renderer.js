@@ -145,45 +145,55 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash effect — anime diagonal cut line ──
-  // Clean straight slash mark that appears where the cut happened
+  // ── Slash trails — vary by combo level ──
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
-    const alpha = progress < 0.15 ? progress / 0.15 : Math.pow(1 - progress, 0.6);
+    const alpha = progress < 0.1 ? progress / 0.1 : Math.pow(1 - progress, 0.6);
     const dir = s.facing;
+    const combo = s.combo || 1;
+    const isThird = combo === 3;
 
-    // Diagonal cut line — from bottom-near to top-far
-    const len = 70;
+    // Each combo hit has a different slash angle
+    let len, angle;
+    if (combo === 1) { len = 70; angle = -0.45; }       // diagonal up
+    else if (combo === 2) { len = 80; angle = 0.35; }   // diagonal down (reverse)
+    else { len = 100; angle = -0.15; }                   // nearly horizontal, longest
+
     const x1 = s.x - dir * 5;
-    const y1 = s.y + 25;
-    const x2 = s.x + dir * len;
-    const y2 = s.y - 30;
+    const y1 = s.y;
+    const x2 = x1 + dir * Math.cos(angle) * len;
+    const y2 = y1 + Math.sin(angle) * len;
+
+    // Color: white normally, purple on 3rd
+    const glowCol = isThird ? "#9060cc" : "#aabbee";
+    const midCol = isThird ? "#c090ee" : "#dde4ff";
+    const coreCol = isThird ? "#e0c0ff" : "#ffffff";
 
     ctx.save();
+    ctx.lineCap = "round";
 
     // Wide soft glow
-    ctx.globalAlpha = alpha * 0.25;
-    ctx.strokeStyle = "#aabbee";
-    ctx.lineWidth = 18;
-    ctx.lineCap = "round";
+    ctx.globalAlpha = alpha * 0.3;
+    ctx.strokeStyle = glowCol;
+    ctx.lineWidth = isThird ? 24 : 18;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
 
     // Bright mid
-    ctx.globalAlpha = alpha * 0.6;
-    ctx.strokeStyle = "#dde4ff";
-    ctx.lineWidth = 7;
+    ctx.globalAlpha = alpha * 0.65;
+    ctx.strokeStyle = midCol;
+    ctx.lineWidth = isThird ? 9 : 7;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
     ctx.stroke();
 
-    // Sharp white core
+    // Core
     ctx.globalAlpha = alpha;
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = coreCol;
+    ctx.lineWidth = isThird ? 3 : 2.5;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
@@ -286,50 +296,85 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
   ctx.imageSmoothingEnabled = false;
 
-  if (p.state === "slash1") {
-    // Crouch down — preparing to draw
-    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + 8, drawW, drawH);
-  } else if (p.state === "slash2") {
-    // Low crouching pose — dropped down, leaning forward
-    // Character is lower and slightly compressed
-    ctx.scale(1.08, 0.88);
-    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 4, -drawH + 10, drawW, drawH);
+  if (isSlashing) {
+    const combo = p.slashCombo;
+    const isThird = combo === 3;
+    const bladeColor = isThird ? "#b080e0" : "#9aa8c0";
+    const edgeColor = isThird ? "#d8b0ff" : "#dde4f0";
+    const bladeLen = isThird ? 52 : 44;
 
-    // Extended sword arm — horizontal blade reaching outward
-    ctx.fillStyle = "#3a2818";
-    ctx.fillRect(drawW * 0.3, -drawH * 0.42, 10, 4);  // hand/handle
-    ctx.fillStyle = "#bb8833";
-    ctx.fillRect(drawW * 0.3 + 10, -drawH * 0.42 - 1, 3, 6);  // tsuba
-    ctx.fillStyle = "#9aa8c0";
-    ctx.fillRect(drawW * 0.3 + 13, -drawH * 0.42, 44, 3);  // blade
-    ctx.fillStyle = "#dde4f0";
-    ctx.fillRect(drawW * 0.3 + 13, -drawH * 0.42, 44, 1.5);  // edge
-    // Blade tip
-    ctx.fillStyle = "#dde4f0";
-    ctx.beginPath();
-    ctx.moveTo(drawW * 0.3 + 57, -drawH * 0.42);
-    ctx.lineTo(drawW * 0.3 + 63, -drawH * 0.42 + 1.5);
-    ctx.lineTo(drawW * 0.3 + 57, -drawH * 0.42 + 3);
-    ctx.fill();
-  } else if (p.state === "slash3") {
-    // Rising back up, sword still extended but lowering
-    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 2, -drawH + 4, drawW, drawH);
+    // Purple glow on 3rd hit
+    if (isThird) {
+      ctx.fillStyle = "rgba(160,80,220,0.15)";
+      ctx.fillRect(-drawW, -drawH - 10, drawW * 2.5, drawH + 30);
+    }
 
-    // Sword lowering
-    ctx.fillStyle = "#9aa8c0";
-    ctx.save();
-    ctx.translate(drawW * 0.25, -drawH * 0.35);
-    ctx.rotate(0.3);
-    ctx.fillRect(0, 0, 40, 2.5);
-    ctx.fillStyle = "#dde4f0";
-    ctx.fillRect(0, 0, 40, 1.2);
-    ctx.restore();
+    if (p.state === "slash1") {
+      // Crouch — preparing
+      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + 8, drawW, drawH);
+
+    } else if (p.state === "slash2") {
+      // ── THE CUT — different pose per combo ──
+      if (combo === 1) {
+        // 1st: low horizontal slash — crouched, blade out
+        ctx.scale(1.08, 0.88);
+        ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 4, -drawH + 10, drawW, drawH);
+        drawBlade(ctx, drawW * 0.3, -drawH * 0.42, 0, bladeLen, bladeColor, edgeColor);
+      } else if (combo === 2) {
+        // 2nd: upward diagonal cut — standing taller, blade angled up
+        ctx.scale(1.02, 1.02);
+        ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 2, -drawH - 2, drawW, drawH);
+        drawBlade(ctx, drawW * 0.25, -drawH * 0.55, -0.5, bladeLen, bladeColor, edgeColor);
+      } else {
+        // 3rd: deep lunge — low and extended, longest reach
+        ctx.scale(1.12, 0.82);
+        ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 6, -drawH + 14, drawW, drawH);
+        drawBlade(ctx, drawW * 0.3, -drawH * 0.38, -0.08, bladeLen, bladeColor, edgeColor);
+        // Purple energy trailing off blade
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = "#b070e0";
+        ctx.fillRect(drawW * 0.3 + 10, -drawH * 0.38 - 4, bladeLen, 8);
+        ctx.globalAlpha = 1;
+      }
+
+    } else if (p.state === "slash3") {
+      // Follow-through — settling, blade lowering
+      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + 2, -drawH + 4, drawW, drawH);
+      const settleAngle = combo === 2 ? 0.5 : combo === 3 ? 0.15 : 0.3;
+      drawBlade(ctx, drawW * 0.22, -drawH * 0.35, settleAngle, bladeLen * 0.85, bladeColor, edgeColor);
+    }
   } else {
     // Normal draw for all other states
     ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + oy, drawW, drawH);
   }
 
   ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// Helper: draw a katana blade at position with angle
+function drawBlade(ctx, x, y, angle, len, bladeColor, edgeColor) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  // Handle
+  ctx.fillStyle = "#3a2818";
+  ctx.fillRect(-1, 0, 4, 8);
+  // Tsuba
+  ctx.fillStyle = "#bb8833";
+  ctx.fillRect(-3, -1, 8, 3);
+  // Blade
+  ctx.fillStyle = bladeColor;
+  ctx.fillRect(0, -len, 3, len);
+  // Edge highlight
+  ctx.fillStyle = edgeColor;
+  ctx.fillRect(0, -len, 1.5, len);
+  // Tip
+  ctx.beginPath();
+  ctx.moveTo(0, -len);
+  ctx.lineTo(1.5, -len - 5);
+  ctx.lineTo(3, -len);
+  ctx.fill();
   ctx.restore();
 }
 
