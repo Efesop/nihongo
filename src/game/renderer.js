@@ -279,41 +279,29 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
   let rot = 0, sx = 1, sy = 1, ox = 0, oy = 0;
 
+  // Minimal transforms — don't over-animate a static image.
+  // Effects (slash arc, particles, hit-stop) sell the action, not body deformation.
   if (p.state === "idle") {
-    const breath = Math.sin(elapsed * 2.5);
-    sy = 1 + breath * 0.012;
-    oy = breath * 0.8;
+    oy = Math.sin(elapsed * 2) * 0.8;
   } else if (p.state === "run") {
-    // Lean INTO the run direction (negative = forward when facing left, the default)
-    rot = -0.12;
-    const t = elapsed * 11;
-    oy = Math.abs(Math.sin(t)) * -2;
+    // Slight forward lean + tiny bob — clean and fast
+    rot = -0.08;
+    oy = Math.abs(Math.sin(elapsed * 12)) * -1.5;
   } else if (p.state === "jump") {
-    rot = -0.12;
-    sy = 1.08;
-    sx = 0.94;
+    oy = -2;
   } else if (p.state === "fall") {
-    rot = 0.06;
-    sy = 0.94;
-    sx = 1.05;
+    oy = 1;
   } else if (p.state === "dash") {
-    sx = 1.25;
-    sy = 0.85;
+    sx = 1.15;
+    sy = 0.9;
   } else if (p.state === "slash1") {
-    // Hand on hilt, crouch to draw
-    sy = 0.94;
-    rot = 0.04;
-    ox = -2;
+    // Tiny crouch
+    oy = 2;
   } else if (p.state === "slash2") {
-    // Draw and slash outward — lunge forward, body extends
-    ox = 10;
-    rot = -0.05;
-    sx = 1.06;
-    sy = 0.97;
-  } else if (p.state === "slash3") {
-    // Blade fully extended outward, settling
+    // Small lunge forward — the slash arc does the work
     ox = 6;
-    sy = 0.98;
+  } else if (p.state === "slash3") {
+    ox = 3;
   }
 
   ctx.rotate(rot);
@@ -325,42 +313,42 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2 + ox, -drawH + oy, drawW, drawH);
 
-  // ── Katana — ONLY during slash ──
+  // ── Katana — ONLY during slash, positioned to match the arc ──
   if (isSlashing) {
-    const bladeLen = 44;
-    let bladeAngle;
-    if (p.state === "slash1") bladeAngle = 1.4;       // sheathed at hip, pointing down-back
-    else if (p.state === "slash2") bladeAngle = -0.15; // horizontal, extended outward (THE CUT)
-    else bladeAngle = 0.2;                             // slightly past horizontal, still extended
+    const bladeLen = 46;
+    // Blade sweeps from hip to extended outward
+    let bladeAngle, bx, by;
+    if (p.state === "slash1") {
+      bladeAngle = 1.5;   // at hip, ready to draw
+      bx = 0; by = -drawH * 0.3 + oy;
+    } else if (p.state === "slash2") {
+      bladeAngle = -0.2;  // horizontal outward cut
+      bx = ox + 8; by = -drawH * 0.45 + oy;
+    } else {
+      bladeAngle = -0.1;  // still extended, settling
+      bx = ox + 6; by = -drawH * 0.45 + oy;
+    }
 
     ctx.save();
-    // Blade origin moves forward during the cut
-    const bladeOx = p.state === "slash2" ? ox + 12 : p.state === "slash3" ? ox + 10 : ox + 2;
-    ctx.translate(bladeOx, -drawH * 0.5 + oy);
+    ctx.translate(bx, by);
     ctx.rotate(bladeAngle);
 
-    // Handle
-    ctx.fillStyle = "#2a1808";
-    ctx.fillRect(-2, 0, 4, 10);
-    // Tsuba
-    ctx.fillStyle = "#cc9933";
-    ctx.fillRect(-5, -1, 10, 2);
-    // Blade
-    ctx.fillStyle = "#8898b0";
-    ctx.fillRect(-1.5, -bladeLen, 3, bladeLen);
-    ctx.fillStyle = "#d0d8ee";
-    ctx.fillRect(-1.5, -bladeLen, 1.5, bladeLen);
-    // Tip
-    ctx.beginPath();
-    ctx.moveTo(-1.5, -bladeLen);
-    ctx.lineTo(0, -bladeLen - 6);
-    ctx.lineTo(1.5, -bladeLen);
-    ctx.fill();
+    // Simple clean blade
+    ctx.fillStyle = "#3a2818";
+    ctx.fillRect(-2, 0, 4, 9);          // handle
+    ctx.fillStyle = "#bb8833";
+    ctx.fillRect(-4, -1, 8, 2);         // tsuba
+    ctx.fillStyle = "#9aa8c0";
+    ctx.fillRect(-1, -bladeLen, 3, bladeLen); // blade
+    ctx.fillStyle = "#d8e0f0";
+    ctx.fillRect(-1, -bladeLen, 1, bladeLen); // edge highlight
 
-    // Bright flash on the strike frame
+    // Flash on cut frame
     if (p.state === "slash2") {
-      ctx.fillStyle = "rgba(224,232,255,0.4)";
-      ctx.fillRect(-3, -bladeLen - 6, 6, bladeLen + 6);
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = "#e8f0ff";
+      ctx.fillRect(-2, -bladeLen, 5, bladeLen);
+      ctx.globalAlpha = 1;
     }
 
     ctx.restore();
@@ -396,33 +384,13 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   // Flip based on facing
   if (e.facing > 0) ctx.scale(-1, 1);
 
-  // State-based animation
-  let rot = 0, sx = 1, sy = 1, oy = 0;
-
+  // Minimal transforms — don't distort static images
+  let oy = 0;
   if (e.state === "patrol") {
-    const t = elapsed * 4 + e.patrolOrigin * 0.1;
-    oy = Math.abs(Math.sin(t)) * -2;
-    rot = Math.sin(t) * 0.03;
+    oy = Math.abs(Math.sin(elapsed * 4 + e.patrolOrigin * 0.1)) * -1.5;
   } else if (e.state === "chase") {
-    const t = elapsed * 7 + e.patrolOrigin * 0.1;
-    oy = Math.abs(Math.sin(t)) * -3;
-    rot = 0.08; // lean forward aggressively
-  } else if (e.state === "attack") {
-    const progress = e.attackTimer / 400;
-    if (progress > 0.5) {
-      // Wind-up — pull back, crouch
-      rot = -0.12;
-      sy = 1.06;
-    } else {
-      // Strike — lunge
-      rot = 0.15;
-      sx = 1.08;
-      sy = 0.93;
-    }
+    oy = Math.abs(Math.sin(elapsed * 7 + e.patrolOrigin * 0.1)) * -2;
   }
-
-  ctx.rotate(rot);
-  ctx.scale(sx, sy);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH + oy), Math.round(drawW), Math.round(drawH));
 
