@@ -71,7 +71,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.state = "chase";
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.55;
-      if (dist < 50) { e.state = "attack"; e.attackTimer = 600; }
+      if (dist < 50) { e.state = "attack"; e.attackTimer = 800; }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;

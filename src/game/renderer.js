@@ -435,42 +435,57 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   // Flip based on facing
   if (e.facing > 0) ctx.scale(-1, 1);
 
-  // Minimal transforms — don't distort static images
   let oy = 0;
   if (e.state === "patrol") {
     oy = Math.abs(Math.sin(elapsed * 4 + e.patrolOrigin * 0.1)) * -1.5;
   } else if (e.state === "chase") {
     oy = Math.abs(Math.sin(elapsed * 7 + e.patrolOrigin * 0.1)) * -2;
+  } else if (e.state === "attack") {
+    // Wind-up: pull back, then lunge forward on strike
+    const progress = e.attackTimer / 800;
+    if (progress > 0.3) {
+      // Wind-up — pull back
+      oy = 4;
+      ctx.scale(0.95, 1.05);
+    } else {
+      // Strike — lunge forward
+      oy = -2;
+      ctx.scale(1.08, 0.94);
+    }
+  } else if (e.state === "dazed") {
+    // Wobble when dazed
+    oy = Math.sin(elapsed * 12) * 2;
   }
+
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH + oy), Math.round(drawW), Math.round(drawH));
 
   // ── Oni: club swing ──
   if (e.type === "oni" && (e.state === "attack" || e.state === "chase")) {
     const isAttacking = e.state === "attack";
-    const progress = isAttacking ? e.attackTimer / 600 : 1;
+    const progress = isAttacking ? e.attackTimer / 800 : 1;
     let clubAngle;
-    if (!isAttacking) clubAngle = 1.2;            // held at side while chasing
-    else if (progress > 0.5) clubAngle = -1.8;    // raised overhead
-    else clubAngle = 0.6;                         // smashed down
+    if (!isAttacking) clubAngle = 1.2;
+    else if (progress > 0.3) clubAngle = -1.8;   // raised overhead (wind-up)
+    else clubAngle = 0.6;                         // smashed down (strike)
 
     ctx.save();
     ctx.translate(6, -drawH * 0.4 + oy);
     ctx.rotate(clubAngle);
-    // Handle
     ctx.fillStyle = "#6b4830";
     ctx.fillRect(-2, 0, 4, 28);
-    // Club head — iron kanabō
     ctx.fillStyle = "#4a4a4a";
     ctx.fillRect(-5, -8, 10, 10);
     ctx.fillStyle = "#666";
     ctx.fillRect(-4, -7, 2, 2);
     ctx.fillRect(2, -7, 2, 2);
     ctx.fillRect(-1, -4, 2, 2);
-    // Impact on strike frame
-    if (isAttacking && progress < 0.3) {
-      ctx.fillStyle = "rgba(255,200,50,0.5)";
-      ctx.fillRect(-8, -12, 16, 14);
+    // Impact flash on strike
+    if (isAttacking && progress < 0.25) {
+      ctx.fillStyle = "rgba(255,200,50,0.6)";
+      ctx.beginPath();
+      ctx.arc(0, -10, 12, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
   }

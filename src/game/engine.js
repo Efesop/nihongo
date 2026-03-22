@@ -328,10 +328,11 @@ export function update(g, callbacks) {
     }
     if (p.slashTimer <= 0) e._hitThisSlash = false;
 
-    // Enemy attack → player
-    if (e.state === "attack" && e.attackTimer > 100 && e.attackTimer < 300 &&
+    // Enemy attack → player (damage only in the strike window, not the wind-up)
+    // Timer counts DOWN: 600→0. Wind-up = 600-250, Strike = 250-100, Recovery = 100-0
+    if (e.state === "attack" && e.attackTimer > 80 && e.attackTimer < 250 &&
         !e.dead && !p.dead && p.invincible <= 0) {
-      if (Math.abs(e.x - p.x) < 50 && Math.abs(e.y - p.y) < TILE * SCALE) {
+      if (Math.abs(e.x - p.x) < 45 && Math.abs(e.y - p.y) < TILE * SCALE) {
         if (p.slashTimer > 0) {
           // Clash! Player is slashing too — daze the enemy instead
           e.dazed = 800;
