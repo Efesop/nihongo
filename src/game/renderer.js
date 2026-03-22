@@ -576,18 +576,20 @@ function renderBackground(ctx, W, H, cx, g) {
 
   if (bgImg) {
     // ── Image-based parallax background ──
-    // Single image panned slowly — no tiling, no seams
-    const imgAspect = bgImg.width / bgImg.height;
-    // Make the image tall enough to fill the viewport, wide enough to pan
-    const bgH = H;
-    const bgW = bgH * imgAspect;
-    // How far the image can pan before running out
+    // Fill entire viewport — stretch width to cover, no black bars
+    // Scale to fill: use the larger of width-fit or height-fit
+    const scaleW = W / bgImg.width;
+    const scaleH = H / bgImg.height;
+    const bgScale = Math.max(scaleW, scaleH);
+    const bgW = bgImg.width * bgScale;
+    const bgH = bgImg.height * bgScale;
+    // Slow parallax pan
     const panRange = Math.max(0, bgW - W);
-    // Map camera position to pan range (slow parallax)
     const maxCx = Math.max(1, g.levelW - W);
-    const panX = panRange > 0 ? -(cx / maxCx) * panRange : (W - bgW) / 2;
+    const panX = panRange > 0 ? -(cx / maxCx) * panRange : 0;
+    const panY = -(bgH - H) * 0.3; // slight vertical offset to show more sky
 
-    ctx.drawImage(bgImg, panX, 0, bgW, bgH);
+    ctx.drawImage(bgImg, panX, panY, bgW, bgH);
 
     // Subtle dark overlay for depth + so characters pop
     ctx.fillStyle = "rgba(5,8,15,0.2)";

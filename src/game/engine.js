@@ -176,23 +176,27 @@ export function update(g, callbacks) {
   for (const e of g.enemies) {
     if (e.dead) { e.deathTimer -= dt * 1000; continue; }
 
-    updateEnemyAI(e, p, dt, g.projectiles);
-
-    // Keep on platform + prevent walking off edges
+    // Find which platform the enemy is on and store bounds BEFORE AI runs
     let onPlatform = false;
+    let platLeft = -Infinity, platRight = Infinity;
     for (const plat of g.platforms) {
       if (e.x > plat.x - 5 && e.x < plat.x + plat.w + 5 &&
           e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 20) {
         e.y = plat.y - TILE * SCALE;
         onPlatform = true;
-        // Clamp to platform edges — just stop, don't flip (AI controls facing)
-        const margin = 15;
-        if (e.x < plat.x + margin) { e.x = plat.x + margin; e.vx = 0; }
-        if (e.x > plat.x + plat.w - margin) { e.x = plat.x + plat.w - margin; e.vx = 0; }
+        platLeft = plat.x + 15;
+        platRight = plat.x + plat.w - 15;
       }
     }
     if (!onPlatform) {
       e.y += 400 * dt;
+    }
+
+    updateEnemyAI(e, p, dt, g.projectiles);
+
+    // Clamp to platform bounds AFTER AI has moved the enemy
+    if (onPlatform) {
+      e.x = Math.max(platLeft, Math.min(platRight, e.x));
     }
 
     // ── Slash collision (can hit multiple per slash) ──
