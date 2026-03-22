@@ -60,7 +60,7 @@ const M = {
 "あ":["🍎","Apple","Cross stroke = stem, loop = apple shape","The cross stroke at the top is the stem of an apple, and the loop below is the round fruit hanging from it."],
 "い":["🔤","Two i's side by side","Two vertical strokes like i i","Two simple strokes side by side — just like writing lowercase i twice."],
 "う":["🥊","Boxer punched — uu!","Top = fist, curve = doubling over","A boxer just took a hit to the gut, body curving down as they double over."],
-"え":["🥷","Energetic ninja","Dynamic fighting pose","A ninja caught mid-kick — those crossing strokes are arms and legs flying."],
+"え":["🥷","Energetic ninja","Ninja running with arms back","A ninja sprinting with arms stretched behind — the classic anime run, full speed ahead."],
 "お":["🛸","UFO — oh!","Or face saying oh with x eyes","A UFO hovering overhead, saucer shape beneath a beam of light."],
 "か":["🔪","Blade cutting stick","Diagonal = blade, vertical = stick","A blade cutting clean through a stick — the diagonal is the blade, the vertical line is the stick being split."],
 "き":["🔑","Key","Horizontals = teeth, vertical = shaft","A key lying flat — the horizontal strokes are the teeth, the vertical line is the shaft."],
@@ -92,7 +92,7 @@ const M = {
 "む":["🐄","Cow — mooo!","Clown imitating animals","A cow turning to look right at you — the curling strokes form that round bovine face."],
 "め":["🥨","Pretzel","Chopsticks drop hoop = MEss","A pretzel, all twisted — or noodles dropped into a chaotic tangle."],
 "も":["🦎","Monitor lizard","Two horizontals = legs, vertical = body","A monitor lizard — the two horizontal strokes are its stubby legs, the vertical stroke is its long body."],
-"ら":["🤠","Lasso","Wide loop at the bottom","A lasso looping through the air — that wide sweeping curve, ready to catch."],
+"ら":["🐇","Rabbit in a lasso","Bunny sitting in a loop","A rabbit sitting inside a lasso loop — the wide sweeping curve wraps around the bunny."],
 "り":["🏞️","River","Right stroke longer than い","Two strokes, but the right one is longer and curves — one riverbank higher than the other."],
 "る":["💎","Hand holding ruby","Loop = ruby being held","A hand gripping a precious gem — the loop at the bottom is the ruby held tight in the palm."],
 "れ":["🦌","Reindeer","Strokes form reindeer","Trace the strokes and you'll find a reindeer — head, neck, branching antler."],
@@ -100,7 +100,7 @@ const M = {
 "や":["🦒","Yak or giraffe — yaaa!","Animal with long neck","A yak stretching its long neck up high — the tall stroke with the outstretched curve."],
 "ゆ":["🦄","Unicorn","Or finger pointing at YOU","A unicorn rearing up, horn pointing to the sky — or a finger aimed right at you."],
 "よ":["🪀","Yo-yo on string","Y without the cup","A yo-yo mid-trick, the loop descending on its string."],
-"わ":["🐕","Dog wagging tail — wa!","Or white swan","A happy dog mid-wag — curved body on the left, little hooking tail on the right."],
+"わ":["🦢","Swan on water","Curved neck and body","A white swan gliding on water — the curved neck and round body form the elegant shape."],
 "を":["🧱","Crack in wall — woah!","Only used as particle","Something cracked clean through a wall — those complex strokes are the drama of that split."],
 "ん":["🔤","Elongated n","Single curve like letter n","One simple flowing curve, just like the letter n — the simplest character in the whole alphabet."],
 "ア":["🪓","Axe","Angular blade + handle","The sharp angular strokes form the head of an axe — the diagonal slash is the blade, the vertical line is the handle."],
@@ -889,6 +889,66 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const renderKana=()=>{
     const tileSize=isDesktop?48:42;
     const tileFont=isDesktop?19:16;
+
+    // Row audio mapping for dakuten/yōon groups
+    const ROW_AUDIO={"G゛":"dk_k_to_g","Z゛":"dk_s_to_z","D゛":"dk_t_to_d","B゛":"dk_h_to_b","P゜":"hdk_h_to_p","Ky":"yo_ky","Sh":"yo_sh","Ch":"yo_ch","Ny":"yo_ny","Hy":"yo_hy","My":"yo_my","Ry":"yo_ry","Gy":"yo_gy","Jy":"yo_jy","By":"yo_by","Py":"yo_py"};
+    const selectedDkYoGroups=(kSelChars?[]:kSel.map(i=>groups[i])).filter(g=>g&&(g.dk||g.yo));
+    const selectedBaseGroups=(kSelChars?[]:kSel.map(i=>groups[i])).filter(g=>g&&!g.dk&&!g.yo);
+    const hasOnlyDkYo=selectedDkYoGroups.length>0&&selectedBaseGroups.length===0&&!kSelChars;
+
+    if(kScreen==="learn"&&hasOnlyDkYo){
+      const dkGroups=selectedDkYoGroups;
+      const gi=Math.min(kLI,dkGroups.length-1);
+      const g=dkGroups[gi];
+      const audioFile=ROW_AUDIO[g.n];
+      const playRowAudio=()=>{if(audioFile){stopAudio();setStoryPlaying(true);const a=new Audio(`/audio/rows/${audioFile}.mp3`);_ttsAudio=a;a.onended=()=>setStoryPlaying(false);a.onerror=()=>setStoryPlaying(false);a.play().catch(()=>setStoryPlaying(false));}};
+      return <div style={inner}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <button onClick={()=>setKScreen("menu")} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:12,padding:0}}>← back</button>
+          <div style={{fontSize:11,fontFamily:mono,color:c.m}}>{gi+1}/{dkGroups.length}</div>
+        </div>
+        <div style={{height:4,background:c.b,borderRadius:4,marginBottom:20,overflow:"hidden"}}><div style={{height:"100%",width:((gi+1)/dkGroups.length*100)+"%",background:c.a,borderRadius:4,transition:"width .3s"}}/></div>
+        <div style={{...card,padding:"20px 18px",marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:700,color:c.a,marginBottom:4,textTransform:"uppercase",fontFamily:mono,letterSpacing:".05em"}}>{g.n} row {g.dk?"— add "+(g.n.includes("P")?"゜":"゛"):"— combination sounds"}</div>
+          <div style={{fontSize:12,color:c.m,marginBottom:16}}>{g.dk?(g.n.includes("P")?"Add the circle mark ゜ to make P sounds":"Add the two-dot mark ゛ to voice the consonant"):"Combine with small ya/yu/yo to blend sounds"}</div>
+          {g.c.map((ch,i)=>{const base=DAKUTEN_BASE[ch];const yp=YOON_PARTS[ch];const rom=ROMAJI[ch];
+            return <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:i<g.c.length-1?"1px solid "+c.b+"66":"none"}}>
+              {base&&<>
+                <div style={{width:44,textAlign:"center"}}>
+                  <div style={{fontSize:28,lineHeight:1,opacity:.5}}>{base}</div>
+                  <div style={{fontSize:10,fontFamily:mono,color:c.m}}>{ROMAJI[base]}</div>
+                </div>
+                <div style={{fontSize:16,color:c.m}}>→</div>
+              </>}
+              {yp&&<>
+                <div style={{width:34,textAlign:"center"}}>
+                  <div style={{fontSize:22,lineHeight:1,opacity:.5}}>{yp[0]}</div>
+                  <div style={{fontSize:9,fontFamily:mono,color:c.m}}>{ROMAJI[yp[0]]}</div>
+                </div>
+                <div style={{fontSize:12,color:c.m}}>+</div>
+                <div style={{width:24,textAlign:"center"}}>
+                  <div style={{fontSize:16,lineHeight:1,opacity:.5}}>{yp[1]}</div>
+                  <div style={{fontSize:8,fontFamily:mono,color:c.m}}>sm</div>
+                </div>
+                <div style={{fontSize:12,color:c.m}}>=</div>
+              </>}
+              <div style={{flex:1,display:"flex",alignItems:"center",gap:10}}>
+                <div style={{fontSize:36,lineHeight:1,color:c.a}}>{ch}</div>
+                <div style={{fontSize:18,fontWeight:700,fontFamily:mono,color:c.a}}>{rom}</div>
+              </div>
+              <button onClick={()=>speak(ch)} style={{...btn,padding:"4px 8px",borderRadius:6,background:c.s2,border:"1px solid "+c.b,fontSize:13,color:c.m}}>🔊</button>
+            </div>;
+          })}
+        </div>
+        <button onClick={e=>{e.stopPropagation();playRowAudio();}} style={{...btn,padding:"12px 16px",borderRadius:10,background:storyPlaying?c.a+"22":c.s2,border:"1px solid "+(storyPlaying?c.a:c.b),fontSize:14,color:storyPlaying?c.a:c.m,width:"100%",marginBottom:14}}>{storyPlaying?"■ stop":"🔊 hear all transformations"}</button>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={()=>{stopAudio();setKLI(Math.max(0,gi-1));}} disabled={gi===0} style={{...btn,flex:1,padding:13,borderRadius:10,border:"1px solid "+c.b,background:"transparent",color:gi>0?c.tx:c.m,fontSize:14}}>← Prev</button>
+          {gi<dkGroups.length-1
+            ?<button onClick={()=>{stopAudio();setKLI(gi+1);}} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.a,color:"#fff",fontSize:14,fontWeight:600}}>Next →</button>
+            :<button onClick={()=>setKScreen("menu")} style={{...btn,flex:1,padding:13,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600}}>Done</button>}
+        </div>
+      </div>;
+    }
 
     if(kScreen==="learn"){
       const chars=allKana;const ch=chars[kLI];const m=M[ch];const rom=ROMAJI[ch];
