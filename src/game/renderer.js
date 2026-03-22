@@ -277,16 +277,17 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
   ctx.save();
   ctx.translate(p.x, p.y + DRAW_SIZE);
-  if (p.facing > 0) ctx.scale(-1, 1);
 
   if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
   ctx.imageSmoothingEnabled = false;
 
   // ── RUN — use actual sprite frames ──
   if (p.state === "run") {
-    const frameIndex = (Math.floor(elapsed * 8) % 4) + 1; // 8fps, frames 1-4
+    const frameIndex = (Math.floor(elapsed * 8) % 4) + 1;
     const runImg = getImage("run" + frameIndex);
     if (runImg) {
+      // Run frames face LEFT in the source images — flip for right
+      if (p.facing < 0) ctx.scale(-1, 1);
       const rc = RUN_CROP;
       const aspect = rc.w / rc.h;
       const dw = s * aspect * 0.95;
@@ -297,6 +298,9 @@ function drawPlayer(ctx, p, mascot, elapsed) {
       return;
     }
   }
+
+  // Idle mascot faces left — flip for right
+  if (p.facing > 0) ctx.scale(-1, 1);
 
   // ── All other states — use mascot + transforms ──
   const aspect = SRC_W / SRC_H;
@@ -726,26 +730,18 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
     ctx.stroke();
   }
 
-  // Attack telegraph — pulsing red danger zone
+  // Attack telegraph — subtle red glow, no ugly box
   if (e.state === "attack" && !e.dead) {
     const progress = e.attackTimer / 600;
     if (progress > 0.4) {
-      // Wind-up — growing danger indicator
-      const pulse = 0.15 + Math.sin(elapsed * 25) * 0.1;
-      const size = (1 - progress) * 40 + 20;
-      ctx.fillStyle = `rgba(255,40,40,${pulse})`;
-      ctx.fillRect(-size, 0, size * 2, 60);
-      // Red "!" warning
-      ctx.globalAlpha = 0.8;
+      // Red "!" warning above head
+      const pulse = 0.6 + Math.sin(elapsed * 20) * 0.3;
+      ctx.globalAlpha = pulse;
       ctx.fillStyle = "#ff3333";
-      ctx.font = `bold 18px ${font}`;
+      ctx.font = `bold 14px ${font}`;
       ctx.textAlign = "center";
-      ctx.fillText("!", 0, -5);
+      ctx.fillText("!", 0, -8);
       ctx.globalAlpha = 1;
-    } else {
-      // Strike frame — bright flash
-      ctx.fillStyle = "rgba(255,100,50,0.3)";
-      ctx.fillRect(-35, -5, 70, 65);
     }
   }
 
