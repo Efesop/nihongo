@@ -181,7 +181,7 @@ export function update(g, callbacks) {
     let platLeft = -Infinity, platRight = Infinity;
     for (const plat of g.platforms) {
       if (e.x > plat.x - 5 && e.x < plat.x + plat.w + 5 &&
-          e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 20) {
+          e.y + TILE * SCALE >= plat.y && e.y + TILE * SCALE < plat.y + 22) {
         e.y = plat.y - TILE * SCALE;
         onPlatform = true;
         platLeft = plat.x + 15;
