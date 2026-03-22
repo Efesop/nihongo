@@ -56,8 +56,13 @@ export default function PhraseBank({
 
     // ─── SCENARIO MULTIPLE CHOICE ───
     if(quizMode==="situation"){
-      const choices=quizAnswer?quizAnswer.choices:shuffle([p,...getDistractors(p)]);
-      if(!quizAnswer)setTimeout(()=>setQuizAnswer({choices,selected:null,correct:null}),0);
+      if(!quizAnswer){
+        // ~30% chance: correct answer NOT in choices → "none of these" is correct
+        const isTrick=Math.random()<0.3;
+        const choices=isTrick?shuffle(getDistractors(p,4)):shuffle([p,...getDistractors(p)]);
+        setTimeout(()=>setQuizAnswer({choices,selected:null,correct:null,isTrick}),0);
+      }
+      const answered=quizAnswer?.correct!==null&&quizAnswer?.correct!==undefined;
       return <div style={inner}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);setQuizAnswer(null);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0"}}>← back</button>
@@ -75,10 +80,9 @@ export default function PhraseBank({
           {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:6}}>{p[5]}</div>}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {(quizAnswer?.choices||choices).map((choice,i)=>{
-            const isCorrect=choice[0]===p[0];
+          {(quizAnswer?.choices||[]).map((choice,i)=>{
+            const isCorrect=!quizAnswer?.isTrick&&choice[0]===p[0];
             const isSelected=quizAnswer?.selected===choice[0];
-            const answered=quizAnswer?.correct!==null&&quizAnswer?.correct!==undefined;
             let bg="transparent",border=c.b,col=c.tx;
             if(answered&&isCorrect){bg=c.gs;border=c.g+"60";col=c.g;}
             if(answered&&isSelected&&!isCorrect){bg=c.rs;border=c.a+"60";col=c.a;}
@@ -93,14 +97,40 @@ export default function PhraseBank({
               {showRomaji&&<div style={{fontSize:11,fontFamily:mono,color:c.m,marginTop:2,opacity:.6}}>{choice[2]}</div>}
             </button>;
           })}
+          {/* None of these — correct when it's a trick question */}
+          {(()=>{
+            const noneCorrect=quizAnswer?.isTrick;
+            const noneSelected=quizAnswer?.selected==="none";
+            let bg="transparent",border=c.b+"66",col=c.m;
+            if(answered&&noneCorrect){bg=c.gs;border=c.g+"60";col=c.g;}
+            if(answered&&noneSelected&&!noneCorrect){bg=c.rs;border=c.a+"60";col=c.a;}
+            return <button onClick={()=>{
+              if(answered)return;
+              const correct=!!noneCorrect;
+              setQuizAnswer({...quizAnswer,selected:"none",correct});
+              speakPhraseWithEnglish(p[0],p[1],p[3]);
+              setTimeout(()=>advance(correct),2500);
+            }} style={{...btn,padding:"12px 16px",borderRadius:10,border:"1px solid "+border,background:bg,color:col,fontSize:14,textAlign:"center",transition:"all .2s"}}>
+              None of these
+            </button>;
+          })()}
+          {answered&&<div style={{...card,padding:"12px 16px",marginTop:4,borderLeft:"3px solid "+c.g}}>
+            <div style={{fontSize:13,color:c.m,marginBottom:4}}>Correct answer:</div>
+            <div style={{fontSize:isDesktop?22:18,fontWeight:700}}>{p[1]}</div>
+            {showRomaji&&<div style={{fontSize:12,fontFamily:mono,color:c.a,marginTop:2}}>{p[2]}</div>}
+          </div>}
         </div>
       </div>;
     }
 
     // ─── LISTENING COMPREHENSION ───
     if(quizMode==="listen"){
-      const choices=quizAnswer?quizAnswer.choices:shuffle([p,...getDistractors(p)]);
-      if(!quizAnswer){speakPhrase(p[0],p[1]);setTimeout(()=>setQuizAnswer({choices,selected:null,correct:null}),0);}
+      if(!quizAnswer){
+        const isTrick=Math.random()<0.25;
+        const choices=isTrick?shuffle(getDistractors(p,4)):shuffle([p,...getDistractors(p)]);
+        speakPhrase(p[0],p[1]);
+        setTimeout(()=>setQuizAnswer({choices,selected:null,correct:null,isTrick}),0);
+      }
       return <div style={inner}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <button onClick={()=>{setPMode("browse");setPCards([]);setFastTrack(false);setQuizAnswer(null);}} style={{...btn,background:"none",color:c.m,fontFamily:mono,fontSize:14,padding:"4px 0"}}>← back</button>
@@ -115,8 +145,8 @@ export default function PhraseBank({
           {quizAnswer?.correct!==null&&quizAnswer?.correct!==undefined&&<><div style={{marginTop:14,fontSize:isDesktop?28:22,fontWeight:700}}>{p[1]}</div>{showRomaji&&<div style={{fontSize:13,fontFamily:mono,color:c.a,marginTop:4,opacity:.7}}>{p[2]}</div>}</>}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {(quizAnswer?.choices||choices).map((choice,i)=>{
-            const isCorrect=choice[0]===p[0];
+          {(quizAnswer?.choices||[]).map((choice,i)=>{
+            const isCorrect=!quizAnswer?.isTrick&&choice[0]===p[0];
             const isSelected=quizAnswer?.selected===choice[0];
             const answered=quizAnswer?.correct!==null&&quizAnswer?.correct!==undefined;
             let bg="transparent",border=c.b,col=c.tx;
@@ -131,6 +161,22 @@ export default function PhraseBank({
               {choice[3]}
             </button>;
           })}
+          {(()=>{
+            const answered=quizAnswer?.correct!==null&&quizAnswer?.correct!==undefined;
+            const noneCorrect=quizAnswer?.isTrick;
+            const noneSelected=quizAnswer?.selected==="none";
+            let bg="transparent",border=c.b+"66",col=c.m;
+            if(answered&&noneCorrect){bg=c.gs;border=c.g+"60";col=c.g;}
+            if(answered&&noneSelected&&!noneCorrect){bg=c.rs;border=c.a+"60";col=c.a;}
+            return <button onClick={()=>{
+              if(answered)return;
+              const correct=!!noneCorrect;
+              setQuizAnswer({...quizAnswer,selected:"none",correct});
+              setTimeout(()=>advance(correct),2000);
+            }} style={{...btn,padding:"12px 16px",borderRadius:10,border:"1px solid "+border,background:bg,color:col,fontSize:14,textAlign:"center",transition:"all .2s"}}>
+              None of these
+            </button>;
+          })()}
         </div>
       </div>;
     }
