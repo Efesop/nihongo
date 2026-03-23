@@ -40,12 +40,19 @@ export default function SmartSession({
     setStreak(newStreak);
     let msg = null;
     if (correct && newStreak === 3) msg = "Hmph. Not terrible.";
-    else if (correct && newStreak === 5) msg = "...Acceptable. Keep going.";
-    else if (correct && newStreak >= 7) msg = "Don't get cocky. You still have much to learn.";
-    else if (!correct && streak >= 3) msg = "Careless. Focus.";
+    else if (correct && newStreak === 5) msg = "...Acceptable.";
+    else if (correct && newStreak === 7) msg = "Don't get cocky.";
+    else if (correct && newStreak === 10) msg = "...Fine. You may have some potential.";
+    else if (correct && newStreak >= 12) msg = "I see you've been practicing. Good.";
+    else if (!correct && streak >= 5) msg = "Careless. Your focus wavers.";
+    else if (!correct && streak >= 3) msg = "Tch. Concentrate.";
     else if (!correct) {
-      const wrongs = ["Again.", "Sloppy.", "Pay attention.", "Disappointing.", "Try harder."];
-      if (Math.random() < 0.4) msg = wrongs[Math.floor(Math.random() * wrongs.length)];
+      const wrongs = ["Again.", "Sloppy.", "Focus.", "Weak.", "Think before you answer.", "Pathetic.", "Did you even try?", "Hmph."];
+      if (Math.random() < 0.45) msg = wrongs[Math.floor(Math.random() * wrongs.length)];
+    }
+    if (correct && Math.random() < 0.15 && newStreak < 3) {
+      const mild = ["...Fine.", "Barely.", "Took you long enough."];
+      msg = mild[Math.floor(Math.random() * mild.length)];
     }
     if (msg) { setSenpaiMsg(msg); setTimeout(() => setSenpaiMsg(null), 3000); }
   };
@@ -234,36 +241,37 @@ export default function SmartSession({
     else setCi(ci + 1);
   };
 
-  // ═══ SENPAI BAR — integrated at bottom of every exercise ═══
-  const senpaiBar = <div style={{ marginTop: 16 }}>
-    {/* Chat messages (if any) */}
-    {chatMessages.length > 0 && <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 8 }}>
+  // ═══ SENPAI BAR — sits below exercise content ═══
+  const senpaiBar = <div style={{ marginTop: 20 }}>
+    {/* Chat messages expand above when chatting */}
+    {chatOpen && chatMessages.length > 0 && <div style={{ maxHeight: 180, overflowY: "auto", marginBottom: 8, padding: "8px 12px", background: c.s2, borderRadius: "12px 12px 0 0", border: "1px solid " + c.b, borderBottom: "none" }}>
       {chatMessages.slice(-4).map((m, i) => m.role === "user"
-        ? <div key={i} style={{ textAlign: "right", marginBottom: 6 }}><span style={{ display: "inline-block", padding: "8px 12px", borderRadius: "12px 4px 12px 12px", background: c.a + "18", color: c.tx, fontSize: 12, maxWidth: "75%" }}>{m.content}</span></div>
-        : <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6 }}>
-            <img src="/images/tinysenpai2.png" alt="" style={{ width: 22, height: 22, imageRendering: "pixelated", flexShrink: 0 }} />
-            <span style={{ display: "inline-block", padding: "8px 12px", borderRadius: "4px 12px 12px 12px", background: c.s2, color: c.tx, fontSize: 12, lineHeight: 1.5, maxWidth: "80%" }}>{m.content}</span>
+        ? <div key={i} style={{ textAlign: "right", marginBottom: 6 }}><span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "10px 4px 10px 10px", background: c.a + "18", color: c.tx, fontSize: 12, maxWidth: "75%" }}>{m.content}</span></div>
+        : <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 6 }}>
+            <img src="/images/tinysenpai2.png" alt="" style={{ width: 18, height: 18, imageRendering: "pixelated", flexShrink: 0, marginTop: 2 }} />
+            <span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "4px 10px 10px 10px", background: c.s, color: c.tx, fontSize: 12, lineHeight: 1.4, maxWidth: "80%" }}>{m.content}</span>
           </div>
       )}
-      {chatLoading && <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
-        <img src="/images/tinysenpai2.png" alt="" style={{ width: 18, height: 18, imageRendering: "pixelated" }} />
-        <span style={{ fontSize: 11, color: c.m, fontStyle: "italic" }}>Thinking...</span>
-      </div>}
+      {chatLoading && <div style={{ fontSize: 11, color: c.m, fontStyle: "italic" }}>Thinking...</div>}
     </div>}
-    {/* Senpai bar */}
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: c.s2, borderRadius: 12, border: "1px solid " + c.b }}>
+    {/* Compact pill — mascot + reaction or input */}
+    <div onClick={() => { if (!chatOpen && !senpaiMsg) { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 100); } }}
+      onMouseEnter={() => setSenpaiHover(true)} onMouseLeave={() => setSenpaiHover(false)}
+      style={{ display: "flex", alignItems: "center", gap: 10, padding: chatOpen ? "8px 12px" : "6px 12px", background: c.s2, borderRadius: chatOpen && chatMessages.length > 0 ? "0 0 12px 12px" : 30, border: "1px solid " + c.b, cursor: chatOpen ? "default" : "pointer", transition: "all .2s", maxWidth: chatOpen ? "100%" : (senpaiMsg ? "100%" : 220), marginLeft: chatOpen ? 0 : "auto", marginRight: chatOpen ? 0 : "auto" }}>
       <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
-        onMouseEnter={() => setSenpaiHover(true)} onMouseLeave={() => setSenpaiHover(false)}
-        style={{ width: senpaiHover ? 44 : 36, height: senpaiHover ? 44 : 36, imageRendering: "pixelated", flexShrink: 0, cursor: "pointer", transition: "all .15s" }} />
+        style={{ width: senpaiHover ? 36 : 28, height: senpaiHover ? 36 : 28, imageRendering: "pixelated", flexShrink: 0, transition: "all .15s" }} />
       {senpaiMsg && !chatOpen
-        ? <div style={{ flex: 1, fontSize: 13, color: c.tx, fontWeight: 500, animation: "fadeInUp .3s ease-out" }}>{senpaiMsg}</div>
-        : <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)}
-            onFocus={() => setChatOpen(true)}
-            onKeyDown={e => { if (e.key === "Enter") sendChat(); }}
-            placeholder="Ask Senpai..."
-            style={{ flex: 1, padding: "8px 0", border: "none", background: "transparent", color: c.tx, fontSize: 13, outline: "none" }} />
+        ? <div style={{ flex: 1, fontSize: 12, color: c.tx, fontWeight: 500, animation: "fadeInUp .3s ease-out" }}>{senpaiMsg}</div>
+        : chatOpen
+          ? <><input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") sendChat(); if (e.key === "Escape") { setChatOpen(false); setChatInput(""); } }}
+              placeholder="Ask Senpai anything..."
+              style={{ flex: 1, padding: "6px 0", border: "none", background: "transparent", color: c.tx, fontSize: 13, outline: "none" }} />
+            {chatInput.trim() && <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "5px 12px", borderRadius: 8, background: c.a, color: "#fff", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>→</button>}
+            <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: "transparent", color: c.m, fontSize: 14, flexShrink: 0 }}>✕</button>
+          </>
+          : <span style={{ fontSize: 11, color: c.m }}>Ask Senpai</span>
       }
-      {chatInput.trim() && <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "6px 14px", borderRadius: 8, background: c.a, color: "#fff", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>→</button>}
     </div>
   </div>;
 
@@ -280,8 +288,9 @@ export default function SmartSession({
     <div style={{ height: 4, background: c.b, borderRadius: 4, marginBottom: 20, overflow: "hidden" }}>
       <div style={{ height: "100%", width: progress + "%", background: c.a, borderRadius: 4, transition: "width .3s" }} />
     </div>
-    {senpaiBar}
   </>;
+
+  const withSenpai = (content) => <div style={inner}>{header}{content}{senpaiBar}</div>;
 
   // ═══ EXERCISE: KANA VISUAL ═══
   if (ex.type === "kana-visual") {
@@ -297,7 +306,7 @@ export default function SmartSession({
     const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
     const imgPath = `/images/mnemonics/approved/${isHira ? "hiragana" : "katakana"}/${ex.item.codePointAt(0).toString(16)}.png`;
     const m = M[ex.item];
-    return <div style={inner}>{header}
+    return withSenpai(<>
       <div style={{ ...card, textAlign: "center", padding: "36px 20px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
         {!fb && <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 12 }}>What is this character?</div>}
         {fb ? <div>
@@ -319,7 +328,7 @@ export default function SmartSession({
           style={{ flex: 1, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontFamily: mono, fontSize: 20, outline: "none", textAlign: "center" }} />
         <button onClick={submit} style={{ ...btn, padding: "14px 22px", borderRadius: 10, background: input.trim() ? c.a : c.b, color: input.trim() ? "#fff" : c.m, fontSize: 14, fontWeight: 600 }}>Go</button>
       </div>}
-    </div>;
+    </>);
   }
 
   // ═══ EXERCISE: KANA LISTEN ═══
@@ -333,7 +342,7 @@ export default function SmartSession({
       updateKanaSRS(ex.item, ok);
       setTimeout(() => advance(ok), ok ? 1500 : 2500);
     };
-    return <div style={inner}>{header}
+    return withSenpai(<>
       <div style={{ ...card, textAlign: "center", padding: "40px 24px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
         <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 12 }}>What did you hear?</div>
         <div style={{ fontSize: 60, marginBottom: 16 }}>👂</div>
@@ -355,7 +364,7 @@ export default function SmartSession({
           style={{ flex: 1, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontFamily: mono, fontSize: 20, outline: "none", textAlign: "center" }} />
         <button onClick={submit} style={{ ...btn, padding: "14px 22px", borderRadius: 10, background: input.trim() ? c.a : c.b, color: input.trim() ? "#fff" : c.m, fontSize: 14, fontWeight: 600 }}>Go</button>
       </div>}
-    </div>;
+    </>);
   }
 
   // ═══ EXERCISE: PHRASE SCENARIO ═══
@@ -369,7 +378,7 @@ export default function SmartSession({
       return null;
     }
     const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
-    return <div style={inner}>{header}
+    return withSenpai(<>
       <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 16 }}>{CAT_ICONS[p[4]]}</span>
@@ -415,7 +424,7 @@ export default function SmartSession({
           <div style={{ fontSize: 12, fontFamily: mono, color: c.a, marginTop: 2 }}>{p[2]}</div>
         </div>}
       </div>
-    </div>;
+    </>);
   }
 
   // ═══ EXERCISE: PHRASE LISTEN ═══
@@ -429,7 +438,7 @@ export default function SmartSession({
       return null;
     }
     const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
-    return <div style={inner}>{header}
+    return withSenpai(<>
       <div style={{ ...card, textAlign: "center", padding: "32px 20px", marginBottom: 14 }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>👂</div>
         <div style={{ fontSize: 14, color: c.m, marginBottom: 14 }}>What did you hear?</div>
@@ -463,7 +472,7 @@ export default function SmartSession({
           setTimeout(() => advance(correct), 2000);
         }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: 14, textAlign: "center" }}>None of these</button>
       </div>
-    </div>;
+    </>);
   }
 
   // ═══ EXERCISE: PHRASE PRODUCTION ═══
@@ -479,7 +488,7 @@ export default function SmartSession({
       setTimeout(() => speakPhrase(p[0], p[1]), 300);
       setTimeout(() => advance(ok), ok ? 2500 : 3000);
     };
-    return <div style={inner}>{header}
+    return withSenpai(<>
       <div style={{ ...card, padding: "24px 20px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 14 }}>{CAT_ICONS[p[4]]}</span>
@@ -499,7 +508,7 @@ export default function SmartSession({
           style={{ flex: 1, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontFamily: mono, fontSize: 18, outline: "none" }} />
         <button onClick={submit} style={{ ...btn, padding: "14px 22px", borderRadius: 10, background: input.trim() ? c.a : c.b, color: input.trim() ? "#fff" : c.m, fontSize: 14, fontWeight: 600 }}>Go</button>
       </div>}
-    </div>;
+    </>);
   }
 
   // ═══ EXERCISE: LEARN CARD (new kana) ═══
@@ -507,7 +516,7 @@ export default function SmartSession({
     const m = ex.mnemonic;
     const isHiragana = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
     const imgPath = `/images/mnemonics/approved/${isHiragana ? "hiragana" : "katakana"}/${ex.item.codePointAt(0).toString(16)}.png`;
-    return <div style={inner}>{header}
+    return withSenpai(<>
       <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontFamily: mono, color: c.g, textTransform: "uppercase", marginBottom: 12 }}>New character!</div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -529,14 +538,14 @@ export default function SmartSession({
       </div>
       <button onClick={() => { updateKanaSRS(ex.item, true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
-    </div>;
+    </>);
   }
 
   // ═══ EXERCISE: LEARN PHRASE (new phrase) ═══
   if (ex.type === "learn-phrase") {
     const p = ex.item;
     const catCol = CAT_COLORS[p[4]];
-    return <div style={inner}>{header}
+    return withSenpai(<>
       <div style={{ ...card, padding: 0, overflow: "hidden", marginBottom: 14 }}>
         <div style={{ padding: "14px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -556,9 +565,9 @@ export default function SmartSession({
       </div>
       <button onClick={() => { reviewPhr(p[0], true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
-    </div>;
+    </>);
   }
 
   // Fallback
-  return <div style={inner}>{header}<div style={{ textAlign: "center", color: c.m, padding: 40 }}>Unknown exercise type</div></div>;
+  return withSenpai(<div style={{ textAlign: "center", color: c.m, padding: 40 }}>Unknown exercise type</div>);
 }
