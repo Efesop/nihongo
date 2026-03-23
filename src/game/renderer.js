@@ -44,6 +44,15 @@ export function render(g, ctx, isDesktop, font) {
       ctx.rotate(em.phase);
       ctx.fillRect(-em.size, -em.size * 0.3, em.size * 2, em.size * 0.6);
       ctx.restore();
+    } else if (em.type === "rain") {
+      // Rain streak — thin diagonal line
+      ctx.globalAlpha = lifeAlpha * 0.35;
+      ctx.strokeStyle = em.color;
+      ctx.lineWidth = em.size * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(sx, em.y);
+      ctx.lineTo(sx + 2, em.y - em.size * 12);
+      ctx.stroke();
     } else {
       // Dust mote
       ctx.globalAlpha = lifeAlpha * 0.25;

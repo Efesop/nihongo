@@ -114,8 +114,8 @@ export function update(g, callbacks) {
       phase: rnd(0, Math.PI * 2),
     });
   }
-  // Tiny dust motes — gentle float
-  if (Math.random() < dt * 4) {
+  // Tiny dust motes
+  if (Math.random() < dt * 3) {
     g.embers.push({
       x: g.camera.x + rnd(0, g.W), y: rnd(g.H * 0.3, g.H * 0.8),
       vx: rnd(-5, 5), vy: rnd(-8, -2),
@@ -124,20 +124,38 @@ export function update(g, callbacks) {
       phase: rnd(0, Math.PI * 2),
     });
   }
+  // Rain — diagonal streaks falling fast
+  for (let i = 0; i < 3; i++) {
+    g.embers.push({
+      x: g.camera.x + rnd(-50, g.W + 50), y: -5,
+      vx: rnd(-30, -15), vy: rnd(600, 900),
+      life: rnd(400, 700), maxLife: 700,
+      size: rnd(1, 2), color: "#8899bb", type: "rain",
+    });
+  }
 
   for (const em of g.embers) {
     if (em.type === "firefly") {
-      // Gentle drift with sine wave movement
       em.x += em.vx * dt + Math.sin(g.time.elapsed * 1.5 + em.phase) * dt * 15;
       em.y += em.vy * dt + Math.cos(g.time.elapsed * 1.2 + em.phase) * dt * 10;
     } else if (em.type === "leaf") {
-      // Sway side to side while falling
       em.x += em.vx * dt + Math.sin(g.time.elapsed * 2 + em.phase) * dt * 25;
       em.y += em.vy * dt;
-      em.phase += dt * 3; // rotation
+      em.phase += dt * 3;
+    } else if (em.type === "rain") {
+      em.x += em.vx * dt;
+      em.y += em.vy * dt;
+      // Splash when hitting ground
+      if (em.y > g.groundY) {
+        em.life = 0;
+        g.particles.push({
+          x: em.x, y: g.groundY,
+          vx: rnd(-20, 20), vy: rnd(-30, -10),
+          life: 100, maxLife: 100, color: "#8899bb", size: rnd(0.5, 1),
+        });
+      }
     } else {
-      // Dust — gentle float
-      em.x += em.vx * dt + Math.sin(g.time.elapsed * 0.8 + em.phase) * dt * 5;
+      em.x += em.vx * dt + Math.sin(g.time.elapsed * 0.8 + (em.phase || 0)) * dt * 5;
       em.y += em.vy * dt;
     }
     em.life -= dt * 1000;
