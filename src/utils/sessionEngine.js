@@ -84,6 +84,29 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // ═══ BUILD THE QUEUE ═══
 
+  // How much kana does the user know?
+  const kanaLearned = ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1).length;
+
+  // If user knows very few kana, focus on teaching kana first
+  if (kanaLearned < 10) {
+    // Beginner: all learn cards, introduce 5 vowels first, then K row
+    const toTeach = unseenKana.slice(0, Math.min(sessionLength, 8));
+    toTeach.forEach(ch => queue.push(learnCard(ch)));
+    // Add 1-2 quizzes on any they've already seen
+    const reviewable = ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1);
+    shuffle(reviewable).slice(0, 2).forEach(ch => queue.push(kanaExercise(ch)));
+    return queue.slice(0, sessionLength);
+  }
+
+  // If user knows kana but no phrases yet, mix in phrase introductions
+  if (kanaLearned >= 10 && Object.keys(phrData).length === 0) {
+    // Ready for phrases — add kana review + phrase learn cards
+    shuffle(dueKana).slice(0, 4).forEach(ch => queue.push(kanaExercise(ch)));
+    unseenPhrases.slice(0, 3).forEach(p => queue.push(learnPhraseCard(p)));
+    shuffle(ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1)).slice(0, 3).forEach(ch => queue.push(kanaExercise(ch)));
+    return queue.slice(0, sessionLength);
+  }
+
   // Items the user asked Senpai for help on — prioritise these
   const helpRequested = data.settings?.helpRequested || [];
   const helpKana = helpRequested.filter(id => ALL_BASE_KANA.includes(id));
