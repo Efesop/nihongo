@@ -48,9 +48,8 @@ export default function SmartSession({
       if (i >= text.length) {
         clearInterval(typingRef.current);
         setSenpaiMsg(text);
-        setTimeout(() => { setSenpaiMsg(null); setTypingText(""); }, displayMs);
       }
-    }, 40);
+    }, 25);
   };
 
   // Senpai personality — harsh but firm sensei
