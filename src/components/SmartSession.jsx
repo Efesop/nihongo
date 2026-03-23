@@ -264,7 +264,12 @@ export default function SmartSession({
 
   const senpaiBar = <div style={{ marginTop: 20 }}>
     {/* Chat panel — opens below mascot */}
-    {chatOpen && <div style={{ background: c.s2, borderRadius: 14, border: "1px solid " + c.b, overflow: "hidden", marginTop: 8 }}>
+    {chatOpen && <div style={{ background: c.s2, borderRadius: 14, border: "1px solid " + c.b, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid " + c.b }}>
+        <img src="/images/tinysenpai2.png" alt="Senpai" style={{ width: 32, height: 32, imageRendering: "pixelated" }} />
+        <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>Senpai</div>
+        <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: "transparent", color: c.m, fontSize: 14 }}>✕</button>
+      </div>
       {chatMessages.length > 0 && <div style={{ maxHeight: 200, overflowY: "auto", padding: "12px 14px" }}>
         {chatMessages.slice(-4).map((m, i) => m.role === "user"
           ? <div key={i} style={{ textAlign: "right", marginBottom: 8 }}><span style={{ display: "inline-block", padding: "8px 12px", borderRadius: "10px 4px 10px 10px", background: c.a + "18", color: c.tx, fontSize: 13, maxWidth: "75%" }}>{m.content}</span></div>
@@ -283,27 +288,24 @@ export default function SmartSession({
           onKeyDown={e => { if (e.key === "Enter") sendChat(); if (e.key === "Escape") { setChatOpen(false); setChatInput(""); } }}
           placeholder="Ask Senpai anything..."
           style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid " + c.b, background: c.s, color: c.tx, fontSize: 13, outline: "none" }} />
-        {chatInput.trim() && <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "8px 14px", borderRadius: 8, background: c.a, color: "#fff", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>→</button>}
-        <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "6px 10px", borderRadius: 8, background: "transparent", border: "1px solid " + c.b, color: c.m, fontSize: 12, flexShrink: 0 }}>✕</button>
+        <button onClick={sendChat} disabled={chatLoading || !chatInput.trim()} style={{ ...btn, padding: "8px 14px", borderRadius: 8, background: chatInput.trim() ? c.a : c.b, color: chatInput.trim() ? "#fff" : c.m, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>→</button>
       </div>
     </div>}
-    {/* Mascot circle — always visible, centered */}
-    <div style={{ display: "flex", justifyContent: "center" }}>
+    {/* Mascot circle — only when chat is closed */}
+    {!chatOpen && <div style={{ display: "flex", justifyContent: "center" }}>
       <div style={{ position: "relative" }}>
-        {/* Speech bubble — appears to the right */}
-        {!chatOpen && (typingText || senpaiMsg) && <div style={{ position: "absolute", left: "100%", top: "50%", transform: "translateY(-50%)", marginLeft: 12, padding: "8px 14px", borderRadius: "4px 12px 12px 12px", background: c.s2, border: "1px solid " + c.b, fontSize: 13, color: c.tx, fontWeight: 500, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,.2)" }}>
+        {(typingText || senpaiMsg) && <div style={{ position: "absolute", left: "100%", top: "50%", transform: "translateY(-50%)", marginLeft: 12, padding: "8px 14px", borderRadius: "4px 12px 12px 12px", background: c.s2, border: "1px solid " + c.b, fontSize: 13, color: c.tx, fontWeight: 500, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,.2)" }}>
           {typingText || senpaiMsg}
         </div>}
-        {/* Mascot circle */}
-        <div onClick={() => { if (!chatOpen) { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); } }}
-          onMouseEnter={() => { if (!chatOpen) { setSenpaiHover(true); typeOut(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); } }}
-          onMouseLeave={() => { setSenpaiHover(false); if (!chatOpen && typingRef.current) { clearInterval(typingRef.current); setSenpaiMsg(null); setTypingText(""); } }}
-          style={{ width: 56, height: 56, borderRadius: 28, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: chatOpen ? "default" : "pointer", transition: "border-color .2s" }}>
+        <div onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); }}
+          onMouseEnter={() => { setSenpaiHover(true); typeOut(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); }}
+          onMouseLeave={() => { setSenpaiHover(false); if (typingRef.current) { clearInterval(typingRef.current); setSenpaiMsg(null); setTypingText(""); } }}
+          style={{ width: 56, height: 56, borderRadius: 28, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "border-color .2s" }}>
           <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
             style={{ width: 44, height: 44, imageRendering: "pixelated" }} />
         </div>
       </div>
-    </div>
+    </div>}
   </div>;
 
   // ═══ HEADER (shared across all exercise types) ═══
@@ -311,7 +313,6 @@ export default function SmartSession({
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
       <button onClick={() => { stopAudio(); setDone(true); }} style={{ ...btn, background: "none", color: c.m, fontFamily: mono, fontSize: 14, padding: "4px 0" }}>← exit</button>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {coachingPlan?.sessionNotes && <div style={{ fontSize: 10, color: c.a, maxWidth: 150, textAlign: "right", lineHeight: 1.3, opacity: .7 }}>{coachingPlan.sessionNotes}</div>}
         <div style={{ fontSize: 11, fontFamily: mono, color: c.m }}>{ci + 1}/{cards.length}</div>
         <div style={{ fontSize: 11, fontFamily: mono, color: c.m }}>⏱ {mins}m</div>
       </div>
