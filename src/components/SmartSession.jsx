@@ -35,27 +35,43 @@ export default function SmartSession({
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
 
+  // Typewriter effect for senpai speech
+  const typeOut = (text, displayMs = 3000) => {
+    if (typingRef.current) clearInterval(typingRef.current);
+    setSenpaiMsg(""); setTypingText("");
+    let i = 0;
+    typingRef.current = setInterval(() => {
+      i++;
+      setTypingText(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(typingRef.current);
+        setSenpaiMsg(text);
+        setTimeout(() => { setSenpaiMsg(null); setTypingText(""); }, displayMs);
+      }
+    }, 40);
+  };
+
   // Senpai personality — harsh but firm sensei
   const senpaiReact = (correct) => {
     const newStreak = correct ? streak + 1 : 0;
     setStreak(newStreak);
     let msg = null;
-    if (correct && newStreak === 3) msg = "Hmph. Not terrible.";
-    else if (correct && newStreak === 5) msg = "...Acceptable.";
-    else if (correct && newStreak === 7) msg = "Don't get cocky.";
-    else if (correct && newStreak === 10) msg = "...Fine. You may have some potential.";
-    else if (correct && newStreak >= 12) msg = "I see you've been practicing. Good.";
-    else if (!correct && streak >= 5) msg = "Careless. Your focus wavers.";
-    else if (!correct && streak >= 3) msg = "Tch. Concentrate.";
+    if (correct && newStreak === 3) msg = "Hmph. Not terrible, I suppose.";
+    else if (correct && newStreak === 5) msg = "...Acceptable. Don't stop now.";
+    else if (correct && newStreak === 7) msg = "Don't get cocky. You have far to go.";
+    else if (correct && newStreak === 10) msg = "...Fine. You may have some potential after all.";
+    else if (correct && newStreak >= 12) msg = "I see you've been practicing. Perhaps there's hope.";
+    else if (!correct && streak >= 5) msg = "Careless. You were doing well. Focus.";
+    else if (!correct && streak >= 3) msg = "Tch. You lost your concentration.";
     else if (!correct) {
-      const wrongs = ["Again.", "Sloppy.", "Focus.", "Weak.", "Think before you answer.", "Pathetic.", "Did you even try?", "Hmph."];
+      const wrongs = ["Try again. Properly this time.", "Sloppy. Pay attention.", "Focus. This is basic.", "Weak. You can do better.", "Think before you answer next time.", "Disappointing. Again.", "Did you even try? Do it again.", "Hmph. Pathetic."];
       if (Math.random() < 0.45) msg = wrongs[Math.floor(Math.random() * wrongs.length)];
     }
     if (correct && Math.random() < 0.15 && newStreak < 3) {
-      const mild = ["...Fine.", "Barely.", "Took you long enough."];
+      const mild = ["...Fine. Barely acceptable.", "Took you long enough.", "Lucky guess, perhaps."];
       msg = mild[Math.floor(Math.random() * mild.length)];
     }
-    if (msg) { setSenpaiMsg(msg); setTimeout(() => setSenpaiMsg(null), 3000); }
+    if (msg) typeOut(msg, 3500);
   };
 
   const situations = { greet: "You meet someone.", food: "You're at a restaurant.", train: "You're navigating transport.", hotel: "You're at your hotel.", shop: "You're at a store.", dir: "You need directions.", sos: "It's an emergency." };
@@ -243,7 +259,9 @@ export default function SmartSession({
   };
 
   // ═══ SENPAI — mascot circle + reactions + expandable chat ═══
-  const hoverQuips = ["What do you need?", "Speak.", "Don't waste my time.", "...Yes?", "Hurry up."];
+  const hoverQuips = ["What do you need from me?", "Speak. I don't have all day.", "Don't waste my time, student.", "...You have a question?", "Hurry up and ask already.", "This better be important.", "You dare interrupt my meditation?"];
+  const [typingText, setTypingText] = useState("");
+  const typingRef = useRef(null);
 
   const senpaiBar = <div style={{ marginTop: 20 }}>
     {/* Chat messages expand above when open */}
@@ -270,14 +288,14 @@ export default function SmartSession({
     {/* Mascot circle — always centered, speech bubble floats above */}
     {!chatOpen && <div style={{ display: "flex", justifyContent: "center" }}>
       <div style={{ position: "relative" }}>
-        {/* Speech bubble — absolute so mascot doesn't move */}
-        {(senpaiMsg || (senpaiHover && hoverQuip)) && <div style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: 8, padding: "6px 14px", borderRadius: 10, background: c.s2, border: "1px solid " + c.b, fontSize: 12, color: c.tx, fontWeight: 500, whiteSpace: "nowrap", animation: "fadeInUp .25s ease-out", boxShadow: "0 2px 8px rgba(0,0,0,.2)" }}>
-          {senpaiMsg || hoverQuip}
+        {/* Speech bubble — appears to the right */}
+        {(typingText || senpaiMsg) && <div style={{ position: "absolute", left: "100%", top: "50%", transform: "translateY(-50%)", marginLeft: 12, padding: "8px 14px", borderRadius: "4px 12px 12px 12px", background: c.s2, border: "1px solid " + c.b, fontSize: 13, color: c.tx, fontWeight: 500, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,.2)" }}>
+          {typingText || senpaiMsg}
         </div>}
         {/* Mascot circle */}
         <div onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); }}
-          onMouseEnter={() => { setSenpaiHover(true); setHoverQuip(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); }}
-          onMouseLeave={() => { setSenpaiHover(false); setHoverQuip(""); }}
+          onMouseEnter={() => { setSenpaiHover(true); typeOut(hoverQuips[Math.floor(Math.random() * hoverQuips.length)], 2000); }}
+          onMouseLeave={() => { setSenpaiHover(false); if (typingRef.current) clearInterval(typingRef.current); setSenpaiMsg(null); setTypingText(""); }}
           style={{ width: 52, height: 52, borderRadius: 26, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "border-color .2s" }}>
           <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
             style={{ width: 40, height: 40, imageRendering: "pixelated" }} />
