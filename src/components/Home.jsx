@@ -2,6 +2,7 @@ import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { font, mono } from "../data/constants.js";
 import { daysUntil } from "../utils/helpers.js";
 import { shuffle } from "../utils/helpers.js";
+import { getSessionSummary } from "../utils/sessionEngine.js";
 
 export default function Home({
   data, save, c, theme, inner, card, btn, chip, mono: _mono,
@@ -41,6 +42,18 @@ export default function Home({
         <div style={{fontSize:19,fontWeight:800,fontFamily:mono,color:s.cl,marginBottom:3}}>{s.v}</div>
         <div style={{fontSize:10,color:c.m,textTransform:"uppercase",letterSpacing:".04em"}}>{s.l}</div>
       </div>)}
+    </div>
+    <div onClick={()=>setTab("smart")}
+      onMouseEnter={()=>setHov("smart")} onMouseLeave={()=>setHov(null)}
+      style={{...card,marginBottom:10,padding:"18px 20px",cursor:"pointer",background:hov==="smart"?c.a+"15":c.a+"0a",border:"1px solid "+c.a+"33",transition:"all .15s"}}>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <div style={{fontSize:28}}>▶</div>
+        <div style={{flex:1}}>
+          <div style={{fontSize:16,fontWeight:700,color:c.a}}>Start Learning</div>
+          <div style={{fontSize:12,color:c.m,marginTop:3}}>{getSessionSummary(data)}</div>
+        </div>
+        <span style={{color:c.a,opacity:.5,fontSize:18}}>→</span>
+      </div>
     </div>
     {(kDueCount>0||dueCount>0)&&<div style={{...card,marginBottom:8,padding:"14px 16px",background:c.go+"0d",border:"1px solid "+c.go+"33"}}>
       <div style={{fontSize:11,fontFamily:mono,color:c.go,textTransform:"uppercase",letterSpacing:".07em",marginBottom:10}}>🔔 Ready to review</div>

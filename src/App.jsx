@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser, useAuth, useClerk, SignIn, SignUp } from "@clerk/clerk-react";
 import Game from "./game/Game.jsx";
+import SmartSession from "./components/SmartSession.jsx";
 
 // Data
 import { M, H_GROUPS, K_GROUPS, ROMAJI, YOON_PARTS, DAKUTEN_BASE } from "./data/kana.js";
@@ -507,7 +508,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}`;
 
   // ═══ TABS & ROUTING ═══
-  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
+  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"smart",icon:"▶",label:"Learn"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
   const handleTabClick=(id)=>{
     setTab(id);
     if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);setFastTrack(false);}
@@ -574,6 +575,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       drillRef={drillRef}
       submitDrillKana={submitDrillKana} advanceDrill={advanceDrill} startDrill={startDrill} reviewPhr={reviewPhr}
       setTab={setTab}
+    />}
+    {tab==="smart"&&<SmartSession
+      data={data} save={save} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}
+      updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr}
+      stopAudio={stopAudio} speakStory={speakStory}
     />}
     {tab==="game"&&<Game theme={theme} c={c} isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W}/>}
     {showProfile&&<Profile
