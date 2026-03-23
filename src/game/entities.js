@@ -1,9 +1,9 @@
 import { TILE, SCALE, MOVE_SPEED } from "./constants.js";
 
 // ═══ PLAYER FACTORY ═══
-export function makePlayer(groundY) {
+export function makePlayer(groundY, startX = 100) {
   return {
-    x: 100, y: groundY - TILE * SCALE, vx: 0, vy: 0,
+    x: startX, y: groundY - TILE * SCALE, vx: 0, vy: 0,
     facing: 1, state: "idle", frame: 0, frameTimer: 0,
     slashTimer: 0, slashDuration: 0, dashTimer: 0, dashCooldown: 0, dead: false,
     grounded: false, invincible: 0,
@@ -45,6 +45,14 @@ export function updateEnemyAI(e, player, dt, projectiles) {
   const dist = Math.abs(dx);
   const toPlayer = dx > 0 ? 1 : -1;
 
+  // Can't see player if they're in shadow or enemy is facing away
+  const playerVisible = !player.inShadow && (e.facing === toPlayer || dist < 40);
+  if (!playerVisible && e.state === "chase") {
+    // Lost sight — return to patrol after brief delay
+    e.state = "patrol";
+    e.vx = e.facing * 30;
+  }
+
   // Animation cycling
   e.frameTimer += dt * 1000;
   if (e.frameTimer > 250) { e.frame = (e.frame + 1) % 2; e.frameTimer = 0; }
@@ -66,7 +74,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.attackTimer -= dt * 1000;
       e.vx = 0;
       if (e.attackTimer <= 0) e.state = "patrol";
-    } else if (dist < e.alertRange) {
+    } else if (dist < e.alertRange && playerVisible) {
       if (e.state === "patrol") e.alert = 600;
       e.state = "chase";
       e.facing = toPlayer;
@@ -78,10 +86,9 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = e.facing * 40;
     }
   } else if (e.type === "ninja") {
-    // Only update facing when player is clearly to one side (dead zone prevents flicker)
-    if (dist > 20) e.facing = toPlayer;
+    if (dist > 20 && playerVisible) e.facing = toPlayer;
     e.vx = 0;
-    if (dist < e.alertRange) {
+    if (dist < e.alertRange && playerVisible) {
       if (e.state === "patrol") e.alert = 600;
       e.state = "chase";
       e.attackTimer -= dt * 1000;
@@ -108,7 +115,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.attackTimer -= dt * 1000;
       e.vx = 0;
       if (e.attackTimer <= 0) e.state = "patrol";
-    } else if (dist < e.alertRange) {
+    } else if (dist < e.alertRange && playerVisible) {
       if (e.state === "patrol") e.alert = 600;
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.4;

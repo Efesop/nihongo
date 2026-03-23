@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { TILE, SCALE, GROUND_Y } from "./constants.js";
+import { TILE, SCALE, GROUND_Y, TOTAL_ROOMS } from "./constants.js";
 import { getSprite, loadMascotImage } from "./sprites.js";
-import { SEGMENTS } from "./levels.js";
+import { ROOMS } from "./levels.js";
 import { makePlayer, makeEnemy } from "./entities.js";
 import { update } from "./engine.js";
 import { render } from "./renderer.js";
@@ -30,32 +30,19 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     const H = container ? container.clientHeight : canvas.clientHeight;
     const groundY = H * GROUND_Y;
 
-    // Build level — keep first and last segment, shuffle middle
-    let levelW = 0;
-    const platforms = [];
-    const enemies = [];
-    const decorations = [];
-    const segOrder = SEGMENTS.map((_, i) => i);
-    const mid = segOrder.slice(1, -1);
-    for (let i = mid.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [mid[i], mid[j]] = [mid[j], mid[i]];
-    }
-    const order = [0, ...mid, segOrder[segOrder.length - 1]];
-
-    for (const si of order) {
-      const seg = SEGMENTS[si];
-      for (const p of seg.platforms) platforms.push({ x: levelW + p.x, y: groundY + p.y, w: p.w, h: 16 });
-      for (const e of seg.enemies) enemies.push(makeEnemy(e.type, levelW + e.x, groundY + (e.y || 0)));
-      for (const d of (seg.deco || [])) decorations.push({ type: d.type, x: levelW + d.x, y: groundY });
-      levelW += seg.w;
-    }
+    // Load room 0
+    const room = ROOMS[0];
+    const platforms = room.platforms.map(p => ({ x: p.x, y: groundY + p.y, w: p.w, h: 16 }));
+    const enemies = room.enemies.map(e => makeEnemy(e.type, e.x, groundY + (e.y || 0)));
+    const decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: groundY }));
+    const shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: groundY }));
+    const levelW = Math.max(...room.platforms.map(p => p.x + p.w));
 
     return {
       W, H, groundY, levelW,
-      player: makePlayer(groundY),
+      player: makePlayer(groundY, room.playerStart || 100),
       camera: { x: 0, y: 0, shakeX: 0, shakeY: 0, shakeTimer: 0 },
-      platforms, enemies, decorations,
+      platforms, enemies, decorations, shadows,
       particles: [], slashEffects: [], projectiles: [],
       embers: [], floatingTexts: [],
       slowMo: { active: false, meter: 100, max: 100 },
@@ -64,6 +51,12 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       time: { last: performance.now(), dt: 0, scale: 1, elapsed: 0 },
       score: 0, combo: 0, comboTimer: 0, maxCombo: 0,
       hitStop: 0, flashTimer: 0, cleared: false,
+      // Room system
+      currentRoom: 0, roomTimer: 0, roomStars: [],
+      deaths: 0, totalTime: 0,
+      roomState: "playing", // "playing" | "cleared" | "restarting"
+      roomClearTimer: 0,
+      deathFlash: 0,
     };
   }, []);
 
@@ -211,29 +204,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     );
   }
 
-  // ═══ DEAD ═══
-  if (screen === "dead") {
-    return (
-      <div style={{ ...overlay, background: c.bg }}>
-        <style>{cssFx}</style>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(192,40,42,0.08)", pointerEvents: "none" }} />
-        <div style={{ fontSize: 36, fontWeight: 900, fontFamily: font, color: c.a, letterSpacing: ".12em", animation: "glitchBig 2s ease-in-out infinite", ...glowText }}>
-          MISSION FAILED
-        </div>
-        <div style={{ fontSize: 18, fontFamily: font, color: c.tx, marginTop: 16 }}>
-          SCORE: {String(score).padStart(5, "0")}
-        </div>
-        {maxCombo > 1 && <div style={{ fontSize: 13, color: "#ffa040", fontFamily: font, marginTop: 4 }}>MAX COMBO: x{maxCombo}</div>}
-        {score > 0 && score >= highScore && (
-          <div style={{ fontSize: 14, color: c.go, fontFamily: font, marginTop: 8 }}>NEW HIGH SCORE!</div>
-        )}
-        <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-          <button onClick={startGame} style={{ ...btn, background: c.a, color: "#fff" }}>RETRY</button>
-          <button onClick={() => setScreen("menu")} style={{ ...btn, background: c.s2, color: c.tx, border: `1px solid ${c.b}` }}>QUIT</button>
-        </div>
-      </div>
-    );
-  }
+  // No dead screen — instant restart handles death in-game
 
   // ═══ VICTORY ═══
   if (screen === "victory") {

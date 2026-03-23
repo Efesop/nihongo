@@ -1,80 +1,169 @@
-// ═══ LEVEL SEGMENTS ═══
-// Each segment defines platforms (relative y: 0 = ground, negative = above),
-// enemies, and decorations. Segments are chained left-to-right.
+// ═══ ROOM DEFINITIONS ═══
+// Each room fits roughly on-screen. Platforms use relative Y (0 = ground, negative = above).
+// Shadow zones: [{x, w}] — dark patches on platforms where player is invisible.
+// Enemy positions are fixed — each room is a puzzle to solve.
 
-export const SEGMENTS = [
-  // 0: Intro — flat, one oni, learn to slash
+export const ROOMS = [
+  // ── Room 1: Tutorial — learn to slash ──
   {
-    w: 800,
-    platforms: [{ x: 0, y: 0, w: 800 }],
-    enemies: [{ type: "oni", x: 500, y: 0 }],
-    deco: [{ type: "lantern", x: 200 }, { type: "torii", x: 600 }],
+    platforms: [{ x: 0, y: 0, w: 900 }],
+    enemies: [{ type: "oni", x: 600, y: 0 }],
+    shadows: [],
+    playerStart: 100,
+    deco: [{ type: "lantern", x: 300 }],
   },
-  // 1: Gaps — learn to jump
+
+  // ── Room 2: Two oni, shadow between them ──
   {
-    w: 900,
-    platforms: [{ x: 0, y: 0, w: 300 }, { x: 380, y: 0, w: 200 }, { x: 660, y: 0, w: 240 }],
-    enemies: [{ type: "oni", x: 200, y: 0 }, { type: "oni", x: 700, y: 0 }],
-    deco: [{ type: "sign", x: 100 }],
-  },
-  // 2: Elevated platforms
-  {
-    w: 1000,
-    platforms: [{ x: 0, y: 0, w: 400 }, { x: 250, y: -80, w: 180 }, { x: 500, y: -60, w: 200 }, { x: 780, y: 0, w: 220 }],
-    enemies: [{ type: "oni", x: 300, y: -80 }, { type: "ninja", x: 550, y: -60 }],
-    deco: [{ type: "lantern", x: 150 }, { type: "lantern", x: 850 }],
-  },
-  // 3: Ninja ambush
-  {
-    w: 800,
-    platforms: [{ x: 0, y: 0, w: 800 }, { x: 200, y: -100, w: 120 }, { x: 500, y: -120, w: 120 }],
-    enemies: [{ type: "ninja", x: 250, y: -100 }, { type: "ninja", x: 550, y: -120 }, { type: "oni", x: 650, y: 0 }],
-    deco: [{ type: "torii", x: 400 }],
-  },
-  // 4: Rooftop jumps
-  {
-    w: 1100,
-    platforms: [{ x: 0, y: 0, w: 200 }, { x: 280, y: -40, w: 160 }, { x: 520, y: -80, w: 160 }, { x: 760, y: -40, w: 160 }, { x: 960, y: 0, w: 140 }],
-    enemies: [{ type: "ninja", x: 340, y: -40 }, { type: "oni", x: 580, y: -80 }, { type: "ninja", x: 820, y: -40 }],
-    deco: [{ type: "sign", x: 50 }, { type: "lantern", x: 500 }],
-  },
-  // 5: Samurai intro
-  {
-    w: 700,
-    platforms: [{ x: 0, y: 0, w: 700 }],
-    enemies: [{ type: "oni", x: 250, y: 0 }, { type: "samurai", x: 500, y: 0 }],
-    deco: [{ type: "torii", x: 350 }, { type: "lantern", x: 600 }],
-  },
-  // 6: Vertical challenge
-  {
-    w: 900,
-    platforms: [{ x: 0, y: 0, w: 250 }, { x: 150, y: -90, w: 150 }, { x: 400, y: -50, w: 200 }, { x: 700, y: 0, w: 200 }],
-    enemies: [{ type: "ninja", x: 200, y: -90 }, { type: "samurai", x: 450, y: -50 }, { type: "oni", x: 750, y: 0 }],
-    deco: [{ type: "lantern", x: 100 }],
-  },
-  // 7: Bridge
-  {
-    w: 1000,
-    platforms: [{ x: 0, y: 0, w: 150 }, { x: 200, y: -20, w: 600 }, { x: 850, y: 0, w: 150 }],
-    enemies: [{ type: "oni", x: 350, y: -20 }, { type: "ninja", x: 550, y: -20 }, { type: "samurai", x: 700, y: -20 }],
-    deco: [{ type: "sign", x: 50 }, { type: "sign", x: 900 }],
-  },
-  // 8: Gauntlet
-  {
-    w: 1200,
-    platforms: [{ x: 0, y: 0, w: 1200 }, { x: 300, y: -80, w: 100 }, { x: 600, y: -80, w: 100 }, { x: 900, y: -80, w: 100 }],
+    platforms: [{ x: 0, y: 0, w: 900 }],
     enemies: [
-      { type: "oni", x: 200, y: 0 }, { type: "ninja", x: 350, y: -80 },
-      { type: "oni", x: 500, y: 0 }, { type: "ninja", x: 650, y: -80 },
-      { type: "samurai", x: 800, y: 0 }, { type: "oni", x: 1000, y: 0 },
+      { type: "oni", x: 400, y: 0 },
+      { type: "oni", x: 700, y: 0 },
     ],
-    deco: [{ type: "torii", x: 100 }, { type: "torii", x: 1100 }],
+    shadows: [{ x: 350, w: 120 }],
+    playerStart: 80,
+    deco: [{ type: "torii", x: 550 }],
   },
-  // 9: Boss — three samurai
+
+  // ── Room 3: Ninja on high ground, oni below ──
   {
-    w: 800,
-    platforms: [{ x: 0, y: 0, w: 800 }],
-    enemies: [{ type: "samurai", x: 300, y: 0 }, { type: "samurai", x: 500, y: 0 }, { type: "samurai", x: 650, y: 0 }],
-    deco: [{ type: "torii", x: 100 }, { type: "torii", x: 700 }, { type: "lantern", x: 400 }],
+    platforms: [
+      { x: 0, y: 0, w: 400 },
+      { x: 350, y: -80, w: 200 },
+      { x: 600, y: 0, w: 300 },
+    ],
+    enemies: [
+      { type: "oni", x: 200, y: 0 },
+      { type: "oni", x: 700, y: 0 },
+      { type: "ninja", x: 450, y: -80 },
+    ],
+    shadows: [{ x: 50, w: 100 }],
+    playerStart: 80,
+    deco: [{ type: "lantern", x: 450 }],
+  },
+
+  // ── Room 4: Gaps — must jump between platforms ──
+  {
+    platforms: [
+      { x: 0, y: 0, w: 200 },
+      { x: 280, y: -20, w: 180 },
+      { x: 540, y: 0, w: 180 },
+      { x: 780, y: -30, w: 180 },
+    ],
+    enemies: [
+      { type: "oni", x: 140, y: 0 },
+      { type: "oni", x: 370, y: -20 },
+      { type: "oni", x: 630, y: 0 },
+    ],
+    shadows: [{ x: 560, w: 80 }],
+    playerStart: 50,
+    deco: [],
+  },
+
+  // ── Room 5: Ninja snipers on high, oni patrol below ──
+  {
+    platforms: [
+      { x: 0, y: 0, w: 900 },
+      { x: 100, y: -100, w: 150 },
+      { x: 650, y: -100, w: 150 },
+    ],
+    enemies: [
+      { type: "ninja", x: 175, y: -100 },
+      { type: "ninja", x: 725, y: -100 },
+      { type: "oni", x: 450, y: 0 },
+    ],
+    shadows: [{ x: 380, w: 140 }],
+    playerStart: 50,
+    deco: [{ type: "torii", x: 450 }, { type: "lantern", x: 200 }],
+  },
+
+  // ── Room 6: Samurai introduction ──
+  {
+    platforms: [{ x: 0, y: 0, w: 900 }],
+    enemies: [
+      { type: "oni", x: 350, y: 0 },
+      { type: "samurai", x: 650, y: 0 },
+    ],
+    shadows: [{ x: 150, w: 100 }],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 500 }, { type: "lantern", x: 800 }],
+  },
+
+  // ── Room 7: Fast room — chain kills for flow ──
+  {
+    platforms: [
+      { x: 0, y: 0, w: 350 },
+      { x: 250, y: -60, w: 150 },
+      { x: 430, y: 0, w: 250 },
+      { x: 750, y: 0, w: 200 },
+    ],
+    enemies: [
+      { type: "oni", x: 150, y: 0 },
+      { type: "oni", x: 320, y: -60 },
+      { type: "ninja", x: 550, y: 0 },
+      { type: "oni", x: 500, y: 0 },
+      { type: "ninja", x: 850, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 40,
+    deco: [{ type: "sign", x: 600 }],
+  },
+
+  // ── Room 8: Stealth or brute force ──
+  {
+    platforms: [
+      { x: 0, y: 0, w: 400 },
+      { x: 500, y: 0, w: 400 },
+    ],
+    enemies: [
+      { type: "samurai", x: 300, y: 0 },
+      { type: "ninja", x: 600, y: 0 },
+      { type: "samurai", x: 800, y: 0 },
+    ],
+    shadows: [{ x: 50, w: 150 }, { x: 520, w: 120 }],
+    playerStart: 80,
+    deco: [{ type: "lantern", x: 250 }, { type: "lantern", x: 700 }],
+  },
+
+  // ── Room 9: The gauntlet ──
+  {
+    platforms: [
+      { x: 0, y: 0, w: 1000 },
+      { x: 200, y: -80, w: 150 },
+      { x: 650, y: -80, w: 150 },
+    ],
+    enemies: [
+      { type: "oni", x: 200, y: 0 },
+      { type: "oni", x: 400, y: 0 },
+      { type: "ninja", x: 275, y: -80 },
+      { type: "oni", x: 600, y: 0 },
+      { type: "ninja", x: 725, y: -80 },
+      { type: "oni", x: 800, y: 0 },
+      { type: "samurai", x: 900, y: 0 },
+    ],
+    shadows: [{ x: 430, w: 100 }],
+    playerStart: 50,
+    deco: [{ type: "torii", x: 500 }],
+  },
+
+  // ── Room 10: Boss — 3 samurai ──
+  {
+    platforms: [{ x: 0, y: 0, w: 900 }],
+    enemies: [
+      { type: "samurai", x: 350, y: 0 },
+      { type: "samurai", x: 550, y: 0 },
+      { type: "samurai", x: 750, y: 0 },
+    ],
+    shadows: [{ x: 50, w: 100 }],
+    playerStart: 80,
+    deco: [{ type: "torii", x: 200 }, { type: "torii", x: 800 }, { type: "lantern", x: 450 }],
   },
 ];
+
+// Keep old SEGMENTS export for backwards compat (not used anymore)
+export const SEGMENTS = ROOMS.map(r => ({
+  w: Math.max(...r.platforms.map(p => p.x + p.w)),
+  platforms: r.platforms,
+  enemies: r.enemies,
+  deco: r.deco || [],
+}));

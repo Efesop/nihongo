@@ -1,4 +1,4 @@
-import { TILE, SCALE, DASH_COOLDOWN, hash } from "./constants.js";
+import { TILE, SCALE, DASH_COOLDOWN, TOTAL_ROOMS, hash } from "./constants.js";
 import { getSprite, getMascotImage, getImage } from "./sprites.js";
 
 const DRAW_SIZE = TILE * SCALE; // 60px
@@ -82,7 +82,28 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, 14);
   }
 
-  // ── Enemies (procedural shapes) ──
+  // ── Shadow zones ──
+  if (g.shadows) {
+    for (const s of g.shadows) {
+      // Dark overlay on platform
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fillRect(s.x, s.y - 50, s.w, 64);
+      // Soft edges
+      const edgeW = 15;
+      const leftGrad = ctx.createLinearGradient(s.x - edgeW, 0, s.x, 0);
+      leftGrad.addColorStop(0, "rgba(0,0,0,0)");
+      leftGrad.addColorStop(1, "rgba(0,0,0,0.4)");
+      ctx.fillStyle = leftGrad;
+      ctx.fillRect(s.x - edgeW, s.y - 50, edgeW, 64);
+      const rightGrad = ctx.createLinearGradient(s.x + s.w, 0, s.x + s.w + edgeW, 0);
+      rightGrad.addColorStop(0, "rgba(0,0,0,0.4)");
+      rightGrad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = rightGrad;
+      ctx.fillRect(s.x + s.w, s.y - 50, edgeW, 64);
+    }
+  }
+
+  // ── Enemies ──
   for (const e of g.enemies) {
     if (e.x < cx - 100 || e.x > cx + W + 100) continue;
     if (e.dead) {
@@ -295,6 +316,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   ctx.translate(p.x, p.y + DRAW_SIZE);
 
   if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
+  if (p.inShadow) ctx.globalAlpha = 0.35; // nearly invisible in shadow
   ctx.imageSmoothingEnabled = false;
 
   // ── RUN — use actual sprite frames ──
@@ -940,6 +962,32 @@ function renderDeco(ctx, d, groundY, elapsed) {
 
 // ═══ HUD ═══
 function renderHUD(ctx, g, W, isDesktop, font) {
+  // Death flash — red overlay
+  if (g.deathFlash > 0) {
+    ctx.fillStyle = `rgba(200,30,30,${g.deathFlash / 300 * 0.5})`;
+    ctx.fillRect(0, 0, W, g.H);
+  }
+
+  // Room number + timer (top center)
+  ctx.font = `bold 13px ${font}`;
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#888899";
+  const roomNum = (g.currentRoom || 0) + 1;
+  ctx.fillText(`ROOM ${roomNum}/${TOTAL_ROOMS}`, W / 2, 20);
+  if (g.roomState === "playing") {
+    ctx.font = `11px ${font}`;
+    ctx.fillStyle = "#666677";
+    ctx.fillText(`${g.roomTimer.toFixed(1)}s`, W / 2, 36);
+  }
+  // Deaths counter (small, top center-right)
+  if (g.deaths > 0) {
+    ctx.font = `10px ${font}`;
+    ctx.fillStyle = "#554444";
+    ctx.textAlign = "center";
+    ctx.fillText(`☠ ${g.deaths}`, W / 2 + 60, 20);
+  }
+
+  // Score (top left)
   ctx.font = `bold 16px ${font}`;
   ctx.textAlign = "left";
   ctx.fillStyle = "#c0282a";

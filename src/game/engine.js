@@ -1,9 +1,70 @@
 import {
   GRAVITY, MOVE_SPEED, JUMP_FORCE, SLASH_DURATION, SLASH_RANGE,
   DASH_SPEED, DASH_DURATION, DASH_COOLDOWN,
-  TILE, SCALE, GROUND_Y, lerp, clamp, rnd, rndInt,
+  TILE, SCALE, GROUND_Y, TOTAL_ROOMS, STAR_3, STAR_2,
+  lerp, clamp, rnd, rndInt,
 } from "./constants.js";
-import { updateEnemyAI } from "./entities.js";
+import { updateEnemyAI, makeEnemy, makePlayer } from "./entities.js";
+import { ROOMS } from "./levels.js";
+
+// ═══ ROOM MANAGEMENT ═══
+export function loadRoom(g, roomIndex) {
+  const room = ROOMS[roomIndex];
+  if (!room) return;
+  g.currentRoom = roomIndex;
+  g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: 16 }));
+  g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0)));
+  g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
+  g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
+  g.levelW = Math.max(...room.platforms.map(p => p.x + p.w));
+  g.player = makePlayer(g.groundY, room.playerStart || 100);
+  g.particles = [];
+  g.slashEffects = [];
+  g.projectiles = [];
+  g.floatingTexts = [];
+  g.embers = [];
+  g.camera.x = 0;
+  g.camera.shakeTimer = 0;
+  g.camera.shakeX = 0;
+  g.camera.shakeY = 0;
+  g.slowMo.meter = g.slowMo.max;
+  g.slowMo.active = false;
+  g.hitStop = 0;
+  g.flashTimer = 0;
+  g.roomTimer = 0;
+  g.roomState = "playing";
+  g.roomClearTimer = 0;
+  g.combo = 0;
+  g.comboTimer = 0;
+}
+
+function restartRoom(g) {
+  g.deaths++;
+  g.deathFlash = 300;
+  loadRoom(g, g.currentRoom);
+}
+
+function clearRoom(g, callbacks) {
+  g.roomState = "cleared";
+  g.roomClearTimer = 2000; // 2s pause to show rating
+  // Calculate star rating
+  const time = g.roomTimer;
+  const stars = time < STAR_3 ? 3 : time < STAR_2 ? 2 : 1;
+  g.roomStars[g.currentRoom] = stars;
+  g.totalTime += time;
+  // Big floating text
+  const starText = "★".repeat(stars) + "☆".repeat(3 - stars);
+  g.floatingTexts.push({
+    x: g.W / 2 + g.camera.x, y: g.groundY - 80,
+    text: `ROOM CLEAR  ${starText}`, color: stars === 3 ? "#ffdd44" : "#ffffff",
+    life: 1800, maxLife: 1800,
+  });
+  g.floatingTexts.push({
+    x: g.W / 2 + g.camera.x, y: g.groundY - 55,
+    text: `${time.toFixed(1)}s`, color: "#aaaacc",
+    life: 1800, maxLife: 1800,
+  });
+}
 
 // ═══ UPDATE ═══
 export function update(g, callbacks) {
@@ -439,20 +500,45 @@ export function update(g, callbacks) {
     g.camera.shakeY = 0;
   }
 
-  // ── Victory ──
-  if (!g.cleared && g.enemies.filter(e => !e.dead).length === 0 && g.time.elapsed > 2) {
-    g.cleared = true;
-    const timeBonus = Math.max(0, Math.floor(5000 - g.time.elapsed * 10));
-    g.score += 1000 + timeBonus;
-    setScore(g.score);
-    setMaxCombo(g.maxCombo);
-    setTimeout(() => {
-      if (g.score > highScore) {
-        setHighScore(g.score);
-        try { localStorage.setItem("nihongo-game-highscore", g.score); } catch {}
+  // ── Room state machine ──
+  if (g.roomState === "playing") {
+    g.roomTimer += rawDt;
+
+    // Check if all enemies dead → room clear
+    if (g.enemies.filter(e => !e.dead).length === 0 && g.roomTimer > 0.5) {
+      clearRoom(g, callbacks);
+    }
+  } else if (g.roomState === "cleared") {
+    g.roomClearTimer -= rawDt * 1000;
+    if (g.roomClearTimer <= 0) {
+      if (g.currentRoom + 1 >= TOTAL_ROOMS) {
+        // All rooms done — victory!
+        g.cleared = true;
+        setScore(g.score);
+        setMaxCombo(g.maxCombo);
+        if (g.score > highScore) {
+          setHighScore(g.score);
+          try { localStorage.setItem("nihongo-game-highscore", g.score); } catch {}
+        }
+        setScreen("victory");
+      } else {
+        // Next room
+        loadRoom(g, g.currentRoom + 1);
       }
-      setScreen("victory");
-    }, 1000);
+    }
+  }
+
+  // Death flash countdown
+  if (g.deathFlash > 0) g.deathFlash -= rawDt * 1000;
+
+  // Shadow zone detection
+  g.player.inShadow = false;
+  if (g.shadows) {
+    for (const s of g.shadows) {
+      if (g.player.x > s.x && g.player.x < s.x + s.w && g.player.grounded) {
+        g.player.inShadow = true;
+      }
+    }
   }
 }
 
@@ -470,6 +556,17 @@ function killEnemy(g, e, p, callbacks) {
   callbacks.setScore(g.score);
   callbacks.setMaxCombo(g.maxCombo);
   g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 20);
+
+  // Brief auto-slow on kill for flow (aim next target)
+  g.time.scale = Math.min(g.time.scale, 0.5);
+
+  // Stealth kill bonus
+  if (p.inShadow) {
+    g.score += pts * g.combo; // double score from shadow
+    g.floatingTexts.push({
+      x: e.x, y: e.y - 35, text: "STEALTH", color: "#44ddaa", life: 800, maxLife: 800,
+    });
+  }
 
   // Kill text
   const killTexts = ["", "", "DOUBLE", "TRIPLE", "QUAD", "PENTA", "HEXA", "ULTRA"];
@@ -495,23 +592,8 @@ function killEnemy(g, e, p, callbacks) {
 }
 
 function killPlayer(g, callbacks) {
-  g.player.dead = true;
-  g.camera.shakeTimer = 300;
-  for (let i = 0; i < 18; i++) {
-    g.particles.push({
-      x: g.player.x + rnd(-8, 8), y: g.player.y + 20,
-      vx: rnd(-350, 350), vy: rnd(-550, -100),
-      life: 700, maxLife: 700, color: i < 5 ? "#ffffff" : "#c0282a", size: rndInt(3, 6),
-    });
-  }
-  setTimeout(() => {
-    if (g.score > callbacks.highScore) {
-      callbacks.setHighScore(g.score);
-      try { localStorage.setItem("nihongo-game-highscore", g.score); } catch {}
-    }
-    callbacks.setMaxCombo(g.maxCombo);
-    callbacks.setScreen("dead");
-  }, 800);
+  // Instant restart — no death screen, just flash and reset
+  restartRoom(g);
 }
 
 function spawnDust(g, x, y) {

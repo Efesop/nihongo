@@ -12,6 +12,12 @@ export const DASH_COOLDOWN = 400;
 export const SCALE = 3;
 export const TILE = 20;
 export const GROUND_Y = 0.78;
+export const TOTAL_ROOMS = 10;
+
+// ═══ ROOM STAR RATINGS (seconds) ═══
+export const STAR_3 = 6;   // clear room under 6s = ★★★
+export const STAR_2 = 12;  // clear under 12s = ★★
+// anything else = ★
 
 // ═══ COLOR PALETTE ═══
 // Extracted from actual TinySenpai mascot PNG + enemy colors.
