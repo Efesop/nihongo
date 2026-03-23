@@ -267,19 +267,21 @@ export default function SmartSession({
         <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "6px 10px", borderRadius: 8, background: "transparent", border: "1px solid " + c.b, color: c.m, fontSize: 12, flexShrink: 0 }}>✕</button>
       </div>
     </div>}
-    {/* Mascot circle — reactions pop out, click to open chat */}
-    {!chatOpen && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-      {/* Reaction text (left of mascot) */}
-      {(senpaiMsg || (senpaiHover && hoverQuip)) && <div style={{ fontSize: 12, color: c.tx, fontWeight: 500, animation: "fadeInUp .25s ease-out", maxWidth: 180, textAlign: "right" }}>
-        {senpaiMsg || hoverQuip}
-      </div>}
-      {/* Mascot circle */}
-      <div onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); }}
-        onMouseEnter={() => { setSenpaiHover(true); setHoverQuip(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); }}
-        onMouseLeave={() => { setSenpaiHover(false); setHoverQuip(""); }}
-        style={{ width: 52, height: 52, borderRadius: 26, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "border-color .2s", flexShrink: 0 }}>
-        <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
-          style={{ width: 40, height: 40, imageRendering: "pixelated" }} />
+    {/* Mascot circle — always centered, speech bubble floats above */}
+    {!chatOpen && <div style={{ display: "flex", justifyContent: "center" }}>
+      <div style={{ position: "relative" }}>
+        {/* Speech bubble — absolute so mascot doesn't move */}
+        {(senpaiMsg || (senpaiHover && hoverQuip)) && <div style={{ position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)", marginBottom: 8, padding: "6px 14px", borderRadius: 10, background: c.s2, border: "1px solid " + c.b, fontSize: 12, color: c.tx, fontWeight: 500, whiteSpace: "nowrap", animation: "fadeInUp .25s ease-out", boxShadow: "0 2px 8px rgba(0,0,0,.2)" }}>
+          {senpaiMsg || hoverQuip}
+        </div>}
+        {/* Mascot circle */}
+        <div onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); }}
+          onMouseEnter={() => { setSenpaiHover(true); setHoverQuip(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); }}
+          onMouseLeave={() => { setSenpaiHover(false); setHoverQuip(""); }}
+          style={{ width: 52, height: 52, borderRadius: 26, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "border-color .2s" }}>
+          <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
+            style={{ width: 40, height: 40, imageRendering: "pixelated" }} />
+        </div>
       </div>
     </div>}
   </div>;
