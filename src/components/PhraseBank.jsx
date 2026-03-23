@@ -3,6 +3,7 @@ import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { font, mono } from "../data/constants.js";
 import { speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
+import PhraseSegments from "./PhraseSegments.jsx";
 
 export default function PhraseBank({
   data, c, inner, card, btn,
@@ -313,7 +314,7 @@ export default function PhraseBank({
           onMouseEnter={e=>e.currentTarget.style.background=c.s2} onMouseLeave={e=>e.currentTarget.style.background=c.s}>
           <div style={{width:4,background:srsColor,flexShrink:0,borderRadius:"12px 0 0 12px"}}/>
           <div style={{flex:1,padding:"14px 16px"}}>
-            <div style={{fontSize:isDesktop?28:24,fontWeight:600,marginBottom:6,lineHeight:1.3}}>{p[1]}</div>
+            <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop?24:20} />
             <div style={{fontSize:14,fontFamily:mono,color:c.a,marginBottom:4}}>{p[2]}</div>
             <div style={{fontSize:14,color:c.tx,marginBottom:2}}>{p[3]}</div>
             {p[5]&&<div style={{fontSize:12,color:c.m,fontStyle:"italic",marginTop:4}}>{p[5]}</div>}

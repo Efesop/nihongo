@@ -5,6 +5,7 @@ import { font, mono } from "../data/constants.js";
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 import { buildSmartSession, getSessionSummary, matchRomaji, getDistractors } from "../utils/sessionEngine.js";
+import PhraseSegments from "./PhraseSegments.jsx";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -607,12 +608,13 @@ export default function SmartSession({
           <div style={{ fontSize: 11, fontFamily: mono, color: c.g, marginTop: 4 }}>New phrase!</div>
         </div>
         <div style={{ padding: "20px 20px" }}>
-          <div style={{ fontSize: isDesktop ? 30 : 24, fontWeight: 700, marginBottom: 8, lineHeight: 1.3 }}>{p[1]}</div>
-          <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginBottom: 6 }}>{p[2]}</div>
+          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 28 : 22} />
+          <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8, marginBottom: 6 }}>{p[2]}</div>
           <div style={{ fontSize: 16, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
           {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
+          <div style={{ fontSize: 11, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
           <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}
-            style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m, marginTop: 14 }}>🔊 hear again</button>
+            style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m, marginTop: 10 }}>🔊 hear again</button>
         </div>
       </div>
       <button onClick={() => { reviewPhr(p[0], true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
