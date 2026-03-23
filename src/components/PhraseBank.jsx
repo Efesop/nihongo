@@ -185,7 +185,8 @@ export default function PhraseBank({
     if(quizMode==="match"){
       if(matchPairs.length===0){
         // Setup 4 pairs from current review queue
-        const available=pCards.slice(pI,pI+4).length>=4?pCards.slice(pI,pI+4):shuffle([...PHRASES]).slice(0,4);
+        const fromQueue=pCards.slice(pI,pI+4);
+        const available=fromQueue.length>=4?fromQueue:shuffle(PHRASES.filter(p=>!fromQueue.find(q=>q[0]===p[0]))).slice(0,4-fromQueue.length).concat(fromQueue);
         const jpSide=shuffle(available.map((p,i)=>({id:p[0],text:p[1],type:"jp",pairIdx:i})));
         const enSide=shuffle(available.map((p,i)=>({id:p[0],text:p[3],type:"en",pairIdx:i})));
         setMatchPairs([...jpSide,...enSide]);

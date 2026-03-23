@@ -107,12 +107,28 @@ export default function SmartSession({
     setChatLoading(false);
   };
 
+  // Loading timeout — fallback after 8 seconds
+  useEffect(() => {
+    if (loading) {
+      const t = setTimeout(() => {
+        if (cards.length === 0) {
+          const session = buildSmartSession(data, 10, 0);
+          if (session.length > 0) setCards(session);
+          else setDone(true);
+          setLoading(false);
+        }
+      }, 8000);
+      return () => clearTimeout(t);
+    }
+  }, [loading]);
+
   // Loading state
   if (loading) return <div style={inner}>
     <div style={{ textAlign: "center", padding: "60px 20px" }}>
       <div style={{ fontSize: 40, marginBottom: 16 }}>🧠</div>
       <div style={{ fontSize: 15, color: c.m }}>Building your session...</div>
       {coachingPlan?.sessionNotes && <div style={{ fontSize: 13, color: c.a, marginTop: 12, fontStyle: "italic" }}>{coachingPlan.sessionNotes}</div>}
+      <button onClick={() => { stopAudio(); setTab("home"); }} style={{ ...btn, marginTop: 24, padding: "8px 20px", borderRadius: 8, border: "1px solid " + c.b, background: "transparent", color: c.m, fontSize: 12 }}>← cancel</button>
     </div>
   </div>;
 

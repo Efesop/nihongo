@@ -31,6 +31,7 @@ export default function DailyDrill({
     </div>;
   }
   const card_=drillCards[drillI];
+  if(!card_){setDrillDone(true);return null;}
   const progress=(drillI/(drillCards.length))*100;
   if(card_.type==="kana"){
     const ch=card_.ch;const rom=ROMAJI[ch];const m=M[ch];

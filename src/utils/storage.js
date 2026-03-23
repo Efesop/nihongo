@@ -29,7 +29,7 @@ export const syncSave = async (token, data) => {
   } catch { /* offline — localStorage still holds it */ }
 };
 
-export const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,streak:1,lastDay:new Date().toDateString(),started:new Date().toISOString(),onboarded:false,onboarding:{}});
+export const defaultD=()=>({kana:{},phr:{},sessions:0,totalC:0,streak:1,lastDay:new Date().toDateString(),started:new Date().toISOString(),onboarded:false,onboarding:{},settings:{}});
 
 export const migrate=(raw)=>{
   if(!raw) return null;

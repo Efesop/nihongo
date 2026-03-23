@@ -510,9 +510,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   // ═══ TABS & ROUTING ═══
   const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"smart",icon:"▶",label:"Learn"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
   const handleTabClick=(id)=>{
+    stopAudio(); // Stop any playing audio on tab switch
     setTab(id);
     if(id==="phrases"){setPMode("browse");setPCat(null);setPCards([]);setPDone(false);setFastTrack(false);}
     if(id==="kana")setKScreen("menu");
+    if(id==="drill"){setDrillCards([]);setDrillI(0);setDrillFb(null);setDrillScore({c:0,w:0});setDrillDone(false);}
     if(id==="sensei"){}
   };
 
