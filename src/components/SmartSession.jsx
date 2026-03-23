@@ -136,58 +136,58 @@ export default function SmartSession({
     const elapsed = Math.round((Date.now() - startTime) / 1000);
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
-    return <div style={inner}>
-      <div style={{ textAlign: "center", padding: "40px 20px" }}>
-        <div style={{ fontSize: 60, marginBottom: 16 }}>🎌</div>
-        <h3 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 8px" }}>Session Complete!</h3>
+    const pct = score.c + score.w > 0 ? Math.round(score.c / (score.c + score.w) * 100) : 0;
 
-        <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 24, marginBottom: 24 }}>
+    // Grade + mascot pose based on performance
+    const grade = pct >= 90 ? { rank: "S", label: "Perfect!", img: "/images/tinysenpaistrike/4.png", color: c.go, note: "Making it harder next time", adj: -1 }
+      : pct >= 70 ? { rank: "A", label: "Great job!", img: "/images/tinysenpaistrike/1.png", color: c.g, note: "Good balance — keeping this level", adj: 0 }
+      : pct >= 50 ? { rank: "B", label: "Keep going!", img: "/images/tinysenpairun/ts1.png", color: c.a, note: "A bit tough — easing off slightly", adj: 1 }
+      : { rank: "C", label: "Let's practice more", img: "/images/tinysenpai2.png", color: c.m, note: "Tough session — easing off next time", adj: 1 };
+
+    // Auto-save difficulty adjustment
+    if (!sessionFeedback) {
+      setTimeout(() => {
+        setSessionFeedback(grade.note);
+        save({ settings: { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + grade.adj } });
+      }, 0);
+    }
+
+    return <div style={inner}>
+      <div style={{ textAlign: "center", padding: "30px 20px" }}>
+        {/* Mascot + Grade */}
+        <img src={grade.img} alt="TinySenpai" style={{ width: 100, height: 100, imageRendering: "pixelated", marginBottom: 12 }} />
+        <div style={{ fontSize: 48, fontWeight: 900, color: grade.color, fontFamily: mono, letterSpacing: "-.02em" }}>{grade.rank}</div>
+        <h3 style={{ fontSize: 22, fontWeight: 700, margin: "6px 0 4px" }}>{grade.label}</h3>
+        <div style={{ fontSize: 14, color: c.m }}>{pct}% correct</div>
+
+        {/* Stats */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 20, marginBottom: 20 }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 32, fontWeight: 700, color: c.g }}>{score.c}</div>
-            <div style={{ fontSize: 11, color: c.m, fontFamily: mono }}>correct</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: c.g }}>{score.c}</div>
+            <div style={{ fontSize: 10, color: c.m, fontFamily: mono }}>correct</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 32, fontWeight: 700, color: c.a }}>{score.w}</div>
-            <div style={{ fontSize: 11, color: c.m, fontFamily: mono }}>missed</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: c.a }}>{score.w}</div>
+            <div style={{ fontSize: 10, color: c.m, fontFamily: mono }}>missed</div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 32, fontWeight: 700, color: c.m }}>{mins}:{secs.toString().padStart(2, "0")}</div>
-            <div style={{ fontSize: 11, color: c.m, fontFamily: mono }}>time</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: c.m }}>{mins}:{secs.toString().padStart(2, "0")}</div>
+            <div style={{ fontSize: 10, color: c.m, fontFamily: mono }}>time</div>
           </div>
         </div>
 
-        {/* Auto-difficulty assessment */}
-        {(()=>{
-          const pct = score.c + score.w > 0 ? Math.round(score.c / (score.c + score.w) * 100) : 0;
-          const assessment = pct >= 90 ? { label: "Too easy — making it harder next time", adj: -1, color: c.go }
-            : pct < 60 ? { label: "Tough session — easing off next time", adj: 1, color: c.a }
-            : { label: "Good balance — keeping this level", adj: 0, color: c.g };
-          if (!sessionFeedback) {
-            setTimeout(() => {
-              setSessionFeedback(assessment.label);
-              save({ settings: { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + assessment.adj } });
-            }, 0);
-          }
-          return <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 13, color: assessment.color, fontWeight: 600 }}>{pct}% correct — {assessment.label}</div>
-            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
-              {[["Actually too easy", -1], ["Override: too hard", 1]].map(([label, adj]) =>
-                <button key={label} onClick={() => {
-                  save({ settings: { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + adj } });
-                  setSessionFeedback(label);
-                }} style={{ ...btn, padding: "6px 12px", borderRadius: 6, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: 11 }}>{label}</button>
-              )}
-            </div>
-          </div>;
-        })()}
+        {/* Difficulty note */}
+        <div style={{ fontSize: 12, color: grade.color, marginBottom: 16 }}>{grade.note}</div>
 
-        {struggled.length > 0 && <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, color: c.m, marginBottom: 8 }}>Struggled with:</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-            {struggled.map((item, i) => <span key={i} style={{ fontSize: 14, padding: "4px 10px", borderRadius: 6, background: c.go + "15", border: "1px solid " + c.go + "33", color: c.go }}>{item.label}</span>)}
+        {/* Struggled items */}
+        {struggled.length > 0 && <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: c.m, marginBottom: 6 }}>Struggled with:</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
+            {struggled.map((item, i) => <span key={i} style={{ fontSize: 13, padding: "3px 8px", borderRadius: 6, background: c.go + "12", border: "1px solid " + c.go + "28", color: c.go }}>{item.label}</span>)}
           </div>
         </div>}
 
+        {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
           <button onClick={() => { setCards([]); setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null); setLoading(true); }}
             style={{ ...btn, padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Continue (10 more)</button>
@@ -213,23 +213,46 @@ export default function SmartSession({
     else setCi(ci + 1);
   };
 
-  // ═══ FLOATING CHAT OVERLAY ═══
-  const floatingChat = <>
-    {!done && <button onClick={() => { setChatOpen(!chatOpen); if (!chatOpen && chatInputRef.current) setTimeout(() => chatInputRef.current?.focus(), 100); }}
-      style={{ position: "fixed", bottom: isDesktop ? 24 : 80, right: isDesktop ? 24 : 16, width: 48, height: 48, borderRadius: 24, background: c.a, color: "#fff", border: "none", fontSize: 20, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,.3)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {chatOpen ? "✕" : "💬"}
+  // ═══ SENPAI CHAT — integrated panel ═══
+  const senpaiChat = <>
+    {!done && <button onClick={() => { setChatOpen(!chatOpen); if (!chatOpen) setTimeout(() => chatInputRef.current?.focus(), 200); }}
+      style={{ position: "fixed", bottom: isDesktop ? 24 : 80, right: isDesktop ? 24 : 16, width: 52, height: 52, borderRadius: 26, background: "transparent", border: "2px solid " + c.b, cursor: "pointer", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", padding: 0 }}>
+      {chatOpen
+        ? <span style={{ fontSize: 20, color: c.m }}>✕</span>
+        : <img src="/images/tinysenpai2.png" alt="Ask Senpai" style={{ width: 40, height: 40, imageRendering: "pixelated" }} />}
     </button>}
-    {chatOpen && <div style={{ position: "fixed", bottom: isDesktop ? 80 : 136, right: isDesktop ? 24 : 16, left: isDesktop ? "auto" : 16, width: isDesktop ? 380 : "auto", maxHeight: "55vh", background: c.s, border: "1px solid " + c.b, borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,.4)", zIndex: 199, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid " + c.b, fontSize: 13, fontWeight: 600 }}>💬 Ask Senpai</div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8, minHeight: 120, maxHeight: "40vh" }}>
-        {chatMessages.length === 0 && <div style={{ fontSize: 12, color: c.m, fontStyle: "italic" }}>Ask me anything about what you're learning...</div>}
-        {chatMessages.map((m, i) => <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", padding: "8px 12px", borderRadius: 12, background: m.role === "user" ? c.a + "22" : c.s2, color: c.tx, fontSize: 13, maxWidth: "85%", lineHeight: 1.4 }}>{m.content}</div>)}
-        {chatLoading && <div style={{ fontSize: 12, color: c.m }}>Thinking...</div>}
+    {chatOpen && <div style={{ position: "fixed", bottom: isDesktop ? 84 : 140, right: isDesktop ? 16 : 12, left: isDesktop ? "auto" : 12, width: isDesktop ? 400 : "auto", maxHeight: "60vh", background: c.s, border: "1px solid " + c.b, borderRadius: 20, boxShadow: "0 12px 40px rgba(0,0,0,.5)", zIndex: 199, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Header with mascot */}
+      <div style={{ padding: "14px 18px", borderBottom: "1px solid " + c.b, display: "flex", alignItems: "center", gap: 12 }}>
+        <img src="/images/tinysenpai2.png" alt="Senpai" style={{ width: 32, height: 32, imageRendering: "pixelated" }} />
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Senpai</div>
+          <div style={{ fontSize: 10, color: c.m }}>Ask me anything</div>
+        </div>
       </div>
-      <div style={{ padding: "8px 12px", borderTop: "1px solid " + c.b, display: "flex", gap: 8 }}>
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "14px 18px", display: "flex", flexDirection: "column", gap: 10, minHeight: 140, maxHeight: "42vh" }}>
+        {chatMessages.length === 0 && <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+          <img src="/images/tinysenpai2.png" alt="" style={{ width: 24, height: 24, imageRendering: "pixelated", marginTop: 2 }} />
+          <div style={{ padding: "10px 14px", borderRadius: "4px 14px 14px 14px", background: c.s2, color: c.m, fontSize: 13, lineHeight: 1.5, maxWidth: "85%" }}>Need help with something? Ask me about any character or phrase you're learning! 🎌</div>
+        </div>}
+        {chatMessages.map((m, i) => m.role === "user"
+          ? <div key={i} style={{ alignSelf: "flex-end", padding: "10px 14px", borderRadius: "14px 4px 14px 14px", background: c.a + "22", color: c.tx, fontSize: 13, maxWidth: "80%", lineHeight: 1.5 }}>{m.content}</div>
+          : <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <img src="/images/tinysenpai2.png" alt="" style={{ width: 20, height: 20, imageRendering: "pixelated", marginTop: 2, flexShrink: 0 }} />
+              <div style={{ padding: "10px 14px", borderRadius: "4px 14px 14px 14px", background: c.s2, color: c.tx, fontSize: 13, maxWidth: "85%", lineHeight: 1.5 }}>{m.content}</div>
+            </div>
+        )}
+        {chatLoading && <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <img src="/images/tinysenpai2.png" alt="" style={{ width: 20, height: 20, imageRendering: "pixelated" }} />
+          <div style={{ fontSize: 12, color: c.m, fontStyle: "italic" }}>Thinking...</div>
+        </div>}
+      </div>
+      {/* Input */}
+      <div style={{ padding: "10px 14px", borderTop: "1px solid " + c.b, display: "flex", gap: 8 }}>
         <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") sendChat(); }}
-          placeholder="Ask about this character..." style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontSize: 13, outline: "none" }} />
-        <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "8px 14px", borderRadius: 8, background: c.a, color: "#fff", fontSize: 12, fontWeight: 600 }}>Send</button>
+          placeholder="Ask Senpai..." style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontSize: 14, outline: "none" }} />
+        <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "10px 16px", borderRadius: 10, background: chatInput.trim() ? c.a : c.b, color: chatInput.trim() ? "#fff" : c.m, fontSize: 13, fontWeight: 600 }}>→</button>
       </div>
     </div>}
   </>;
@@ -247,7 +270,7 @@ export default function SmartSession({
     <div style={{ height: 4, background: c.b, borderRadius: 4, marginBottom: 20, overflow: "hidden" }}>
       <div style={{ height: "100%", width: progress + "%", background: c.a, borderRadius: 4, transition: "width .3s" }} />
     </div>
-    {floatingChat}
+    {senpaiChat}
   </>;
 
   // ═══ EXERCISE: KANA VISUAL ═══
