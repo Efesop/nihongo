@@ -389,28 +389,34 @@ export function update(g, callbacks) {
     }
     if (p.slashTimer <= 0) e._hitThisSlash = false;
 
-    // Enemy attack → player (damage only in the strike window, not the wind-up)
-    // Timer counts DOWN: 600→0. Wind-up = 600-250, Strike = 250-100, Recovery = 100-0
-    if (e.state === "attack" && e.attackTimer > 80 && e.attackTimer < 250 &&
+    // Enemy attack → player. Damage window: the strike phase (lower half of timer)
+    if (e.state === "attack" && e.attackTimer < 350 &&
         !e.dead && !p.dead && p.invincible <= 0) {
-      if (Math.abs(e.x - p.x) < 45 && Math.abs(e.y - p.y) < TILE * SCALE) {
+      if (Math.abs(e.x - p.x) < 55 && Math.abs(e.y - p.y) < TILE * SCALE) {
         if (p.slashTimer > 0) {
-          // Clash! Player is slashing too — daze the enemy instead
-          e.dazed = 800;
+          // CLASH — both knocked back, enemy dazed longer, player brief stun
+          const knockDir = p.x < e.x ? -1 : 1;
+          // Knock both back
+          p.vx = knockDir * -350;
+          p.invincible = 500; // brief i-frames after clash
+          p.slashTimer = 0; // can't attack during knockback
+          p.comboWindow = 0;
+          p.slashCombo = 0;
+          // Enemy knocked back + dazed
+          e.dazed = 1000;
           e.state = "dazed";
-          e.vx = 0;
-          g.hitStop = 100;
-          g.camera.shakeTimer = 80;
+          e.vx = knockDir * 200;
+          g.hitStop = 120;
+          g.camera.shakeTimer = 120;
           g.floatingTexts.push({
             x: (p.x + e.x) / 2, y: Math.min(p.y, e.y) - 15,
             text: "CLASH!", color: "#ffdd44", life: 900, maxLife: 900,
           });
-          // Sparks
-          for (let i = 0; i < 10; i++) {
+          for (let i = 0; i < 12; i++) {
             g.particles.push({
               x: (p.x + e.x) / 2, y: p.y + TILE * SCALE * 0.4,
-              vx: rnd(-250, 250), vy: rnd(-350, -80),
-              life: 350, maxLife: 350, color: i < 4 ? "#ffffff" : "#ffdd44", size: rndInt(2, 4),
+              vx: rnd(-300, 300), vy: rnd(-400, -80),
+              life: 400, maxLife: 400, color: i < 4 ? "#ffffff" : "#ffdd44", size: rnd(1, 3),
             });
           }
         } else {

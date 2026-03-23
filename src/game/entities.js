@@ -68,62 +68,66 @@ export function updateEnemyAI(e, player, dt, projectiles) {
   if (e.type === "oni") {
     if (e.state === "attack") {
       e.attackTimer -= dt * 1000;
-      e.vx = 0;
-      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 500; }
+      // Lunge forward during strike
+      if (e.attackTimer < 300) e.vx = e.facing * MOVE_SPEED * 0.8;
+      else e.vx = 0;
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 300; }
     } else if (e.state === "cooldown") {
       e.attackTimer -= dt * 1000;
       e.vx = 0;
-      if (e.attackTimer <= 0) e.state = "patrol";
+      if (e.attackTimer <= 0) e.state = "chase";
     } else if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") e.alert = 600;
+      if (e.state === "patrol") e.alert = 400;
       e.state = "chase";
       e.facing = toPlayer;
-      e.vx = toPlayer * MOVE_SPEED * 0.55;
-      if (dist < 50) { e.state = "attack"; e.attackTimer = 800; }
+      e.vx = toPlayer * MOVE_SPEED * 0.7; // faster chase
+      if (dist < 65) { e.state = "attack"; e.attackTimer = 600; } // bigger attack range
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
-      e.vx = e.facing * 40;
+      e.vx = e.facing * 50;
     }
   } else if (e.type === "ninja") {
     if (dist > 20 && playerVisible) e.facing = toPlayer;
     e.vx = 0;
     if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") e.alert = 600;
+      if (e.state === "patrol") e.alert = 400;
       e.state = "chase";
       e.attackTimer -= dt * 1000;
       if (e.attackTimer <= 0) {
+        // Faster shuriken
         projectiles.push({
-          x: e.x, y: e.y + 24, vx: toPlayer * 350, vy: 0,
+          x: e.x, y: e.y + 24, vx: toPlayer * 450, vy: 0,
           type: "shuriken", timer: 3000, rotation: 0, trail: [],
         });
-        e.attackTimer = e.attackCooldown;
-        e.throwAnim = 500;
+        e.attackTimer = 900; // fires more often
+        e.throwAnim = 400;
       }
-      if (dist < 80) e.vx = -toPlayer * 120;
+      if (dist < 100) e.vx = -toPlayer * 150; // retreats faster
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
-      e.vx = e.facing * 30;
+      e.vx = e.facing * 35;
     }
   } else if (e.type === "samurai") {
     if (e.state === "attack") {
       e.attackTimer -= dt * 1000;
-      e.vx = 0;
-      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 600; }
+      if (e.attackTimer < 250) e.vx = e.facing * MOVE_SPEED * 0.6;
+      else e.vx = 0;
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 400; }
     } else if (e.state === "cooldown") {
       e.attackTimer -= dt * 1000;
       e.vx = 0;
-      if (e.attackTimer <= 0) e.state = "patrol";
+      if (e.attackTimer <= 0) e.state = "chase";
     } else if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") e.alert = 600;
+      if (e.state === "patrol") e.alert = 400;
       e.facing = toPlayer;
-      e.vx = toPlayer * MOVE_SPEED * 0.4;
-      if (dist < 55) { e.state = "attack"; e.attackTimer = e.attackCooldown; }
+      e.vx = toPlayer * MOVE_SPEED * 0.5;
+      if (dist < 60) { e.state = "attack"; e.attackTimer = 700; }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
-      e.vx = e.facing * 30;
+      e.vx = e.facing * 35;
     }
   }
 
