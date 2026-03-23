@@ -84,6 +84,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // ═══ BUILD THE QUEUE ═══
 
+  // Items the user asked Senpai for help on — prioritise these
+  const helpRequested = data.settings?.helpRequested || [];
+  const helpKana = helpRequested.filter(id => ALL_BASE_KANA.includes(id));
+  const helpPhrases = helpRequested.filter(id => PHRASES.find(p => p[0] === id));
+
+  // Add helped items first (they struggled enough to ask)
+  helpKana.slice(0, 2).forEach(ch => { if (ROMAJI[ch]) queue.push(kanaExercise(ch)); });
+  helpPhrases.slice(0, 1).forEach(id => { const p = PHRASES.find(pp => pp[0] === id); if (p) queue.push(phraseExercise(p)); });
+
   // Start with 1-2 easy wins (due items the user probably knows)
   const easyWins = shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 2);
   easyWins.forEach(ch => queue.push(kanaExercise(ch)));
