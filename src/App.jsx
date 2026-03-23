@@ -515,7 +515,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
 
   if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
-  const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}`;
+  const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`;
 
   // ═══ TABS & ROUTING ═══
   const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"smart",icon:"▶",label:"Learn"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];

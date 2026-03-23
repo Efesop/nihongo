@@ -28,8 +28,26 @@ export default function SmartSession({
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [senpaiMsg, setSenpaiMsg] = useState(null);
+  const [streak, setStreak] = useState(0);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Senpai personality — harsh but firm sensei
+  const senpaiReact = (correct) => {
+    const newStreak = correct ? streak + 1 : 0;
+    setStreak(newStreak);
+    let msg = null;
+    if (correct && newStreak === 3) msg = "Hmph. Not terrible.";
+    else if (correct && newStreak === 5) msg = "...Acceptable. Keep going.";
+    else if (correct && newStreak >= 7) msg = "Don't get cocky. You still have much to learn.";
+    else if (!correct && streak >= 3) msg = "Careless. Focus.";
+    else if (!correct) {
+      const wrongs = ["Again.", "Sloppy.", "Pay attention.", "Disappointing.", "Try harder."];
+      if (Math.random() < 0.4) msg = wrongs[Math.floor(Math.random() * wrongs.length)];
+    }
+    if (msg) { setSenpaiMsg(msg); setTimeout(() => setSenpaiMsg(null), 3000); }
+  };
 
   const situations = { greet: "You meet someone.", food: "You're at a restaurant.", train: "You're navigating transport.", hotel: "You're at your hotel.", shop: "You're at a store.", dir: "You need directions.", sos: "It's an emergency." };
 
@@ -155,7 +173,7 @@ export default function SmartSession({
     return <div style={inner}>
       <div style={{ textAlign: "center", padding: "30px 20px" }}>
         {/* Mascot + Grade */}
-        <img src={grade.img} alt="TinySenpai" style={{ width: 100, height: 100, imageRendering: "pixelated", marginBottom: 12 }} />
+        <img src={grade.img} alt="TinySenpai" style={{ width: 160, height: 160, imageRendering: "pixelated", marginBottom: 12 }} />
         <div style={{ fontSize: 48, fontWeight: 900, color: grade.color, fontFamily: mono, letterSpacing: "-.02em" }}>{grade.rank}</div>
         <h3 style={{ fontSize: 22, fontWeight: 700, margin: "6px 0 4px" }}>{grade.label}</h3>
         <div style={{ fontSize: 14, color: c.m }}>{pct}% correct</div>
@@ -207,6 +225,8 @@ export default function SmartSession({
   const mins = Math.floor(elapsed / 60);
 
   const advance = (correct) => {
+    stopAudio(); // Prevent audio overlap between cards
+    senpaiReact(correct);
     if (!correct) setStruggled(s => [...s, { label: typeof ex.item === 'string' ? ex.item : ex.item[1], type: ex.type }]);
     setFb(null); setInput(""); setChoiceAnswer(null);
     if (ci + 1 >= cards.length) setDone(true);
@@ -270,6 +290,10 @@ export default function SmartSession({
     <div style={{ height: 4, background: c.b, borderRadius: 4, marginBottom: 20, overflow: "hidden" }}>
       <div style={{ height: "100%", width: progress + "%", background: c.a, borderRadius: 4, transition: "width .3s" }} />
     </div>
+    {/* Senpai reaction bubble */}
+    {senpaiMsg && <div style={{ position: "fixed", bottom: isDesktop ? 84 : 140, right: isDesktop ? 24 : 16, display: "flex", alignItems: "flex-end", gap: 8, zIndex: 198, animation: "fadeInUp .3s ease-out" }}>
+      <div style={{ padding: "10px 16px", borderRadius: "14px 14px 4px 14px", background: c.s, border: "1px solid " + c.b, boxShadow: "0 4px 16px rgba(0,0,0,.3)", fontSize: 13, color: c.tx, fontWeight: 500, maxWidth: 220, lineHeight: 1.4 }}>{senpaiMsg}</div>
+    </div>}
     {senpaiChat}
   </>;
 
@@ -282,23 +306,26 @@ export default function SmartSession({
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
       updateKanaSRS(ex.item, ok);
       setTimeout(() => speak(ex.item), 250);
-      setTimeout(() => advance(ok), ok ? 2000 : 3000);
+      setTimeout(() => advance(ok), ok ? 1800 : 4000); // Longer for wrong — study the image
     };
     const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
     const imgPath = `/images/mnemonics/approved/${isHira ? "hiragana" : "katakana"}/${ex.item.codePointAt(0).toString(16)}.png`;
     const m = M[ex.item];
     return <div style={inner}>{header}
-      <div style={{ ...card, textAlign: "center", padding: "40px 24px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
+      <div style={{ ...card, textAlign: "center", padding: "36px 20px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
         {!fb && <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 12 }}>What is this character?</div>}
-        {fb ? <div style={{ display: "flex", alignItems: "center", gap: 16, justifyContent: "center" }}>
-          <div>
-            <div style={{ fontSize: 80, lineHeight: 1, marginBottom: 8 }}>{ex.item}</div>
-            <div style={{ fontSize: 28, fontWeight: 700, color: fb === "ok" ? c.g : c.a, fontFamily: mono }}>{ex.romaji}</div>
-            <div style={{ fontSize: 13, color: c.m, marginTop: 4 }}>{fb === "ok" ? "✓ Correct!" : "✗ Wrong"}</div>
+        {fb ? <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, justifyContent: "center" }}>
+            <div>
+              <div style={{ fontSize: 100, lineHeight: 1, marginBottom: 8 }}>{ex.item}</div>
+              <div style={{ fontSize: 32, fontWeight: 700, color: fb === "ok" ? c.g : c.a, fontFamily: mono }}>{ex.romaji}</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: fb === "ok" ? c.g : c.a, marginTop: 6 }}>{fb === "ok" ? "✓ Correct!" : "✗ Wrong"}</div>
+            </div>
+            <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }} style={{ width: "45%", maxWidth: 200, borderRadius: 12 }} />
           </div>
-          <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }} style={{ width: "40%", maxWidth: 160, borderRadius: 10 }} />
+          {fb === "no" && m && <div style={{ fontSize: 12, color: c.m, marginTop: 12, fontStyle: "italic" }}>{m[0]} {m[1]}: {m[2]}</div>}
         </div>
-        : <div style={{ fontSize: 120, lineHeight: 1, marginBottom: 16 }}>{ex.item}</div>}
+        : <div style={{ fontSize: 130, lineHeight: 1, marginBottom: 16 }}>{ex.item}</div>}
       </div>
       {!fb && <div style={{ display: "flex", gap: 8 }}>
         <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") submit(); }}
@@ -380,7 +407,7 @@ export default function SmartSession({
             reviewPhr(p[0], correct);
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
             setTimeout(() => advance(correct), correct ? 2500 : 1800);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? 18 : 16, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? 20 : 17, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
             {choice[1]}
             <div style={{ fontSize: 11, fontFamily: mono, color: c.m, marginTop: 2, opacity: .6 }}>{choice[2]}</div>
           </button>;
