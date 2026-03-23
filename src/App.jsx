@@ -110,7 +110,10 @@ function AuthedApp({ user, getToken }){
   const [drillScore,setDrillScore]=useState({c:0,w:0});
   const [drillDone,setDrillDone]=useState(false);
   // profile
-  const [profile,setProfile]=useState(()=>store.get("nihongo-profile")||{name:"",notes:""});
+  const [profile,setProfile]=useState(()=>{
+    const local=store.get("nihongo-profile");
+    return local||{name:"",notes:""};
+  });
   const [showProfile,setShowProfile]=useState(false);
   const [onboardStep,setOnboardStep]=useState(0);
   const [onboardAnswers,setOnboardAnswers]=useState({});
@@ -136,6 +139,7 @@ function AuthedApp({ user, getToken }){
     const np={...profile,...u};
     setProfile(np);
     store.set("nihongo-profile",np);
+    save({profile:np}); // Also sync to DB so it persists across devices
   };
 
   useEffect(()=>{
@@ -175,6 +179,8 @@ function AuthedApp({ user, getToken }){
           if(nd.streak>oldStreak){setStreakCelebrate(true);setTimeout(()=>setStreakCelebrate(false),3500);}
         }
       }
+      // Restore profile from DB if available (cross-device sync)
+      if(nd?.profile){setProfile(p=>({...p,...nd.profile}));store.set("nihongo-profile",nd.profile);}
       setLoaded(true);
     };
     init();
@@ -292,9 +298,10 @@ function AuthedApp({ user, getToken }){
     if(kFb||!kInput.trim())return;
     const ch=kCards[kI];const rom=ROMAJI[ch];
     const ok=kInput.trim().toLowerCase()===rom;
+    const trueOk=ok&&!kPeek; // Peeked answers don't count as mastered
     if(ok){setKFb("ok");setKScore(s=>({...s,c:s.c+1}));}
     else{setKFb("no");setKScore(s=>({...s,w:s.w+1}));setKMistakes(m=>[...m,{ch,rom,ans:kInput.trim()}]);}
-    updateKanaSRS(ch,ok);
+    updateKanaSRS(ch,trueOk);
     setTimeout(()=>speak(ch),250);
   };
 

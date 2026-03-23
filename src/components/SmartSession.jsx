@@ -156,18 +156,30 @@ export default function SmartSession({
           </div>
         </div>
 
-        {/* Session feedback */}
-        {!sessionFeedback ? <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 13, color: c.m, marginBottom: 10 }}>How was that?</div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            {[["Too easy", -1], ["Just right", 0], ["Too hard", 1]].map(([label, adj]) =>
-              <button key={label} onClick={() => {
-                setSessionFeedback(label);
-                save({ settings: { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + adj } });
-              }} style={{ ...btn, padding: "8px 16px", borderRadius: 8, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontSize: 12 }}>{label}</button>
-            )}
-          </div>
-        </div> : <div style={{ fontSize: 13, color: c.g, marginBottom: 24 }}>Thanks! Next session adjusted.</div>}
+        {/* Auto-difficulty assessment */}
+        {(()=>{
+          const pct = score.c + score.w > 0 ? Math.round(score.c / (score.c + score.w) * 100) : 0;
+          const assessment = pct >= 90 ? { label: "Too easy — making it harder next time", adj: -1, color: c.go }
+            : pct < 60 ? { label: "Tough session — easing off next time", adj: 1, color: c.a }
+            : { label: "Good balance — keeping this level", adj: 0, color: c.g };
+          if (!sessionFeedback) {
+            setTimeout(() => {
+              setSessionFeedback(assessment.label);
+              save({ settings: { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + assessment.adj } });
+            }, 0);
+          }
+          return <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: assessment.color, fontWeight: 600 }}>{pct}% correct — {assessment.label}</div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 10 }}>
+              {[["Actually too easy", -1], ["Override: too hard", 1]].map(([label, adj]) =>
+                <button key={label} onClick={() => {
+                  save({ settings: { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + adj } });
+                  setSessionFeedback(label);
+                }} style={{ ...btn, padding: "6px 12px", borderRadius: 6, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: 11 }}>{label}</button>
+              )}
+            </div>
+          </div>;
+        })()}
 
         {struggled.length > 0 && <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, color: c.m, marginBottom: 8 }}>Struggled with:</div>
@@ -247,13 +259,23 @@ export default function SmartSession({
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
       updateKanaSRS(ex.item, ok);
       setTimeout(() => speak(ex.item), 250);
-      setTimeout(() => advance(ok), ok ? 1500 : 2500);
+      setTimeout(() => advance(ok), ok ? 2000 : 3000);
     };
+    const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
+    const imgPath = `/images/mnemonics/approved/${isHira ? "hiragana" : "katakana"}/${ex.item.codePointAt(0).toString(16)}.png`;
+    const m = M[ex.item];
     return <div style={inner}>{header}
       <div style={{ ...card, textAlign: "center", padding: "40px 24px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
-        <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 12 }}>What is this character?</div>
-        <div style={{ fontSize: 120, lineHeight: 1, marginBottom: 16 }}>{ex.item}</div>
-        {fb === "no" && <div style={{ fontSize: 24, fontWeight: 700, color: c.a, fontFamily: mono }}>{ex.romaji}</div>}
+        {!fb && <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 12 }}>What is this character?</div>}
+        {fb ? <div style={{ display: "flex", alignItems: "center", gap: 16, justifyContent: "center" }}>
+          <div>
+            <div style={{ fontSize: 80, lineHeight: 1, marginBottom: 8 }}>{ex.item}</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: fb === "ok" ? c.g : c.a, fontFamily: mono }}>{ex.romaji}</div>
+            <div style={{ fontSize: 13, color: c.m, marginTop: 4 }}>{fb === "ok" ? "✓ Correct!" : "✗ Wrong"}</div>
+          </div>
+          <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }} style={{ width: "40%", maxWidth: 160, borderRadius: 10 }} />
+        </div>
+        : <div style={{ fontSize: 120, lineHeight: 1, marginBottom: 16 }}>{ex.item}</div>}
       </div>
       {!fb && <div style={{ display: "flex", gap: 8 }}>
         <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") submit(); }}
@@ -280,8 +302,16 @@ export default function SmartSession({
         <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 12 }}>What did you hear?</div>
         <div style={{ fontSize: 60, marginBottom: 16 }}>👂</div>
         <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 play again</button>
-        {fb && <div style={{ fontSize: 80, lineHeight: 1, marginTop: 16 }}>{ex.item}</div>}
-        {fb === "no" && <div style={{ fontSize: 24, fontWeight: 700, color: c.a, fontFamily: mono, marginTop: 8 }}>{ex.romaji}</div>}
+        {fb && <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
+            <div>
+              <div style={{ fontSize: 60, lineHeight: 1 }}>{ex.item}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: fb === "ok" ? c.g : c.a, fontFamily: mono, marginTop: 4 }}>{ex.romaji}</div>
+              <div style={{ fontSize: 12, color: c.m, marginTop: 2 }}>{fb === "ok" ? "✓ Correct!" : "✗ Wrong"}</div>
+            </div>
+            {(()=>{const isH=ex.item.charCodeAt(0)>=0x3040&&ex.item.charCodeAt(0)<=0x309F;return <img src={`/images/mnemonics/approved/${isH?"hiragana":"katakana"}/${ex.item.codePointAt(0).toString(16)}.png`} alt="" onError={e=>{e.target.style.display="none";}} style={{width:"35%",maxWidth:130,borderRadius:10}}/>;})()}
+          </div>
+        </div>}
       </div>
       {!fb && <div style={{ display: "flex", gap: 8 }}>
         <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") submit(); }}

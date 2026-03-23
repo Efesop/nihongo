@@ -6,7 +6,7 @@ export const setTtsAudio = (val) => { _ttsAudio = val; };
 const _isKana=(ch)=>/^[\u3040-\u30FF]$/.test(ch);
 
 export const _playAudio=(src,rate=1,onEnd=null,onErr=null)=>{
-  if(_ttsAudio){_ttsAudio.pause();_ttsAudio=null;}
+  if(_ttsAudio){_ttsAudio.pause();_ttsAudio.src="";_ttsAudio=null;}
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   const a=new Audio(src); a.playbackRate=rate; _ttsAudio=a;
   if(onEnd) a.onended=onEnd;
