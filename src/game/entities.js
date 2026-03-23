@@ -6,7 +6,7 @@ export function makePlayer(groundY, startX = 100) {
     x: startX, y: groundY - TILE * SCALE, vx: 0, vy: 0,
     facing: 1, state: "idle", frame: 0, frameTimer: 0,
     slashTimer: 0, slashDuration: 0, dashTimer: 0, dashCooldown: 0, dead: false,
-    grounded: false, invincible: 0,
+    grounded: false, wallSliding: false, wallDir: 0, invincible: 0,
     afterimages: [],
     slashCombo: 0, comboWindow: 0,
   };

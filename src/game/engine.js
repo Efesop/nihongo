@@ -198,11 +198,27 @@ export function update(g, callbacks) {
     });
   }
 
-  // Jump
-  if (g.input.jumpPressed && p.grounded) {
-    p.vy = JUMP_FORCE;
-    p.grounded = false;
-    spawnDust(g, p.x, p.y + TILE * SCALE);
+  // Jump + wall jump
+  if (g.input.jumpPressed) {
+    if (p.grounded) {
+      p.vy = JUMP_FORCE;
+      p.grounded = false;
+      spawnDust(g, p.x, p.y + TILE * SCALE);
+    } else if (p.wallSliding) {
+      // Wall jump — launch away from wall
+      p.vy = JUMP_FORCE * 0.85;
+      p.vx = -p.wallDir * MOVE_SPEED * 1.2;
+      p.facing = -p.wallDir;
+      p.wallSliding = false;
+      // Wall jump dust
+      for (let i = 0; i < 4; i++) {
+        g.particles.push({
+          x: p.x + p.wallDir * 15, y: p.y + rnd(10, TILE * SCALE - 10),
+          vx: -p.wallDir * rnd(30, 80), vy: rnd(-50, 50),
+          life: 200, maxLife: 200, color: "#888888", size: rndInt(1, 3),
+        });
+      }
+    }
   }
   g.input.jumpPressed = false;
 
@@ -304,6 +320,36 @@ export function update(g, callbacks) {
   }
 
   p.x = Math.max(10, Math.min(g.levelW - 10, p.x));
+
+  // Wall sliding detection — check if player is against a wall while airborne
+  p.wallSliding = false;
+  p.wallDir = 0;
+  if (!p.grounded && p.vy > 0) {
+    const pw = TILE * SCALE * 0.5;
+    for (const plat of g.platforms) {
+      // Only walls that are tall enough (platforms with h > 30 or walls array)
+      if (!plat.wall) continue;
+      const playerBottom = p.y + TILE * SCALE;
+      const playerTop = p.y;
+      // Check right side of player against left side of wall
+      if (p.x + pw > plat.x && p.x + pw < plat.x + 10 &&
+          playerBottom > plat.y && playerTop < plat.y + plat.h) {
+        p.wallSliding = true;
+        p.wallDir = 1; // wall is to the right
+        p.vy = Math.min(p.vy, 100); // slow fall
+        p.x = plat.x - pw;
+      }
+      // Check left side of player against right side of wall
+      if (p.x - pw < plat.x + plat.w && p.x - pw > plat.x + plat.w - 10 &&
+          playerBottom > plat.y && playerTop < plat.y + plat.h) {
+        p.wallSliding = true;
+        p.wallDir = -1; // wall is to the left
+        p.vy = Math.min(p.vy, 100); // slow fall
+        p.x = plat.x + plat.w + pw;
+      }
+    }
+  }
+
   if (p.y > g.H + 100) killPlayer(g, callbacks);
 
   // Slash timer

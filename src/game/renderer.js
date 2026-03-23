@@ -61,25 +61,37 @@ export function render(g, ctx, isDesktop, font) {
   // Decorations
   for (const d of g.decorations) renderDeco(ctx, d, g.groundY, g.time.elapsed);
 
-  // Platforms
+  // Platforms + walls
   for (const plat of g.platforms) {
-    if (plat.x + plat.w < cx - 50 || plat.x > cx + W + 50) continue;
+    if (plat.x + (plat.w || 0) < cx - 50 || plat.x > cx + W + 50) continue;
     const hasBg = !!getImage("bg_forest");
-    const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
-    grad.addColorStop(0, hasBg ? "#1a2a20" : "#1e1e30");
-    grad.addColorStop(1, hasBg ? "#0e1a14" : "#12121e");
-    ctx.fillStyle = grad;
-    ctx.fillRect(plat.x, plat.y, plat.w, 14);
     const accent = hasBg ? "#3a8a5a" : "#c0282a";
-    ctx.fillStyle = accent;
-    ctx.fillRect(plat.x, plat.y, plat.w, 1);
-    ctx.fillStyle = accent + "55";
-    ctx.fillRect(plat.x, plat.y + 1, plat.w, 1);
-    ctx.fillStyle = accent + "18";
-    ctx.fillRect(plat.x, plat.y + 2, plat.w, 3);
-    ctx.fillStyle = accent + "22";
-    ctx.fillRect(plat.x, plat.y, 1, 14);
-    ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, 14);
+
+    if (plat.wall) {
+      // Solid wall block — darker, wall-jumpable
+      const h = plat.h || 100;
+      ctx.fillStyle = hasBg ? "#0e1a14" : "#12121e";
+      ctx.fillRect(plat.x, plat.y, plat.w, h);
+      ctx.fillStyle = accent + "44";
+      ctx.fillRect(plat.x, plat.y, 1, h);
+      ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, h);
+      ctx.fillStyle = accent + "66";
+      ctx.fillRect(plat.x, plat.y, plat.w, 1);
+    } else {
+      // Standard thin platform
+      const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
+      grad.addColorStop(0, hasBg ? "#1a2a20" : "#1e1e30");
+      grad.addColorStop(1, hasBg ? "#0e1a14" : "#12121e");
+      ctx.fillStyle = grad;
+      ctx.fillRect(plat.x, plat.y, plat.w, 14);
+      ctx.fillStyle = accent;
+      ctx.fillRect(plat.x, plat.y, plat.w, 1);
+      ctx.fillStyle = accent + "55";
+      ctx.fillRect(plat.x, plat.y + 1, plat.w, 1);
+      ctx.fillStyle = accent + "22";
+      ctx.fillRect(plat.x, plat.y, 1, 14);
+      ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, 14);
+    }
   }
 
   // ── Shadow zones ──
