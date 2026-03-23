@@ -241,38 +241,47 @@ export default function SmartSession({
     else setCi(ci + 1);
   };
 
-  // ═══ SENPAI BAR — sits below exercise content ═══
+  // ═══ SENPAI — mascot circle + reactions + expandable chat ═══
+  const hoverQuips = ["What do you need?", "Speak.", "Don't waste my time.", "...Yes?", "Hurry up."];
+  const [hoverQuip, setHoverQuip] = useState("");
+
   const senpaiBar = <div style={{ marginTop: 20 }}>
-    {/* Chat messages expand above when chatting */}
-    {chatOpen && chatMessages.length > 0 && <div style={{ maxHeight: 180, overflowY: "auto", marginBottom: 8, padding: "8px 12px", background: c.s2, borderRadius: "12px 12px 0 0", border: "1px solid " + c.b, borderBottom: "none" }}>
-      {chatMessages.slice(-4).map((m, i) => m.role === "user"
-        ? <div key={i} style={{ textAlign: "right", marginBottom: 6 }}><span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "10px 4px 10px 10px", background: c.a + "18", color: c.tx, fontSize: 12, maxWidth: "75%" }}>{m.content}</span></div>
-        : <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 6 }}>
-            <img src="/images/tinysenpai2.png" alt="" style={{ width: 18, height: 18, imageRendering: "pixelated", flexShrink: 0, marginTop: 2 }} />
-            <span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "4px 10px 10px 10px", background: c.s, color: c.tx, fontSize: 12, lineHeight: 1.4, maxWidth: "80%" }}>{m.content}</span>
-          </div>
-      )}
-      {chatLoading && <div style={{ fontSize: 11, color: c.m, fontStyle: "italic" }}>Thinking...</div>}
+    {/* Chat messages expand above when open */}
+    {chatOpen && <div style={{ background: c.s2, borderRadius: "14px 14px 0 0", border: "1px solid " + c.b, borderBottom: "none", overflow: "hidden" }}>
+      {chatMessages.length > 0 && <div style={{ maxHeight: 180, overflowY: "auto", padding: "10px 14px" }}>
+        {chatMessages.slice(-4).map((m, i) => m.role === "user"
+          ? <div key={i} style={{ textAlign: "right", marginBottom: 6 }}><span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "10px 4px 10px 10px", background: c.a + "18", color: c.tx, fontSize: 12, maxWidth: "75%" }}>{m.content}</span></div>
+          : <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 6 }}>
+              <img src="/images/tinysenpai2.png" alt="" style={{ width: 18, height: 18, imageRendering: "pixelated", flexShrink: 0, marginTop: 2 }} />
+              <span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "4px 10px 10px 10px", background: c.s, color: c.tx, fontSize: 12, lineHeight: 1.4, maxWidth: "80%" }}>{m.content}</span>
+            </div>
+        )}
+        {chatLoading && <div style={{ fontSize: 11, color: c.m, fontStyle: "italic", padding: "4px 14px" }}>Thinking...</div>}
+      </div>}
+      <div style={{ display: "flex", gap: 8, padding: "10px 14px", borderTop: chatMessages.length > 0 ? "1px solid " + c.b : "none" }}>
+        <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") sendChat(); if (e.key === "Escape") { setChatOpen(false); setChatInput(""); } }}
+          placeholder="Ask Senpai anything..."
+          style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid " + c.b, background: c.s, color: c.tx, fontSize: 13, outline: "none" }} />
+        {chatInput.trim() && <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "8px 14px", borderRadius: 8, background: c.a, color: "#fff", fontSize: 12, fontWeight: 600, flexShrink: 0 }}>→</button>}
+        <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "6px 10px", borderRadius: 8, background: "transparent", border: "1px solid " + c.b, color: c.m, fontSize: 12, flexShrink: 0 }}>✕</button>
+      </div>
     </div>}
-    {/* Compact pill — mascot + reaction or input */}
-    <div onClick={() => { if (!chatOpen && !senpaiMsg) { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 100); } }}
-      onMouseEnter={() => setSenpaiHover(true)} onMouseLeave={() => setSenpaiHover(false)}
-      style={{ display: "flex", alignItems: "center", gap: 10, padding: chatOpen ? "8px 12px" : "6px 12px", background: c.s2, borderRadius: chatOpen && chatMessages.length > 0 ? "0 0 12px 12px" : 30, border: "1px solid " + c.b, cursor: chatOpen ? "default" : "pointer", transition: "all .2s", maxWidth: chatOpen ? "100%" : (senpaiMsg ? "100%" : 220), marginLeft: chatOpen ? 0 : "auto", marginRight: chatOpen ? 0 : "auto" }}>
-      <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
-        style={{ width: senpaiHover ? 36 : 28, height: senpaiHover ? 36 : 28, imageRendering: "pixelated", flexShrink: 0, transition: "all .15s" }} />
-      {senpaiMsg && !chatOpen
-        ? <div style={{ flex: 1, fontSize: 12, color: c.tx, fontWeight: 500, animation: "fadeInUp .3s ease-out" }}>{senpaiMsg}</div>
-        : chatOpen
-          ? <><input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") sendChat(); if (e.key === "Escape") { setChatOpen(false); setChatInput(""); } }}
-              placeholder="Ask Senpai anything..."
-              style={{ flex: 1, padding: "6px 0", border: "none", background: "transparent", color: c.tx, fontSize: 13, outline: "none" }} />
-            {chatInput.trim() && <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "5px 12px", borderRadius: 8, background: c.a, color: "#fff", fontSize: 11, fontWeight: 600, flexShrink: 0 }}>→</button>}
-            <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: "transparent", color: c.m, fontSize: 14, flexShrink: 0 }}>✕</button>
-          </>
-          : <span style={{ fontSize: 11, color: c.m }}>Ask Senpai</span>
-      }
-    </div>
+    {/* Mascot circle — reactions pop out, click to open chat */}
+    {!chatOpen && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      {/* Reaction text (left of mascot) */}
+      {(senpaiMsg || (senpaiHover && hoverQuip)) && <div style={{ fontSize: 12, color: c.tx, fontWeight: 500, animation: "fadeInUp .25s ease-out", maxWidth: 180, textAlign: "right" }}>
+        {senpaiMsg || hoverQuip}
+      </div>}
+      {/* Mascot circle */}
+      <div onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); }}
+        onMouseEnter={() => { setSenpaiHover(true); setHoverQuip(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); }}
+        onMouseLeave={() => { setSenpaiHover(false); setHoverQuip(""); }}
+        style={{ width: 52, height: 52, borderRadius: 26, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "border-color .2s", flexShrink: 0 }}>
+        <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
+          style={{ width: 40, height: 40, imageRendering: "pixelated" }} />
+      </div>
+    </div>}
   </div>;
 
   // ═══ HEADER (shared across all exercise types) ═══
