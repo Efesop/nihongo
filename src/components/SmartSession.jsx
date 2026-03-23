@@ -31,9 +31,11 @@ export default function SmartSession({
   const [senpaiMsg, setSenpaiMsg] = useState(null);
   const [senpaiHover, setSenpaiHover] = useState(false);
   const [hoverQuip, setHoverQuip] = useState("");
+  const [typingText, setTypingText] = useState("");
   const [streak, setStreak] = useState(0);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
+  const typingRef = useRef(null);
 
   // Typewriter effect for senpai speech
   const typeOut = (text, displayMs = 3000) => {
@@ -260,8 +262,6 @@ export default function SmartSession({
 
   // ═══ SENPAI — mascot circle + reactions + expandable chat ═══
   const hoverQuips = ["What do you need from me?", "Speak. I don't have all day.", "Don't waste my time, student.", "...You have a question?", "Hurry up and ask already.", "This better be important.", "You dare interrupt my meditation?"];
-  const [typingText, setTypingText] = useState("");
-  const typingRef = useRef(null);
 
   const senpaiBar = <div style={{ marginTop: 20 }}>
     {/* Chat messages expand above when open */}
