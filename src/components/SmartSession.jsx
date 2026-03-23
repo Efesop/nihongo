@@ -263,17 +263,20 @@ export default function SmartSession({
   const hoverQuips = ["What do you need from me?", "Speak. I don't have all day.", "Don't waste my time, student.", "...You have a question?", "Hurry up and ask already.", "This better be important.", "You dare interrupt my meditation?"];
 
   const senpaiBar = <div style={{ marginTop: 20 }}>
-    {/* Chat messages expand above when open */}
-    {chatOpen && <div style={{ background: c.s2, borderRadius: "14px 14px 0 0", border: "1px solid " + c.b, borderBottom: "none", overflow: "hidden" }}>
-      {chatMessages.length > 0 && <div style={{ maxHeight: 180, overflowY: "auto", padding: "10px 14px" }}>
+    {/* Chat panel — opens below mascot */}
+    {chatOpen && <div style={{ background: c.s2, borderRadius: 14, border: "1px solid " + c.b, overflow: "hidden", marginTop: 8 }}>
+      {chatMessages.length > 0 && <div style={{ maxHeight: 200, overflowY: "auto", padding: "12px 14px" }}>
         {chatMessages.slice(-4).map((m, i) => m.role === "user"
-          ? <div key={i} style={{ textAlign: "right", marginBottom: 6 }}><span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "10px 4px 10px 10px", background: c.a + "18", color: c.tx, fontSize: 12, maxWidth: "75%" }}>{m.content}</span></div>
-          : <div key={i} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginBottom: 6 }}>
-              <img src="/images/tinysenpai2.png" alt="" style={{ width: 18, height: 18, imageRendering: "pixelated", flexShrink: 0, marginTop: 2 }} />
-              <span style={{ display: "inline-block", padding: "7px 11px", borderRadius: "4px 10px 10px 10px", background: c.s, color: c.tx, fontSize: 12, lineHeight: 1.4, maxWidth: "80%" }}>{m.content}</span>
+          ? <div key={i} style={{ textAlign: "right", marginBottom: 8 }}><span style={{ display: "inline-block", padding: "8px 12px", borderRadius: "10px 4px 10px 10px", background: c.a + "18", color: c.tx, fontSize: 13, maxWidth: "75%" }}>{m.content}</span></div>
+          : <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
+              <img src="/images/tinysenpai2.png" alt="" style={{ width: 28, height: 28, imageRendering: "pixelated", flexShrink: 0, marginTop: 2 }} />
+              <span style={{ display: "inline-block", padding: "8px 12px", borderRadius: "4px 10px 10px 10px", background: c.s, color: c.tx, fontSize: 13, lineHeight: 1.5, maxWidth: "80%" }}>{m.content}</span>
             </div>
         )}
-        {chatLoading && <div style={{ fontSize: 11, color: c.m, fontStyle: "italic", padding: "4px 14px" }}>Thinking...</div>}
+        {chatLoading && <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
+          <img src="/images/tinysenpai2.png" alt="" style={{ width: 24, height: 24, imageRendering: "pixelated" }} />
+          <span style={{ fontSize: 12, color: c.m, fontStyle: "italic" }}>Thinking...</span>
+        </div>}
       </div>}
       <div style={{ display: "flex", gap: 8, padding: "10px 14px", borderTop: chatMessages.length > 0 ? "1px solid " + c.b : "none" }}>
         <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)}
@@ -284,23 +287,23 @@ export default function SmartSession({
         <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "6px 10px", borderRadius: 8, background: "transparent", border: "1px solid " + c.b, color: c.m, fontSize: 12, flexShrink: 0 }}>✕</button>
       </div>
     </div>}
-    {/* Mascot circle — always centered, speech bubble floats above */}
-    {!chatOpen && <div style={{ display: "flex", justifyContent: "center" }}>
+    {/* Mascot circle — always visible, centered */}
+    <div style={{ display: "flex", justifyContent: "center" }}>
       <div style={{ position: "relative" }}>
         {/* Speech bubble — appears to the right */}
-        {(typingText || senpaiMsg) && <div style={{ position: "absolute", left: "100%", top: "50%", transform: "translateY(-50%)", marginLeft: 12, padding: "8px 14px", borderRadius: "4px 12px 12px 12px", background: c.s2, border: "1px solid " + c.b, fontSize: 13, color: c.tx, fontWeight: 500, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,.2)" }}>
+        {!chatOpen && (typingText || senpaiMsg) && <div style={{ position: "absolute", left: "100%", top: "50%", transform: "translateY(-50%)", marginLeft: 12, padding: "8px 14px", borderRadius: "4px 12px 12px 12px", background: c.s2, border: "1px solid " + c.b, fontSize: 13, color: c.tx, fontWeight: 500, whiteSpace: "nowrap", boxShadow: "0 2px 8px rgba(0,0,0,.2)" }}>
           {typingText || senpaiMsg}
         </div>}
         {/* Mascot circle */}
-        <div onClick={() => { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); }}
-          onMouseEnter={() => { setSenpaiHover(true); typeOut(hoverQuips[Math.floor(Math.random() * hoverQuips.length)], 2000); }}
-          onMouseLeave={() => { setSenpaiHover(false); if (typingRef.current) clearInterval(typingRef.current); setSenpaiMsg(null); setTypingText(""); }}
-          style={{ width: 52, height: 52, borderRadius: 26, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "border-color .2s" }}>
+        <div onClick={() => { if (!chatOpen) { setChatOpen(true); setTimeout(() => chatInputRef.current?.focus(), 150); } }}
+          onMouseEnter={() => { if (!chatOpen) { setSenpaiHover(true); typeOut(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); } }}
+          onMouseLeave={() => { setSenpaiHover(false); if (!chatOpen && typingRef.current) { clearInterval(typingRef.current); setSenpaiMsg(null); setTypingText(""); } }}
+          style={{ width: 56, height: 56, borderRadius: 28, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: chatOpen ? "default" : "pointer", transition: "border-color .2s" }}>
           <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
-            style={{ width: 40, height: 40, imageRendering: "pixelated" }} />
+            style={{ width: 44, height: 44, imageRendering: "pixelated" }} />
         </div>
       </div>
-    </div>}
+    </div>
   </div>;
 
   // ═══ HEADER (shared across all exercise types) ═══
