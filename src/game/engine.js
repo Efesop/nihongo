@@ -176,8 +176,8 @@ export function update(g, callbacks) {
       });
     }
   } else if (p.slashTimer > 0) {
-    // Keep momentum — character dashes through
-    p.vx *= 0.96;
+    // Keep momentum — long slide through enemies
+    p.vx *= 0.97;
   } else {
     p.vx = moveDir * MOVE_SPEED;
     if (moveDir !== 0) p.facing = moveDir;
@@ -226,8 +226,8 @@ export function update(g, callbacks) {
     // Afterimage
     p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
 
-    // Lunge — each hit goes further
-    const lungeSpeed = combo === 1 ? DASH_SPEED * 0.8 : combo === 2 ? DASH_SPEED : DASH_SPEED * 1.3;
+    // Lunge — each hit goes further, big slide
+    const lungeSpeed = combo === 1 ? DASH_SPEED * 1.0 : combo === 2 ? DASH_SPEED * 1.2 : DASH_SPEED * 1.6;
     p.vx = p.facing * lungeSpeed;
 
     // Slash trail — combo level passed through for visual variation
@@ -470,9 +470,11 @@ export function update(g, callbacks) {
 
   // ── Particles ──
   for (const part of g.particles) {
-    part.x += part.vx * dt;
-    part.y += part.vy * dt;
-    if (!part.isLine) part.vy += 600 * dt;
+    if (!part.isStain) {
+      part.x += part.vx * dt;
+      part.y += part.vy * dt;
+      if (!part.isLine) part.vy += 600 * dt;
+    }
     part.life -= dt * 1000;
   }
   g.particles = g.particles.filter(p => p.life > 0);
@@ -585,13 +587,30 @@ function killEnemy(g, e, p, callbacks) {
     });
   }
 
-  // Death particles — flash white then burst
-  const pColor = e.type === "oni" ? "#c4a060" : e.type === "ninja" ? "#4a8a60" : "#8a6090";
-  for (let i = 0; i < 14; i++) {
+  // Blood burst — red particles in every direction
+  const bloodColors = ["#cc1111", "#aa0000", "#ee2222", "#880000", "#ff3333"];
+  for (let i = 0; i < 20; i++) {
     g.particles.push({
-      x: e.x + rnd(-10, 10), y: e.y + TILE * SCALE / 2 + rnd(-10, 10),
-      vx: rnd(-350, 350), vy: rnd(-500, -50),
-      life: 550, maxLife: 550, color: i < 4 ? "#ffffff" : pColor, size: rndInt(2, 5),
+      x: e.x + rnd(-8, 8), y: e.y + TILE * SCALE / 2 + rnd(-8, 8),
+      vx: rnd(-400, 400), vy: rnd(-550, -30),
+      life: 600, maxLife: 600, color: bloodColors[i % 5], size: rnd(1.5, 4),
+    });
+  }
+  // White flash particles
+  for (let i = 0; i < 5; i++) {
+    g.particles.push({
+      x: e.x + rnd(-5, 5), y: e.y + TILE * SCALE / 2,
+      vx: rnd(-200, 200), vy: rnd(-300, -100),
+      life: 200, maxLife: 200, color: "#ffffff", size: rnd(2, 4),
+    });
+  }
+  // Blood stains on the ground — persist longer
+  for (let i = 0; i < 4; i++) {
+    g.particles.push({
+      x: e.x + rnd(-30, 30), y: e.y + TILE * SCALE - 2,
+      vx: 0, vy: 0,
+      life: 8000, maxLife: 8000, color: "#550000", size: rnd(3, 7),
+      isStain: true,
     });
   }
   g.flashTimer = 80;

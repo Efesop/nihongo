@@ -175,9 +175,9 @@ export function render(g, ctx, isDesktop, font) {
     const isThird = combo === 3;
 
     let len, angle;
-    if (combo === 1) { len = 75; angle = -0.5; }
-    else if (combo === 2) { len = 85; angle = 0.4; }
-    else { len = 110; angle = -0.12; }
+    if (combo === 1) { len = 100; angle = -0.45; }
+    else if (combo === 2) { len = 110; angle = 0.35; }
+    else { len = 140; angle = -0.1; }
 
     const x1 = s.x - dir * 5;
     const y1 = s.y;
@@ -195,8 +195,8 @@ export function render(g, ctx, isDesktop, font) {
     ctx.globalAlpha = alpha * 0.25;
     ctx.fillStyle = glowCol;
     ctx.beginPath();
-    const perpX = Math.sin(angle) * (isThird ? 14 : 10);
-    const perpY = -Math.cos(angle) * (isThird ? 14 : 10);
+    const perpX = Math.sin(angle) * (isThird ? 20 : 14);
+    const perpY = -Math.cos(angle) * (isThird ? 20 : 14);
     ctx.moveTo(x1 + perpX, y1 + perpY);
     ctx.lineTo(x1 - perpX, y1 - perpY);
     ctx.lineTo(x2, y2);
@@ -240,8 +240,16 @@ export function render(g, ctx, isDesktop, font) {
     ctx.restore();
   }
 
-  // Particles
+  // Blood stains (render first, behind everything else moving)
   for (const part of g.particles) {
+    if (!part.isStain) continue;
+    ctx.globalAlpha = Math.min(0.6, part.life / part.maxLife);
+    ctx.fillStyle = part.color;
+    ctx.fillRect(part.x - part.size / 2, part.y, part.size, part.size * 0.3);
+  }
+  // Regular particles
+  for (const part of g.particles) {
+    if (part.isStain) continue;
     ctx.globalAlpha = part.life / part.maxLife;
     ctx.fillStyle = part.color;
     if (part.isLine) {
