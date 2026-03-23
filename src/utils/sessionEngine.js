@@ -51,23 +51,27 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   function kanaExercise(ch) {
     const box = kanaData[ch]?.box || 0;
     const adjusted = box + difficultyMod;
-    if (adjusted <= 1) return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
-    if (adjusted <= 3) return Math.random() > 0.5
-      ? { type: "kana-visual", item: ch, romaji: ROMAJI[ch] }
-      : { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
-    return { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
+    // Mostly visual, listen only at higher mastery (20% chance)
+    if (adjusted <= 2) return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
+    return Math.random() > 0.8
+      ? { type: "kana-listen", item: ch, romaji: ROMAJI[ch] }
+      : { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
   }
 
   function phraseExercise(p) {
     const box = phrData[p[0]]?.box || 0;
     const adjusted = box + difficultyMod;
-    if (adjusted <= 1) return { type: "phrase-scenario", item: p };
-    if (adjusted <= 2) return Math.random() > 0.5
-      ? { type: "phrase-scenario", item: p }
-      : { type: "phrase-listen", item: p };
-    return Math.random() > 0.3
-      ? { type: "phrase-production", item: p }
-      : { type: "phrase-listen", item: p };
+    const r = Math.random();
+    if (adjusted <= 0) return { type: "phrase-scenario", item: p };
+    if (adjusted <= 1) return r > 0.6 ? { type: "phrase-listen", item: p } : { type: "phrase-scenario", item: p };
+    if (adjusted <= 2) {
+      if (r > 0.7) return { type: "phrase-production", item: p };
+      if (r > 0.4) return { type: "phrase-listen", item: p };
+      return { type: "phrase-scenario", item: p };
+    }
+    // Mastered — harder exercises
+    if (r > 0.5) return { type: "phrase-production", item: p };
+    return { type: "phrase-listen", item: p };
   }
 
   function learnCard(ch) {
