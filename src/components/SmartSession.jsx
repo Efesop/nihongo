@@ -451,7 +451,7 @@ export default function SmartSession({
             setTimeout(() => advance(correct), correct ? 2500 : 1800);
           }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? 20 : 17, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
             {choice[1]}
-            <div style={{ fontSize: 11, fontFamily: mono, color: c.m, marginTop: 2, opacity: .6 }}>{choice[2]}</div>
+            <div style={{ fontSize: 12, fontFamily: mono, color: c.a, marginTop: 3, opacity: .8 }}>{choice[2]}</div>
           </button>;
         })}
         <button onClick={() => {
@@ -560,6 +560,7 @@ export default function SmartSession({
             setTimeout(() => advance(correct), correct ? 2200 : 1800);
           }} style={{ ...btn, padding: "12px 10px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? 16 : 14, fontWeight: 500, textAlign: "left", transition: "all .2s", lineHeight: 1.3 }}>
             {choice[1]}
+            <div style={{ fontSize: 11, fontFamily: mono, color: c.m, marginTop: 3 }}>{choice[2]}</div>
           </button>;
         })}
       </div>
