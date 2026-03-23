@@ -1,4 +1,4 @@
-import { TILE, SCALE, DASH_COOLDOWN, TOTAL_ROOMS, hash } from "./constants.js";
+import { TILE, SCALE, DASH_COOLDOWN, TOTAL_ROOMS, JUMP_FORCE, hash } from "./constants.js";
 import { getSprite, getMascotImage, getImage } from "./sprites.js";
 
 const DRAW_SIZE = TILE * SCALE; // 60px
@@ -333,9 +333,25 @@ export function render(g, ctx, isDesktop, font) {
 // The mascot PNG is 1024x1024 but the character only occupies the center.
 // Source crop removes empty padding (character spans ~rows 6-24 in a 32-cell grid).
 // Crop rects for player images (remove gray/transparent padding)
-const SRC_X = 64, SRC_Y = 160, SRC_W = 896, SRC_H = 660; // idle mascot
-const RUN_CROP = { x: 140, y: 140, w: 750, h: 730 }; // run frames
-const SLASH_CROP = { x: 80, y: 100, w: 860, h: 800 }; // slash frames (generous)
+// Shared crop rect for most sprites (generous, works for all poses)
+const SPRITE_CROP = { x: 80, y: 80, w: 860, h: 860 };
+const IDLE_CROP = { x: 64, y: 160, w: 896, h: 660 };
+const RUN_CROP = { x: 140, y: 140, w: 750, h: 730 };
+const SLASH_CROP = { x: 80, y: 100, w: 860, h: 800 };
+// Death2 is wide and short (character lying down)
+const DEATH2_CROP = { x: 30, y: 350, w: 960, h: 400 };
+
+// Helper: draw a sprite image with standard crop and flip
+function drawSpriteFrame(ctx, img, crop, s, facing) {
+  if (!img) return false;
+  // All sprites face LEFT — flip for right
+  if (facing > 0) ctx.scale(-1, 1);
+  const aspect = crop.w / crop.h;
+  const dw = s * aspect * 0.95;
+  const dh = s * 0.95;
+  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -dw / 2, -dh, dw, dh);
+  return true;
+}
 
 function drawPlayer(ctx, p, mascot, elapsed) {
   const s = DRAW_SIZE;
@@ -345,40 +361,68 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   ctx.translate(p.x, p.y + DRAW_SIZE);
 
   if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
-  if (p.inShadow) ctx.globalAlpha = 0.35; // nearly invisible in shadow
+  if (p.inShadow) ctx.globalAlpha = 0.35;
   ctx.imageSmoothingEnabled = false;
 
-  // ── RUN — use actual sprite frames ──
+  // ── Pick the right sprite for the current state ──
+
   if (p.state === "run") {
     const frameIndex = (Math.floor(elapsed * 8) % 4) + 1;
-    const runImg = getImage("run" + frameIndex);
-    if (runImg) {
-      // Run frames face LEFT in the source images — flip for right
-      if (p.facing < 0) ctx.scale(-1, 1);
-      const rc = RUN_CROP;
-      const aspect = rc.w / rc.h;
+    const img = getImage("run" + frameIndex);
+    if (drawSpriteFrame(ctx, img, RUN_CROP, s, p.facing)) { ctx.restore(); return; }
+  }
+
+  if (p.state === "jump") {
+    // Use launch frame briefly, then airborne
+    const jumpProgress = p.vy < JUMP_FORCE * 0.5 ? "jump1" : "jump2";
+    const img = getImage(jumpProgress);
+    if (drawSpriteFrame(ctx, img, SPRITE_CROP, s, p.facing)) { ctx.restore(); return; }
+  }
+
+  if (p.state === "fall") {
+    const img = getImage("fall");
+    if (drawSpriteFrame(ctx, img, SPRITE_CROP, s, p.facing)) { ctx.restore(); return; }
+  }
+
+  if (p.wallSliding) {
+    const img = getImage("wallslide");
+    if (img) {
+      // Wall slide faces the wall — flip based on wall direction not movement direction
+      if (p.wallDir < 0) ctx.scale(-1, 1);
+      const crop = SPRITE_CROP;
+      const aspect = crop.w / crop.h;
       const dw = s * aspect * 0.95;
       const dh = s * 0.95;
-      ctx.drawImage(runImg, rc.x, rc.y, rc.w, rc.h, -dw / 2, -dh, dw, dh);
-      ctx.globalAlpha = 1;
+      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -dw / 2, -dh, dw, dh);
       ctx.restore();
       return;
     }
   }
 
-  // Idle mascot faces left — flip for right
-  if (p.facing > 0) ctx.scale(-1, 1);
+  if (p.state === "dash") {
+    const img = getImage("dash");
+    if (drawSpriteFrame(ctx, img, SPRITE_CROP, s, p.facing)) { ctx.restore(); return; }
+  }
 
-  // ── All other states — use mascot + transforms ──
-  const aspect = SRC_W / SRC_H;
-  const drawW = s * aspect * 0.95;
-  const drawH = s * 0.95;
-  let oy = 0;
+  if (p.dead) {
+    // Death animation — briefly show hit frame then fallen
+    const img = getImage(p.deathTimer > 200 ? "death1" : "death2");
+    const crop = (p.deathTimer <= 200) ? DEATH2_CROP : SPRITE_CROP;
+    if (drawSpriteFrame(ctx, img, crop, s, p.facing)) { ctx.restore(); return; }
+  }
 
-  if (p.state === "idle") {
-    oy = Math.sin(elapsed * 2) * 0.8;
-  } else if (p.state === "dash") {
-    ctx.scale(1.12, 0.92);
+  // ── Idle — use mascot with breathing ──
+  if (p.state === "idle" && !isSlashing) {
+    if (p.facing > 0) ctx.scale(-1, 1);
+    const ic = IDLE_CROP;
+    const aspect = ic.w / ic.h;
+    const dw = s * aspect * 0.95;
+    const dh = s * 0.95;
+    const oy = Math.sin(elapsed * 2) * 0.8;
+    ctx.drawImage(mascot, ic.x, ic.y, ic.w, ic.h, -dw / 2, -dh + oy, dw, dh);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    return;
   }
 
   if (isSlashing) {

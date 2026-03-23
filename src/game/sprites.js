@@ -57,6 +57,13 @@ export function loadGameImages() {
     loadImg("slash2", "/images/tinysenpaistrike/2.png"),
     loadImg("slash3", "/images/tinysenpaistrike/3.png"),
     loadImg("slash4", "/images/tinysenpaistrike/4.png"),
+    loadImg("jump1", "/images/tinysenpaiother/jump1-launch.png"),
+    loadImg("jump2", "/images/tinysenpaiother/jump2-airborne.png"),
+    loadImg("fall", "/images/tinysenpaiother/fall.png"),
+    loadImg("wallslide", "/images/tinysenpaiother/wall-slide.png"),
+    loadImg("dash", "/images/tinysenpaiother/dash.png"),
+    loadImg("death1", "/images/tinysenpaiother/death1-hit.png"),
+    loadImg("death2", "/images/tinysenpaiother/death2-fallen.png"),
     loadImg("bg_forest", "/images/forest.png"),
     // Add more as PNGs are created:
     // loadImg("samurai", "/images/ronin.png"),
