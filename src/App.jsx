@@ -159,6 +159,7 @@ function AuthedApp({ user, getToken }){
   useEffect(()=>{
     const init=async()=>{
       const token=await getToken();
+      let loadedData=null;
       // 1. Try loading from DB (source of truth)
       const remote=await syncLoad(token);
       if(remote?.data){
@@ -166,6 +167,7 @@ function AuthedApp({ user, getToken }){
         const nd=migrate(remote.data);
         setD(nd);
         store.set(KEY,nd);
+        loadedData=nd;
         if(nd.streak>oldStreak){setStreakCelebrate(true);setTimeout(()=>setStreakCelebrate(false),3500);}
       } else {
         // 2. First sign-in — migrate any existing localStorage data up to DB
@@ -176,11 +178,12 @@ function AuthedApp({ user, getToken }){
           setD(nd);
           store.set(KEY,nd);
           syncSave(token,nd);
+          loadedData=nd;
           if(nd.streak>oldStreak){setStreakCelebrate(true);setTimeout(()=>setStreakCelebrate(false),3500);}
         }
       }
       // Restore profile from DB if available (cross-device sync)
-      if(nd?.profile){setProfile(p=>({...p,...nd.profile}));store.set("nihongo-profile",nd.profile);}
+      if(loadedData?.profile){setProfile(p=>({...p,...loadedData.profile}));store.set("nihongo-profile",loadedData.profile);}
       setLoaded(true);
     };
     init();
