@@ -586,22 +586,28 @@ export default function SmartSession({
   if (ex.type === "learn-phrase") {
     const p = ex.item;
     const catCol = CAT_COLORS[p[4]];
+    // Autoplay on mount
+    if (!fb) setTimeout(() => speakPhraseWithEnglish(p[0], p[1], p[3]), 500);
     return withSenpai(<>
       <div style={{ ...card, padding: 0, overflow: "hidden", marginBottom: 14 }}>
-        <div style={{ padding: "14px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
+        {/* Category image */}
+        <img src={`/images/phrases/${p[4]}.png`} alt={CATS[p[4]]}
+          style={{ width: "100%", height: isDesktop ? 120 : 80, objectFit: "cover", display: "block" }}
+          onError={e => { e.target.style.display = "none"; }} />
+        <div style={{ padding: "16px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 16 }}>{CAT_ICONS[p[4]]}</span>
-            <span style={{ fontSize: 12, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
+            <span style={{ fontSize: 13, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
           </div>
-          <div style={{ fontSize: 11, fontFamily: mono, color: c.g, marginTop: 6 }}>New phrase!</div>
+          <div style={{ fontSize: 11, fontFamily: mono, color: c.g, marginTop: 4 }}>New phrase!</div>
         </div>
-        <div style={{ padding: "24px 20px" }}>
+        <div style={{ padding: "20px 20px" }}>
           <div style={{ fontSize: isDesktop ? 30 : 24, fontWeight: 700, marginBottom: 8, lineHeight: 1.3 }}>{p[1]}</div>
           <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginBottom: 6 }}>{p[2]}</div>
           <div style={{ fontSize: 16, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
-          {p[5] && <div style={{ fontSize: 12, color: c.m, fontStyle: "italic", marginTop: 8, padding: "8px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
+          {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
           <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}
-            style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m, marginTop: 14 }}>🔊 hear it</button>
+            style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m, marginTop: 14 }}>🔊 hear again</button>
         </div>
       </div>
       <button onClick={() => { reviewPhr(p[0], true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
