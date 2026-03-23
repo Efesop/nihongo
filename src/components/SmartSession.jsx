@@ -522,38 +522,59 @@ export default function SmartSession({
     </>);
   }
 
-  // ═══ EXERCISE: PHRASE PRODUCTION ═══
+  // ═══ EXERCISE: PHRASE PRODUCTION (8-choice multiple choice) ═══
   if (ex.type === "phrase-production") {
     const p = ex.item;
     const catCol = CAT_COLORS[p[4]];
-    const submit = () => {
-      if (fb || !input.trim()) return;
-      const ok = matchRomaji(input.trim(), p[2]);
-      setFb(ok ? "ok" : "no");
-      setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-      reviewPhr(p[0], ok);
-      setTimeout(() => speakPhrase(p[0], p[1]), 300);
-      setTimeout(() => advance(ok), ok ? 2500 : 3000);
-    };
+    if (!choiceAnswer) {
+      const isTrick = Math.random() < 0.15;
+      const distractors = getDistractors(p, 7);
+      const choices = isTrick ? shuffle(distractors).slice(0, 8) : shuffle([p, ...distractors.slice(0, 7)]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null, correct: null, isTrick }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
     return withSenpai(<>
-      <div style={{ ...card, padding: "24px 20px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
+      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 14 }}>{CAT_ICONS[p[4]]}</span>
-          <span style={{ fontSize: 11, color: catCol, fontWeight: 600 }}>Type in romaji</span>
+          <span style={{ fontSize: 11, color: catCol, fontWeight: 600 }}>Which phrase means...</span>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: c.tx, lineHeight: 1.5, marginBottom: 8 }}>{p[3]}</div>
-        {p[5] && <div style={{ fontSize: 12, color: c.m, fontStyle: "italic" }}>{p[5]}</div>}
-        {fb && <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: isDesktop ? 28 : 22, fontWeight: 700 }}>{p[1]}</div>
-          <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 4 }}>{p[2]}</div>
-          {fb === "no" && <div style={{ fontSize: 12, color: c.m, marginTop: 6 }}>You typed: <span style={{ color: c.a, textDecoration: "line-through" }}>{input}</span></div>}
-        </div>}
+        <div style={{ fontSize: 20, fontWeight: 600, color: c.tx, lineHeight: 1.5 }}>{p[3]}</div>
+        {p[5] && <div style={{ fontSize: 12, color: c.m, fontStyle: "italic", marginTop: 6 }}>{p[5]}</div>}
       </div>
-      {!fb && <div style={{ display: "flex", gap: 8 }}>
-        <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") submit(); }}
-          placeholder="type the romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
-          style={{ flex: 1, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontFamily: mono, fontSize: 18, outline: "none" }} />
-        <button onClick={submit} style={{ ...btn, padding: "14px 22px", borderRadius: 10, background: input.trim() ? c.a : c.b, color: input.trim() ? "#fff" : c.m, fontSize: 14, fontWeight: 600 }}>Go</button>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+        {choiceAnswer.choices.map((choice, i) => {
+          const isCorrect = !choiceAnswer.isTrick && choice[0] === p[0];
+          const isSelected = choiceAnswer.selected === choice[0];
+          let bg = "transparent", border = c.b, col = c.tx;
+          if (answered && isCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
+          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
+          return <button key={i} onClick={() => {
+            if (answered) return;
+            const correct = isCorrect;
+            setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
+            setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            reviewPhr(p[0], correct);
+            if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
+            setTimeout(() => advance(correct), correct ? 2200 : 1800);
+          }} style={{ ...btn, padding: "12px 10px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? 16 : 14, fontWeight: 500, textAlign: "left", transition: "all .2s", lineHeight: 1.3 }}>
+            {choice[1]}
+          </button>;
+        })}
+      </div>
+      {!answered && <button onClick={() => {
+        const correct = !!choiceAnswer.isTrick;
+        setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
+        setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+        reviewPhr(p[0], correct);
+        speakPhraseWithEnglish(p[0], p[1], p[3]);
+        setTimeout(() => advance(correct), 2200);
+      }} style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: 13, textAlign: "center", marginTop: 8 }}>None of these</button>}
+      {answered && <div style={{ ...card, padding: "12px 16px", borderLeft: "3px solid " + c.g, marginTop: 8 }}>
+        <div style={{ fontSize: 13, color: c.m, marginBottom: 4 }}>Correct answer:</div>
+        <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 20 : 17} />
+        <div style={{ fontSize: 12, fontFamily: mono, color: c.a, marginTop: 4 }}>{p[2]}</div>
       </div>}
     </>);
   }
