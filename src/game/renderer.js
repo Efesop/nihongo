@@ -167,16 +167,17 @@ export function render(g, ctx, isDesktop, font) {
   // Player afterimages (dash trail)
   const mascot = getMascotImage();
   if (mascot) {
+    const ic = IDLE_CROP;
     for (const ai of g.player.afterimages) {
       ctx.globalAlpha = (ai.life / 200) * 0.3;
-      const aspect = SRC_W / SRC_H;
+      const aspect = ic.w / ic.h;
       const dw = DRAW_SIZE * aspect * 0.95;
       const dh = DRAW_SIZE * 0.95;
       ctx.save();
       ctx.translate(ai.x, ai.y + DRAW_SIZE);
       if (ai.facing > 0) ctx.scale(-1, 1);
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -dw / 2, -dh, dw, dh);
+      ctx.drawImage(mascot, ic.x, ic.y, ic.w, ic.h, -dw / 2, -dh, dw, dh);
       ctx.restore();
     }
     ctx.globalAlpha = 1;
