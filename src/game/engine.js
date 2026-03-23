@@ -681,8 +681,20 @@ function killEnemy(g, e, p, callbacks) {
 }
 
 function killPlayer(g, callbacks) {
-  // Instant restart — no death screen, just flash and reset
-  restartRoom(g);
+  // Brief death animation then restart
+  g.player.dead = true;
+  g.player.deathTimer = 500;
+  g.camera.shakeTimer = 200;
+  // Blood burst from player
+  for (let i = 0; i < 12; i++) {
+    g.particles.push({
+      x: g.player.x + rnd(-5, 5), y: g.player.y + 20,
+      vx: rnd(-250, 250), vy: rnd(-400, -80),
+      life: 500, maxLife: 500, color: "#cc1111", size: rnd(1.5, 3),
+    });
+  }
+  // Restart after brief delay
+  setTimeout(() => restartRoom(g), 400);
 }
 
 function spawnDust(g, x, y) {

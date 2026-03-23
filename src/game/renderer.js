@@ -184,7 +184,7 @@ export function render(g, ctx, isDesktop, font) {
   }
 
   // ── Player (actual mascot PNG with transforms) ──
-  if (!g.player.dead && mascot) {
+  if (mascot) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
@@ -334,22 +334,30 @@ export function render(g, ctx, isDesktop, font) {
 // The mascot PNG is 1024x1024 but the character only occupies the center.
 // Source crop removes empty padding (character spans ~rows 6-24 in a 32-cell grid).
 // Crop rects for player images (remove gray/transparent padding)
-// Shared crop rect for most sprites (generous, works for all poses)
-const SPRITE_CROP = { x: 80, y: 80, w: 860, h: 860 };
-const IDLE_CROP = { x: 64, y: 160, w: 896, h: 660 };
-const RUN_CROP = { x: 140, y: 140, w: 750, h: 730 };
-const SLASH_CROP = { x: 80, y: 100, w: 860, h: 800 };
-// Death2 is wide and short (character lying down)
-const DEATH2_CROP = { x: 30, y: 350, w: 960, h: 400 };
+// Crop rects per sprite — fitted to actual character bounds
+const CROPS = {
+  idle:    { x: 64,  y: 160, w: 896, h: 660 },
+  run:     { x: 140, y: 140, w: 750, h: 730 },
+  slash:   { x: 80,  y: 100, w: 860, h: 800 },
+  jump1:   { x: 160, y: 190, w: 700, h: 650 },
+  jump2:   { x: 250, y: 150, w: 600, h: 720 },
+  fall:    { x: 260, y: 60,  w: 550, h: 860 },
+  wallslide:{ x: 140, y: 120, w: 660, h: 800 },
+  dash:    { x: 60,  y: 210, w: 900, h: 600 },
+  death1:  { x: 100, y: 80,  w: 810, h: 800 },
+  death2:  { x: 80,  y: 420, w: 920, h: 310 },
+};
 
-// Helper: draw a sprite image with standard crop and flip
-function drawSpriteFrame(ctx, img, crop, s, facing) {
+// Helper: draw a sprite image with crop and flip
+// flipForRight=true means image faces LEFT and should flip for RIGHT
+function drawSpriteFrame(ctx, img, cropKey, s, facing, flipForRight = true) {
   if (!img) return false;
-  // All sprites face LEFT — flip for right
-  if (facing > 0) ctx.scale(-1, 1);
+  const crop = CROPS[cropKey];
+  if (!crop) return false;
+  if (flipForRight ? facing > 0 : facing < 0) ctx.scale(-1, 1);
   const aspect = crop.w / crop.h;
-  const dw = s * aspect * 0.95;
-  const dh = s * 0.95;
+  const dw = s * aspect;
+  const dh = s;
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -dw / 2, -dh, dw, dh);
   return true;
 }
@@ -370,31 +378,29 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (p.state === "run") {
     const frameIndex = (Math.floor(elapsed * 8) % 4) + 1;
     const img = getImage("run" + frameIndex);
-    if (drawSpriteFrame(ctx, img, RUN_CROP, s, p.facing)) { ctx.restore(); return; }
+    // Run frames face LEFT — flip for right
+    if (drawSpriteFrame(ctx, img, "run", s, p.facing, true)) { ctx.restore(); return; }
   }
 
   if (p.state === "jump") {
-    // Use launch frame briefly, then airborne
-    const jumpProgress = p.vy < JUMP_FORCE * 0.5 ? "jump1" : "jump2";
-    const img = getImage(jumpProgress);
-    if (drawSpriteFrame(ctx, img, SPRITE_CROP, s, p.facing)) { ctx.restore(); return; }
+    const key = p.vy < JUMP_FORCE * 0.5 ? "jump1" : "jump2";
+    const img = getImage(key);
+    if (drawSpriteFrame(ctx, img, key, s, p.facing)) { ctx.restore(); return; }
   }
 
   if (p.state === "fall") {
     const img = getImage("fall");
-    if (drawSpriteFrame(ctx, img, SPRITE_CROP, s, p.facing)) { ctx.restore(); return; }
+    if (drawSpriteFrame(ctx, img, "fall", s, p.facing)) { ctx.restore(); return; }
   }
 
   if (p.wallSliding) {
     const img = getImage("wallslide");
     if (img) {
-      // Wall slide faces the wall — flip based on wall direction not movement direction
+      // Wall slide: flip based on wall direction
+      const crop = CROPS.wallslide;
       if (p.wallDir < 0) ctx.scale(-1, 1);
-      const crop = SPRITE_CROP;
       const aspect = crop.w / crop.h;
-      const dw = s * aspect * 0.95;
-      const dh = s * 0.95;
-      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -dw / 2, -dh, dw, dh);
+      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -s * aspect / 2, -s, s * aspect, s);
       ctx.restore();
       return;
     }
@@ -402,28 +408,19 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
   if (p.state === "dash") {
     const img = getImage("dash");
-    if (drawSpriteFrame(ctx, img, SPRITE_CROP, s, p.facing)) { ctx.restore(); return; }
+    if (drawSpriteFrame(ctx, img, "dash", s, p.facing)) { ctx.restore(); return; }
   }
 
+  // ── Dead ──
   if (p.dead) {
-    // Death animation — briefly show hit frame then fallen
-    const img = getImage(p.deathTimer > 200 ? "death1" : "death2");
-    const crop = (p.deathTimer <= 200) ? DEATH2_CROP : SPRITE_CROP;
-    if (drawSpriteFrame(ctx, img, crop, s, p.facing)) { ctx.restore(); return; }
+    const key = (p.deathTimer || 0) > 200 ? "death1" : "death2";
+    const img = getImage(key);
+    if (drawSpriteFrame(ctx, img, key, s, p.facing)) { ctx.restore(); return; }
   }
 
   // ── Idle — use mascot with breathing ──
   if (p.state === "idle" && !isSlashing) {
-    if (p.facing > 0) ctx.scale(-1, 1);
-    const ic = IDLE_CROP;
-    const aspect = ic.w / ic.h;
-    const dw = s * aspect * 0.95;
-    const dh = s * 0.95;
-    const oy = Math.sin(elapsed * 2) * 0.8;
-    ctx.drawImage(mascot, ic.x, ic.y, ic.w, ic.h, -dw / 2, -dh + oy, dw, dh);
-    ctx.globalAlpha = 1;
-    ctx.restore();
-    return;
+    if (drawSpriteFrame(ctx, mascot, "idle", s, p.facing)) { ctx.restore(); return; }
   }
 
   if (isSlashing) {
