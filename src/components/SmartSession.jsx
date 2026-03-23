@@ -30,6 +30,7 @@ export default function SmartSession({
   const [chatLoading, setChatLoading] = useState(false);
   const [senpaiMsg, setSenpaiMsg] = useState(null);
   const [senpaiHover, setSenpaiHover] = useState(false);
+  const [hoverQuip, setHoverQuip] = useState("");
   const [streak, setStreak] = useState(0);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
@@ -243,7 +244,6 @@ export default function SmartSession({
 
   // ═══ SENPAI — mascot circle + reactions + expandable chat ═══
   const hoverQuips = ["What do you need?", "Speak.", "Don't waste my time.", "...Yes?", "Hurry up."];
-  const [hoverQuip, setHoverQuip] = useState("");
 
   const senpaiBar = <div style={{ marginTop: 20 }}>
     {/* Chat messages expand above when open */}
