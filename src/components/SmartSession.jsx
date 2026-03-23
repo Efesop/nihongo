@@ -9,7 +9,7 @@ import { buildSmartSession, getSessionSummary, matchRomaji, getDistractors } fro
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
   updateKanaSRS, reviewPhr,
-  stopAudio, speakStory,
+  stopAudio, speakStory, setTab,
 }) {
   const [cards, setCards] = useState([]);
   const [ci, setCi] = useState(0);
@@ -58,9 +58,13 @@ export default function SmartSession({
     }
   }, []);
 
-  // Focus input when needed
+  // Focus input when needed + auto-play for listen exercises
   useEffect(() => {
     if (inputRef.current && !fb) inputRef.current.focus();
+    if (cards[ci]?.type === "kana-listen" && !fb) {
+      const t = setTimeout(() => speak(cards[ci].item), 300);
+      return () => clearTimeout(t);
+    }
   }, [ci, fb]);
 
   // Post-session AI review
@@ -70,7 +74,7 @@ export default function SmartSession({
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mode: 'review', userId: data.onboarding?.name || 'user',
-          sessionResults: { score, struggled: struggled.map(s => typeof s === 'string' ? s : s[1]), timeElapsed: Math.round((Date.now() - startTime) / 1000), totalCards: cards.length },
+          sessionResults: { score, struggled: struggled.map(s => s.label), timeElapsed: Math.round((Date.now() - startTime) / 1000), totalCards: cards.length },
           userData: data,
         }),
       }).then(r => r.json()).then(review => {
@@ -152,14 +156,14 @@ export default function SmartSession({
         {struggled.length > 0 && <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, color: c.m, marginBottom: 8 }}>Struggled with:</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
-            {struggled.map((item, i) => <span key={i} style={{ fontSize: 14, padding: "4px 10px", borderRadius: 6, background: c.go + "15", border: "1px solid " + c.go + "33", color: c.go }}>{typeof item === "string" ? item : item[1]}</span>)}
+            {struggled.map((item, i) => <span key={i} style={{ fontSize: 14, padding: "4px 10px", borderRadius: 6, background: c.go + "15", border: "1px solid " + c.go + "33", color: c.go }}>{item.label}</span>)}
           </div>
         </div>}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-          <button onClick={() => { setCards([]); setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null); }}
+          <button onClick={() => { setCards([]); setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null); setLoading(true); }}
             style={{ ...btn, padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Continue (10 more)</button>
-          <button onClick={() => { stopAudio(); window.history.back(); }}
+          <button onClick={() => { stopAudio(); setTab("home"); }}
             style={{ ...btn, padding: 14, borderRadius: 10, border: "1px solid " + c.b, background: "transparent", color: c.m, fontSize: 14 }}>Done for now</button>
         </div>
       </div>
@@ -175,7 +179,7 @@ export default function SmartSession({
   const mins = Math.floor(elapsed / 60);
 
   const advance = (correct) => {
-    if (!correct) setStruggled(s => [...s, ex.item]);
+    if (!correct) setStruggled(s => [...s, { label: typeof ex.item === 'string' ? ex.item : ex.item[1], type: ex.type }]);
     setFb(null); setInput(""); setChoiceAnswer(null);
     if (ci + 1 >= cards.length) setDone(true);
     else setCi(ci + 1);
@@ -246,7 +250,7 @@ export default function SmartSession({
 
   // ═══ EXERCISE: KANA LISTEN ═══
   if (ex.type === "kana-listen") {
-    if (!fb && ci === cards.indexOf(ex)) setTimeout(() => speak(ex.item), 300);
+    // Auto-play audio for listen mode (only on mount/card change via useEffect above)
     const submit = () => {
       if (fb || !input.trim()) return;
       const ok = input.trim().toLowerCase() === ex.romaji;

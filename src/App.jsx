@@ -579,7 +579,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     {tab==="smart"&&<SmartSession
       data={data} save={save} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}
       updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr}
-      stopAudio={stopAudio} speakStory={speakStory}
+      stopAudio={stopAudio} speakStory={speakStory} setTab={setTab}
     />}
     {tab==="game"&&<Game theme={theme} c={c} isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W}/>}
     {showProfile&&<Profile

@@ -15,39 +15,41 @@ const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
 export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const queue = [];
   const now = Date.now();
+  const kanaData = data.kana || {};
+  const phrData = data.phr || {};
 
   // ═══ GATHER ITEMS BY PRIORITY ═══
 
   // 1. Due for review (highest priority)
   const dueKana = ALL_BASE_KANA.filter(ch => {
-    const d = data.kana[ch];
+    const d = kanaData[ch];
     return d && d.box >= 1 && now >= (d.next || 0);
   });
 
   const duePhrases = PHRASES.filter(p => {
-    const d = data.phr[p[0]];
+    const d = phrData[p[0]];
     return d && d.box >= 1 && now >= (d.next || 0);
   });
 
   // 2. Struggling (box 1-2, learning but not mastered)
   const strugglingKana = ALL_BASE_KANA.filter(ch => {
-    const box = data.kana[ch]?.box || 0;
+    const box = kanaData[ch]?.box || 0;
     return box >= 1 && box <= 2;
   });
 
   const strugglingPhrases = PHRASES.filter(p => {
-    const box = data.phr[p[0]]?.box || 0;
+    const box = phrData[p[0]]?.box || 0;
     return box >= 1 && box <= 2;
   });
 
   // 3. New items (never seen)
-  const unseenKana = ALL_BASE_KANA.filter(ch => !data.kana[ch] && M[ch]);
-  const unseenPhrases = PHRASES.filter(p => !data.phr[p[0]]);
+  const unseenKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]);
+  const unseenPhrases = PHRASES.filter(p => !phrData[p[0]]);
 
   // ═══ PICK EXERCISE TYPE BASED ON MASTERY ═══
 
   function kanaExercise(ch) {
-    const box = data.kana[ch]?.box || 0;
+    const box = kanaData[ch]?.box || 0;
     const adjusted = box + difficultyMod;
     if (adjusted <= 1) return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
     if (adjusted <= 3) return Math.random() > 0.5
@@ -57,7 +59,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   }
 
   function phraseExercise(p) {
-    const box = data.phr[p[0]]?.box || 0;
+    const box = phrData[p[0]]?.box || 0;
     const adjusted = box + difficultyMod;
     if (adjusted <= 1) return { type: "phrase-scenario", item: p };
     if (adjusted <= 2) return Math.random() > 0.5
@@ -79,7 +81,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // ═══ BUILD THE QUEUE ═══
 
   // Start with 1-2 easy wins (due items the user probably knows)
-  const easyWins = shuffle(dueKana.filter(ch => (data.kana[ch]?.box || 0) >= 3)).slice(0, 2);
+  const easyWins = shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 2);
   easyWins.forEach(ch => queue.push(kanaExercise(ch)));
 
   // Add due items (mixed kana + phrases)
@@ -134,18 +136,20 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
  */
 export function getSessionSummary(data) {
   const now = Date.now();
+  const kanaData = data.kana || {};
+  const phrData = data.phr || {};
   const dueKana = ALL_BASE_KANA.filter(ch => {
-    const d = data.kana[ch];
+    const d = kanaData[ch];
     return d && d.box >= 1 && now >= (d.next || 0);
   }).length;
 
   const duePhrases = PHRASES.filter(p => {
-    const d = data.phr[p[0]];
+    const d = phrData[p[0]];
     return d && d.box >= 1 && now >= (d.next || 0);
   }).length;
 
-  const unseenKana = ALL_BASE_KANA.filter(ch => !data.kana[ch] && M[ch]).length;
-  const unseenPhrases = PHRASES.filter(p => !data.phr[p[0]]).length;
+  const unseenKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]).length;
+  const unseenPhrases = PHRASES.filter(p => !phrData[p[0]]).length;
 
   const parts = [];
   if (dueKana > 0) parts.push(`${dueKana} kana review`);
