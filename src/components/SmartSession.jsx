@@ -6,6 +6,7 @@ import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 import { buildSmartSession, getSessionSummary, matchRomaji, getDistractors } from "../utils/sessionEngine.js";
 import PhraseSegments from "./PhraseSegments.jsx";
+import { CONVERSATIONS } from "../data/conversations.js";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -34,6 +35,8 @@ export default function SmartSession({
   const [hoverQuip, setHoverQuip] = useState("");
   const [typingText, setTypingText] = useState("");
   const [streak, setStreak] = useState(0);
+  const [convoAnswers, setConvoAnswers] = useState({});
+  const [convoSubmitted, setConvoSubmitted] = useState(false);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
@@ -641,6 +644,119 @@ export default function SmartSession({
       </div>
       <button onClick={() => { reviewPhr(p[0], true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
+    </>);
+  }
+
+  // ═══ EXERCISE: CONVERSATION FILL-IN-THE-BLANK ═══
+  if (ex.type === "conversation") {
+    const convo = ex.conversation;
+    const blanks = convo.lines.filter(l => l.blank);
+    const allFilled = blanks.every((_, i) => convoAnswers[i] !== undefined);
+    const phraseById = (id) => PHRASES.find(p => p[0] === id);
+
+    if (!convoSubmitted) {
+      return withSenpai(<>
+        <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 18 }}>{convo.icon}</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>{convo.setting}</span>
+          </div>
+          {convo.lines.map((line, li) => {
+            if (!line.blank) {
+              return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+                <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 500 }}>{line.text}</div>
+                  <div style={{ fontSize: 11, color: c.m }}>{line.translation}</div>
+                </div>
+              </div>;
+            }
+            const blankIdx = blanks.indexOf(line);
+            const selected = convoAnswers[blankIdx];
+            const selectedPhrase = selected ? phraseById(selected) : null;
+            return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+              <div style={{ fontSize: 10, color: c.a, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>you</div>
+              <div style={{ flex: 1 }}>
+                {selectedPhrase
+                  ? <div onClick={() => setConvoAnswers(a => { const n = { ...a }; delete n[blankIdx]; return n; })}
+                      style={{ padding: "8px 14px", borderRadius: 8, background: c.a + "18", border: "1px solid " + c.a + "44", cursor: "pointer", fontSize: 15, fontWeight: 500 }}>
+                      {selectedPhrase[1]}
+                      <div style={{ fontSize: 11, color: c.m, marginTop: 2 }}>{selectedPhrase[3]}</div>
+                    </div>
+                  : <div style={{ padding: "10px 14px", borderRadius: 8, border: "2px dashed " + c.b, color: c.m, fontSize: 13 }}>tap an option below...</div>
+                }
+              </div>
+            </div>;
+          })}
+        </div>
+        {/* Options — show all unique options across all blanks */}
+        {(()=> {
+          const nextBlank = blanks.findIndex((_, i) => convoAnswers[i] === undefined);
+          if (nextBlank === -1 && !allFilled) return null;
+          const currentOptions = nextBlank >= 0 ? blanks[nextBlank].options : [];
+          const usedIds = Object.values(convoAnswers);
+          return nextBlank >= 0 && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
+            {shuffle(currentOptions).map((optId, i) => {
+              const p = phraseById(optId);
+              if (!p) return null;
+              const used = usedIds.includes(optId);
+              return <button key={i} onClick={() => {
+                if (used) return;
+                setConvoAnswers(a => ({ ...a, [nextBlank]: optId }));
+              }} disabled={used} style={{ ...btn, padding: "10px 10px", borderRadius: 8, border: "1px solid " + c.b, background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, fontSize: 14, textAlign: "left", opacity: used ? .4 : 1 }}>
+                {p[1]}
+                <div style={{ fontSize: 10, color: c.m, marginTop: 2 }}>{p[3]}</div>
+              </button>;
+            })}
+          </div>;
+        })()}
+        {allFilled && <button onClick={() => setConvoSubmitted(true)}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Check my answers</button>}
+      </>);
+    }
+
+    // Submitted — show results
+    const correct = blanks.filter((b, i) => convoAnswers[i] === b.correctId).length;
+    const total = blanks.length;
+    return withSenpai(<>
+      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <span style={{ fontSize: 18 }}>{convo.icon}</span>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>{convo.setting}</span>
+          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 700, color: correct === total ? c.g : c.go }}>{correct}/{total}</span>
+        </div>
+        {convo.lines.map((line, li) => {
+          if (!line.blank) {
+            return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+              <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 500 }}>{line.text}</div>
+                <div style={{ fontSize: 11, color: c.m }}>{line.translation}</div>
+              </div>
+            </div>;
+          }
+          const blankIdx = blanks.indexOf(line);
+          const answered = convoAnswers[blankIdx];
+          const isCorrect = answered === line.correctId;
+          const answeredPhrase = phraseById(answered);
+          const correctPhrase = phraseById(line.correctId);
+          return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
+            <div style={{ fontSize: 10, color: c.a, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>you</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ padding: "8px 14px", borderRadius: 8, background: isCorrect ? c.gs : c.rs, border: "1px solid " + (isCorrect ? c.g + "44" : c.a + "44") }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: isCorrect ? c.g : c.a }}>{answeredPhrase?.[1]} {isCorrect ? "✓" : "✗"}</div>
+                {!isCorrect && <div style={{ fontSize: 12, color: c.g, marginTop: 4 }}>→ {correctPhrase?.[1]} ({correctPhrase?.[3]})</div>}
+              </div>
+            </div>
+          </div>;
+        })}
+      </div>
+      <button onClick={() => {
+        blanks.forEach((b, i) => reviewPhr(b.correctId, convoAnswers[i] === b.correctId));
+        setScore(s => ({ ...s, c: s.c + correct, w: s.w + (total - correct) }));
+        setConvoAnswers({}); setConvoSubmitted(false);
+        advance(correct >= total / 2);
+      }} style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Continue →</button>
     </>);
   }
 

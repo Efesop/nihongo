@@ -38,7 +38,7 @@ export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight 
             padding: "2px 4px",
             borderRadius: 6,
             background: isActive ? gramCol + "22" : "transparent",
-            borderBottom: isActive ? "2px solid " + gramCol : "2px solid transparent",
+            borderBottom: isActive ? "2px solid " + gramCol : "1px dotted " + (c.m || "#666") + "66",
             transition: "all .15s",
             position: "relative",
           }}>

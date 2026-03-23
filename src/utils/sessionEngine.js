@@ -2,6 +2,7 @@ import { M, H_GROUPS, K_GROUPS, ROMAJI, DAKUTEN_BASE, YOON_PARTS } from "../data
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { SRS_DAYS } from "../data/constants.js";
 import { shuffle } from "./helpers.js";
+import { CONVERSATIONS } from "../data/conversations.js";
 
 // All base kana (no dakuten/yōon for now — keep it simpler)
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -31,15 +32,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     return d && d.box >= 1 && now >= (d.next || 0);
   });
 
-  // 2. Struggling (box 1-2, learning but not mastered)
+  // 2. Struggling (box 1-2 AND due — don't repeat items just answered)
   const strugglingKana = ALL_BASE_KANA.filter(ch => {
-    const box = kanaData[ch]?.box || 0;
-    return box >= 1 && box <= 2;
+    const d = kanaData[ch];
+    return d && d.box >= 1 && d.box <= 2 && now >= (d.next || 0);
   });
 
   const strugglingPhrases = PHRASES.filter(p => {
-    const box = phrData[p[0]]?.box || 0;
-    return box >= 1 && box <= 2;
+    const d = phrData[p[0]];
+    return d && d.box >= 1 && d.box <= 2 && now >= (d.next || 0);
   });
 
   // 3. New items (never seen)
@@ -134,13 +135,20 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   ];
   shuffle(strugglePool).forEach(ex => queue.push(ex));
 
-  // Add new content (learn cards, not quizzes)
-  if (unseenKana.length > 0 && queue.length < sessionLength - 1) {
+  // Add new content (learn cards) + immediate follow-up quiz
+  if (unseenKana.length > 0 && queue.length < sessionLength - 2) {
     const newKana = unseenKana.slice(0, 2);
-    newKana.forEach(ch => queue.push(learnCard(ch)));
+    newKana.forEach(ch => {
+      queue.push(learnCard(ch));
+      // Queue a quiz on it 2-3 cards later (immediate reinforcement)
+      queue.push({ type: "_delayed_kana", item: ch, romaji: ROMAJI[ch], delay: 2 });
+    });
   }
-  if (unseenPhrases.length > 0 && queue.length < sessionLength) {
-    queue.push(learnPhraseCard(unseenPhrases[0]));
+  if (unseenPhrases.length > 0 && queue.length < sessionLength - 1) {
+    const np = unseenPhrases[0];
+    queue.push(learnPhraseCard(np));
+    // Queue a scenario quiz on it 2-3 cards later
+    queue.push({ type: "_delayed_phrase", item: np, delay: 2 });
   }
 
   // Fill remaining slots with more due/struggling items if available
@@ -163,8 +171,39 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     } else break;
   }
 
+  // Add a conversation exercise if user knows enough phrases (1 per session)
+  const phrasesLearned = Object.keys(phrData).length;
+  if (phrasesLearned >= 5 && queue.length < sessionLength && Math.random() < 0.4) {
+    const eligible = CONVERSATIONS.filter(conv =>
+      conv.lines.filter(l => l.blank).every(l => phrData[l.correctId]?.box >= 0)
+    );
+    if (eligible.length > 0) {
+      const conv = eligible[Math.floor(Math.random() * eligible.length)];
+      queue.push({ type: "conversation", conversation: conv });
+    }
+  }
+
+  // Process delayed items — move them 2-3 positions after their learn card
+  const finalQueue = [];
+  const delayed = [];
+  for (const item of queue) {
+    if (item.type === "_delayed_kana") {
+      delayed.push({ ...kanaExercise(item.item), _insertAfter: finalQueue.length + item.delay });
+    } else if (item.type === "_delayed_phrase") {
+      delayed.push({ ...phraseExercise(item.item), _insertAfter: finalQueue.length + item.delay });
+    } else {
+      finalQueue.push(item);
+    }
+  }
+  // Insert delayed items at their target positions
+  for (const d of delayed) {
+    const pos = Math.min(d._insertAfter, finalQueue.length);
+    delete d._insertAfter;
+    finalQueue.splice(pos, 0, d);
+  }
+
   // Trim to session length
-  return queue.slice(0, sessionLength);
+  return finalQueue.slice(0, sessionLength);
 }
 
 /**
