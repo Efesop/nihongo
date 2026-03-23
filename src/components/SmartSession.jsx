@@ -21,16 +21,40 @@ export default function SmartSession({
   const [startTime] = useState(Date.now());
   const [choiceAnswer, setChoiceAnswer] = useState(null);
   const [sessionFeedback, setSessionFeedback] = useState(null);
+  const [coachingPlan, setCoachingPlan] = useState(null);
+  const [loading, setLoading] = useState(true);
+  // Floating chat
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
   const inputRef = useRef(null);
+  const chatInputRef = useRef(null);
 
   const situations = { greet: "You meet someone.", food: "You're at a restaurant.", train: "You're navigating transport.", hotel: "You're at your hotel.", shop: "You're at a store.", dir: "You need directions.", sos: "It's an emergency." };
 
-  // Build session on mount
+  // Build session on mount — call coaching API first
   useEffect(() => {
     if (cards.length === 0 && !done) {
-      const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
-      if (session.length > 0) setCards(session);
-      else setDone(true);
+      (async () => {
+        try {
+          const res = await fetch('/api/coach', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: 'plan', userData: data }),
+          });
+          const plan = await res.json();
+          if (!plan.error) setCoachingPlan(plan);
+          const session = buildSmartSession(data, 10, plan.difficulty || data.settings?.sessionDifficulty || 0);
+          if (session.length > 0) setCards(session);
+          else setDone(true);
+        } catch {
+          // Fallback: build session without AI coaching
+          const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
+          if (session.length > 0) setCards(session);
+          else setDone(true);
+        }
+        setLoading(false);
+      })();
     }
   }, []);
 
@@ -38,6 +62,55 @@ export default function SmartSession({
   useEffect(() => {
     if (inputRef.current && !fb) inputRef.current.focus();
   }, [ci, fb]);
+
+  // Post-session AI review
+  useEffect(() => {
+    if (done && score.c + score.w > 0 && !sessionFeedback) {
+      fetch('/api/coach', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'review', userId: data.onboarding?.name || 'user',
+          sessionResults: { score, struggled: struggled.map(s => typeof s === 'string' ? s : s[1]), timeElapsed: Math.round((Date.now() - startTime) / 1000), totalCards: cards.length },
+          userData: data,
+        }),
+      }).then(r => r.json()).then(review => {
+        if (review.userCoaching) save({ settings: { ...data.settings, coaching: review.userCoaching, nextFocus: review.nextFocus } });
+      }).catch(() => {});
+    }
+  }, [done]);
+
+  // Floating chat send
+  const sendChat = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    setChatMessages(m => [...m, { role: "user", content: userMsg }]);
+    setChatLoading(true);
+    try {
+      const currentEx = cards[ci];
+      const contextInfo = currentEx ? `User is currently practicing: ${currentEx.type}. Item: ${typeof currentEx.item === 'string' ? currentEx.item + ' (' + ROMAJI[currentEx.item] + ')' : currentEx.item[1] + ' - ' + currentEx.item[3]}` : 'Between exercises';
+      const res = await fetch('/api/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system: `You are Senpai, a helpful Japanese language tutor inside a learning session. Be brief and encouraging. The user is practicing Japanese and might ask about pronunciation, meaning, grammar, or usage. Context: ${contextInfo}. Keep responses under 3 sentences.`,
+          messages: [...chatMessages.slice(-6), { role: "user", content: userMsg }],
+        }),
+      });
+      const d = await res.json();
+      const reply = d.content?.[0]?.text || "Sorry, I couldn't respond.";
+      setChatMessages(m => [...m, { role: "assistant", content: reply }]);
+    } catch { setChatMessages(m => [...m, { role: "assistant", content: "Connection error." }]); }
+    setChatLoading(false);
+  };
+
+  // Loading state
+  if (loading) return <div style={inner}>
+    <div style={{ textAlign: "center", padding: "60px 20px" }}>
+      <div style={{ fontSize: 40, marginBottom: 16 }}>🧠</div>
+      <div style={{ fontSize: 15, color: c.m }}>Building your session...</div>
+      {coachingPlan?.sessionNotes && <div style={{ fontSize: 13, color: c.a, marginTop: 12, fontStyle: "italic" }}>{coachingPlan.sessionNotes}</div>}
+    </div>
+  </div>;
 
   if (done) {
     const elapsed = Math.round((Date.now() - startTime) / 1000);
@@ -108,11 +181,33 @@ export default function SmartSession({
     else setCi(ci + 1);
   };
 
+  // ═══ FLOATING CHAT OVERLAY ═══
+  const floatingChat = <>
+    {!done && <button onClick={() => { setChatOpen(!chatOpen); if (!chatOpen && chatInputRef.current) setTimeout(() => chatInputRef.current?.focus(), 100); }}
+      style={{ position: "fixed", bottom: isDesktop ? 24 : 80, right: isDesktop ? 24 : 16, width: 48, height: 48, borderRadius: 24, background: c.a, color: "#fff", border: "none", fontSize: 20, cursor: "pointer", boxShadow: "0 4px 12px rgba(0,0,0,.3)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      {chatOpen ? "✕" : "💬"}
+    </button>}
+    {chatOpen && <div style={{ position: "fixed", bottom: isDesktop ? 80 : 136, right: isDesktop ? 24 : 16, left: isDesktop ? "auto" : 16, width: isDesktop ? 380 : "auto", maxHeight: "55vh", background: c.s, border: "1px solid " + c.b, borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,.4)", zIndex: 199, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid " + c.b, fontSize: 13, fontWeight: 600 }}>💬 Ask Senpai</div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8, minHeight: 120, maxHeight: "40vh" }}>
+        {chatMessages.length === 0 && <div style={{ fontSize: 12, color: c.m, fontStyle: "italic" }}>Ask me anything about what you're learning...</div>}
+        {chatMessages.map((m, i) => <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", padding: "8px 12px", borderRadius: 12, background: m.role === "user" ? c.a + "22" : c.s2, color: c.tx, fontSize: 13, maxWidth: "85%", lineHeight: 1.4 }}>{m.content}</div>)}
+        {chatLoading && <div style={{ fontSize: 12, color: c.m }}>Thinking...</div>}
+      </div>
+      <div style={{ padding: "8px 12px", borderTop: "1px solid " + c.b, display: "flex", gap: 8 }}>
+        <input ref={chatInputRef} value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") sendChat(); }}
+          placeholder="Ask about this character..." style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontSize: 13, outline: "none" }} />
+        <button onClick={sendChat} disabled={chatLoading} style={{ ...btn, padding: "8px 14px", borderRadius: 8, background: c.a, color: "#fff", fontSize: 12, fontWeight: 600 }}>Send</button>
+      </div>
+    </div>}
+  </>;
+
   // ═══ HEADER (shared across all exercise types) ═══
   const header = <>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
       <button onClick={() => { stopAudio(); setDone(true); }} style={{ ...btn, background: "none", color: c.m, fontFamily: mono, fontSize: 14, padding: "4px 0" }}>← exit</button>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {coachingPlan?.sessionNotes && <div style={{ fontSize: 10, color: c.a, maxWidth: 150, textAlign: "right", lineHeight: 1.3, opacity: .7 }}>{coachingPlan.sessionNotes}</div>}
         <div style={{ fontSize: 11, fontFamily: mono, color: c.m }}>{ci + 1}/{cards.length}</div>
         <div style={{ fontSize: 11, fontFamily: mono, color: c.m }}>⏱ {mins}m</div>
       </div>
@@ -120,6 +215,7 @@ export default function SmartSession({
     <div style={{ height: 4, background: c.b, borderRadius: 4, marginBottom: 20, overflow: "hidden" }}>
       <div style={{ height: "100%", width: progress + "%", background: c.a, borderRadius: 4, transition: "width .3s" }} />
     </div>
+    {floatingChat}
   </>;
 
   // ═══ EXERCISE: KANA VISUAL ═══
