@@ -1,7 +1,8 @@
 import { TILE, SCALE, DASH_COOLDOWN, TOTAL_ROOMS, JUMP_FORCE, hash } from "./constants.js";
 import { getSprite, getMascotImage, getImage } from "./sprites.js";
 
-const DRAW_SIZE = TILE * SCALE * 1.15; // 69px — slightly bigger character
+const DRAW_SIZE = TILE * SCALE; // 60px — physics size (for positioning)
+const SPRITE_SCALE = 1.35; // visual scale multiplier — makes character bigger without affecting physics
 
 // ═══ MAIN RENDER ═══
 export function render(g, ctx, isDesktop, font) {
@@ -219,7 +220,7 @@ export function render(g, ctx, isDesktop, font) {
       const dw = DRAW_SIZE * aspect * 0.95;
       const dh = DRAW_SIZE * 0.95;
       ctx.save();
-      ctx.translate(ai.x, ai.y + DRAW_SIZE);
+      ctx.translate(ai.x, ai.y + TILE * SCALE);
       if (ai.facing > 0) ctx.scale(-1, 1);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(mascot, ic.x, ic.y, ic.w, ic.h, -dw / 2, -dh, dw, dh);
@@ -543,15 +544,15 @@ const CROPS = {
 // Helper: draw a sprite image with crop and flip
 // Per-sprite direction: R=true faces right (flip when facing left), R=false faces left (flip when facing right)
 // All sprites draw at IDENTICAL size so character never grows/shrinks.
-const DRAW_W = DRAW_SIZE * (CROPS.idle.w / CROPS.idle.h); // ~81px
-const DRAW_H = DRAW_SIZE; // 60px
+const DRAW_W = DRAW_SIZE * SPRITE_SCALE * (CROPS.idle.w / CROPS.idle.h); // ~109px visual width
+const DRAW_H = DRAW_SIZE * SPRITE_SCALE; // ~81px visual height
+const FOOT_NUDGE = 8; // push sprites down to compensate for empty space in generous crops
 function drawSpriteFrame(ctx, img, cropKey, s, facing) {
   if (!img) return false;
   const crop = CROPS[cropKey];
   if (!crop) return false;
-  // Flip based on whether sprite faces right or left natively
   if (crop.R ? (facing < 0) : (facing > 0)) ctx.scale(-1, 1);
-  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H, DRAW_W, DRAW_H);
+  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
   return true;
 }
 
@@ -560,7 +561,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   const isSlashing = p.state.startsWith("slash");
 
   ctx.save();
-  ctx.translate(p.x, p.y + DRAW_SIZE);
+  ctx.translate(p.x, p.y + TILE * SCALE); // anchor at physics feet position
   // Squash/stretch
   if (p.scaleX !== undefined && (p.scaleX !== 1 || p.scaleY !== 1)) {
     ctx.scale(p.scaleX, p.scaleY);
@@ -717,7 +718,7 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   const drawH = s;
 
   ctx.save();
-  ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
+  ctx.translate(Math.round(e.x), Math.round(e.y + TILE * SCALE)); // anchor at physics feet
 
   // Flip based on facing
   if (e.facing > 0) ctx.scale(-1, 1); // enemy sprites face LEFT (measured)
