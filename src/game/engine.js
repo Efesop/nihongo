@@ -128,11 +128,11 @@ export function update(g, callbacks) {
       phase: rnd(0, Math.PI * 2),
     });
   }
-  // Drifting leaves — fall slowly, sway side to side
+  // Drifting leaves — fall slowly, sway side to side, pushed by wind
   if (Math.random() < dt * 1.5) {
     g.embers.push({
       x: g.camera.x + rnd(0, g.W), y: -10,
-      vx: rnd(-20, -5), vy: rnd(15, 35),
+      vx: rnd(-20, -5) - (g._wind || 0) * 0.5, vy: rnd(15, 35),
       life: rnd(5000, 10000), maxLife: 10000,
       size: rnd(2, 4), color: rnd(0, 1) > 0.6 ? "#3a6a40" : "#2a5030", type: "leaf",
       phase: rnd(0, Math.PI * 2),
@@ -148,11 +148,12 @@ export function update(g, callbacks) {
       phase: rnd(0, Math.PI * 2),
     });
   }
-  // Rain — diagonal streaks falling fast (6 per frame for heavy rain)
+  // Rain — diagonal streaks, bent by periodic wind gusts
+  const wind = g._wind || 0;
   for (let i = 0; i < 6; i++) {
     g.embers.push({
       x: g.camera.x + rnd(-100, g.W + 100), y: rnd(-20, -5),
-      vx: rnd(-40, -20), vy: rnd(700, 1000),
+      vx: rnd(-40, -20) - wind, vy: rnd(700, 1000),
       life: rnd(400, 700), maxLife: 700,
       size: rnd(1.5, 2.5), color: rnd(0,1) > 0.3 ? "#99aacc" : "#bbccee", type: "rain",
     });

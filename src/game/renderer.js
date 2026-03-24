@@ -598,43 +598,9 @@ export function render(g, ctx, isDesktop, font) {
     ctx.restore();
   }
 
-  // ── Fog / mist layer — drifts across the scene for atmosphere ──
-  renderFog(ctx, W, H, g.time.elapsed, cx);
+  // Fog is now rendered as parallax mist layers inside renderBackground
 
   renderHUD(ctx, g, W, isDesktop, font);
-}
-
-// ═══ FOG / MIST ═══
-function renderFog(ctx, W, H, t, cx) {
-  ctx.save();
-  // Two fog layers moving at different speeds for parallax depth
-  for (let layer = 0; layer < 2; layer++) {
-    const speed = layer === 0 ? 12 : 8;
-    const alpha = layer === 0 ? 0.04 : 0.03;
-    const yBase = H * (layer === 0 ? 0.5 : 0.65);
-    const height = H * (layer === 0 ? 0.35 : 0.25);
-    const offset = (t * speed - cx * (layer === 0 ? 0.1 : 0.05)) % (W * 2);
-
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = "#c8d0e0";
-
-    // Draw several fog blobs per layer
-    for (let i = -1; i < 4; i++) {
-      const bx = i * W * 0.6 + offset;
-      const by = yBase + Math.sin(t * 0.3 + i * 2.1) * 20;
-      const bw = W * 0.5 + Math.sin(t * 0.2 + i) * 40;
-
-      // Soft elliptical fog blob
-      const grad = ctx.createRadialGradient(bx, by, 0, bx, by, bw);
-      grad.addColorStop(0, "rgba(200,210,225,1)");
-      grad.addColorStop(0.5, "rgba(200,210,225,0.5)");
-      grad.addColorStop(1, "rgba(200,210,225,0)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(bx - bw, by - height / 2, bw * 2, height);
-    }
-  }
-  ctx.globalAlpha = 1;
-  ctx.restore();
 }
 
 // ═══════════════════════════════════════════
@@ -1325,27 +1291,87 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
 function renderBackground(ctx, W, H, cx, g) {
   const groundY = g.groundY;
   const bgImg = getImage("bg_forest");
+  const t = g.time.elapsed;
 
   if (bgImg) {
     // ── Image-based parallax background ──
-    // Fill entire viewport — stretch width to cover, no black bars
-    // Scale to fill: use the larger of width-fit or height-fit
     const scaleW = W / bgImg.width;
     const scaleH = H / bgImg.height;
     const bgScale = Math.max(scaleW, scaleH);
     const bgW = bgImg.width * bgScale;
     const bgH = bgImg.height * bgScale;
-    // Slow parallax pan
     const panRange = Math.max(0, bgW - W);
     const maxCx = Math.max(1, g.levelW - W);
     const panX = panRange > 0 ? -(cx / maxCx) * panRange : 0;
-    const panY = -(bgH - H) * 0.3; // slight vertical offset to show more sky
+    const panY = -(bgH - H) * 0.3;
 
     ctx.drawImage(bgImg, panX, panY, bgW, bgH);
 
-    // Subtle dark overlay for depth + so characters pop
+    // Dark overlay for depth
     ctx.fillStyle = "rgba(5,8,15,0.2)";
     ctx.fillRect(0, 0, W, H);
+
+    // ── Wind gusts — periodic sideways push affecting rain angle ──
+    // Store wind state on game object for rain particles to access
+    const windCycle = Math.sin(t * 0.3) * Math.sin(t * 0.7 + 1.3);
+    g._wind = windCycle > 0.4 ? (windCycle - 0.4) * 80 : 0; // 0 to ~48px/s sideways
+
+    // ── Parallax mist layers (between BG and foreground) ──
+    for (let layer = 0; layer < 2; layer++) {
+      const speed = layer === 0 ? 8 : 5;
+      const alpha = layer === 0 ? 0.06 : 0.04;
+      const yBase = groundY * (layer === 0 ? 0.55 : 0.75);
+      const h = H * 0.2;
+      ctx.globalAlpha = alpha;
+      for (let i = -1; i < 5; i++) {
+        const bx = (i * W * 0.45 + t * speed + cx * (layer === 0 ? -0.08 : -0.04)) % (W * 2.5) - W * 0.5;
+        const by = yBase + Math.sin(t * 0.4 + i * 1.7) * 15;
+        const bw = W * 0.4 + Math.sin(t * 0.2 + i) * 30;
+        const grad = ctx.createRadialGradient(bx, by, 0, bx, by, bw);
+        grad.addColorStop(0, "rgba(180,200,220,1)");
+        grad.addColorStop(0.6, "rgba(180,200,220,0.4)");
+        grad.addColorStop(1, "rgba(180,200,220,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(bx - bw, by - h / 2, bw * 2, h);
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // ── Ground-level puddles with rain ripples ──
+    for (let i = 0; i < 6; i++) {
+      const px = ((i * 317 + 100) % (W + 200)) - cx * 0.95 % (W + 200);
+      const pw = 25 + hash(i, 42) * 30;
+      if (px < -pw || px > W + pw) continue;
+      // Dark puddle ellipse
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = "#1a2a30";
+      ctx.beginPath();
+      ctx.ellipse(px, groundY + 6, pw, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Expanding ripple rings
+      const ripplePhase = (t * 2 + i * 1.3) % 1.5;
+      if (ripplePhase < 1) {
+        const r = ripplePhase * pw * 0.8;
+        ctx.globalAlpha = (1 - ripplePhase) * 0.15;
+        ctx.strokeStyle = "#5588aa";
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.ellipse(px + hash(i, 7) * 10 - 5, groundY + 6, r, r * 0.3, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      // Second ripple offset in time
+      const ripple2 = (t * 2 + i * 1.3 + 0.7) % 1.5;
+      if (ripple2 < 1) {
+        const r2 = ripple2 * pw * 0.6;
+        ctx.globalAlpha = (1 - ripple2) * 0.12;
+        ctx.strokeStyle = "#5588aa";
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.ellipse(px + hash(i, 9) * 8 - 4, groundY + 6, r2, r2 * 0.3, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
 
     // Fog at ground level blending into platforms
     const fogGrad = ctx.createLinearGradient(0, groundY - 40, 0, groundY + 14);
@@ -1416,18 +1442,34 @@ function renderBackground(ctx, W, H, cx, g) {
 function renderDeco(ctx, d, groundY, elapsed) {
   if (d.type === "lantern") {
     const glow = 0.5 + Math.sin(elapsed * 3 + d.x * 0.1) * 0.2;
-    ctx.fillStyle = `rgba(255,100,50,${glow * 0.15})`;
+    const flicker = 0.8 + Math.sin(elapsed * 7 + d.x) * 0.1 + Math.sin(elapsed * 13 + d.x * 0.3) * 0.1;
+    // Large ambient glow
+    ctx.fillStyle = `rgba(255,140,50,${glow * 0.12})`;
     ctx.beginPath();
-    ctx.arc(d.x, groundY - 60, 30, 0, Math.PI * 2);
+    ctx.arc(d.x, groundY - 60, 50, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = `rgba(255,100,50,${glow * 0.35})`;
+    // Medium warm glow
+    ctx.fillStyle = `rgba(255,100,40,${glow * 0.25})`;
     ctx.beginPath();
-    ctx.arc(d.x, groundY - 60, 14, 0, Math.PI * 2);
+    ctx.arc(d.x, groundY - 60, 22, 0, Math.PI * 2);
     ctx.fill();
+    // Lantern body
     ctx.fillStyle = "#c0282a";
     ctx.fillRect(d.x - 6, groundY - 70, 12, 18);
     ctx.fillStyle = "#dd4444";
     ctx.fillRect(d.x - 5, groundY - 69, 10, 2);
+    // Flame inside — flickering shape
+    const flameH = 6 + Math.sin(elapsed * 9 + d.x) * 2;
+    const flameW = 3 + Math.sin(elapsed * 11 + d.x * 0.7) * 1;
+    ctx.fillStyle = `rgba(255,200,80,${flicker * 0.9})`;
+    ctx.beginPath();
+    ctx.ellipse(d.x, groundY - 61, flameW, flameH, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = `rgba(255,255,200,${flicker * 0.6})`;
+    ctx.beginPath();
+    ctx.ellipse(d.x, groundY - 61, flameW * 0.5, flameH * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Post
     ctx.strokeStyle = "#444";
     ctx.lineWidth = 1;
     ctx.beginPath();
