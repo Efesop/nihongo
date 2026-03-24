@@ -216,6 +216,8 @@ export default function SmartSession({
   }, [loading]);
 
   // Loading state — animated running mascot
+  const loadingMessages = ["Preparing your training...", "Sharpening the blade...", "Setting up the dojo...", "Evaluating your weakness..."];
+  const [loadingMsg] = useState(() => loadingMessages[Math.floor(Math.random() * loadingMessages.length)]);
   const [loadingFrame, setLoadingFrame] = useState(0);
   useEffect(() => {
     if (loading) {
@@ -223,13 +225,12 @@ export default function SmartSession({
       return () => clearInterval(t);
     }
   }, [loading]);
-  const loadingMessages = ["Preparing your training...", "Sharpening the blade...", "Setting up the dojo...", "Evaluating your weakness..."];
 
   if (loading) return <div style={inner}>
     <div style={{ textAlign: "center", padding: "60px 20px" }}>
       <img src={`/images/tinysenpairun/ts${(loadingFrame % 4) + 1}.png`} alt="Senpai"
         style={{ width: 80, height: 80, imageRendering: "pixelated", marginBottom: 16 }} />
-      <div style={{ fontSize: 15, color: c.m }}>{loadingMessages[loadingFrame % loadingMessages.length]}</div>
+      <div style={{ fontSize: 15, color: c.m }}>{loadingMsg}</div>
       <button onClick={() => { stopAudio(); setTab("home"); }} style={{ ...btn, marginTop: 24, padding: "8px 20px", borderRadius: 8, border: "1px solid " + c.b, background: "transparent", color: c.m, fontSize: 12 }}>← cancel</button>
     </div>
   </div>;

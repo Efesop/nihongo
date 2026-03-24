@@ -171,6 +171,9 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     } else break;
   }
 
+  // Add a conversation exercise if user knows enough phrases (1 per session)
+  const phrasesLearned = Object.keys(phrData).length;
+
   // Add an AI-generated story if user knows enough phrases (1 per session, 25% chance)
   if (phrasesLearned >= 3 && queue.length < sessionLength && Math.random() < 0.25) {
     queue.push({ type: "story" });
@@ -181,9 +184,6 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const scenarios = ["restaurant", "hotel", "train station", "convenience store", "asking directions"];
     queue.push({ type: "branch-convo", scenario: scenarios[Math.floor(Math.random() * scenarios.length)] });
   }
-
-  // Add a conversation exercise if user knows enough phrases (1 per session)
-  const phrasesLearned = Object.keys(phrData).length;
   if (phrasesLearned >= 5 && queue.length < sessionLength && Math.random() < 0.4) {
     const eligible = CONVERSATIONS.filter(conv =>
       conv.lines.filter(l => l.blank).every(l => phrData[l.correctId]?.box >= 0)
