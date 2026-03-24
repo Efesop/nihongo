@@ -171,9 +171,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     } else break;
   }
 
-  // Add an AI-generated story if user knows enough phrases (1 per session, 30% chance)
-  if (phrasesLearned >= 3 && queue.length < sessionLength && Math.random() < 0.3) {
+  // Add an AI-generated story if user knows enough phrases (1 per session, 25% chance)
+  if (phrasesLearned >= 3 && queue.length < sessionLength && Math.random() < 0.25) {
     queue.push({ type: "story" });
+  }
+
+  // Add a branching conversation if user knows enough phrases (1 per session, 20% chance)
+  if (phrasesLearned >= 8 && queue.length < sessionLength && Math.random() < 0.2) {
+    const scenarios = ["restaurant", "hotel", "train station", "convenience store", "asking directions"];
+    queue.push({ type: "branch-convo", scenario: scenarios[Math.floor(Math.random() * scenarios.length)] });
   }
 
   // Add a conversation exercise if user knows enough phrases (1 per session)

@@ -40,6 +40,11 @@ export default function SmartSession({
   const [storyData, setStoryData] = useState(null);
   const [storyLoading, setStoryLoading] = useState(false);
   const [storyAnswer, setStoryAnswer] = useState(null);
+  const [branchData, setBranchData] = useState(null);
+  const [branchLoading, setBranchLoading] = useState(false);
+  const [branchHistory, setBranchHistory] = useState([]);
+  const [branchTurn, setBranchTurn] = useState(1);
+  const [branchScore, setBranchScore] = useState(0);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
@@ -647,6 +652,89 @@ export default function SmartSession({
       </div>
       <button onClick={() => { reviewPhr(p[0], true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
+    </>);
+  }
+
+  // ═══ EXERCISE: BRANCHING CONVERSATION ═══
+  if (ex.type === "branch-convo") {
+    const scenarios = ["restaurant", "hotel", "train station", "convenience store", "asking directions"];
+    const scenario = ex.scenario || scenarios[Math.floor(Math.random() * scenarios.length)];
+
+    // Fetch next turn
+    if (!branchData && !branchLoading) {
+      setBranchLoading(true);
+      const knownPhraseIds = Object.keys(data.phr || {});
+      const knownPhrases = PHRASES.filter(p => knownPhraseIds.includes(p[0])).map(p => ({ jp: p[1], en: p[3] }));
+      const lastChoice = branchHistory.length > 0 ? branchHistory[branchHistory.length - 1] : null;
+      fetch('/api/conversation', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ knownPhrases, scenario, previousChoice: lastChoice, turnNumber: branchTurn }),
+      }).then(r => r.json()).then(turn => {
+        if (!turn.error) setBranchData(turn);
+        else { advance(true); }
+        setBranchLoading(false);
+      }).catch(() => { advance(true); setBranchLoading(false); });
+    }
+
+    if (branchLoading) return withSenpai(<>
+      <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
+        <img src={`/images/tinysenpairun/ts${(loadingFrame % 4) + 1}.png`} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
+        <div style={{ fontSize: 13, color: c.m }}>Setting the scene...</div>
+      </div>
+    </>);
+
+    if (!branchData) return null;
+
+    // Conversation ended
+    if (branchData.isEnd) {
+      return withSenpai(<>
+        <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontFamily: mono, color: c.g, textTransform: "uppercase", marginBottom: 10 }}>🎭 Conversation Complete</div>
+          {branchData.summary && <div style={{ fontSize: 14, color: c.tx, lineHeight: 1.6, marginBottom: 14 }}>{branchData.summary}</div>}
+          {/* Show history */}
+          {branchHistory.map((h, i) => <div key={i} style={{ marginBottom: 8, padding: "8px 12px", borderRadius: 8, background: h.quality === "best" ? c.gs : h.quality === "okay" ? c.go + "15" : c.rs, border: "1px solid " + (h.quality === "best" ? c.g + "33" : h.quality === "okay" ? c.go + "33" : c.a + "33") }}>
+            <div style={{ fontSize: 14, fontWeight: 500 }}>{h.japanese}</div>
+            <div style={{ fontSize: 11, color: c.m }}>{h.english} — {h.quality === "best" ? "✓ Perfect" : h.quality === "okay" ? "~ Okay" : "✗ Wrong"}</div>
+          </div>)}
+          <div style={{ textAlign: "center", marginTop: 12, fontSize: 15, fontWeight: 700, color: c.a }}>{branchScore}/{branchHistory.length} best choices</div>
+        </div>
+        <button onClick={() => {
+          setScore(s => ({ ...s, c: s.c + branchScore, w: s.w + (branchHistory.length - branchScore) }));
+          setBranchData(null); setBranchHistory([]); setBranchTurn(1); setBranchScore(0);
+          advance(branchScore >= branchHistory.length / 2);
+        }} style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Continue →</button>
+      </>);
+    }
+
+    return withSenpai(<>
+      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 10 }}>🎭 {scenario} — Turn {branchTurn}</div>
+        {/* Scene description */}
+        <div style={{ fontSize: 13, color: c.m, marginBottom: 14, fontStyle: "italic" }}>{branchData.scene}</div>
+        {/* NPC line */}
+        {branchData.npcLine && <div style={{ padding: "12px 16px", background: c.s2, borderRadius: "4px 12px 12px 12px", marginBottom: 16 }}>
+          <div style={{ fontSize: 10, color: c.m, fontFamily: mono, marginBottom: 4 }}>{branchData.npcLine.speaker}</div>
+          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 600, marginBottom: 4 }}>{branchData.npcLine.japanese}</div>
+          <div style={{ fontSize: 12, fontFamily: mono, color: c.a }}>{branchData.npcLine.romaji}</div>
+          <div style={{ fontSize: 13, color: c.m, marginTop: 4 }}>{branchData.npcLine.english}</div>
+        </div>}
+        <div style={{ fontSize: 13, fontWeight: 600, color: c.tx, marginBottom: 10 }}>What do you say?</div>
+      </div>
+      {/* Response options */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {branchData.options?.map((opt, i) => <button key={i} onClick={() => {
+          setBranchHistory(h => [...h, opt]);
+          if (opt.quality === "best") setBranchScore(s => s + 1);
+          setBranchData(null);
+          setBranchTurn(t => t + 1);
+          // Play the chosen phrase
+          speak(opt.japanese);
+        }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: "transparent", color: c.tx, textAlign: "left", transition: "all .15s" }}>
+          <div style={{ fontSize: isDesktop ? 18 : 16, fontWeight: 500, marginBottom: 4 }}>{opt.japanese}</div>
+          <div style={{ fontSize: 12, fontFamily: mono, color: c.a }}>{opt.romaji}</div>
+          <div style={{ fontSize: 12, color: c.m, marginTop: 2 }}>{opt.english}</div>
+        </button>)}
+      </div>
     </>);
   }
 
