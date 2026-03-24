@@ -516,29 +516,32 @@ export function render(g, ctx, isDesktop, font) {
 // Source crop removes empty padding (character spans ~rows 6-24 in a 32-cell grid).
 // Crop rects for player images (remove gray/transparent padding)
 // Crop rects per sprite — fitted to actual character bounds
+// R = faces right (AI-generated sprites), L = faces left (original mascot)
+// Idle faces LEFT, all AI-generated action sprites face RIGHT
 const CROPS = {
-  idle:    { x: 64,  y: 160, w: 896, h: 660 },
-  run:     { x: 140, y: 140, w: 750, h: 730 },
-  slash:   { x: 80,  y: 100, w: 860, h: 800 },
-  jump1:   { x: 160, y: 190, w: 700, h: 650 },
-  jump2:   { x: 250, y: 150, w: 600, h: 720 },
-  fall:    { x: 260, y: 60,  w: 550, h: 860 },
-  wallslide:{ x: 140, y: 120, w: 660, h: 800 },
-  dash:    { x: 60,  y: 210, w: 900, h: 600 },
-  death1:  { x: 100, y: 80,  w: 810, h: 800 },
-  death2:  { x: 80,  y: 420, w: 920, h: 310 },
+  idle:    { x: 64,  y: 160, w: 896, h: 660, R: false },
+  run:     { x: 140, y: 140, w: 750, h: 730, R: true },
+  slash:   { x: 80,  y: 100, w: 860, h: 800, R: true },
+  jump1:   { x: 160, y: 190, w: 700, h: 650, R: true },
+  jump2:   { x: 250, y: 150, w: 600, h: 720, R: true },
+  fall:    { x: 260, y: 60,  w: 550, h: 860, R: true },
+  wallslide:{ x: 140, y: 120, w: 660, h: 800, R: true },
+  dash:    { x: 60,  y: 210, w: 900, h: 600, R: true },
+  death1:  { x: 100, y: 80,  w: 810, h: 800, R: true },
+  death2:  { x: 80,  y: 420, w: 920, h: 310, R: true },
 };
 
 // Helper: draw a sprite image with crop and flip
-// Sprites face LEFT. Flip when facing RIGHT (facing > 0).
-// All sprites draw at IDENTICAL size (idle dimensions) so character never grows/shrinks.
+// Per-sprite direction: R=true faces right (flip when facing left), R=false faces left (flip when facing right)
+// All sprites draw at IDENTICAL size so character never grows/shrinks.
 const DRAW_W = DRAW_SIZE * (CROPS.idle.w / CROPS.idle.h); // ~81px
 const DRAW_H = DRAW_SIZE; // 60px
 function drawSpriteFrame(ctx, img, cropKey, s, facing) {
   if (!img) return false;
   const crop = CROPS[cropKey];
   if (!crop) return false;
-  if (facing > 0) ctx.scale(-1, 1);
+  // Flip based on whether sprite faces right or left natively
+  if (crop.R ? (facing < 0) : (facing > 0)) ctx.scale(-1, 1);
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H, DRAW_W, DRAW_H);
   return true;
 }
@@ -624,7 +627,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
     const slashImg = getImage(slashImgKey);
     if (slashImg) {
-      if (p.facing > 0) ctx.scale(-1, 1);
+      if (p.facing < 0) ctx.scale(-1, 1); // slash sprites face right
 
       const sc = CROPS.slash;
       const sa = sc.w / sc.h;
@@ -709,7 +712,7 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
 
   // Flip based on facing
-  if (e.facing > 0) ctx.scale(-1, 1);
+  if (e.facing < 0) ctx.scale(-1, 1); // enemy sprites face right
 
   let oy = 0;
   if (e.state === "patrol") {
