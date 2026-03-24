@@ -37,6 +37,9 @@ export default function SmartSession({
   const [streak, setStreak] = useState(0);
   const [convoAnswers, setConvoAnswers] = useState({});
   const [convoSubmitted, setConvoSubmitted] = useState(false);
+  const [storyData, setStoryData] = useState(null);
+  const [storyLoading, setStoryLoading] = useState(false);
+  const [storyAnswer, setStoryAnswer] = useState(null);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
@@ -644,6 +647,68 @@ export default function SmartSession({
       </div>
       <button onClick={() => { reviewPhr(p[0], true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
+    </>);
+  }
+
+  // ═══ EXERCISE: AI-GENERATED STORY ═══
+  if (ex.type === "story") {
+    // Fetch story on first render
+    if (!storyData && !storyLoading) {
+      setStoryLoading(true);
+      const knownPhraseIds = Object.keys(data.phr || {});
+      const knownPhrases = PHRASES.filter(p => knownPhraseIds.includes(p[0])).map(p => ({ id: p[0], jp: p[1], en: p[3] }));
+      const kanaCount = Object.keys(data.kana || {}).filter(ch => (data.kana[ch]?.box || 0) >= 1).length;
+      fetch('/api/story', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ knownPhrases, knownKana: kanaCount, level: data.onboarding?.level || 'beginner', interests: data.onboarding?.why ? [data.onboarding.why] : [] }),
+      }).then(r => r.json()).then(story => {
+        if (!story.error) setStoryData(story);
+        else { advance(true); } // Skip if story generation fails
+        setStoryLoading(false);
+      }).catch(() => { advance(true); setStoryLoading(false); });
+    }
+
+    if (storyLoading) return withSenpai(<>
+      <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
+        <img src={`/images/tinysenpairun/ts${(loadingFrame % 4) + 1}.png`} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
+        <div style={{ fontSize: 13, color: c.m }}>Senpai is writing a story for you...</div>
+      </div>
+    </>);
+
+    if (!storyData) return null;
+
+    const answered = storyAnswer !== null;
+    const isCorrect = storyAnswer === storyData.comprehensionQuestion?.correctIndex;
+
+    return withSenpai(<>
+      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.g, textTransform: "uppercase", marginBottom: 10 }}>📖 Story — {storyData.title}</div>
+        {storyData.sentences?.map((s, i) => <div key={i} style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 600, lineHeight: 1.5, marginBottom: 4 }}>{s.japanese}</div>
+          <div style={{ fontSize: 12, fontFamily: mono, color: c.a, marginBottom: 2 }}>{s.romaji}</div>
+          <div style={{ fontSize: 13, color: c.m }}>{s.english}</div>
+        </div>)}
+      </div>
+      {/* Comprehension question */}
+      {storyData.comprehensionQuestion && <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: c.tx, marginBottom: 10 }}>{storyData.comprehensionQuestion.question}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {storyData.comprehensionQuestion.options?.map((opt, i) => {
+            let bg = "transparent", border = c.b, col = c.tx;
+            if (answered && i === storyData.comprehensionQuestion.correctIndex) { bg = c.gs; border = c.g + "60"; col = c.g; }
+            if (answered && storyAnswer === i && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
+            return <button key={i} onClick={() => {
+              if (answered) return;
+              setStoryAnswer(i);
+              const correct = i === storyData.comprehensionQuestion.correctIndex;
+              setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+              setTimeout(() => { setStoryData(null); setStoryAnswer(null); advance(correct); }, 2000);
+            }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 14, textAlign: "left", transition: "all .2s" }}>
+              {opt}
+            </button>;
+          })}
+        </div>
+      </div>}
     </>);
   }
 

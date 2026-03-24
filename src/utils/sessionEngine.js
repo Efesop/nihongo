@@ -171,6 +171,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     } else break;
   }
 
+  // Add an AI-generated story if user knows enough phrases (1 per session, 30% chance)
+  if (phrasesLearned >= 3 && queue.length < sessionLength && Math.random() < 0.3) {
+    queue.push({ type: "story" });
+  }
+
   // Add a conversation exercise if user knows enough phrases (1 per session)
   const phrasesLearned = Object.keys(phrData).length;
   if (phrasesLearned >= 5 && queue.length < sessionLength && Math.random() < 0.4) {

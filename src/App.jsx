@@ -8,6 +8,7 @@ import { M, H_GROUPS, K_GROUPS, ROMAJI, YOON_PARTS, DAKUTEN_BASE } from "./data/
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "./data/phrases.js";
 import { THEMES } from "./data/themes.js";
 import { SRS_DAYS, KEY, font, mono, RP_SCENARIOS } from "./data/constants.js";
+import { fsrsUpdate, stabilityToBox } from "./utils/fsrs.js";
 
 // Utils
 import { store, syncLoad, syncSave, defaultD, migrate } from "./utils/storage.js";
@@ -272,9 +273,10 @@ function AuthedApp({ user, getToken }){
   const reviewPhr=(id,correct)=>{
     setD(prev=>{
       const cur=prev.phr[id]||{box:0,next:0};
-      const newBox=correct?Math.min(cur.box+1,5):0;
-      const nextMs=Date.now()+SRS_DAYS[newBox]*864e5;
-      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:nextMs}},totalC:correct?prev.totalC+1:prev.totalC};
+      const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
+      const result=fsrsUpdate(fsrsData,correct);
+      const newBox=stabilityToBox(result.stability);
+      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},totalC:correct?prev.totalC+1:prev.totalC};
       store.set(KEY,nd);
       return nd;
     });
@@ -283,9 +285,11 @@ function AuthedApp({ user, getToken }){
   const updateKanaSRS=(ch,correct)=>{
     setD(prev=>{
       const cur=prev.kana[ch]||{box:0,next:0};
-      const newBox=correct?Math.min(cur.box+1,5):Math.max(cur.box-1,0);
-      const nextMs=Date.now()+SRS_DAYS[newBox]*864e5;
-      const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:nextMs}}};
+      // Use FSRS for adaptive intervals
+      const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
+      const result=fsrsUpdate(fsrsData,correct);
+      const newBox=stabilityToBox(result.stability);
+      const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}}};
       store.set(KEY,nd);
       return nd;
     });
