@@ -188,15 +188,57 @@ export function render(g, ctx, isDesktop, font) {
   for (const e of g.enemies) {
     if (e.x < cx - 100 || e.x > cx + W + 100) continue;
     if (e.dead) {
+      if (e.deathStyle === "cinematic") {
+        // ── Cinematic: shock → kneel → face plant ──
+        ctx.save();
+        ctx.translate(e.x, e.y + TILE * SCALE);
+        if (e.deathPhase === 0) {
+          // White flash while standing
+          ctx.globalAlpha = 0.8;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(-25, -TILE * SCALE, 50, TILE * SCALE);
+          ctx.globalAlpha = 1;
+          ctx.scale(e.facing < 0 ? -1 : 1, 1);
+        } else if (e.deathPhase === 1) {
+          // Kneeling — squash vertically
+          ctx.globalAlpha = 0.9;
+          ctx.scale(e.facing < 0 ? -1 : 1, 0.6);
+        } else {
+          // Face plant — rotate + squash
+          ctx.globalAlpha = Math.max(0.2, e.deathTimer / 400);
+          ctx.rotate(e.facing * 0.5);
+          ctx.translate(e.facing * 12, 0);
+          ctx.scale(e.facing < 0 ? -1 : 1, 0.35);
+        }
+        const fakeE = { ...e, x: 0, y: -TILE * SCALE, dead: false };
+        drawEnemy(ctx, fakeE, g.time.elapsed, font);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      if (e.deathStyle === "knockback") {
+        // ── Knockback: tumble backward with rotation ──
+        ctx.globalAlpha = Math.max(0.15, e.deathTimer / 500);
+        ctx.save();
+        ctx.translate(e.x, e.y + TILE * SCALE);
+        const tumble = (1 - e.deathTimer / 700) * e.facing * 1.5;
+        ctx.rotate(tumble);
+        const fakeE = { ...e, x: 0, y: -TILE * SCALE, dead: false };
+        drawEnemy(ctx, fakeE, g.time.elapsed, font);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      // Default flash + fade
       if (e.deathTimer > 400) {
-        // Bright white flash on death frame
         ctx.fillStyle = "#ffffff";
         ctx.globalAlpha = (e.deathTimer - 400) / 100;
         ctx.fillRect(e.x - 25, e.y, 50, 60);
         ctx.globalAlpha = 1;
         continue;
       }
-      // Fade out
       ctx.globalAlpha = Math.max(0, e.deathTimer / 400);
     }
     drawEnemy(ctx, e, g.time.elapsed, font);

@@ -23,9 +23,10 @@ let _currentMusic = "music_forest"; // per-environment music key
 // ═══ SOUND REGISTRY ═══
 const SFX_CRITICAL = [
   "swoosh1", "swoosh2", "swoosh3", "swoosh4", "swoosh5", "swoosh6",
-  "slash3_electric", "hit_impact", "hit_impact2", "hit_impact3",
+  "shing", "slash3_electric", "hit_impact", "hit_impact2", "hit_impact3",
   "kill", "blood_splatter", "clash", "deflect",
   "jump", "land", "dash", "menuStart", "death",
+  "wall_grab", "wall_launch",
 ];
 const SFX_GAMEPLAY = [
   "wallSlide", "step1", "step2", "step3",
@@ -133,37 +134,31 @@ async function _loadMP3(name) {
   return false;
 }
 
-async function _loadBatch(names) {
-  let mp3 = 0, fb = 0;
-  for (const name of names) {
-    if (await _loadMP3(name)) { mp3++; continue; }
-    const def = JSFXR[name];
+// Load a batch of MP3s in PARALLEL (much faster than sequential)
+async function _loadBatchParallel(names) {
+  const results = await Promise.allSettled(names.map(n => _loadMP3(n)));
+  let mp3 = 0;
+  for (let i = 0; i < names.length; i++) {
+    if (results[i].status === "fulfilled" && results[i].value) { mp3++; continue; }
+    // Fallback to jsfxr for failed loads
+    const def = JSFXR[names[i]];
     if (!def) continue;
     try {
       if (_ctx && typeof sfxr.toWebAudio === "function") {
         const s = sfxr.toWebAudio(def, _ctx);
-        if (s?.buffer) { _buffers[name] = s.buffer; fb++; continue; }
+        if (s?.buffer) { _buffers[names[i]] = s.buffer; continue; }
       }
-      const a = sfxr.toAudio(def);
-      if (a?.src) { _buffers[name] = a.src; fb++; }
     } catch { /* */ }
   }
-  return { mp3, fb };
+  return mp3;
 }
 
 async function _loadAllSounds() {
-  // Phase 1: critical combat SFX (needed immediately)
-  const p1 = await _loadBatch(SFX_CRITICAL);
-  console.log(`[audio] Critical: ${p1.mp3} MP3 + ${p1.fb} jsfxr`);
-
-  // Phase 2: music + ambient (start playing ASAP)
-  for (const n of MUSIC_NAMES) await _loadMP3(n);
-  for (const n of AMBIENT_NAMES) await _loadMP3(n);
+  // All SFX + music + ambient loaded in parallel — much faster than sequential
+  const allNames = [...SFX_NAMES, ...MUSIC_NAMES, ...AMBIENT_NAMES];
+  const mp3 = await _loadBatchParallel(allNames);
+  console.log(`[audio] Loaded ${mp3}/${allNames.length} MP3s`);
   if (_wantsMusic) { _startMusicNow(); _startAmbientNow(); }
-
-  // Phase 3: remaining gameplay SFX (enemy sounds, steps, etc)
-  const p2 = await _loadBatch(SFX_GAMEPLAY);
-  console.log(`[audio] Gameplay: ${p2.mp3} MP3 + ${p2.fb} jsfxr`);
 }
 
 // ═══ PLAY SFX ═══

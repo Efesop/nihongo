@@ -296,14 +296,14 @@ export function update(g, callbacks) {
       spawnDust(g, p.x, p.y + TILE * SCALE);
       playSound("jump");
     } else if (p.wallSliding) {
-      // Wall jump — strong launch away from wall (just press jump to bounce)
+      // Wall jump — launch away, track which wall we left
       p.vy = JUMP_FORCE * 0.9;
       p.vx = -p.wallDir * MOVE_SPEED * 1.6;
       p.facing = -p.wallDir;
+      p._lastWallX = p.wallDir === 1 ? p.x + pw : p.x - pw; // x of wall we jumped from
       p.wallSliding = false;
-      p.wallJumpCooldown = 150; // brief cooldown before grabbing opposite wall
-      playSound("jump", { playbackRate: 1.2 });
-      // Wall jump dust
+      p.wallJumpCooldown = 200;
+      playSound("wall_launch");
       for (let i = 0; i < 4; i++) {
         g.particles.push({
           x: p.x + p.wallDir * 15, y: p.y + rnd(10, TILE * SCALE - 10),
@@ -334,9 +334,12 @@ export function update(g, callbacks) {
 
     // Afterimage
     p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
-    // Swoosh on exclusive channel — new slash instantly cancels previous sound
-    playRandomExclusive("slash", "swoosh", { volume: combo === 3 ? 0.7 : 0.5 });
-    // 3rd hit: layer electric thunder on top
+    // Sound per combo: shing for first draw, swoosh for follow-ups, electric for finisher
+    if (combo === 1) {
+      playRandomExclusive("slash", "shing", { volume: 0.6 }); // blade draw
+    } else {
+      playRandomExclusive("slash", "swoosh", { volume: combo === 3 ? 0.7 : 0.5 });
+    }
     if (combo === 3) playSound("slash3_electric", { volume: 0.5 });
 
     // Lunge — each hit goes further, big slide
@@ -451,34 +454,41 @@ export function update(g, callbacks) {
 
   p.x = Math.max(10, Math.min(g.levelW - 10, p.x));
 
-  // ── Wall sliding — grab walls while airborne, slide down with particles ──
+  // ── Wall sliding — grab walls while airborne ──
+  // During wallJumpCooldown: can grab OPPOSITE wall (not the one we jumped from)
   const wasWallSliding = p.wallSliding;
   p.wallSliding = false;
   p.wallDir = 0;
-  if (!p.grounded && p.wallJumpCooldown <= 0) {
+  if (!p.grounded) {
     for (const plat of g.platforms) {
       if (!plat.wall) continue;
       const playerBottom = p.y + TILE * SCALE;
       const playerTop = p.y;
       if (playerBottom <= plat.y || playerTop >= plat.y + plat.h) continue;
+
       // Player's right side against wall's left face
-      if (Math.abs((p.x + pw) - plat.x) < 5) {
+      if (Math.abs((p.x + pw) - plat.x) < 8) {
+        // During cooldown, skip if this is the wall we just jumped from
+        if (p.wallJumpCooldown > 0 && Math.abs(plat.x - (p._lastWallX || -999)) < 50) continue;
         p.wallSliding = true;
         p.wallDir = 1;
         if (p.vy > 0) p.vy = Math.min(p.vy, 100);
         p.x = plat.x - pw;
+        p.wallJumpCooldown = 0; // grabbed a wall — clear cooldown
       }
       // Player's left side against wall's right face
-      if (Math.abs((p.x - pw) - (plat.x + plat.w)) < 5) {
+      if (Math.abs((p.x - pw) - (plat.x + plat.w)) < 8) {
+        if (p.wallJumpCooldown > 0 && Math.abs((plat.x + plat.w) - (p._lastWallX || -999)) < 50) continue;
         p.wallSliding = true;
         p.wallDir = -1;
         if (p.vy > 0) p.vy = Math.min(p.vy, 100);
         p.x = plat.x + plat.w + pw;
+        p.wallJumpCooldown = 0;
       }
     }
   }
-  // Wall-slide effects — sound + dust particles
-  if (p.wallSliding && !wasWallSliding) playSound("wallSlide");
+  // Wall-slide effects
+  if (p.wallSliding && !wasWallSliding) playSound("wall_grab");
   if (p.wallSliding && p.vy > 0 && Math.random() < dt * 12) {
     g.particles.push({
       x: p.x + p.wallDir * pw, y: p.y + rnd(20, TILE * SCALE),
@@ -531,7 +541,40 @@ export function update(g, callbacks) {
 
   // ── Enemies ──
   for (const e of g.enemies) {
-    if (e.dead) { e.deathTimer -= dt * 1000; continue; }
+    if (e.dead) {
+      e.deathTimer -= dt * 1000;
+      // Knockback death physics — slide with blood trail
+      if (e.deathStyle === "knockback" && e._knockbackActive) {
+        e.x += e.vx * dt;
+        e.vy += GRAVITY * dt;
+        e.y += e.vy * dt;
+        e.vx *= 0.92; // friction
+        // Blood trail particles while sliding
+        if (Math.abs(e.vx) > 30 && Math.random() < dt * 15) {
+          g.particles.push({
+            x: e.x + rnd(-8, 8), y: e.y + TILE * SCALE - 2,
+            vx: 0, vy: 0, life: 8000, maxLife: 8000,
+            color: rnd(0,1) > 0.5 ? "#550000" : "#3a0000",
+            size: rnd(3, 8), isStain: true,
+          });
+        }
+        // Stop when near ground
+        for (const plat of g.platforms) {
+          if (e.x > plat.x && e.x < plat.x + plat.w &&
+              e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 20) {
+            e.y = plat.y - TILE * SCALE;
+            e.vy = 0;
+            if (Math.abs(e.vx) < 30) e._knockbackActive = false;
+          }
+        }
+      }
+      // Cinematic death phases
+      if (e.deathStyle === "cinematic") {
+        if (e.deathTimer < 800 && e.deathPhase === 0) e.deathPhase = 1; // kneel
+        if (e.deathTimer < 400 && e.deathPhase === 1) e.deathPhase = 2; // face plant
+      }
+      continue;
+    }
 
     // Find which platform the enemy is on and store bounds BEFORE AI runs
     let onPlatform = false;
@@ -801,7 +844,23 @@ export function update(g, callbacks) {
 // ═══ HELPERS ═══
 function killEnemy(g, e, p, callbacks) {
   e.dead = true;
-  e.deathTimer = 500;
+  const combo = p.slashCombo;
+
+  if (combo === 3) {
+    // ── CINEMATIC DEATH: slash through → enemy falls to knees → face plant ──
+    e.deathStyle = "cinematic";
+    e.deathTimer = 1200; // longer for the full animation
+    e.deathPhase = 0;    // 0=standing shock, 1=kneeling, 2=face plant
+    e.vx = 0;
+    g.hitStop = 120;     // longer freeze for dramatic effect
+  } else {
+    // ── KNOCKBACK DEATH: enemy flies back, slides with blood trail ──
+    e.deathStyle = "knockback";
+    e.deathTimer = 700;
+    e.vx = p.facing * rnd(300, 500); // fly in slash direction
+    e.vy = rnd(-150, -50);           // slight upward launch
+    e._knockbackActive = true;
+  }
   g.hitStop = 70;
   g.camera.shakeTimer = 150;
   g.comboTimer = 2000;
