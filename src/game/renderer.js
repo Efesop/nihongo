@@ -518,28 +518,26 @@ export function render(g, ctx, isDesktop, font) {
 // Crop rects per sprite — fitted to actual character bounds
 // R = faces right (AI-generated sprites), L = faces left (original mascot)
 // Idle faces LEFT, all AI-generated action sprites face RIGHT
-// R = sprite faces right. Per-frame direction since AI generates mixed.
-// Crop rects will need re-measuring after new sprites are placed.
+// R: false = faces LEFT (like idle). All sprites set to LEFT for consistency.
+// Only exception: slash4 (old sprite, confirmed correct as R:true).
+// Generous crop rects — gray bg removal handles the rest.
 const CROPS = {
-  idle:      { x: 64,  y: 160, w: 896, h: 660, R: false },
-  // Run frames — each has own direction
-  run1:      { x: 100, y: 80,  w: 820, h: 860, R: false },
-  run2:      { x: 60,  y: 60,  w: 900, h: 880, R: true },
-  run3:      { x: 120, y: 100, w: 760, h: 780, R: true },
-  run4:      { x: 100, y: 80,  w: 830, h: 850, R: true },
-  // Slash frames — each has own direction
-  slash1:    { x: 60,  y: 100, w: 900, h: 800, R: true },
-  slash2:    { x: 30,  y: 40,  w: 950, h: 920, R: false },
-  slash3:    { x: 100, y: 60,  w: 780, h: 880, R: true },
-  slash4:    { x: 80,  y: 100, w: 860, h: 800, R: true },
-  // Other poses
-  jump1:     { x: 120, y: 80,  w: 780, h: 840, R: true },
-  jump2:     { x: 140, y: 100, w: 720, h: 780, R: false },
-  fall:      { x: 160, y: 80,  w: 700, h: 860, R: false },
-  wallslide: { x: 140, y: 120, w: 660, h: 800, R: true },
-  dash:      { x: 60,  y: 210, w: 900, h: 600, R: true },
-  death1:    { x: 80,  y: 60,  w: 860, h: 880, R: false },
-  death2:    { x: 30,  y: 350, w: 960, h: 400, R: true },
+  idle:      { x: 20, y: 20, w: 984, h: 984, R: false },
+  run1:      { x: 20, y: 20, w: 984, h: 984, R: false },
+  run2:      { x: 20, y: 20, w: 984, h: 984, R: false },
+  run3:      { x: 20, y: 20, w: 984, h: 984, R: false },
+  run4:      { x: 20, y: 20, w: 984, h: 984, R: false },
+  slash1:    { x: 20, y: 20, w: 984, h: 984, R: false },
+  slash2:    { x: 20, y: 20, w: 984, h: 984, R: false },
+  slash3:    { x: 20, y: 20, w: 984, h: 984, R: false },
+  slash4:    { x: 80, y: 100, w: 860, h: 800, R: true },
+  jump1:     { x: 20, y: 20, w: 984, h: 984, R: false },
+  jump2:     { x: 20, y: 20, w: 984, h: 984, R: false },
+  fall:      { x: 20, y: 20, w: 984, h: 984, R: false },
+  wallslide: { x: 20, y: 20, w: 984, h: 984, R: false },
+  dash:      { x: 20, y: 20, w: 984, h: 984, R: false },
+  death1:    { x: 20, y: 20, w: 984, h: 984, R: false },
+  death2:    { x: 20, y: 20, w: 984, h: 984, R: false },
 };
 
 // Helper: draw a sprite image with crop and flip

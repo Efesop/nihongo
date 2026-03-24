@@ -46,26 +46,26 @@ function loadImg(key, src, removeGrayBg = false) {
 
 export function loadGameImages() {
   return Promise.all([
-    // Player — organized in tinysenpai/ subfolder
-    loadImg("player", "/images/tinysenpai/idle.png"),
-    loadImg("run1", "/images/tinysenpai/run/1.png"),
-    loadImg("run2", "/images/tinysenpai/run/2.png"),
-    loadImg("run3", "/images/tinysenpai/run/3.png"),
-    loadImg("run4", "/images/tinysenpai/run/4.png"),
-    loadImg("slash1", "/images/tinysenpai/slash/1.png"),
-    loadImg("slash2", "/images/tinysenpai/slash/2.png"),
-    loadImg("slash3", "/images/tinysenpai/slash/3.png"),
-    loadImg("slash4", "/images/tinysenpai/slash/4.png"),
-    loadImg("jump1", "/images/tinysenpai/jump/launch.png"),
-    loadImg("jump2", "/images/tinysenpai/jump/airborne.png"),
-    loadImg("fall", "/images/tinysenpai/fall.png"),
-    loadImg("wallslide", "/images/tinysenpai/wallslide.png"),
-    loadImg("dash", "/images/tinysenpai/dash.png"),
-    loadImg("death1", "/images/tinysenpai/death/hit.png"),
-    loadImg("death2", "/images/tinysenpai/death/fallen.png"),
-    // Enemies
-    loadImg("oni", "/images/demon.png"),
-    loadImg("ninja", "/images/ninja.png"),
+    // Player — all with gray bg removal
+    loadImg("player", "/images/tinysenpai/idle.png", true),
+    loadImg("run1", "/images/tinysenpai/run/1.png", true),
+    loadImg("run2", "/images/tinysenpai/run/2.png", true),
+    loadImg("run3", "/images/tinysenpai/run/3.png", true),
+    loadImg("run4", "/images/tinysenpai/run/4.png", true),
+    loadImg("slash1", "/images/tinysenpai/slash/1.png", true),
+    loadImg("slash2", "/images/tinysenpai/slash/2.png", true),
+    loadImg("slash3", "/images/tinysenpai/slash/3.png", true),
+    loadImg("slash4", "/images/tinysenpai/slash/4.png", true),
+    loadImg("jump1", "/images/tinysenpai/jump/launch.png", true),
+    loadImg("jump2", "/images/tinysenpai/jump/airborne.png", true),
+    loadImg("fall", "/images/tinysenpai/fall.png", true),
+    loadImg("wallslide", "/images/tinysenpai/wallslide.png", true),
+    loadImg("dash", "/images/tinysenpai/dash.png", true),
+    loadImg("death1", "/images/tinysenpai/death/hit.png", true),
+    loadImg("death2", "/images/tinysenpai/death/fallen.png", true),
+    // Enemies — also need gray bg removal
+    loadImg("oni", "/images/demon.png", true),
+    loadImg("ninja", "/images/ninja.png", true),
     // Backgrounds
     loadImg("bg_forest", "/images/forest.png"),
   ]);
