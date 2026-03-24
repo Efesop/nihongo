@@ -301,7 +301,8 @@ export function update(g, callbacks) {
       p.vy = JUMP_FORCE * 0.9;
       p.vx = -p.wallDir * MOVE_SPEED * 1.6;
       p.facing = -p.wallDir;
-      p._lastWallX = p.wallDir === 1 ? p.x + pw : p.x - pw; // x of wall we jumped from
+      const halfW = TILE * SCALE * 0.5;
+      p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // x of wall we jumped from
       p.wallSliding = false;
       p.wallJumpCooldown = 200;
       playSound("wall_launch");
@@ -544,28 +545,48 @@ export function update(g, callbacks) {
   for (const e of g.enemies) {
     if (e.dead) {
       e.deathTimer -= dt * 1000;
-      // Knockback death physics — slide with blood trail
-      if (e.deathStyle === "knockback" && e._knockbackActive) {
-        e.x += e.vx * dt;
-        e.vy += GRAVITY * dt;
-        e.y += e.vy * dt;
-        e.vx *= 0.92; // friction
-        // Blood trail particles while sliding — heavy splatter
-        if (Math.abs(e.vx) > 20 && Math.random() < dt * 25) {
-          g.particles.push({
-            x: e.x + rnd(-8, 8), y: e.y + TILE * SCALE - 2,
-            vx: 0, vy: 0, life: 8000, maxLife: 8000,
-            color: rnd(0,1) > 0.5 ? "#550000" : "#3a0000",
-            size: rnd(3, 8), isStain: true,
-          });
+      // Knockback death physics — fly back and slide along ground with blood trail
+      if (e.deathStyle === "knockback") {
+        // Apply gravity only if airborne
+        if (!e._onGround) {
+          e.vy += GRAVITY * dt;
+          e.y += e.vy * dt;
         }
-        // Stop when near ground
+        // Horizontal slide with friction
+        e.x += e.vx * dt;
+        e.vx *= e._onGround ? 0.94 : 0.99; // more friction on ground
+
+        // Land on platforms
         for (const plat of g.platforms) {
-          if (e.x > plat.x && e.x < plat.x + plat.w &&
-              e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 20) {
+          if (plat.wall) continue;
+          if (e.x > plat.x - 20 && e.x < plat.x + plat.w + 20 &&
+              e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 30 &&
+              e.vy >= 0) {
             e.y = plat.y - TILE * SCALE;
             e.vy = 0;
-            if (Math.abs(e.vx) < 30) e._knockbackActive = false;
+            e._onGround = true;
+          }
+        }
+
+        // Blood trail while sliding on ground
+        if (e._onGround && Math.abs(e.vx) > 15) {
+          // Continuous blood stain trail
+          if (Math.random() < dt * 30) {
+            g.particles.push({
+              x: e.x + rnd(-5, 5), y: e.y + TILE * SCALE - 1,
+              vx: 0, vy: 0, life: 10000, maxLife: 10000,
+              color: rnd(0,1) > 0.4 ? "#550000" : "#3a0000",
+              size: rnd(4, 10), isStain: true,
+            });
+          }
+          // Blood droplets spraying up
+          if (Math.random() < dt * 12) {
+            g.particles.push({
+              x: e.x + rnd(-6, 6), y: e.y + TILE * SCALE - 4,
+              vx: -e.vx * rnd(0.1, 0.3), vy: rnd(-80, -30),
+              life: 300, maxLife: 300,
+              color: rnd(0,1) > 0.5 ? "#cc1111" : "#aa0000", size: rnd(1, 3),
+            });
           }
         }
       }
@@ -857,12 +878,12 @@ function killEnemy(g, e, p, callbacks) {
     e.vx = 0;
     g.hitStop = 120;     // longer freeze for dramatic effect
   } else {
-    // ── KNOCKBACK DEATH: enemy flies back, slides with blood trail ──
+    // ── KNOCKBACK DEATH: enemy sent flying back, slides along ground ──
     e.deathStyle = "knockback";
-    e.deathTimer = 1200; // long enough to see full slide
-    e.vx = p.facing * rnd(350, 550); // fly in slash direction
-    e.vy = rnd(-200, -80);           // upward launch
-    e._knockbackActive = true;
+    e.deathTimer = 2000; // long slide visible
+    e.vx = p.facing * rnd(400, 650); // strong horizontal launch
+    e.vy = rnd(-120, -40);           // slight pop up, mostly horizontal
+    e._onGround = false;
     g.hitStop = 70;
   }
   g.camera.shakeTimer = 150;

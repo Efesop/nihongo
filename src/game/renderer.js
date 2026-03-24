@@ -201,11 +201,13 @@ export function render(g, ctx, isDesktop, font) {
       };
 
       if (e.deathStyle === "knockback") {
-        // ── Knockback: tumble backward, slide with blood trail ──
-        ctx.globalAlpha = Math.max(0.2, e.deathTimer / 700);
+        // ── Knockback: sent flying, tumble, slide with blood trail ──
+        ctx.globalAlpha = Math.max(0.15, Math.min(1, e.deathTimer / 1000));
         ctx.save();
         ctx.translate(e.x, e.y + TILE * SCALE);
-        const tumble = (1 - e.deathTimer / 700) * e.facing * 1.5;
+        // Tumble rotation: fast at start, slows as they slide to a stop
+        const tumbleSpeed = Math.min(1, Math.abs(e.vx) / 200);
+        const tumble = (1 - e.deathTimer / 2000) * e.facing * 2.5 * tumbleSpeed;
         ctx.rotate(tumble);
         _drawDeathSprite(map?.hit || map?.idle);
         ctx.restore();
@@ -218,10 +220,15 @@ export function render(g, ctx, isDesktop, font) {
         ctx.save();
         ctx.translate(e.x, e.y + TILE * SCALE);
         if (e.deathPhase === 0) {
-          // White flash + show hit sprite
-          ctx.globalAlpha = 0.8;
-          ctx.fillStyle = "#ffffff";
-          ctx.fillRect(-30, -DRAW_H, 60, DRAW_H);
+          // Brief white flash fading out + hit sprite
+          const flashAlpha = Math.max(0, (e.deathTimer - 1000) / 200); // fades in first 200ms
+          if (flashAlpha > 0) {
+            ctx.globalAlpha = flashAlpha * 0.7;
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.arc(0, -DRAW_H * 0.5, 35, 0, Math.PI * 2);
+            ctx.fill();
+          }
           ctx.globalAlpha = 1;
           _drawDeathSprite(map?.hit || map?.idle);
         } else if (e.deathPhase === 1) {
