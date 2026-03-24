@@ -977,17 +977,18 @@ export default function SmartSession({
     // Submitted — show results
     const correct = blanks.filter((b, i) => convoAnswers[i] === b.correctId).length;
     const total = blanks.length;
+    let blankNum = 0;
     return withSenpai(<>
       <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <span style={{ fontSize: 18 }}>{convo.icon}</span>
           <span style={{ fontSize: 14, fontWeight: 600 }}>{convo.setting}</span>
-          <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 700, color: correct === total ? c.g : c.go }}>{correct}/{total}</span>
+          <span style={{ marginLeft: "auto", fontSize: 16, fontWeight: 700, color: correct === total ? "#4caf50" : c.a }}>{correct}/{total}</span>
         </div>
         {convo.lines.map((line, li) => {
           if (!line.blank) {
             return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
+              <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 28, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
               <div>
                 <div style={{ fontSize: 16, fontWeight: 500 }}>{line.text}</div>
                 <div style={{ fontSize: 11, color: c.m }}>{line.translation}</div>
@@ -995,17 +996,37 @@ export default function SmartSession({
             </div>;
           }
           const blankIdx = blanks.indexOf(line);
+          blankNum++;
           const answered = convoAnswers[blankIdx];
           const isCorrect = answered === line.correctId;
           const answeredPhrase = phraseById(answered);
           const correctPhrase = phraseById(line.correctId);
-          return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-            <div style={{ fontSize: 10, color: c.a, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>you</div>
+          const resultCol = isCorrect ? "#4caf50" : c.a;
+          return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "flex-start" }}>
+            <div style={{ fontSize: 10, fontFamily: mono, width: 28, flexShrink: 0, textAlign: "right", marginTop: 6 }}>
+              <span style={{ display: "inline-block", width: 20, height: 20, lineHeight: "20px", borderRadius: "50%", textAlign: "center", fontSize: 10, fontWeight: 700, background: resultCol + "22", color: resultCol, border: "1px solid " + resultCol + "44" }}>{blankNum}</span>
+            </div>
             <div style={{ flex: 1 }}>
-              <div style={{ padding: "8px 14px", borderRadius: 8, background: isCorrect ? c.gs : c.rs, border: "1px solid " + (isCorrect ? c.g + "44" : c.a + "44") }}>
-                <div style={{ fontSize: 15, fontWeight: 500, color: isCorrect ? c.g : c.a }}>{answeredPhrase?.[1]} {isCorrect ? "✓" : "✗"}</div>
-                {!isCorrect && <div style={{ fontSize: 12, color: c.g, marginTop: 4 }}>→ {correctPhrase?.[1]} ({correctPhrase?.[3]})</div>}
+              {/* Your answer */}
+              <div style={{ padding: "10px 14px", borderRadius: 8, background: isCorrect ? "#4caf5012" : c.rs, border: "1px solid " + resultCol + "33", marginBottom: isCorrect ? 0 : 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: resultCol }}>{isCorrect ? "✓" : "✗"}</span>
+                  <span style={{ fontSize: 15, fontWeight: 500 }}>{answeredPhrase?.[1]}</span>
+                  <span style={{ fontSize: 12, color: c.m }}>{answeredPhrase?.[3]}</span>
+                  <button onClick={() => speakPhrase(answered, answeredPhrase?.[1])}
+                    style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: 11, color: c.m, flexShrink: 0 }}>🔊</button>
+                </div>
               </div>
+              {/* Correct answer if wrong */}
+              {!isCorrect && <div style={{ padding: "8px 14px", borderRadius: 8, background: "#4caf5010", border: "1px solid #4caf5022" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, color: "#4caf50", fontWeight: 600 }}>correct:</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: "#4caf50" }}>{correctPhrase?.[1]}</span>
+                  <span style={{ fontSize: 12, color: c.m }}>{correctPhrase?.[3]}</span>
+                  <button onClick={() => speakPhrase(line.correctId, correctPhrase?.[1])}
+                    style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: 11, color: c.m, flexShrink: 0 }}>🔊</button>
+                </div>
+              </div>}
             </div>
           </div>;
         })}
