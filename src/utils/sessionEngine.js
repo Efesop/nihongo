@@ -9,6 +9,50 @@ const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
   .filter(g => !g.dk && !g.yo)
   .flatMap(g => g.c);
 
+// Common building-block words that appear across many phrases
+const BUILDING_BLOCKS = [
+  "ください", "おねがいします", "です", "ですか", "ません",
+  "はどこ", "いくら", "なん", "ありま", "ほしい", "たい",
+];
+
+/**
+ * Smart phrase ordering: mission-critical first, cross-category variety,
+ * and phrases with familiar building blocks are prioritised.
+ */
+function smartPhraseOrder(unseen, phrData) {
+  // Words the user has already encountered (from learned phrases)
+  const knownPhraseTexts = PHRASES.filter(p => phrData[p[0]]).map(p => p[1]);
+  const knownBlocks = BUILDING_BLOCKS.filter(b => knownPhraseTexts.some(t => t.includes(b)));
+
+  // Score each unseen phrase
+  const scored = unseen.map(p => {
+    let score = 0;
+    // Mission-critical gets big boost
+    if (p[6]) score += 100;
+    // Bonus for each known building block in this phrase
+    knownBlocks.forEach(b => { if (p[1].includes(b)) score += 15; });
+    return { p, score, cat: p[4] };
+  });
+
+  // Sort by score (highest first), then interleave categories for variety
+  scored.sort((a, b) => b.score - a.score);
+
+  // Interleave: don't show 3+ from same category in a row
+  const result = [];
+  const remaining = [...scored];
+  const lastCats = [];
+  while (remaining.length > 0) {
+    // Find first item whose category isn't in the last 2
+    let idx = remaining.findIndex(s => !lastCats.includes(s.cat));
+    if (idx === -1) idx = 0; // fallback if all same category
+    const pick = remaining.splice(idx, 1)[0];
+    result.push(pick.p);
+    lastCats.push(pick.cat);
+    if (lastCats.length > 2) lastCats.shift();
+  }
+  return result;
+}
+
 /**
  * Build an adaptive smart session based on user's SRS data.
  * Returns an array of exercise cards.
@@ -43,9 +87,9 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     return d && d.box >= 1 && d.box <= 2 && now >= (d.next || 0);
   });
 
-  // 3. New items (never seen)
+  // 3. New items (never seen) — smart ordering for phrases
   const unseenKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]);
-  const unseenPhrases = PHRASES.filter(p => !phrData[p[0]]);
+  const unseenPhrases = smartPhraseOrder(PHRASES.filter(p => !phrData[p[0]]), phrData);
 
   // ═══ PICK EXERCISE TYPE BASED ON MASTERY ═══
 

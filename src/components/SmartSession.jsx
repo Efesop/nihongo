@@ -681,6 +681,16 @@ export default function SmartSession({
   if (ex.type === "learn-phrase") {
     const p = ex.item;
     const catCol = CAT_COLORS[p[4]];
+    // Find familiar building blocks from already-learned phrases
+    const knownPhraseTexts = PHRASES.filter(pp => (data.phr || {})[pp[0]]).map(pp => [pp[1], pp[3]]);
+    const familiarParts = [];
+    const blocks = ["ください", "おねがいします", "です", "ですか", "ません", "はどこ", "があります"];
+    blocks.forEach(b => {
+      if (p[1].includes(b) && knownPhraseTexts.some(([jp]) => jp.includes(b) && jp !== p[1])) {
+        const source = knownPhraseTexts.find(([jp]) => jp.includes(b) && jp !== p[1]);
+        if (source) familiarParts.push({ block: b, from: source[1] });
+      }
+    });
     // Autoplay on mount
     if (!fb) setTimeout(() => speakPhraseWithEnglish(p[0], p[1], p[3]), 500);
     return withSenpai(<>
@@ -701,6 +711,12 @@ export default function SmartSession({
           <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8, marginBottom: 6 }}>{p[2]}</div>
           <div style={{ fontSize: 16, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
           {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
+          {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "8px 12px", background: c.g + "10", borderRadius: 8, border: "1px solid " + c.g + "22" }}>
+            <div style={{ fontSize: 11, color: c.g, fontWeight: 600, marginBottom: 4 }}>You already know parts of this!</div>
+            {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: 11, color: c.m }}>
+              <span style={{ fontWeight: 600 }}>{fp.block}</span> — from "{fp.from}"
+            </div>)}
+          </div>}
           <div style={{ fontSize: 11, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
           <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}
             style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m, marginTop: 10 }}>🔊 hear again</button>
