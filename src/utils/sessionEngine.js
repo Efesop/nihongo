@@ -199,6 +199,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   shuffle(strugglingKana).slice(0, 3).forEach(ch => addKana(ch));
   shuffle(strugglingPhrases).slice(0, 2).forEach(p => addPhrase(p));
 
+  // ALWAYS include some kana — even if none are due, add maintenance review
+  // (keeps kana sharp between SRS intervals)
+  const kanaInQueue = queue.filter(q => q.type?.startsWith("kana-") || q.type === "learn-card").length;
+  if (kanaInQueue < 2) {
+    // Pick random known kana for maintenance practice (not due but learned)
+    const knownKana = shuffle(ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1 && !usedKana.has(ch)));
+    knownKana.slice(0, 3 - kanaInQueue).forEach(ch => addKana(ch));
+  }
+
   // Add new content (learn cards) + immediate follow-up quiz
   if (unseenKana.length > 0 && queue.length < sessionLength - 2) {
     const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, 2);
