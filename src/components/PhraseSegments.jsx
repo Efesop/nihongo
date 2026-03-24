@@ -44,11 +44,12 @@ export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight 
             borderBottom: "2px solid " + (isActive ? gramCol : gramCol + "44"),
             transition: "all .15s",
             position: "relative",
+            zIndex: isActive ? 20 : 10,
           }}>
           {jp}
           {isActive && <div style={{
             position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
-            marginBottom: 8, padding: "8px 12px", borderRadius: 8,
+            marginBottom: 4, padding: "8px 12px", borderRadius: 8,
             background: c.s2 || "#2a2a2a", border: "1px solid " + (c.b || "#444"),
             boxShadow: "0 4px 12px rgba(0,0,0,.3)",
             whiteSpace: "nowrap", zIndex: 50,
@@ -66,7 +67,8 @@ export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight 
         </span>;
       })}
     </div>
-    {/* Dismiss on tap elsewhere (mobile) */}
-    {activeSegment !== null && <div onClick={() => setActiveSegment(null)} style={{ position: "fixed", inset: 0, zIndex: 5 }} />}
+    {/* Dismiss on tap elsewhere (mobile only — doesn't interfere with hover) */}
+    {activeSegment !== null && <div onClick={() => setActiveSegment(null)}
+      style={{ position: "fixed", inset: 0, zIndex: 1 }} />}
   </div>;
 }

@@ -711,10 +711,10 @@ export default function SmartSession({
           <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8, marginBottom: 6 }}>{p[2]}</div>
           <div style={{ fontSize: 16, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
           {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
-          {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "8px 12px", background: c.g + "10", borderRadius: 8, border: "1px solid " + c.g + "22" }}>
-            <div style={{ fontSize: 11, color: c.g, fontWeight: 600, marginBottom: 4 }}>You already know parts of this!</div>
-            {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: 11, color: c.m }}>
-              <span style={{ fontWeight: 600 }}>{fp.block}</span> — from "{fp.from}"
+          {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.g + "15", borderRadius: 8, border: "1px solid " + c.g + "30" }}>
+            <div style={{ fontSize: 12, color: c.g, fontWeight: 700, marginBottom: 6 }}>You already know parts of this!</div>
+            {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: 13, color: c.tx, marginBottom: 2 }}>
+              <span style={{ fontWeight: 700, color: c.g }}>{fp.block}</span> <span style={{ color: c.m }}>— from</span> "{fp.from}"
             </div>)}
           </div>}
           <div style={{ fontSize: 11, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
