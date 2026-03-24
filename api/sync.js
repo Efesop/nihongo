@@ -1,16 +1,18 @@
 import { neon } from "@neondatabase/serverless";
-import { createClerkClient } from "@clerk/backend";
+import { verifyToken } from "@clerk/backend";
 
 const sql = neon(process.env.DATABASE_URL);
-const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
 
 async function getUserId(req) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return null;
   try {
-    const payload = await clerk.verifyToken(token);
+    const payload = await verifyToken(token, {
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
     return payload.sub; // Clerk user ID
-  } catch {
+  } catch (e) {
+    console.error("Token verification failed:", e.message);
     return null;
   }
 }
