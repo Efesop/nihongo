@@ -201,28 +201,20 @@ export function render(g, ctx, isDesktop, font) {
       };
 
       if (e.deathStyle === "knockback") {
-        // ── Knockback: per-pose sprite with appropriate rotation ──
+        // ── Knockback: sliding along ground in random pose ──
         ctx.globalAlpha = Math.max(0.15, Math.min(1, e.deathTimer / 1200));
         ctx.save();
         ctx.translate(e.x, e.y + TILE * SCALE);
 
-        // Get the knockback pose sprite
         const kbPose = e._kbPose || "kb_back";
         const kbSprite = map?.[kbPose] || map?.hit || map?.idle;
+        const kbDir = e._kbDir || 1;
 
-        // Rotation per pose type
-        if (kbPose === "kb_tumble") {
-          // Spinning tumble — continuous rotation
-          const spin = (1 - e.deathTimer / 2000) * (e._kbDir || 1) * 4;
-          ctx.rotate(spin);
-        } else if (kbPose === "kb_back") {
-          // On back — slight tilt in knockback direction
-          ctx.rotate((e._kbDir || 1) * 0.15);
-        }
-        // kb_seated — no rotation, upright sitting
-
-        // Flip based on knockback direction (sprites face left = knocked left)
-        if ((e._kbDir || 1) > 0) ctx.scale(-1, 1);
+        // All poses are static slides (no spinning) — just the sprite sliding along ground
+        // Sprites are drawn facing left (knocked to left).
+        // If knocked RIGHT, DON'T flip (enemy slides right but their body faces back toward player)
+        // If knocked LEFT, flip (so they face back toward player on the right)
+        if (kbDir < 0) ctx.scale(-1, 1);
 
         ctx.imageSmoothingEnabled = false;
         const key = kbSprite?.key || map?.fallback;
