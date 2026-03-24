@@ -6,7 +6,7 @@ import { makePlayer, makeEnemy } from "./entities.js";
 import { update } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
-import { initAudio, playSound, toggleMute, isMuted } from "./audio.js";
+import { initAudio, playSound, toggleMute, isMuted, startMusic, stopMusic } from "./audio.js";
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
@@ -137,6 +137,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     initAudio();
     await loadMascotImage();
     playSound("menuStart");
+    startMusic();
     setScore(0);
     setMaxCombo(0);
     setScreen("playing");
