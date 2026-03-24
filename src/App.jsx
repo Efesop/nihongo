@@ -276,8 +276,14 @@ function AuthedApp({ user, getToken }){
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
       const result=fsrsUpdate(fsrsData,correct);
       const newBox=stabilityToBox(result.stability);
-      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},totalC:correct?prev.totalC+1:prev.totalC};
+      // Track error patterns
+      const errors=prev.errors||{};
+      if(!correct){errors[id]=(errors[id]||0)+1;}
+      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,totalC:correct?prev.totalC+1:prev.totalC};
       store.set(KEY,nd);
+      // Trigger DB sync (debounced)
+      clearTimeout(syncTimer.current);
+      syncTimer.current=setTimeout(async()=>{const token=await getToken();syncSave(token,nd);},2000);
       return nd;
     });
   };
@@ -285,12 +291,17 @@ function AuthedApp({ user, getToken }){
   const updateKanaSRS=(ch,correct)=>{
     setD(prev=>{
       const cur=prev.kana[ch]||{box:0,next:0};
-      // Use FSRS for adaptive intervals
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
       const result=fsrsUpdate(fsrsData,correct);
       const newBox=stabilityToBox(result.stability);
-      const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}}};
+      // Track error patterns
+      const errors=prev.errors||{};
+      if(!correct){errors[ch]=(errors[ch]||0)+1;}
+      const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors};
       store.set(KEY,nd);
+      // Trigger DB sync (debounced)
+      clearTimeout(syncTimer.current);
+      syncTimer.current=setTimeout(async()=>{const token=await getToken();syncSave(token,nd);},2000);
       return nd;
     });
   };

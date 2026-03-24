@@ -65,6 +65,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // ═══ GATHER ITEMS BY PRIORITY ═══
 
+  // Error patterns — items the user frequently gets wrong (3+ errors)
+  const errors = data.errors || {};
+  const frequentErrorKana = ALL_BASE_KANA.filter(ch => (errors[ch] || 0) >= 3 && kanaData[ch]);
+  const frequentErrorPhrases = PHRASES.filter(p => (errors[p[0]] || 0) >= 3 && phrData[p[0]]);
+
   // 1. Due for review (highest priority)
   const dueKana = ALL_BASE_KANA.filter(ch => {
     const d = kanaData[ch];
@@ -187,6 +192,10 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   helpKana.slice(0, 2).forEach(ch => { if (ROMAJI[ch]) addKana(ch); });
   helpPhrases.slice(0, 1).forEach(id => { const p = PHRASES.find(pp => pp[0] === id); if (p) addPhrase(p); });
+
+  // Items with frequent errors — these need extra drilling
+  shuffle(frequentErrorKana).slice(0, 2).forEach(ch => addKana(ch));
+  shuffle(frequentErrorPhrases).slice(0, 1).forEach(p => addPhrase(p));
 
   // Start with 1-2 easy wins (due items the user probably knows)
   shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 2).forEach(ch => addKana(ch));
