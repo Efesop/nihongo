@@ -711,10 +711,10 @@ export default function SmartSession({
           <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8, marginBottom: 6 }}>{p[2]}</div>
           <div style={{ fontSize: 16, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
           {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
-          {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.g + "15", borderRadius: 8, border: "1px solid " + c.g + "30" }}>
-            <div style={{ fontSize: 12, color: c.g, fontWeight: 700, marginBottom: 6 }}>You already know parts of this!</div>
+          {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.as, borderRadius: 8, border: "1px solid " + c.a + "20" }}>
+            <div style={{ fontSize: 12, color: c.a, fontWeight: 700, marginBottom: 6 }}>Familiar patterns</div>
             {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: 13, color: c.tx, marginBottom: 2 }}>
-              <span style={{ fontWeight: 700, color: c.g }}>{fp.block}</span> <span style={{ color: c.m }}>— from</span> "{fp.from}"
+              You've seen <span style={{ fontWeight: 700, color: c.a }}>{fp.block}</span> <span style={{ color: c.m }}>in</span> <span style={{ color: c.m, fontStyle: "italic" }}>"{fp.from}"</span>
             </div>)}
           </div>}
           <div style={{ fontSize: 11, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
@@ -906,7 +906,6 @@ export default function SmartSession({
                   ? <div onClick={() => setConvoAnswers(a => { const n = { ...a }; delete n[blankIdx]; return n; })}
                       style={{ padding: "8px 14px", borderRadius: 8, background: c.a + "18", border: "1px solid " + c.a + "44", cursor: "pointer", fontSize: 15, fontWeight: 500 }}>
                       {selectedPhrase[1]}
-                      <div style={{ fontSize: 11, color: c.m, marginTop: 2 }}>{selectedPhrase[3]}</div>
                     </div>
                   : <div style={{ padding: "10px 14px", borderRadius: 8, border: "2px dashed " + c.b, color: c.m, fontSize: 13 }}>tap an option below...</div>
                 }
@@ -930,7 +929,6 @@ export default function SmartSession({
                 setConvoAnswers(a => ({ ...a, [nextBlank]: optId }));
               }} disabled={used} style={{ ...btn, padding: "10px 10px", borderRadius: 8, border: "1px solid " + c.b, background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, fontSize: 14, textAlign: "left", opacity: used ? .4 : 1 }}>
                 {p[1]}
-                <div style={{ fontSize: 10, color: c.m, marginTop: 2 }}>{p[3]}</div>
               </button>;
             })}
           </div>;
