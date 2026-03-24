@@ -582,7 +582,7 @@ export function update(g, callbacks) {
 
         // Horizontal slide with friction
         e.x += e.vx * dt;
-        e.vx *= e._onGround ? 0.93 : 0.99;
+        e.vx *= e._onGround ? 0.96 : 0.99; // less friction = longer slide
 
         // Stop at walls
         const epw = TILE * SCALE * 0.3;
@@ -907,19 +907,45 @@ function killEnemy(g, e, p, callbacks) {
     e.vx = 0;
     g.hitStop = 120;     // longer freeze for dramatic effect
   } else {
-    // ── KNOCKBACK DEATH: enemy sent flying back, slides along ground ──
+    // ── KNOCKBACK DEATH: enemy sent FLYING back, slides along ground ──
     e.deathStyle = "knockback";
-    e.deathTimer = 2000;
-    e.vx = p.facing * rnd(400, 650);
-    e.vy = rnd(-120, -40);
+    e.deathTimer = 2500;
+    e.vx = p.facing * rnd(600, 900); // faster launch
+    e.vy = rnd(-80, -20);
     e._onGround = false;
-    e._kbDir = p.facing; // direction knocked (for sprite flip)
-    // Random knockback pose
+    e._kbDir = p.facing;
     const kbPoses = ["kb_back", "kb_tumble", "kb_seated"];
     e._kbPose = kbPoses[Math.floor(Math.random() * kbPoses.length)];
-    g.hitStop = 70;
+    g.hitStop = 80;
+
+    // ── IMPACT VFX at point of contact ──
+    const impactX = (p.x + e.x) / 2;
+    const impactY = e.y + TILE * SCALE * 0.4;
+    // White flash ring
+    g.particles.push({
+      x: impactX, y: impactY, vx: 0, vy: 0,
+      life: 250, maxLife: 250, color: "#ffffff", size: 2, isRipple: true,
+    });
+    // Directional impact sparks
+    for (let i = 0; i < 12; i++) {
+      g.particles.push({
+        x: impactX + rnd(-5, 5), y: impactY + rnd(-8, 8),
+        vx: p.facing * rnd(100, 500) + rnd(-80, 80), vy: rnd(-300, -50),
+        life: 350, maxLife: 350,
+        color: i < 4 ? "#ffffff" : i < 8 ? "#ffdd44" : "#ff8833",
+        size: rnd(1.5, 3.5),
+      });
+    }
+    // Slash line — bright white streak in slash direction
+    for (let i = 0; i < 4; i++) {
+      g.particles.push({
+        x: impactX, y: impactY + rnd(-10, 10),
+        vx: p.facing * rnd(300, 700), vy: rnd(-20, 20),
+        life: 120, maxLife: 120, color: "#ffffff", size: rnd(1, 2), isLine: true,
+      });
+    }
   }
-  g.camera.shakeTimer = 150;
+  g.camera.shakeTimer = 180;
   g.comboTimer = 2000;
   g.combo++;
   if (g.combo > g.maxCombo) g.maxCombo = g.combo;

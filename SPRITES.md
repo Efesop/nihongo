@@ -1,178 +1,120 @@
-# Game Assets — Complete List
+# Game Sprites — Complete Asset List
 
-All character sprites: 1024x1024 PNG, pixel art chibi style, solid gray background, **facing LEFT**.
-All backgrounds: 1536x1024 or wider, pixel art, side-scrolling perspective.
-
-**Gray backgrounds are auto-removed on load** by `sprites.js`.
-**Flip logic**: code flips sprites when `facing > 0` (right). Natural direction = LEFT.
+All sprites: 1024x1024 PNG, pixel art chibi style, gray background (auto-removed on load).
+Generated with Gemini Pro. Gray bg removal in `sprites.js` (avg > 100, maxDiff < 35 → transparent).
 
 ---
 
-## PRIORITY 1 — Regenerate (Current Sprites Need Improvement)
+## TINYSENPAI (Player) — `public/images/tinysenpai/`
 
-### Better Run Cycle (4 frames)
-Current run looks stiff. Need more dynamic samurai/anime-style running — leaning forward, arms flowing behind, more fluid motion.
+**Active (20 sprites):**
+| Sprite | File | R flag | Notes |
+|--------|------|--------|-------|
+| Idle | `idle.png` | false | Straw kasa hat, black outfit, red sash |
+| Run 1-4 | `run/1-4.png` | false | 4-frame walk cycle |
+| Slash 1 | `slash/1.png` | false | Horizontal cut |
+| Slash 2 | `slash/2.png` | true | Upward arc |
+| Slash 3 | `slash/3.png` | false | Spin wind-up |
+| Slash 4 | `slash/4.png` | true | Lightning follow-through |
+| Slash Through | `slash-through.png` | true | Combo 3 finisher pose |
+| Jump Launch | `jump/launch.png` | false | |
+| Jump Airborne | `jump/airborne.png` | true | |
+| Fall | `fall.png` | true | |
+| Wall Cling | `wall-cling.png` | false | Pressed against wall |
+| Wallslide | `wallslide.png` | true | Old version (fallback) |
+| Dash | `dash.png` | false | |
+| Death Hit | `death/hit.png` | false | |
+| Death Fallen | `death/fallen.png` | false | |
+| Parry | `parry.png` | false | Ready for future mechanic |
+| Land Heavy | `land-heavy.png` | false | Ready for future use |
 
-Frame 1 — Contact:
-> Pixel art chibi samurai character, identical style to tinysenpai2.png — oversized straw sugegasa hat, dark kimono with red obi belt, face hidden in shadow under hat. Running pose with right foot hitting ground, body leaning forward aggressively, left arm extended forward, right arm back. Dynamic running samurai style, like anime ninja run. Side view facing right. Black pixel outlines. Solid gray background. 1024x1024.
-
-Frame 2 — Push off:
-> Pixel art chibi samurai character, identical style to tinysenpai2.png — oversized straw sugegasa hat, dark kimono with red obi belt, face hidden in shadow under hat. Running pose pushing off right foot, body stretched forward, both arms swept back, hat tilting slightly from speed. Dynamic samurai sprint. Side view facing right. Black pixel outlines. Solid gray background. 1024x1024.
-
-Frame 3 — Flight:
-> Pixel art chibi samurai character, identical style to tinysenpai2.png — oversized straw sugegasa hat, dark kimono with red obi belt, face hidden in shadow under hat. Mid-stride both feet off ground, body low and aerodynamic, arms trailing behind like anime ninja run. Side view facing right. Black pixel outlines. Solid gray background. 1024x1024.
-
-Frame 4 — Reach:
-> Pixel art chibi samurai character, identical style to tinysenpai2.png — oversized straw sugegasa hat, dark kimono with red obi belt, face hidden in shadow under hat. Left foot reaching forward about to land, right leg kicking back, arms in opposite motion, kimono fluttering from movement. Side view facing right. Black pixel outlines. Solid gray background. 1024x1024.
-
-**Save to:** `public/images/tinysenpairun/ts1.png` through `ts4.png` (overwrite existing)
-
-### Better Jump Sprites (2 frames)
-Current jump makes character look smaller. Need poses where character fills more of the frame.
-
-Frame 1 — Launch:
-> Pixel art chibi samurai character, identical style to tinysenpai2.png — oversized straw sugegasa hat, dark kimono with red obi belt, face hidden in shadow under hat. Powerful upward leap, legs coiled beneath, one arm reaching up, body expanded and dynamic. Character should fill most of the frame. Side view facing right. Black pixel outlines. Solid gray background. 1024x1024.
-
-Frame 2 — Airborne:
-> Pixel art chibi samurai character, identical style to tinysenpai2.png — oversized straw sugegasa hat, dark kimono with red obi belt, face hidden in shadow under hat. Peak of jump, body spread wide — legs apart, arms out for balance, hat floating up slightly. Character should fill most of the frame horizontally. Side view facing right. Black pixel outlines. Solid gray background. 1024x1024.
-
-**Save to:** `public/images/tinysenpaiother/jump1-launch.png`, `jump2-airborne.png` (overwrite)
-
-### Better Fall Sprite (1 frame)
-> Pixel art chibi samurai character, identical style to tinysenpai2.png — oversized straw sugegasa hat, dark kimono with red obi belt, face hidden in shadow under hat. Falling pose with body spread wide — arms out to sides, legs dangling apart, kimono and hat billowing upward from wind. Character fills most of the frame. Side view facing right. Black pixel outlines. Solid gray background. 1024x1024.
-
-**Save to:** `public/images/tinysenpaiother/fall.png` (overwrite)
+**UI/Grades:**
+| File | Used by |
+|------|---------|
+| `tinysenpai1.png` | unused/ (original icon) |
+| `tinysenpai2.png` | Game menu, Layout sidebar, SmartSession |
+| `grades-run/ts1-4.png` | SmartSession grade display |
+| `grades-strike/1-4.png` | SmartSession grade display |
 
 ---
 
-## PRIORITY 2 — New Enemy Sprites
+## ONI (Red Demon) — `public/images/oni/`
 
-### Armored Ronin / Samurai (elite blocker, 2HP)
-Currently drawn procedurally (shapes). Needs a real sprite.
+13 sprites. Bright red skin, two golden horns, fangs, grey spiked iron kanabo club, dark tattered loincloth.
 
-> Pixel art character, same chibi style as tinysenpai2.png. A ronin warrior — wearing dark lacquered samurai armor with gold trim, kabuto helmet with crescent moon crest on top, menacing face plate. Small chibi body (large head, tiny body), holding a katana at ready position. Red and gold color accents. Black pixel outline. Facing right. Solid gray background. 1024x1024.
-
-**Save to:** `public/images/ronin.png`
-**Then add to sprites.js:** `loadImg("samurai", "/images/ronin.png")`
-
-### Oni Attack Frame (optional)
-> Same as demon.png oni. Attacking pose — club raised high overhead about to smash down, body tensed, aggressive. Same chibi proportions. Facing right. Solid gray background. 1024x1024.
-
-**Save to:** `public/images/demon-attack.png`
-
-### Ninja Throw Frame (optional)
-> Same as ninja.png shadow ninja. Arm extended forward releasing a shuriken, dynamic throwing stance, scarf flowing. Same chibi proportions. Facing right. Solid gray background. 1024x1024.
-
-**Save to:** `public/images/ninja-throw.png`
-
----
-
-## PRIORITY 3 — Environment Backgrounds
-
-Each background is used for a group of rooms. Currently we only have the forest.
-
-### Temple Gardens (Rooms 4-6)
-> Pixel art seamless background, 16-bit retro game style. Japanese temple garden at dusk — elegant pagoda silhouette, cherry blossom trees with pink petals, stone lanterns, bamboo grove, koi pond. Warm golden sunset with purple sky. Rich detail — individual tiles on roofs, texture on stone. Side-scrolling game perspective. 1536x1024. Clean pixel art.
-
-**Save to:** `public/images/temple.png`
-
-### Neon Tokyo (Rooms 7-9)
-> Pixel art seamless background, 16-bit retro game style. Futuristic neon Tokyo street at night — glowing Japanese kanji signs in hot pink and electric blue, rain-slicked surfaces, vending machines, narrow alleyways, steam rising from grates. Dense urban detail — cables, pipes, posters, fire escapes. Cyberpunk color palette. Side-scrolling perspective. 1536x1024. Clean pixel art.
-
-**Save to:** `public/images/neon.png`
-
-### Castle Interior (Room 10 — Boss Arena)
-> Pixel art seamless background, 16-bit retro game style. Japanese castle throne room — dark wooden pillars, hanging war banners with mon crests, weapon racks on walls, moonlight streaming through high windows, ornate floor. Dramatic and imposing. Red and gold accents on dark wood. Side-scrolling perspective. 1536x1024. Clean pixel art.
-
-**Save to:** `public/images/castle.png`
+| Sprite | File | State |
+|--------|------|-------|
+| Original | `demon.png` | Fallback if new sprites missing |
+| Idle | `oni-idle.png` | Standing ready |
+| Walk 1 | `oni-walk1.png` | Walk cycle frame 1 |
+| Walk 2 | `oni-walk2.png` | Walk cycle frame 2 |
+| Alert | `oni-alert.png` | Spotted player |
+| Windup | `oni-windup.png` | Club raised overhead |
+| Attack | `oni-attack-lunge.png` | Club smash strike |
+| Dazed | `oni-dazed.png` | Stunned wobble |
+| Hit | `oni-hit.png` | Recoiling from slash |
+| Kneel | `oni-kneel-defeat.png` | Cinematic death phase 1 |
+| Dead | `oni-fallen-dead.png` | Cinematic death phase 2 |
+| KB Back | `oni-knockback-back.png` | Knockback: flat on back |
+| KB Tumble | `oni-knockback-tumble.png` | Knockback: face-down slide |
+| KB Seated | `oni-knockback-seated.png` | Knockback: on butt sliding |
 
 ---
 
-## PRIORITY 4 — Platform Tilesets (Future)
+## NINJA (Purple Assassin) — `public/images/ninja/`
 
-To make levels look more like Katana Zero (detailed environments with furniture, doors, objects):
+13 sprites. Dark purple-black cloth, oversized round head, amber glowing eyes through mask slit, two long scarf tails.
 
-### Forest Tileset
-> Pixel art tileset, 16-bit style. Dark mystical forest elements: mossy wooden platforms, twisted tree branches as walkways, hanging vines, glowing mushrooms, hollow log tunnels, stone ruins overgrown with moss. Each tile 64x64. Dark green/brown palette. Clean pixel art.
-
-### Temple Tileset
-> Pixel art tileset, 16-bit style. Japanese temple elements: wooden walkways, stone walls, shoji screen doors, torii gate segments, stone steps, bamboo fences, hanging scrolls. Each tile 64x64. Warm gold/brown palette.
-
-### Neon Tileset
-> Pixel art tileset, 16-bit style. Cyberpunk urban elements: metal grate platforms, neon-lit pipes, air vents with steam, fire escape ladders, dumpsters, vending machines, electric panels with sparks. Each tile 64x64. Dark with neon accent lighting.
-
-### Castle Tileset
-> Pixel art tileset, 16-bit style. Japanese castle interior: dark wood flooring, stone walls with torch brackets, sliding doors, armor stands, weapon racks, hanging lanterns, tatami mats. Each tile 64x64. Dark wood/stone palette with red accents.
-
----
-
-## PRIORITY 5 — Additional Player Animations (Future)
-
-### Idle Breathing (2 frames)
-Subtle up/down motion. Currently we use the single idle sprite + code-based scale pulse.
-
-### Crouch (1 frame)
-> Same style. Low crouch, one hand on ground, other hand on sword hilt. Ready to spring. Facing right. Gray bg. 1024x1024.
-
-### Ledge Grab (1 frame)
-> Same style. Hanging from ledge with both hands, legs dangling, hat tipping. Facing right. Gray bg. 1024x1024.
-
-### Victory Pose (1 frame)
-> Same style. Standing tall, katana resting on shoulder, wind blowing kimono and hat brim. Confident, heroic. Facing right. Gray bg. 1024x1024.
+| Sprite | File | State |
+|--------|------|-------|
+| Original | `ninja.png` | Fallback |
+| Idle | `ninja-idle.png` | Stealthy ready pose |
+| Walk 1 | `ninja-walk1.png` | Walk cycle frame 1 |
+| Walk 2 | `ninja-walk2.png` | Walk cycle frame 2 |
+| Alert | `ninja-alert.png` | Spotted player |
+| Throw | `ninja-throw.png` | Shuriken throw pose |
+| Retreat | `ninja-retreat.png` | Evasive backward jump |
+| Dazed | `ninja-dazed.png` | Stunned |
+| Hit | `ninja-hit.png` | Recoiling from slash |
+| Kneel | `ninja-kneel.png` | Cinematic death phase 1 |
+| Dead | `ninja-dead.png` | Cinematic death phase 2 |
+| KB Back | `ninja-knockback-back.png` | Knockback: on back |
+| KB Tumble | `ninja-knockback-tumble.png` | Knockback: face-down |
+| KB Seated | `ninja-knockback-seated.png` | Knockback: on butt |
 
 ---
 
-## What's Built in Code (No Images Needed)
+## SAMURAI (Armored Elite) — `public/images/samurai/`
 
-All of these are canvas-drawn particle effects or rendering tricks:
+2 sprites (NEEDS FULL SET). Dark purple/gold armor, horned kabuto helmet, katana.
 
-- Rain streaks + splash particles ✅
-- Fireflies / spirit orbs ✅
-- Drifting leaves ✅
-- Dust motes ✅
-- Blood particles + stain puddles ✅
-- Slash blade trails (bezier crescents) ✅
-- Speed lines ✅
-- Screen shake ✅
-- Hit-stop freeze ✅
-- Scanlines + vignette ✅
-- Letterbox bars ✅
-- Fade transitions ✅
-- Floating text (damage, combo, room clear) ✅
-- Enemy attack arcs (oni club trail, ninja energy, samurai shield) ✅
-- Afterimages (dash/slash ghosts) ✅
-- Impact ripple rings ✅
-- Additive glow particles ✅
+| Sprite | File | State |
+|--------|------|-------|
+| Kneel | `samurai-kneel.png` | Death phase 1 (also temp idle) |
+| Dead | `samurai-dead.png` | Death phase 2 |
+
+**Still needed:** idle, walk1/2, alert, windup, strike, block, dazed, hit, 3 knockback poses
 
 ---
 
-## Asset Generation Tips
+## Backgrounds — `public/images/`
 
-1. **Use the same AI model** for all sprites to keep style consistent
-2. **Gray background** is mandatory — `sprites.js` auto-removes it on load
-3. **All characters face RIGHT** — the engine flips them when needed
-4. **Character should fill most of the 1024x1024 frame** — prevents sprites looking tiny
-5. **Crop rects** in `renderer.js` need updating when new sprites are added (measure with PIL or by eye)
-6. **Test each sprite** by replacing the file and checking in-game for size/position consistency
+| Asset | File | Notes |
+|-------|------|-------|
+| Forest | `forest.png` | Dark night forest, parallax pan |
+| Temple | *not yet* | |
+| Neon Tokyo | *not yet* | |
 
 ---
 
-## Current File Locations
+## Audio — `public/audio/game/`
 
-| Asset | Path | Status |
-|-------|------|--------|
-| Player idle | `public/images/tinysenpai2.png` | ✅ |
-| Player run 1-4 | `public/images/tinysenpairun/ts{1-4}.png` | ⚠️ Needs redo |
-| Player slash 1-4 | `public/images/tinysenpaistrike/{1-4}.png` | ✅ |
-| Player jump 1-2 | `public/images/tinysenpaiother/jump{1,2}-*.png` | ⚠️ Needs redo |
-| Player fall | `public/images/tinysenpaiother/fall.png` | ⚠️ Needs redo |
-| Player wall slide | `public/images/tinysenpaiother/wall-slide.png` | ✅ |
-| Player dash | `public/images/tinysenpaiother/dash.png` | ✅ |
-| Player death 1-2 | `public/images/tinysenpaiother/death{1,2}-*.png` | ✅ |
-| Oni enemy | `public/images/demon.png` | ✅ |
-| Ninja enemy | `public/images/ninja.png` | ✅ |
-| Samurai enemy | *Not yet created* | ❌ Needs PNG |
-| Forest background | `public/images/forest.png` | ✅ |
-| Temple background | *Not yet created* | ❌ |
-| Neon background | *Not yet created* | ❌ |
-| Castle background | *Not yet created* | ❌ |
+48 MP3 files generated via ElevenLabs Sound Effects API.
+Generation script: `scripts/generate-game-sfx.mjs`
+
+**Combat:** swoosh1-6, shing, slash3_electric, hit_impact1-3, kill, blood_splatter, clash, deflect
+**Movement:** jump, land, dash, wall_grab, wall_launch, wallSlide, step1-3
+**Enemies:** oni_alert/2, oni_attack/2, oni_death/2/3, ninja_alert/2, ninja_throw/2, ninja_death/2/3, samurai_alert/2, samurai_attack/2, samurai_death/2/3
+**UI:** menuStart, death, roomClear, comboMilestone, slowmoOn, slowmoOff
+**Ambient:** rain_loop, forest_night
+**Music:** music_forest (taiko/shamisen/koto loop)
