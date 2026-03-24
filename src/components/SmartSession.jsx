@@ -37,6 +37,8 @@ export default function SmartSession({
   const [streak, setStreak] = useState(0);
   const [convoAnswers, setConvoAnswers] = useState({});
   const [convoSubmitted, setConvoSubmitted] = useState(false);
+  const [selectedBlank, setSelectedBlank] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
   const [storyData, setStoryData] = useState(null);
   const [storyLoading, setStoryLoading] = useState(false);
   const [storyAnswer, setStoryAnswer] = useState(null);
@@ -706,7 +708,7 @@ export default function SmartSession({
             <span style={{ fontSize: 16 }}>{CAT_ICONS[p[4]]}</span>
             <span style={{ fontSize: 13, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
           </div>
-          <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginTop: 4 }}>New phrase!</div>
+          <div style={{ fontSize: 13, fontFamily: mono, color: c.tx, marginTop: 4 }}>New phrase!</div>
         </div>
         <div style={{ padding: "20px 20px" }}>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 28 : 22} />
@@ -715,8 +717,10 @@ export default function SmartSession({
           {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
           {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.as, borderRadius: 8, border: "1px solid " + c.a + "20" }}>
             <div style={{ fontSize: 12, color: c.a, fontWeight: 700, marginBottom: 6 }}>Familiar patterns</div>
-            {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: 13, color: c.tx, marginBottom: 2 }}>
-              You've seen <span title={blockMeaning[fp.block] || fp.block} style={{ fontWeight: 700, color: c.a, cursor: "help", borderBottom: "1px dotted " + c.a + "66" }}>{fp.block}</span>{blockMeaning[fp.block] && <span style={{ color: c.m, fontSize: 11 }}> ({blockMeaning[fp.block]})</span>} <span style={{ color: c.m }}>in</span> <span style={{ color: c.m, fontStyle: "italic" }}>"{fp.from}"</span>
+            {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: 13, color: c.tx, marginBottom: 4 }}>
+              <span style={{ fontWeight: 700, color: c.a, padding: "1px 5px", borderRadius: 4, background: c.a + "18" }}>{fp.block}</span>
+              {blockMeaning[fp.block] && <span style={{ color: c.tx, fontSize: 12, marginLeft: 4 }}>{blockMeaning[fp.block]}</span>}
+              <span style={{ color: c.m, fontSize: 12, marginLeft: 4 }}>— from "{fp.from}"</span>
             </div>)}
           </div>}
           <div style={{ fontSize: 11, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
@@ -882,6 +886,27 @@ export default function SmartSession({
     const phraseById = (id) => PHRASES.find(p => p[0] === id);
 
     if (!convoSubmitted) {
+      // Collect ALL unique options across all blanks, shuffle once
+      if (convoShuffledRef.current.blankIdx !== ci) {
+        const allOpts = [...new Set(blanks.flatMap(b => b.options))];
+        convoShuffledRef.current = { blankIdx: ci, options: shuffle([...allOpts]) };
+      }
+      const allOptions = convoShuffledRef.current.options;
+      const usedIds = Object.values(convoAnswers);
+      // Which blank to fill next (selected or first empty)
+      const targetBlank = selectedBlank !== null ? selectedBlank : blanks.findIndex((_, i) => convoAnswers[i] === undefined);
+
+      const handleDrop = (blankIdx, optId) => {
+        // If this option was in another blank, remove it from there first
+        setConvoAnswers(a => {
+          const n = { ...a };
+          Object.keys(n).forEach(k => { if (n[k] === optId) delete n[k]; });
+          n[blankIdx] = optId;
+          return n;
+        });
+        setSelectedBlank(null);
+      };
+
       return withSenpai(<>
         <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -901,45 +926,47 @@ export default function SmartSession({
             const blankIdx = blanks.indexOf(line);
             const selected = convoAnswers[blankIdx];
             const selectedPhrase = selected ? phraseById(selected) : null;
+            const isTarget = selectedBlank === blankIdx;
+            const isDragOver = draggingId && !selectedPhrase;
             return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
               <div style={{ fontSize: 10, color: c.a, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>you</div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1 }}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); if (draggingId) { handleDrop(blankIdx, draggingId); setDraggingId(null); } }}>
                 {selectedPhrase
-                  ? <div onClick={() => setConvoAnswers(a => { const n = { ...a }; delete n[blankIdx]; return n; })}
-                      style={{ padding: "8px 14px", borderRadius: 8, background: c.a + "18", border: "1px solid " + c.a + "44", cursor: "pointer", fontSize: 15, fontWeight: 500 }}>
+                  ? <div onClick={() => { setConvoAnswers(a => { const n = { ...a }; delete n[blankIdx]; return n; }); setSelectedBlank(blankIdx); }}
+                      draggable onDragStart={() => setDraggingId(selected)}
+                      style={{ padding: "8px 14px", borderRadius: 8, background: c.a + "18", border: "1px solid " + c.a + "44", cursor: "grab", fontSize: 15, fontWeight: 500, transition: "all .15s" }}>
                       {selectedPhrase[1]}
                     </div>
-                  : <div style={{ padding: "10px 14px", borderRadius: 8, border: "2px dashed " + c.b, color: c.m, fontSize: 13 }}>tap an option below...</div>
+                  : <div onClick={() => setSelectedBlank(isTarget ? null : blankIdx)}
+                      style={{ padding: "10px 14px", borderRadius: 8, border: "2px dashed " + (isTarget ? c.a : c.b), background: isTarget ? c.a + "08" : "transparent", color: isTarget ? c.a : c.m, fontSize: 13, cursor: "pointer", transition: "all .15s" }}>
+                      {isTarget ? "← pick an option" : "tap to select..."}
+                    </div>
                 }
               </div>
             </div>;
           })}
         </div>
-        {/* Options — show all unique options across all blanks */}
-        {(()=> {
-          const nextBlank = blanks.findIndex((_, i) => convoAnswers[i] === undefined);
-          if (nextBlank === -1 && !allFilled) return null;
-          const currentOptions = nextBlank >= 0 ? blanks[nextBlank].options : [];
-          // Shuffle once per blank — store in ref to avoid re-shuffling on hover/re-render
-          if (convoShuffledRef.current.blankIdx !== nextBlank) {
-            convoShuffledRef.current = { blankIdx: nextBlank, options: shuffle([...currentOptions]) };
-          }
-          const shuffledOpts = convoShuffledRef.current.options;
-          const usedIds = Object.values(convoAnswers);
-          return nextBlank >= 0 && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
-            {shuffledOpts.map((optId, i) => {
-              const p = phraseById(optId);
-              if (!p) return null;
-              const used = usedIds.includes(optId);
-              return <button key={i} onClick={() => {
+        {/* All options — drag or tap to place */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
+          {allOptions.map((optId, i) => {
+            const p = phraseById(optId);
+            if (!p) return null;
+            const used = usedIds.includes(optId);
+            return <button key={optId} draggable={!used}
+              onDragStart={() => setDraggingId(optId)}
+              onDragEnd={() => setDraggingId(null)}
+              onClick={() => {
                 if (used) return;
-                setConvoAnswers(a => ({ ...a, [nextBlank]: optId }));
-              }} disabled={used} style={{ ...btn, padding: "10px 10px", borderRadius: 8, border: "1px solid " + c.b, background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, fontSize: 14, textAlign: "left", opacity: used ? .4 : 1 }}>
-                {p[1]}
-              </button>;
-            })}
-          </div>;
-        })()}
+                if (targetBlank >= 0) handleDrop(targetBlank, optId);
+              }}
+              disabled={used}
+              style={{ ...btn, padding: "10px 10px", borderRadius: 8, border: "1px solid " + (draggingId === optId ? c.a : c.b), background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, fontSize: 14, textAlign: "left", opacity: used ? .4 : 1, cursor: used ? "default" : "grab", transition: "all .15s" }}>
+              {p[1]}
+            </button>;
+          })}
+        </div>
         {allFilled && <button onClick={() => setConvoSubmitted(true)}
           style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Check my answers</button>}
       </>);
