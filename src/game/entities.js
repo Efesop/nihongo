@@ -49,7 +49,8 @@ export function updateEnemyAI(e, player, dt, projectiles) {
   const toPlayer = dx > 0 ? 1 : -1;
 
   // Can't see player if they're in shadow or enemy is facing away
-  const playerVisible = !player.inShadow && (e.facing === toPlayer || dist < 40);
+  // But close proximity (80px) alerts them even from behind (they hear you)
+  const playerVisible = !player.inShadow && (e.facing === toPlayer || dist < 80);
   if (!playerVisible && e.state === "chase") {
     // Lost sight — return to patrol after brief delay
     e.state = "patrol";
@@ -113,24 +114,36 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = e.facing * 35;
     }
   } else if (e.type === "samurai") {
+    // Samurai: elite enemy — lethal frontal attack, must dash through and backstab
+    // Slow to turn: turnDelay timer prevents instant facing change
+    if (e._turnDelay > 0) e._turnDelay -= dt * 1000;
+
     if (e.state === "attack") {
       e.attackTimer -= dt * 1000;
       if (e.attackTimer < 250) e.vx = e.facing * MOVE_SPEED * 0.6;
       else e.vx = 0;
-      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 400; }
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 500; }
     } else if (e.state === "cooldown") {
       e.attackTimer -= dt * 1000;
       e.vx = 0;
       if (e.attackTimer <= 0) e.state = "chase";
     } else if (dist < e.alertRange && playerVisible) {
       if (e.state === "patrol") { e.alert = 400; playRandom("samurai_alert", { volume: 0.6 }); }
-      e.facing = toPlayer;
-      e.vx = toPlayer * MOVE_SPEED * 0.5;
-      if (dist < 60) { e.state = "attack"; e.attackTimer = 700; playRandom("samurai_attack", { volume: 0.7 }); }
+      e.state = "chase";
+      // Slow turn — only face player after turn delay expires
+      if (e.facing !== toPlayer && (e._turnDelay || 0) <= 0) {
+        e._turnDelay = 400; // 400ms to turn around (exploitable window)
+        e.facing = toPlayer;
+      }
+      e.vx = e.facing * MOVE_SPEED * 0.4; // slower chase
+      if (dist < 60 && e.facing === toPlayer) {
+        e.state = "attack"; e.attackTimer = 700;
+        playRandom("samurai_attack", { volume: 0.7 });
+      }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
-      e.vx = e.facing * 35;
+      e.vx = e.facing * 30;
     }
   }
 

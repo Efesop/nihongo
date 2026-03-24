@@ -680,46 +680,67 @@ export function update(g, callbacks) {
       if (Math.abs(slashX - e.x) < (SLASH_RANGE + ew) / 2 &&
           dy > -hitAbove && dy < hitBelow) {
         e._hitThisSlash = true;
-        playRandom("hit", { volume: 0.6 }); // meaty hit on contact
-        if (e.type === "samurai" && e.hp > 1 && !e.blocking) {
-          // Block — sparks, no kill
-          e.hp--;
-          e.blocking = true;
-          e.blockTimer = 500;
-          g.hitStop = 80;
-          g.camera.shakeTimer = 100;
-          playSound("clash");
-          for (let i = 0; i < 10; i++) {
-            g.particles.push({
-              x: (p.x + e.x) / 2, y: p.y + 15,
-              vx: rnd(-300, 300), vy: rnd(-400, -50),
-              life: 400, maxLife: 400, color: "#ffe080", size: rndInt(2, 4),
+
+        if (e.type === "samurai") {
+          // Samurai: blocks ALL frontal attacks. Must backstab (hit from behind).
+          const attackFromBehind = (p.x < e.x && e.facing > 0) || (p.x > e.x && e.facing < 0);
+          if (attackFromBehind) {
+            // Backstab — instant kill regardless of HP
+            playRandom("hit", { volume: 0.8 });
+            g.floatingTexts.push({
+              x: e.x, y: e.y - 20, text: "BACKSTAB!", color: "#ff4444",
+              life: 1000, maxLife: 1000,
+            });
+            killEnemy(g, e, p, callbacks);
+          } else {
+            // Frontal block — sparks, no damage, pushes player back
+            e.blocking = true;
+            e.blockTimer = 500;
+            g.hitStop = 80;
+            g.camera.shakeTimer = 100;
+            playSound("clash");
+            p.vx = -p.facing * 250; // bounce back
+            p.slashTimer = 0;
+            p.comboWindow = 0;
+            p.slashCombo = 0;
+            for (let i = 0; i < 12; i++) {
+              g.particles.push({
+                x: (p.x + e.x) / 2, y: p.y + 15,
+                vx: rnd(-300, 300), vy: rnd(-400, -50),
+                life: 400, maxLife: 400, color: i < 4 ? "#ffffff" : "#ffe080", size: rndInt(2, 4),
+              });
+            }
+            g.floatingTexts.push({
+              x: (p.x + e.x) / 2, y: Math.min(p.y, e.y) - 15,
+              text: "BLOCKED!", color: "#88bbff", life: 800, maxLife: 800,
             });
           }
         } else {
+          playRandom("hit", { volume: 0.6 });
           killEnemy(g, e, p, callbacks);
         }
       }
     }
     if (p.slashTimer <= 0) e._hitThisSlash = false;
 
-    // Enemy attack → player. Damage only during strike phase (visual matches hitbox)
-    // Oni: timer < 200 (of 600), Samurai: timer < 210 (of 700)
+    // Enemy attack → player. Damage only during strike phase
     const strikeWindow = e.type === "samurai" ? 210 : 200;
     if (e.state === "attack" && e.attackTimer < strikeWindow &&
         !e.dead && !p.dead && p.invincible <= 0) {
       if (Math.abs(e.x - p.x) < 60 && Math.abs(e.y - p.y) < TILE * SCALE) {
-        if (p.slashTimer > 0) {
-          // CLASH — both knocked back, enemy dazed longer, player brief stun
+        if (e.type === "samurai") {
+          // Samurai attack is LETHAL — overpowers slash, no clash possible
+          // Must use dash i-frames to get through
+          killPlayer(g, callbacks);
+        } else if (p.slashTimer > 0 && (e.type === "oni" || e.type === "ninja")) {
+          // CLASH with oni — both knocked back, oni dazed, player stunned briefly
           const knockDir = p.x < e.x ? -1 : 1;
-          // Knock both back
           p.vx = knockDir * -350;
-          p.invincible = 500; // brief i-frames after clash
-          p.slashTimer = 0; // can't attack during knockback
+          p.invincible = 500;
+          p.slashTimer = 0;
           p.comboWindow = 0;
           p.slashCombo = 0;
-          // Enemy knocked back + dazed
-          e.dazed = 1000;
+          e.dazed = 1200; // oni dazed longer after clash (exploitable)
           e.state = "dazed";
           e.vx = knockDir * 200;
           g.hitStop = 120;
