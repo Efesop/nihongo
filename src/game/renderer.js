@@ -210,17 +210,25 @@ export function render(g, ctx, isDesktop, font) {
         const kbSprite = map?.[kbPose] || map?.hit || map?.idle;
         const kbDir = e._kbDir || 1;
 
-        // All poses are static slides (no spinning) — just the sprite sliding along ground
-        // Sprites are drawn facing left (knocked to left).
-        // If knocked RIGHT, DON'T flip (enemy slides right but their body faces back toward player)
-        // If knocked LEFT, flip (so they face back toward player on the right)
-        if (kbDir < 0) ctx.scale(-1, 1);
+        // Flip: back/tumble sprites show body knocked to LEFT by default
+        // Seated sprite faces LEFT (looking left). Different flip logic per pose:
+        if (kbPose === "kb_seated") {
+          // Seated: face toward the player who hit them
+          if (kbDir < 0) ctx.scale(-1, 1);
+        } else {
+          // Back/tumble: body flies in knockback direction
+          if (kbDir > 0) ctx.scale(-1, 1);
+        }
+
+        // Draw lower than standing sprites — lying-down bodies sit ON the ground
+        // Extra nudge pushes sprite down so it looks like it's on the platform surface
+        const groundNudge = kbPose === "kb_seated" ? 8 : 20;
 
         ctx.imageSmoothingEnabled = false;
         const key = kbSprite?.key || map?.fallback;
         const img = key ? getImage(key) : null;
         if (img) {
-          ctx.drawImage(img, EC.x, EC.y, EC.w, EC.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
+          ctx.drawImage(img, EC.x, EC.y, EC.w, EC.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE + groundNudge, DRAW_W, DRAW_H);
         }
 
         ctx.restore();
