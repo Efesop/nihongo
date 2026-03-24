@@ -271,36 +271,83 @@ function AuthedApp({ user, getToken }){
   const MC_PHRASES=PHRASES.filter(p=>p[6]);
   const mcLeft=MC_PHRASES.filter(p=>getPhrBox(p[0])<4).length;
 
-  const reviewPhr=(id,correct)=>{
+  // ═══ XP & LEVEL SYSTEM ═══
+  const LEVEL_THRESHOLDS=[0,100,300,600,1000,1500,2200,3000,4000,5500,7500];
+  const getLevel=(xp)=>{for(let i=LEVEL_THRESHOLDS.length-1;i>=0;i--){if(xp>=LEVEL_THRESHOLDS[i])return i+1;}return 1;};
+  const getXPForNext=(xp)=>{const lv=getLevel(xp);return lv>=LEVEL_THRESHOLDS.length?null:LEVEL_THRESHOLDS[lv];};
+
+  // ═══ BADGE DEFINITIONS ═══
+  const BADGE_DEFS=[
+    {id:"first-session",icon:"🎯",label:"First Steps",desc:"Complete your first session"},
+    {id:"streak-3",icon:"🔥",label:"Consistent",desc:"3-day streak"},
+    {id:"streak-7",icon:"💪",label:"Dedicated",desc:"7-day streak"},
+    {id:"kana-10",icon:"あ",label:"Kana Beginner",desc:"Learn 10 kana"},
+    {id:"kana-46",icon:"🌸",label:"Hiragana Master",desc:"Learn all hiragana"},
+    {id:"kana-92",icon:"⭐",label:"Kana Master",desc:"Learn all 92 base kana"},
+    {id:"phrase-10",icon:"💬",label:"Phrase Builder",desc:"Learn 10 phrases"},
+    {id:"phrase-50",icon:"🗣️",label:"Conversationalist",desc:"Learn 50 phrases"},
+    {id:"s-rank-1",icon:"🏅",label:"Perfectionist",desc:"Get your first S rank"},
+    {id:"s-rank-5",icon:"🏆",label:"Elite",desc:"Get 5 S ranks"},
+    {id:"s-rank-10",icon:"👑",label:"Senpai's Favourite",desc:"Get 10 S ranks"},
+    {id:"explorer",icon:"🗾",label:"Explorer",desc:"Visit all 8 map regions"},
+  ];
+
+  const checkBadges=(d)=>{
+    const badges=d.settings?.badges||[];
+    const earned=[...badges];
+    const sc=d.settings?.sessionCount||0;
+    const sr=d.settings?.sRanks||0;
+    const kn=Object.keys(d.kana||{}).filter(ch=>(d.kana[ch]?.box||0)>=1).length;
+    const pn=Object.keys(d.phr||{}).filter(id=>(d.phr[id]?.box||0)>=1).length;
+    const stk=d.streak||1;
+    const visited=d.settings?.regionsVisited||[];
+    const checks=[
+      ["first-session",sc>=1],["streak-3",stk>=3],["streak-7",stk>=7],
+      ["kana-10",kn>=10],["kana-46",kn>=46],["kana-92",kn>=92],
+      ["phrase-10",pn>=10],["phrase-50",pn>=50],
+      ["s-rank-1",sr>=1],["s-rank-5",sr>=5],["s-rank-10",sr>=10],
+      ["explorer",visited.length>=8],
+    ];
+    let changed=false;
+    checks.forEach(([id,cond])=>{if(cond&&!earned.includes(id)){earned.push(id);changed=true;}});
+    return changed?earned:null;
+  };
+
+  // ═══ ANSWER LOGGING ═══
+  const logAnswer=(prev,item,correct,type)=>{
+    const log=[...(prev.answerLog||[]),{item,correct,type,ts:Date.now()}];
+    if(log.length>200)log.splice(0,log.length-200);
+    return log;
+  };
+
+  const reviewPhr=(id,correct,exerciseType)=>{
     setD(prev=>{
       const cur=prev.phr[id]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
       const result=fsrsUpdate(fsrsData,correct);
       const newBox=stabilityToBox(result.stability);
-      // Track error patterns
       const errors=prev.errors||{};
       if(!correct){errors[id]=(errors[id]||0)+1;}
-      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,totalC:correct?prev.totalC+1:prev.totalC};
+      const answerLog=logAnswer(prev,id,correct,exerciseType||"phrase");
+      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog,totalC:correct?prev.totalC+1:prev.totalC};
       store.set(KEY,nd);
-      // Trigger DB sync (debounced)
       clearTimeout(syncTimer.current);
       syncTimer.current=setTimeout(async()=>{const token=await getToken();syncSave(token,nd);},2000);
       return nd;
     });
   };
 
-  const updateKanaSRS=(ch,correct)=>{
+  const updateKanaSRS=(ch,correct,exerciseType)=>{
     setD(prev=>{
       const cur=prev.kana[ch]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
       const result=fsrsUpdate(fsrsData,correct);
       const newBox=stabilityToBox(result.stability);
-      // Track error patterns
       const errors=prev.errors||{};
       if(!correct){errors[ch]=(errors[ch]||0)+1;}
-      const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors};
+      const answerLog=logAnswer(prev,ch,correct,exerciseType||"kana");
+      const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog};
       store.set(KEY,nd);
-      // Trigger DB sync (debounced)
       clearTimeout(syncTimer.current);
       syncTimer.current=setTimeout(async()=>{const token=await getToken();syncSave(token,nd);},2000);
       return nd;
@@ -560,6 +607,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       setTab={setTab} setPMode={setPMode} setPCat={setPCat} setPCards={setPCards} setPDone={setPDone} setPFlip={setPFlip} setPI={setPI} setFastTrack={setFastTrack}
       setKCards={setKCards} setKI={setKI} setKInput={setKInput} setKFb={setKFb} setKScore={setKScore} setKMistakes={setKMistakes} setKPeek={setKPeek} setKScreen={setKScreen}
       startDrill={startDrill} isKanaDue={isKanaDue} progressBar={progressBar}
+      LEVEL_THRESHOLDS={LEVEL_THRESHOLDS} getLevel={getLevel} getXPForNext={getXPForNext}
+      BADGE_DEFS={BADGE_DEFS}
     />}
     {tab==="kana"&&<KanaTrainer
       data={data} save={save} c={c} theme={theme} inner={inner} card={card} btn={btn} speakBtn={speakBtnFn} storyBtn={storyBtnFn} kbHint={kbHint}
@@ -608,6 +657,8 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       data={data} save={save} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}
       updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr}
       stopAudio={stopAudio} speakStory={speakStory} setTab={setTab}
+      LEVEL_THRESHOLDS={LEVEL_THRESHOLDS} getLevel={getLevel} getXPForNext={getXPForNext}
+      BADGE_DEFS={BADGE_DEFS} checkBadges={checkBadges}
     />}
     {tab==="map"&&<JapanMap data={data} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}/>}
     {tab==="game"&&<Game theme={theme} c={c} isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W}/>}

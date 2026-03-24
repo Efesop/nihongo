@@ -92,6 +92,16 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     return d && d.box >= 1 && d.box <= 2 && now >= (d.next || 0);
   });
 
+  // 2b. Recently learned (last 24h, box 0-1) — reinforce even if not SRS-due
+  const recentKana = ALL_BASE_KANA.filter(ch => {
+    const d = kanaData[ch];
+    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 86400000;
+  });
+  const recentPhrases = PHRASES.filter(p => {
+    const d = phrData[p[0]];
+    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 86400000;
+  });
+
   // 3. New items (never seen) — smart ordering for phrases
   const unseenKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]);
   const unseenPhrases = smartPhraseOrder(PHRASES.filter(p => !phrData[p[0]]), phrData);
@@ -207,6 +217,10 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // Add struggling items (only ones not already added)
   shuffle(strugglingKana).slice(0, 3).forEach(ch => addKana(ch));
   shuffle(strugglingPhrases).slice(0, 2).forEach(p => addPhrase(p));
+
+  // Recently learned — reinforce within 24 hours even if not SRS-due yet
+  shuffle(recentKana).slice(0, 2).forEach(ch => addKana(ch));
+  shuffle(recentPhrases).slice(0, 2).forEach(p => addPhrase(p));
 
   // ALWAYS include some kana — even if none are due, add maintenance review
   // (keeps kana sharp between SRS intervals)

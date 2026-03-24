@@ -11,17 +11,26 @@ export default function Home({
   setTab, setPMode, setPCat, setPCards, setPDone, setPFlip, setPI, setFastTrack,
   setKCards, setKI, setKInput, setKFb, setKScore, setKMistakes, setKPeek, setKScreen,
   startDrill, isKanaDue, progressBar,
+  LEVEL_THRESHOLDS, getLevel, getXPForNext, BADGE_DEFS,
 }) {
   const ob=data.onboarding||{};
   const dl=ob.tripDate?daysUntil(ob.tripDate):0;
   const kanaPct=Math.round(kMastered/92*100);
   const phrPct=Math.round(learnedPhr/PHRASES.length*100);
   const totalDue=kDueCount+dueCount;
+  const xp=data.settings?.xp||0;
+  const level=getLevel?getLevel(xp):1;
+  const nextXP=getXPForNext?getXPForNext(xp):null;
+  const prevThreshold=LEVEL_THRESHOLDS?LEVEL_THRESHOLDS[level-1]||0:0;
+  const xpPct=nextXP?Math.round((xp-prevThreshold)/(nextXP-prevThreshold)*100):100;
+  const sRanks=data.settings?.sRanks||0;
+  const badges=data.settings?.badges||[];
   const stats=[
+    {l:"Level",v:level,cl:c.go},
     {l:"Kana",v:kanaPct+"%",cl:c.a},
     {l:"Phrases",v:phrPct+"%",cl:c.g},
+    {l:"S Ranks",v:sRanks,cl:c.a},
     {l:"Streak",v:(data.streak||1)+"🔥",cl:c.go},
-    {l:"To Review",v:totalDue,cl:totalDue>0?c.go:c.g},
   ];
   const actions=[
     {id:"drill",icon:"🔥",title:"Daily Drill",desc:"5 kana + 5 phrases mixed",action:startDrill},
@@ -43,6 +52,31 @@ export default function Home({
         <div style={{fontSize:10,color:c.m,textTransform:"uppercase",letterSpacing:".04em"}}>{s.l}</div>
       </div>)}
     </div>
+    {/* XP Progress */}
+    <div style={{...card,marginBottom:10,padding:"10px 16px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+        <span style={{fontSize:13,fontWeight:700,color:c.go,fontFamily:mono}}>Lv.{level}</span>
+        <div style={{flex:1,height:6,background:c.s2,borderRadius:3,overflow:"hidden"}}>
+          <div style={{width:xpPct+"%",height:"100%",background:c.go,borderRadius:3,transition:"width .3s"}}/>
+        </div>
+        <span style={{fontSize:10,color:c.m,fontFamily:mono}}>{xp} XP{nextXP?" / "+nextXP:""}</span>
+      </div>
+    </div>
+    {/* Badges */}
+    {BADGE_DEFS&&BADGE_DEFS.length>0&&<div style={{...card,marginBottom:10,padding:"12px 16px"}}>
+      <div style={{fontSize:10,color:c.m,textTransform:"uppercase",fontFamily:mono,letterSpacing:".06em",marginBottom:8}}>Badges · {badges.length}/{BADGE_DEFS.length}</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {BADGE_DEFS.map(b=>{
+          const earned=badges.includes(b.id);
+          return <div key={b.id} title={b.desc} style={{padding:"4px 8px",borderRadius:6,fontSize:12,display:"flex",alignItems:"center",gap:4,
+            background:earned?c.go+"15":c.s2,border:"1px solid "+(earned?c.go+"33":c.b+"44"),
+            color:earned?c.tx:c.m+"66",opacity:earned?1:.5}}>
+            <span style={{fontSize:14}}>{b.icon}</span>
+            <span style={{fontSize:10,fontWeight:earned?600:400}}>{b.label}</span>
+          </div>;
+        })}
+      </div>
+    </div>}
     <div onClick={()=>setTab("smart")}
       onMouseEnter={()=>setHov("smart")} onMouseLeave={()=>setHov(null)}
       style={{...card,marginBottom:10,padding:"18px 20px",cursor:"pointer",background:hov==="smart"?c.a+"15":c.a+"0a",border:"1px solid "+c.a+"33",transition:"all .15s"}}>

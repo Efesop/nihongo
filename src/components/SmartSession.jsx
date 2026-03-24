@@ -12,6 +12,8 @@ export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
   updateKanaSRS, reviewPhr,
   stopAudio, speakStory, setTab,
+  LEVEL_THRESHOLDS, getLevel, getXPForNext,
+  BADGE_DEFS, checkBadges,
 }) {
   const [cards, setCards] = useState([]);
   const [ci, setCi] = useState(0);
@@ -251,11 +253,29 @@ export default function SmartSession({
       : pct >= 50 ? { rank: "B", label: "Keep going!", img: "/images/tinysenpai/grades-run/ts1.png", color: c.a, note: "A bit tough — easing off slightly", adj: 1 }
       : { rank: "C", label: "Let's practice more", img: "/images/tinysenpai/tinysenpai2.png", color: c.m, note: "Tough session — easing off next time", adj: 1 };
 
-    // Auto-save difficulty adjustment
+    // XP calculation
+    const xpForRank = grade.rank === "S" ? 100 : grade.rank === "A" ? 60 : grade.rank === "B" ? 30 : 10;
+    const xpForCorrect = score.c * 5;
+    const xpGained = xpForRank + xpForCorrect;
+    const prevXP = data.settings?.xp || 0;
+    const newXP = prevXP + xpGained;
+    const prevLevel = getLevel ? getLevel(prevXP) : 1;
+    const newLevel = getLevel ? getLevel(newXP) : 1;
+    const leveledUp = newLevel > prevLevel;
+
+    // Auto-save difficulty adjustment + XP + S rank count + badges
     if (!sessionFeedback) {
       setTimeout(() => {
         setSessionFeedback(grade.note);
-        save({ settings: { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + grade.adj } });
+        const sRanks = (data.settings?.sRanks || 0) + (grade.rank === "S" ? 1 : 0);
+        const sessionCount = (data.settings?.sessionCount || 0) + 1;
+        const updatedSettings = { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + grade.adj, xp: newXP, sRanks, sessionCount };
+        save({ settings: updatedSettings });
+        // Check for new badges
+        if (checkBadges) {
+          const newBadges = checkBadges({ ...data, settings: updatedSettings });
+          if (newBadges) save({ settings: { ...updatedSettings, badges: newBadges } });
+        }
       }, 0);
     }
 
@@ -281,6 +301,19 @@ export default function SmartSession({
             <div style={{ fontSize: 28, fontWeight: 700, color: c.m }}>{mins}:{secs.toString().padStart(2, "0")}</div>
             <div style={{ fontSize: 10, color: c.m, fontFamily: mono }}>time</div>
           </div>
+        </div>
+
+        {/* XP + Level */}
+        <div style={{ marginTop: 4, marginBottom: 16 }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: c.go, fontFamily: mono }}>+{xpGained} XP</div>
+          {leveledUp && <div style={{ fontSize: 14, fontWeight: 700, color: c.a, marginTop: 4 }}>Level up! → Level {newLevel}</div>}
+          {getXPForNext && <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
+            <span style={{ fontSize: 11, color: c.m }}>Lv.{newLevel}</span>
+            <div style={{ width: 120, height: 6, background: c.s2, borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ width: (getXPForNext(newXP) ? Math.round((newXP - (LEVEL_THRESHOLDS?.[newLevel - 1] || 0)) / (getXPForNext(newXP) - (LEVEL_THRESHOLDS?.[newLevel - 1] || 0)) * 100) : 100) + "%", height: "100%", background: c.go, borderRadius: 3, transition: "width .5s" }} />
+            </div>
+            <span style={{ fontSize: 11, color: c.m }}>{getXPForNext(newXP) ? getXPForNext(newXP) - newXP + " to next" : "MAX"}</span>
+          </div>}
         </div>
 
         {/* Difficulty note */}
@@ -941,8 +974,11 @@ export default function SmartSession({
             if (!line.blank) {
               return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
                 <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 500 }}>{line.text}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontSize: 16, fontWeight: 500, flex: 1 }}>{line.text}</div>
+                    <button onClick={() => speak(line.text)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", border: "1px solid " + c.b, fontSize: 11, color: c.m, flexShrink: 0 }}>🔊</button>
+                  </div>
                   <div style={{ fontSize: 11, color: c.m }}>{line.translation}</div>
                 </div>
               </div>;
