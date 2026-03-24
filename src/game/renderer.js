@@ -628,10 +628,14 @@ const CROPS = {
   jump1:     { ...F, R: false },
   jump2:     { ...F, R: true },
   fall:      { ...F, R: true },
-  wallslide: { ...F, R: true },
-  dash:      { ...F, R: false },
-  death1:    { ...F, R: false },
-  death2:    { ...F, R: false },
+  wallslide:     { ...F, R: true },
+  wall_cling:    { ...F, R: false },  // faces left (clinging to right wall)
+  dash:          { ...F, R: false },
+  death1:        { ...F, R: false },
+  death2:        { ...F, R: false },
+  parry:         { ...F, R: false },
+  land_heavy:    { ...F, R: false },
+  slash_through: { ...F, R: true },   // faces right (dashing through enemy)
 };
 
 // Helper: draw a sprite image with crop and flip
@@ -690,12 +694,11 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   }
 
   if (p.wallSliding) {
-    const img = getImage("wallslide");
+    // Prefer wall-cling sprite, fallback to wallslide
+    const img = getImage("wall_cling") || getImage("wallslide");
     if (img) {
-      // Wall slide: flip based on wall direction (not facing)
-      const crop = CROPS.wallslide;
-      // wallDir=1 means wall is right, player faces left toward wall; wallDir=-1 means wall is left
-      const wallFacing = -p.wallDir; // face toward the wall
+      const crop = CROPS.wallslide; // same crop works for both
+      const wallFacing = -p.wallDir;
       if (crop.R ? (wallFacing < 0) : (wallFacing > 0)) ctx.scale(-1, 1);
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
       ctx.restore();
@@ -724,8 +727,12 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     } else if (combo === 2) {
       slashImgKey = p.state === "slash1" ? "slash1" : "slash2"; // wind-up → upward arc
     } else {
-      // 3rd combo: spin wind-up → lightning slide for most of the duration
-      slashImgKey = p.state === "slash1" ? "slash3" : "slash4";
+      // 3rd combo: spin wind-up → slash-through finisher (or slash4 fallback)
+      if (p.state === "slash1") {
+        slashImgKey = "slash3";
+      } else {
+        slashImgKey = getImage("slash_through") ? "slash_through" : "slash4";
+      }
     }
 
     const slashImg = getImage(slashImgKey);
@@ -795,209 +802,172 @@ function drawBlade(ctx, x, y, angle, len, bladeColor, edgeColor) {
 // ═══ DRAW ENEMY — clean procedural characters ═══
 // ═══════════════════════════════════════════════
 // Source crop rects for enemy images (remove background padding)
-const ENEMY_CROPS = {
-  oni: { x: 170, y: 160, w: 690, h: 670 },
-  ninja: { x: 150, y: 230, w: 780, h: 570 },
-  // samurai: { x: ..., y: ..., w: ..., h: ... },
+// ═══ ENEMY SPRITE SYSTEM ═══
+// Each enemy type has per-state sprites with facing direction (R = faces right).
+// All use full-frame crops with gray bg removed on load.
+const EC = { x: 20, y: 20, w: 984, h: 984 }; // default full crop
+
+// State → sprite key mapping per enemy type
+// R: false = faces left, R: true = faces right
+const ENEMY_SPRITE_MAP = {
+  oni: {
+    idle:    { key: "oni_idle", R: false },
+    patrol:  { frames: ["oni_walk1", "oni_walk2"], R: false },
+    chase:   { frames: ["oni_walk1", "oni_walk2"], R: false },
+    alert:   { key: "oni_alert", R: false },
+    attack_windup: { key: "oni_windup", R: false },
+    attack_strike: { key: "oni_attack", R: false },
+    dazed:   { key: "oni_dazed", R: false },
+    cooldown:{ key: "oni_idle", R: false },
+    // Death
+    kneel:   { key: "oni_kneel", R: false },
+    dead:    { key: "oni_dead", R: false },
+    hit:     { key: "oni_hit", R: false },
+    // Fallback
+    fallback: "oni",
+  },
+  ninja: {
+    idle:    { key: "ninja_idle", R: false },
+    patrol:  { frames: ["ninja_walk1", "ninja_walk2"], R: false },
+    chase:   { key: "ninja_idle", R: false },
+    alert:   { key: "ninja_alert", R: false },
+    throw:   { key: "ninja_throw", R: false },
+    retreat: { key: "ninja_retreat", R: false },
+    dazed:   { key: "ninja_dazed", R: false },
+    cooldown:{ key: "ninja_idle", R: false },
+    kneel:   { key: "ninja_kneel", R: false },
+    dead:    { key: "ninja_dead", R: false },
+    hit:     { key: "ninja_hit", R: false },
+    fallback: "ninja",
+  },
+  samurai: {
+    idle:    { key: "samurai_kneel", R: false }, // use kneel as temp idle
+    patrol:  { key: "samurai_kneel", R: false },
+    chase:   { key: "samurai_kneel", R: false },
+    dazed:   { key: "samurai_kneel", R: false },
+    cooldown:{ key: "samurai_kneel", R: false },
+    kneel:   { key: "samurai_kneel", R: false },
+    dead:    { key: "samurai_dead", R: false },
+    fallback: null, // no single sprite fallback
+  },
 };
 
-function drawEnemyFromImage(ctx, e, elapsed) {
-  const img = getImage(e.type);
-  const crop = ENEMY_CROPS[e.type];
-  if (!img || !crop) return false;
+function _getEnemySpriteForState(e, elapsed) {
+  const map = ENEMY_SPRITE_MAP[e.type];
+  if (!map) return null;
 
-  const s = DRAW_SIZE;
-  const aspect = crop.w / crop.h;
-  const drawW = s * aspect;
-  const drawH = s;
+  // Death states
+  if (e.dead) {
+    if (e.deathStyle === "cinematic") {
+      if (e.deathPhase >= 2) return map.dead;
+      if (e.deathPhase >= 1) return map.kneel;
+      return map.hit || map.idle;
+    }
+    if (e.deathStyle === "knockback") return map.hit || map.idle;
+    return map.dead || map.idle;
+  }
+
+  // Attack states (oni/samurai have windup→strike, ninja has throw)
+  if (e.state === "attack") {
+    if (e.type === "ninja" && e.throwAnim > 0) return map.throw || map.idle;
+    const progress = e.attackTimer / (e.type === "samurai" ? 700 : 600);
+    if (progress > 0.3) return map.attack_windup || map.alert || map.idle;
+    return map.attack_strike || map.alert || map.idle;
+  }
+
+  // Ninja retreat
+  if (e.type === "ninja" && e.vx !== 0 && e.state === "chase") {
+    const toPlayer = e.facing;
+    const movingAway = (e.vx > 0 && toPlayer < 0) || (e.vx < 0 && toPlayer > 0);
+    if (movingAway && map.retreat) return map.retreat;
+  }
+
+  // Walk cycle for patrol/chase
+  const stateEntry = map[e.state];
+  if (stateEntry && stateEntry.frames) {
+    const frameIdx = Math.floor(elapsed * 4) % stateEntry.frames.length;
+    return { key: stateEntry.frames[frameIdx], R: stateEntry.R };
+  }
+
+  return stateEntry || map.idle;
+}
+
+function drawEnemyFromImage(ctx, e, elapsed) {
+  const spriteInfo = _getEnemySpriteForState(e, elapsed);
+  const map = ENEMY_SPRITE_MAP[e.type];
+
+  // Try state-specific sprite first
+  let img = spriteInfo ? getImage(spriteInfo.key) : null;
+  let facesRight = spriteInfo ? spriteInfo.R : false;
+
+  // Fallback to single sprite
+  if (!img && map?.fallback) {
+    img = getImage(map.fallback);
+    facesRight = false;
+  }
+  if (!img) return false;
 
   ctx.save();
-  ctx.translate(Math.round(e.x), Math.round(e.y + TILE * SCALE)); // anchor at physics feet
+  ctx.translate(Math.round(e.x), Math.round(e.y + TILE * SCALE));
 
-  // Flip based on facing
-  if (e.facing > 0) ctx.scale(-1, 1); // enemy sprites face LEFT (measured)
-
-  let oy = 0;
-  if (e.state === "patrol") {
-    oy = Math.abs(Math.sin(elapsed * 4 + e.patrolOrigin * 0.1)) * -1.5;
-  } else if (e.state === "chase") {
-    oy = Math.abs(Math.sin(elapsed * 7 + e.patrolOrigin * 0.1)) * -2;
-  } else if (e.state === "attack") {
-    // Wind-up: pull back, then lunge forward on strike
-    const progress = e.attackTimer / 800;
-    if (progress > 0.3) {
-      // Wind-up — pull back
-      oy = 4;
-      ctx.scale(0.95, 1.05);
-    } else {
-      // Strike — lunge forward
-      oy = -2;
-      ctx.scale(1.08, 0.94);
-    }
-  } else if (e.state === "dazed") {
-    // Wobble when dazed
-    oy = Math.sin(elapsed * 12) * 2;
-  }
+  // Flip: sprite faces left (R=false) → flip when enemy faces right (facing > 0)
+  //       sprite faces right (R=true) → flip when enemy faces left (facing < 0)
+  if (facesRight ? (e.facing < 0) : (e.facing > 0)) ctx.scale(-1, 1);
 
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH + oy), Math.round(drawW), Math.round(drawH));
+  ctx.drawImage(img, EC.x, EC.y, EC.w, EC.h,
+    -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
 
-  // ── Oni: club swing + red arc trail ──
-  if (e.type === "oni" && (e.state === "attack" || e.state === "chase")) {
-    const isAttacking = e.state === "attack";
-    const progress = isAttacking ? e.attackTimer / 800 : 1;
-    let clubAngle;
-    if (!isAttacking) clubAngle = 1.2;
-    else if (progress > 0.3) clubAngle = -1.8;   // raised overhead (wind-up)
-    else clubAngle = 0.6;                         // smashed down (strike)
-
-    ctx.save();
-    ctx.translate(6, -drawH * 0.4 + oy);
-
-    // Wind-up glow: pulsing red aura builds around club head
-    if (isAttacking && progress > 0.3) {
-      const pulse = 0.5 + Math.sin(elapsed * 20) * 0.3;
-      const glowSize = 8 + (1 - progress) * 12;
-      ctx.save();
-      ctx.rotate(clubAngle);
-      ctx.globalAlpha = pulse * 0.5;
-      ctx.fillStyle = "#ff3333";
-      ctx.beginPath();
-      ctx.arc(0, -12, glowSize, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-
-    ctx.rotate(clubAngle);
-    ctx.fillStyle = "#6b4830";
-    ctx.fillRect(-2, 0, 4, 28);
-    ctx.fillStyle = "#4a4a4a";
-    ctx.fillRect(-5, -8, 10, 10);
-    ctx.fillStyle = "#666";
-    ctx.fillRect(-4, -7, 2, 2);
-    ctx.fillRect(2, -7, 2, 2);
-    ctx.fillRect(-1, -4, 2, 2);
-
-    // Strike: red arc trail + bigger impact flash
-    if (isAttacking && progress < 0.3) {
-      const strikeProg = 1 - progress / 0.3;
-      // Red impact arc
-      ctx.globalAlpha = (1 - strikeProg) * 0.6;
-      ctx.strokeStyle = "#ff4422";
-      ctx.lineWidth = 8;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.arc(0, -10, 30, -2.0, -2.0 + strikeProg * 3.5);
-      ctx.stroke();
-      ctx.lineCap = "butt";
-      // Impact flash burst
-      ctx.globalAlpha = (1 - strikeProg) * 0.7;
-      ctx.fillStyle = "#ffaa33";
-      ctx.beginPath();
-      ctx.arc(0, -10, 15 + strikeProg * 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-    ctx.restore();
-
-    // Ground danger telegraph during wind-up
-    if (isAttacking && progress > 0.5) {
-      const tp = (progress - 0.5) / 0.5;
-      ctx.globalAlpha = tp * 0.2;
-      ctx.fillStyle = "#ff3333";
-      ctx.fillRect(-35, -2, 70, 4);
-      ctx.globalAlpha = 1;
-    }
-  }
-
-  // ── Ninja: throwing motion + energy buildup ──
-  if (e.type === "ninja" && e.throwAnim > 0) {
-    const tp = e.throwAnim / 500;
-    ctx.save();
-    ctx.translate(4, -drawH * 0.45 + oy);
-
-    // Purple energy buildup in hand during wind-up
-    if (tp > 0.5) {
-      const chargeP = (tp - 0.5) / 0.5;
-      ctx.globalAlpha = chargeP * 0.6;
-      ctx.fillStyle = "#8844cc";
-      ctx.beginPath();
-      ctx.arc(22, 0, 4 + chargeP * 4, 0, Math.PI * 2);
-      ctx.fill();
-      // Spiral particles inward
-      for (let i = 0; i < 3; i++) {
-        const angle = elapsed * 8 + i * 2.1;
-        const dist = 10 + (1 - chargeP) * 8;
-        ctx.fillStyle = "#aa66ee";
+  // ── VFX overlays (attack arcs, shield glow — drawn on top of sprites) ──
+  if (e.state === "attack" && !e.dead) {
+    if (e.type === "oni") {
+      const progress = e.attackTimer / 600;
+      // Red strike arc on impact
+      if (progress < 0.3) {
+        const sp = 1 - progress / 0.3;
+        ctx.globalAlpha = (1 - sp) * 0.6;
+        ctx.strokeStyle = "#ff4422";
+        ctx.lineWidth = 8;
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.arc(22 + Math.cos(angle) * dist, Math.sin(angle) * dist, 1.5, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    // Arm sweeps out
-    const armAngle = (1 - tp) * 1.5 - 0.5;
-    ctx.rotate(armAngle);
-    ctx.fillStyle = "#3a2a50";
-    ctx.fillRect(0, -2, 22, 4);
-    // Star visible at start of throw
-    if (tp > 0.4) {
-      ctx.fillStyle = "#aaaadd";
-      ctx.save();
-      ctx.translate(24, 0);
-      ctx.rotate(elapsed * 15);
-      ctx.fillRect(-4, -1, 8, 2);
-      ctx.fillRect(-1, -4, 2, 8);
-      ctx.restore();
-    }
-    ctx.restore();
-  }
-
-  // ── Samurai: block shield + katana glow ──
-  if (e.type === "samurai") {
-    if (e.blocking) {
-      // Blue-white energy shield semicircle
-      const shieldPulse = 0.5 + Math.sin(elapsed * 10) * 0.3;
-      ctx.globalAlpha = shieldPulse * 0.4;
-      ctx.strokeStyle = "#88bbff";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      const shieldAngle = e.facing > 0 ? -Math.PI / 2 : Math.PI / 2;
-      ctx.arc(e.facing * 15, -drawH * 0.4, 25, shieldAngle - 1.2, shieldAngle + 1.2);
-      ctx.stroke();
-      ctx.globalAlpha = shieldPulse * 0.15;
-      ctx.fillStyle = "#aaddff";
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-    if (e.state === "attack") {
-      const aProgress = e.attackTimer / 700;
-      // Katana glow during wind-up
-      if (aProgress > 0.3) {
-        ctx.globalAlpha = (aProgress - 0.3) * 0.5;
-        ctx.strokeStyle = "#ff4444";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(e.facing * 8, -drawH * 0.3);
-        ctx.lineTo(e.facing * 35, -drawH * 0.6);
+        ctx.arc(0, -DRAW_H * 0.4, 35, -2.0, -2.0 + sp * 3.5);
         ctx.stroke();
+        ctx.lineCap = "butt";
         ctx.globalAlpha = 1;
       }
-      // Red slash arc on strike
-      if (aProgress < 0.3) {
-        const sp = 1 - aProgress / 0.3;
+      // Danger telegraph
+      if (progress > 0.5) {
+        ctx.globalAlpha = (progress - 0.5) * 0.3;
+        ctx.fillStyle = "#ff3333";
+        ctx.fillRect(-35, -2, 70, 4);
+        ctx.globalAlpha = 1;
+      }
+    }
+    if (e.type === "samurai") {
+      const ap = e.attackTimer / 700;
+      if (ap < 0.3) {
+        const sp = 1 - ap / 0.3;
         ctx.globalAlpha = (1 - sp) * 0.5;
         ctx.strokeStyle = "#cc3322";
         ctx.lineWidth = 6;
         ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.arc(e.facing * 10, -drawH * 0.4, 35, -1.5, -1.5 + sp * 3);
+        ctx.arc(0, -DRAW_H * 0.4, 35, -1.5, -1.5 + sp * 3);
         ctx.stroke();
         ctx.lineCap = "butt";
         ctx.globalAlpha = 1;
       }
     }
+  }
+  if (e.type === "samurai" && e.blocking && !e.dead) {
+    const pulse = 0.5 + Math.sin(elapsed * 10) * 0.3;
+    ctx.globalAlpha = pulse * 0.4;
+    ctx.strokeStyle = "#88bbff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, -DRAW_H * 0.4, 25, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
   ctx.restore();

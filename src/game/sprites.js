@@ -63,9 +63,38 @@ export function loadGameImages() {
     loadImg("dash", "/images/tinysenpai/dash.png", true),
     loadImg("death1", "/images/tinysenpai/death/hit.png", true),
     loadImg("death2", "/images/tinysenpai/death/fallen.png", true),
-    // Enemies — also need gray bg removal
+    // New player sprites
+    loadImg("wall_cling", "/images/tinysenpai/wall-cling.png", true),
+    loadImg("parry", "/images/tinysenpai/parry.png", true),
+    loadImg("land_heavy", "/images/tinysenpai/land-heavy.png", true),
+    loadImg("slash_through", "/images/tinysenpai/slash-through.png", true),
+    // Oni — full animation set
     loadImg("oni", "/images/oni/demon.png", true),
+    loadImg("oni_idle", "/images/oni/oni-idle.png", true),
+    loadImg("oni_walk1", "/images/oni/oni-walk1.png", true),
+    loadImg("oni_walk2", "/images/oni/oni-walk2.png", true),
+    loadImg("oni_alert", "/images/oni/oni-alert.png", true),
+    loadImg("oni_windup", "/images/oni/oni-windup.png", true),
+    loadImg("oni_attack", "/images/oni/oni-attack-lunge.png", true),
+    loadImg("oni_dazed", "/images/oni/oni-dazed.png", true),
+    loadImg("oni_hit", "/images/oni/oni-hit.png", true),
+    loadImg("oni_kneel", "/images/oni/oni-kneel-defeat.png", true),
+    loadImg("oni_dead", "/images/oni/oni-fallen-dead.png", true),
+    // Ninja — full animation set
     loadImg("ninja", "/images/ninja/ninja.png", true),
+    loadImg("ninja_idle", "/images/ninja/ninja-idle.png", true),
+    loadImg("ninja_walk1", "/images/ninja/ninja-walk1.png", true),
+    loadImg("ninja_walk2", "/images/ninja/ninja-walk2.png", true),
+    loadImg("ninja_alert", "/images/ninja/ninja-alert.png", true),
+    loadImg("ninja_throw", "/images/ninja/ninja-throw.png", true),
+    loadImg("ninja_retreat", "/images/ninja/ninja-retreat.png", true),
+    loadImg("ninja_dazed", "/images/ninja/ninja-dazed.png", true),
+    loadImg("ninja_hit", "/images/ninja/ninja-hit.png", true),
+    loadImg("ninja_kneel", "/images/ninja/ninja-kneel.png", true),
+    loadImg("ninja_dead", "/images/ninja/ninja-dead.png", true),
+    // Samurai — partial set (kneel + dead)
+    loadImg("samurai_kneel", "/images/samurai/samurai-kneel.png", true),
+    loadImg("samurai_dead", "/images/samurai/samurai-dead.png", true),
     // Backgrounds
     loadImg("bg_forest", "/images/forest.png"),
   ]);
