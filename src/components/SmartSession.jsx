@@ -428,36 +428,57 @@ export default function SmartSession({
 
   // ═══ EXERCISE: KANA LISTEN ═══
   if (ex.type === "kana-listen") {
-    // Auto-play audio for listen mode (only on mount/card change via useEffect above)
-    const submit = () => {
-      if (fb || !input.trim()) return;
-      const ok = input.trim().toLowerCase() === ex.romaji;
-      setFb(ok ? "ok" : "no");
-      setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-      updateKanaSRS(ex.item, ok);
-      setTimeout(() => advance(ok), ok ? 1500 : 2500);
-    };
+    // Build character grid choices (stable — set once via choiceAnswer)
+    if (!choiceAnswer) {
+      const allKana = Object.keys(ROMAJI).filter(ch => ch !== ex.item);
+      // Pick 7 distractors (mix of same script + different)
+      const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
+      const sameScript = allKana.filter(ch => isHira ? ch.charCodeAt(0) >= 0x3040 && ch.charCodeAt(0) <= 0x309F : ch.charCodeAt(0) >= 0x30A0);
+      const distractors = shuffle(sameScript).slice(0, 7);
+      const choices = shuffle([ex.item, ...distractors]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
     return withSenpai(<>
-      <div style={{ ...card, textAlign: "center", padding: "40px 24px", marginBottom: 16, background: fb === "ok" ? c.gs : fb === "no" ? c.rs : c.s, transition: "background .3s" }}>
-        <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 12 }}>What did you hear?</div>
-        <div style={{ fontSize: 60, marginBottom: 16 }}>👂</div>
+      <div style={{ ...card, textAlign: "center", padding: "32px 24px", marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 10 }}>What did you hear?</div>
+        <div style={{ fontSize: 52, marginBottom: 14 }}>👂</div>
         <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 play again</button>
-        {fb && <div style={{ marginTop: 16 }}>
+        {answered && <div style={{ marginTop: 16, borderTop: "1px solid " + c.b, paddingTop: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
             <div>
-              <div style={{ fontSize: 60, lineHeight: 1 }}>{ex.item}</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: fb === "ok" ? c.g : c.a, fontFamily: mono, marginTop: 4 }}>{ex.romaji}</div>
-              <div style={{ fontSize: 12, color: c.m, marginTop: 2 }}>{fb === "ok" ? "✓ Correct!" : "✗ Wrong"}</div>
+              <div style={{ fontSize: 56, lineHeight: 1 }}>{ex.item}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: choiceAnswer.selected === ex.item ? "#4caf50" : c.a, fontFamily: mono, marginTop: 4 }}>{ex.romaji}</div>
+              <div style={{ fontSize: 12, color: c.m, marginTop: 2 }}>{choiceAnswer.selected === ex.item ? "✓ Correct!" : "✗ Wrong"}</div>
             </div>
             {(()=>{const isH=ex.item.charCodeAt(0)>=0x3040&&ex.item.charCodeAt(0)<=0x309F;return <img src={`/images/mnemonics/approved/${isH?"hiragana":"katakana"}/${ex.item.codePointAt(0).toString(16)}.png`} alt="" onError={e=>{e.target.style.display="none";}} style={{width:"35%",maxWidth:130,borderRadius:10}}/>;})()}
           </div>
         </div>}
       </div>
-      {!fb && <div style={{ display: "flex", gap: 8 }}>
-        <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") submit(); }}
-          placeholder="romaji..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
-          style={{ flex: 1, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontFamily: mono, fontSize: 20, outline: "none", textAlign: "center" }} />
-        <button onClick={submit} style={{ ...btn, padding: "14px 22px", borderRadius: 10, background: input.trim() ? c.a : c.b, color: input.trim() ? "#fff" : c.m, fontSize: 14, fontWeight: 600 }}>Go</button>
+      {!answered && <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+        {choiceAnswer.choices.map((ch, i) => <button key={i} onClick={() => {
+          const ok = ch === ex.item;
+          setChoiceAnswer({ ...choiceAnswer, selected: ch });
+          setFb(ok ? "ok" : "no");
+          setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+          updateKanaSRS(ex.item, ok);
+          setTimeout(() => advance(ok), ok ? 1500 : 2500);
+        }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + c.b, background: c.s, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
+          {ch}
+        </button>)}
+      </div>}
+      {answered && <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+        {choiceAnswer.choices.map((ch, i) => {
+          const isCorrect = ch === ex.item;
+          const isSelected = ch === choiceAnswer.selected;
+          const bg = isCorrect ? "#4caf5018" : isSelected ? c.rs : "transparent";
+          const border = isCorrect ? "#4caf5055" : isSelected ? c.a + "55" : c.b;
+          const col = isCorrect ? "#4caf50" : isSelected ? c.a : c.m;
+          return <div key={i} style={{ padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: bg, fontSize: 28, textAlign: "center", color: col }}>
+            {ch}
+          </div>;
+        })}
       </div>}
     </>);
   }
