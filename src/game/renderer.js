@@ -220,7 +220,7 @@ export function render(g, ctx, isDesktop, font) {
       const dh = DRAW_SIZE * 0.95;
       ctx.save();
       ctx.translate(ai.x, ai.y + DRAW_SIZE);
-      if (ai.facing < 0) ctx.scale(-1, 1);
+      if (ai.facing > 0) ctx.scale(-1, 1); // idle faces left
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(mascot, ic.x, ic.y, ic.w, ic.h, -dw / 2, -dh, dw, dh);
       ctx.restore();
@@ -233,119 +233,120 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash blade trails — massive flowing sword swings ──
-  // Inspired by Katana Zero: wide tapered crescent shapes, not thin arcs
-  ctx.globalCompositeOperation = "lighter"; // additive blending for glow
+  // ── Slash blade trails — long, elegant, deadly ──
+  ctx.globalCompositeOperation = "lighter";
   for (const s of g.slashEffects) {
     const progress = 1 - s.timer / s.maxTimer;
     const combo = s.combo || 1;
     const isThird = combo === 3;
     const dir = s.facing;
 
-    // Sweep timing: blade appears fast, lingers and fades
-    const sweepProg = Math.min(1, progress * 3); // sweep in first 33%
-    const fadeProg = progress > 0.3 ? (progress - 0.3) / 0.7 : 0;
-    const alpha = (1 - Math.pow(fadeProg, 0.5)) * (progress < 0.03 ? progress / 0.03 : 1);
+    const sweepProg = Math.min(1, progress * 3.5);
+    const fadeProg = progress > 0.25 ? (progress - 0.25) / 0.75 : 0;
+    const alpha = (1 - Math.pow(fadeProg, 0.4)) * (progress < 0.02 ? progress / 0.02 : 1);
 
-    // Blade trail dimensions — BIG, like Katana Zero
-    const reach = combo === 1 ? 120 : combo === 2 ? 140 : 180;
-    const width = combo === 1 ? 50 : combo === 2 ? 60 : 80;
-    // Angle of swing
-    const swingAngle = combo === 1 ? -0.3 : combo === 2 ? 0.4 : -0.15;
-
-    // Colors: cyan/white core like Katana Zero
-    const outerCol = isThird ? "rgba(30,100,220," : combo === 2 ? "rgba(200,130,50," : "rgba(140,170,230,";
-    const midCol = isThird ? "rgba(60,170,255," : combo === 2 ? "rgba(255,180,70," : "rgba(200,220,255,";
-    const coreCol = isThird ? "rgba(130,220,255," : combo === 2 ? "rgba(255,230,140," : "rgba(240,245,255,";
+    // LONG reach — sword trails that extend far past the enemy
+    const reach = combo === 1 ? 200 : combo === 2 ? 240 : 320;
+    // Thin blade width — elegant, not chunky
+    const bladeW = combo === 1 ? 22 : combo === 2 ? 28 : 35;
+    const swingAngle = combo === 1 ? -0.25 : combo === 2 ? 0.35 : -0.1;
 
     ctx.save();
     ctx.translate(s.x, s.y);
 
-    // The blade trail is a thick tapered crescent shape
-    // Origin at player, sweeps outward. Thick at the base, thin at the tip.
-    const currentReach = reach * sweepProg;
-    const baseWidth = width * Math.min(1, sweepProg * 2); // widens fast
+    const curReach = reach * sweepProg;
+    const curW = bladeW * Math.min(1, sweepProg * 3);
+    const tipX = dir * curReach;
+    const tipY = swingAngle * curReach;
 
-    // Draw multiple layers for glow effect
-    for (let layer = 0; layer < 3; layer++) {
-      const layerScale = layer === 0 ? 1.6 : layer === 1 ? 1.0 : 0.4;
-      const layerAlpha = layer === 0 ? 0.15 : layer === 1 ? 0.4 : 0.85;
-      const col = layer === 0 ? outerCol : layer === 1 ? midCol : coreCol;
+    // ── Layer 1: Wide outer glow (soft bloom) ──
+    ctx.globalAlpha = alpha * 0.12;
+    ctx.fillStyle = isThird ? "#2060cc" : combo === 2 ? "#cc8833" : "#8899cc";
+    ctx.beginPath();
+    ctx.moveTo(0, -curW * 1.5);
+    ctx.quadraticCurveTo(dir * curReach * 0.5, tipY - curW * 1.2, tipX, tipY);
+    ctx.quadraticCurveTo(dir * curReach * 0.5, tipY + curW * 1.2, 0, curW * 1.5);
+    ctx.closePath();
+    ctx.fill();
 
-      ctx.globalAlpha = alpha * layerAlpha;
-      ctx.fillStyle = col + (alpha * layerAlpha).toFixed(2) + ")";
+    // ── Layer 2: Mid blade shape ──
+    ctx.globalAlpha = alpha * 0.35;
+    ctx.fillStyle = isThird ? "#3090ee" : combo === 2 ? "#ffaa44" : "#bbccee";
+    ctx.beginPath();
+    ctx.moveTo(0, -curW * 0.7);
+    ctx.quadraticCurveTo(dir * curReach * 0.5, tipY - curW * 0.5, tipX, tipY);
+    ctx.quadraticCurveTo(dir * curReach * 0.5, tipY + curW * 0.5, 0, curW * 0.7);
+    ctx.closePath();
+    ctx.fill();
 
+    // ── Layer 3: Bright core line — sharp, thin, white-hot ──
+    ctx.globalAlpha = alpha * 0.9;
+    ctx.strokeStyle = isThird ? "#80ddff" : combo === 2 ? "#ffeebb" : "#ffffff";
+    ctx.lineWidth = isThird ? 3 : 2;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(dir * 5, 0);
+    ctx.quadraticCurveTo(dir * curReach * 0.5, tipY * 0.7, tipX, tipY);
+    ctx.stroke();
+
+    // ── Bright tip flare ──
+    if (sweepProg > 0.1 && sweepProg < 0.95) {
+      ctx.globalAlpha = alpha * 0.8;
+      ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      // Crescent: bezier curve from base to tip on one side, back on other
-      const bw = baseWidth * layerScale;
-      const tipOffset = swingAngle * currentReach;
-      const cx1 = dir * currentReach * 0.4;
-      const cy1 = tipOffset * 0.3 - bw * 0.6;
-      const cx2 = dir * currentReach * 0.7;
-      const cy2 = tipOffset * 0.7 - bw * 0.3;
-      const tipX = dir * currentReach;
-      const tipY = tipOffset;
-
-      // Top edge of blade
-      ctx.moveTo(0, -bw * 0.3);
-      ctx.bezierCurveTo(cx1, cy1, cx2, cy2, tipX, tipY - 2 * layerScale);
-      // Tip
-      ctx.lineTo(tipX + dir * 5 * layerScale, tipY);
-      // Bottom edge of blade (return curve)
-      ctx.bezierCurveTo(cx2, cy2 + bw * 0.8, cx1, cy1 + bw * 1.2, 0, bw * 0.5);
-      ctx.closePath();
+      ctx.arc(tipX, tipY, isThird ? 4 : 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = alpha * 0.3;
+      ctx.fillStyle = isThird ? "#40aaff" : "#ccddff";
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, isThird ? 12 : 6, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Bright leading edge line
-    if (sweepProg < 1) {
-      ctx.globalAlpha = alpha * 0.9;
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = isThird ? 2.5 : 1.5;
-      ctx.beginPath();
-      const tipX = dir * currentReach;
-      const tipY = swingAngle * currentReach;
-      ctx.moveTo(tipX - dir * 15, tipY - 8);
-      ctx.lineTo(tipX + dir * 3, tipY);
-      ctx.lineTo(tipX - dir * 15, tipY + 8);
-      ctx.stroke();
-    }
-
-    // Spark particles along the blade trail
-    if (sweepProg > 0.2 && sweepProg < 0.9) {
-      for (let i = 0; i < (isThird ? 6 : 3); i++) {
-        const t = Math.random();
-        const sparkX = dir * currentReach * t;
-        const sparkY = swingAngle * currentReach * t + (Math.random() - 0.5) * baseWidth;
-        ctx.globalAlpha = alpha * (0.4 + Math.random() * 0.4);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(sparkX - 1, sparkY - 1, 2, 2);
-      }
-    }
-
-    // 3rd combo: shockwave ring + screen-wide flash
-    if (isThird && progress > 0.2) {
-      const ringProg = (progress - 0.2) / 0.8;
-      // Expanding ring
-      const ringR = 40 + ringProg * 150;
-      ctx.globalAlpha = (1 - ringProg) * 0.3;
-      ctx.strokeStyle = "#40aaff";
-      ctx.lineWidth = 4 - ringProg * 3;
-      ctx.beginPath();
-      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
-      ctx.stroke();
-      // Second ring (delayed)
-      if (ringProg > 0.15) {
-        const ring2Prog = (ringProg - 0.15) / 0.85;
-        const ring2R = 30 + ring2Prog * 130;
-        ctx.globalAlpha = (1 - ring2Prog) * 0.2;
-        ctx.lineWidth = 2;
+    // ── 3rd combo: ELECTRIC LIGHTNING along the blade ──
+    if (isThird) {
+      // Crackling bolts along the blade path
+      for (let bolt = 0; bolt < 4; bolt++) {
+        ctx.globalAlpha = alpha * (0.3 + Math.random() * 0.5);
+        ctx.strokeStyle = bolt % 2 === 0 ? "#40aaff" : "#ffffff";
+        ctx.lineWidth = 1 + Math.random();
         ctx.beginPath();
-        ctx.arc(0, 0, ring2R, 0, Math.PI * 2);
+        let bx = dir * 10, by = 0;
+        ctx.moveTo(bx, by);
+        const segments = 6 + Math.floor(Math.random() * 4);
+        for (let seg = 0; seg < segments; seg++) {
+          const t = (seg + 1) / segments;
+          bx = dir * curReach * t;
+          by = tipY * t + (Math.random() - 0.5) * 30;
+          ctx.lineTo(bx, by);
+        }
+        ctx.stroke();
+      }
+      // Electric sparks scattered along blade
+      for (let i = 0; i < 8; i++) {
+        const t = Math.random();
+        const sx = dir * curReach * t;
+        const sy = tipY * t + (Math.random() - 0.5) * 20;
+        ctx.globalAlpha = alpha * (0.5 + Math.random() * 0.5);
+        ctx.fillStyle = i % 3 === 0 ? "#ffffff" : "#60ccff";
+        const ss = 1 + Math.random() * 2;
+        ctx.fillRect(sx - ss, sy, ss * 2, 1);
+        ctx.fillRect(sx, sy - ss, 1, ss * 2);
+      }
+      // Shockwave rings
+      if (progress > 0.15) {
+        const ringProg = (progress - 0.15) / 0.85;
+        const ringR = 50 + ringProg * 180;
+        ctx.globalAlpha = (1 - ringProg) * 0.25;
+        ctx.strokeStyle = "#40aaff";
+        ctx.lineWidth = 3 - ringProg * 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, ringR, 0, Math.PI * 2);
         ctx.stroke();
       }
     }
 
+    ctx.lineCap = "butt";
     ctx.globalAlpha = 1;
     ctx.restore();
   }
@@ -515,29 +516,35 @@ export function render(g, ctx, isDesktop, font) {
 // Source crop removes empty padding (character spans ~rows 6-24 in a 32-cell grid).
 // Crop rects for player images (remove gray/transparent padding)
 // Crop rects per sprite — fitted to actual character bounds
+// facesRight: true = sprite naturally faces right (flip for left)
+//             false = sprite naturally faces left (flip for right)
 const CROPS = {
-  idle:    { x: 64,  y: 160, w: 896, h: 660 },
-  run:     { x: 140, y: 140, w: 750, h: 730 },
-  slash:   { x: 80,  y: 100, w: 860, h: 800 },
-  jump1:   { x: 160, y: 190, w: 700, h: 650 },
-  jump2:   { x: 250, y: 150, w: 600, h: 720 },
-  fall:    { x: 260, y: 60,  w: 550, h: 860 },
-  wallslide:{ x: 140, y: 120, w: 660, h: 800 },
-  dash:    { x: 60,  y: 210, w: 900, h: 600 },
-  death1:  { x: 100, y: 80,  w: 810, h: 800 },
-  death2:  { x: 80,  y: 420, w: 920, h: 310 },
+  idle:    { x: 64,  y: 160, w: 896, h: 660, facesRight: false },
+  run:     { x: 140, y: 140, w: 750, h: 730, facesRight: false },
+  slash:   { x: 80,  y: 100, w: 860, h: 800, facesRight: false },
+  jump1:   { x: 160, y: 190, w: 700, h: 650, facesRight: false },
+  jump2:   { x: 250, y: 150, w: 600, h: 720, facesRight: false },
+  fall:    { x: 260, y: 60,  w: 550, h: 860, facesRight: false },
+  wallslide:{ x: 140, y: 120, w: 660, h: 800, facesRight: false },
+  dash:    { x: 60,  y: 210, w: 900, h: 600, facesRight: false },
+  death1:  { x: 100, y: 80,  w: 810, h: 800, facesRight: false },
+  death2:  { x: 80,  y: 420, w: 920, h: 310, facesRight: false },
 };
 
 // Helper: draw a sprite image with crop and flip
 // Sprites face RIGHT by default (verified from actual PNGs) — flip for LEFT
+// All sprites normalized to same visual width so the character never shrinks/grows
+const REF_DRAW_W = DRAW_SIZE * (CROPS.idle.w / CROPS.idle.h); // ~81px (idle width)
 function drawSpriteFrame(ctx, img, cropKey, s, facing) {
   if (!img) return false;
   const crop = CROPS[cropKey];
   if (!crop) return false;
-  if (facing < 0) ctx.scale(-1, 1);
-  const aspect = crop.w / crop.h;
-  const dw = s * aspect;
-  const dh = s;
+  // Flip based on per-sprite direction flag
+  const needsFlip = crop.facesRight ? (facing < 0) : (facing > 0);
+  if (needsFlip) ctx.scale(-1, 1);
+  // Consistent width: all sprites render at the same character width
+  const dw = REF_DRAW_W;
+  const dh = REF_DRAW_W / (crop.w / crop.h);
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -dw / 2, -dh, dw, dh);
   return true;
 }
@@ -588,7 +595,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     if (img) {
       // Wall slide: flip based on wall direction
       const crop = CROPS.wallslide;
-      if (p.wallDir > 0) ctx.scale(-1, 1);
+      if (p.wallDir < 0) ctx.scale(-1, 1); // wallslide sprite faces left
       const aspect = crop.w / crop.h;
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -s * aspect / 2, -s, s * aspect, s);
       ctx.restore();
@@ -623,8 +630,8 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
     const slashImg = getImage(slashImgKey);
     if (slashImg) {
-      // Slash frames face RIGHT — flip for left
-      if (p.facing < 0) ctx.scale(-1, 1);
+      // Slash frames face LEFT — flip for right
+      if (p.facing > 0) ctx.scale(-1, 1);
 
       const sc = CROPS.slash;
       const sa = sc.w / sc.h;
@@ -709,7 +716,7 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
 
   // Flip based on facing
-  if (e.facing < 0) ctx.scale(-1, 1);
+  if (e.facing > 0) ctx.scale(-1, 1); // enemy sprites face left
 
   let oy = 0;
   if (e.state === "patrol") {
