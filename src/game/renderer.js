@@ -1,7 +1,7 @@
 import { TILE, SCALE, DASH_COOLDOWN, TOTAL_ROOMS, JUMP_FORCE, hash } from "./constants.js";
 import { getSprite, getMascotImage, getImage } from "./sprites.js";
 
-const DRAW_SIZE = TILE * SCALE; // 60px
+const DRAW_SIZE = TILE * SCALE * 1.15; // 69px — slightly bigger character
 
 // ═══ MAIN RENDER ═══
 export function render(g, ctx, isDesktop, font) {
@@ -518,26 +518,26 @@ export function render(g, ctx, isDesktop, font) {
 // Crop rects per sprite — fitted to actual character bounds
 // R = faces right (AI-generated sprites), L = faces left (original mascot)
 // Idle faces LEFT, all AI-generated action sprites face RIGHT
-// R: false = faces LEFT (like idle). All sprites set to LEFT for consistency.
-// Only exception: slash4 (old sprite, confirmed correct as R:true).
-// Generous crop rects — gray bg removal handles the rest.
+// R flag measured by pixel-weight analysis (not guessing).
+// R:false = faces LEFT, R:true = faces RIGHT.
+const F = { x: 20, y: 20, w: 984, h: 984 }; // full frame crop (gray bg removed on load)
 const CROPS = {
-  idle:      { x: 20, y: 20, w: 984, h: 984, R: false },
-  run1:      { x: 20, y: 20, w: 984, h: 984, R: false },
-  run2:      { x: 20, y: 20, w: 984, h: 984, R: false },
-  run3:      { x: 20, y: 20, w: 984, h: 984, R: false },
-  run4:      { x: 20, y: 20, w: 984, h: 984, R: false },
-  slash1:    { x: 20, y: 20, w: 984, h: 984, R: false },
-  slash2:    { x: 20, y: 20, w: 984, h: 984, R: false },
-  slash3:    { x: 20, y: 20, w: 984, h: 984, R: false },
+  idle:      { ...F, R: false },
+  run1:      { ...F, R: false },
+  run2:      { ...F, R: false },
+  run3:      { ...F, R: false },
+  run4:      { ...F, R: false },
+  slash1:    { ...F, R: false },
+  slash2:    { ...F, R: true },
+  slash3:    { ...F, R: false },
   slash4:    { x: 80, y: 100, w: 860, h: 800, R: true },
-  jump1:     { x: 20, y: 20, w: 984, h: 984, R: false },
-  jump2:     { x: 20, y: 20, w: 984, h: 984, R: false },
-  fall:      { x: 20, y: 20, w: 984, h: 984, R: false },
-  wallslide: { x: 20, y: 20, w: 984, h: 984, R: false },
-  dash:      { x: 20, y: 20, w: 984, h: 984, R: false },
-  death1:    { x: 20, y: 20, w: 984, h: 984, R: false },
-  death2:    { x: 20, y: 20, w: 984, h: 984, R: false },
+  jump1:     { ...F, R: false },
+  jump2:     { ...F, R: true },
+  fall:      { ...F, R: false },
+  wallslide: { ...F, R: true },
+  dash:      { ...F, R: false },
+  death1:    { ...F, R: false },
+  death2:    { ...F, R: false },
 };
 
 // Helper: draw a sprite image with crop and flip
@@ -720,7 +720,7 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
 
   // Flip based on facing
-  if (e.facing < 0) ctx.scale(-1, 1); // enemy sprites face right
+  if (e.facing > 0) ctx.scale(-1, 1); // enemy sprites face LEFT (measured)
 
   let oy = 0;
   if (e.state === "patrol") {
