@@ -6,6 +6,7 @@ import { makePlayer, makeEnemy } from "./entities.js";
 import { update } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
+import { initAudio, playSound, toggleMute, isMuted } from "./audio.js";
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
@@ -32,7 +33,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
 
     // Load room 0
     const room = ROOMS[0];
-    const platforms = room.platforms.map(p => ({ x: p.x, y: groundY + p.y, w: p.w, h: 16 }));
+    const platforms = room.platforms.map(p => ({ x: p.x, y: groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
     const enemies = room.enemies.map(e => makeEnemy(e.type, e.x, groundY + (e.y || 0)));
     const decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: groundY }));
     const shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: groundY }));
@@ -41,7 +42,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     return {
       W, H, groundY, levelW,
       player: makePlayer(groundY, room.playerStart || 100),
-      camera: { x: 0, y: 0, shakeX: 0, shakeY: 0, shakeTimer: 0 },
+      camera: { x: 0, y: 0, shakeX: 0, shakeY: 0, shakeTimer: 0, zoom: 1, zoomTarget: 1, lookAhead: 0 },
       platforms, enemies, decorations, shadows,
       particles: [], slashEffects: [], projectiles: [],
       embers: [], floatingTexts: [],
@@ -54,9 +55,13 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       // Room system
       currentRoom: 0, roomTimer: 0, roomStars: [],
       deaths: 0, totalTime: 0,
-      roomState: "playing", // "playing" | "cleared" | "restarting"
+      roomState: "playing",
       roomClearTimer: 0,
       deathFlash: 0,
+      // Transitions
+      letterbox: 0, // 0-1 progress of letterbox bars
+      fadeOverlay: 0, // 0-1 opacity of black fade
+      roomTitle: null, // { text, timer } for "ROOM X" display
     };
   }, []);
 
@@ -126,11 +131,20 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [screen]);
 
+  const [muted, setMutedState] = useState(() => isMuted());
+
   const startGame = async () => {
+    initAudio();
     await loadMascotImage();
+    playSound("menuStart");
     setScore(0);
     setMaxCombo(0);
     setScreen("playing");
+  };
+
+  const handleToggleMute = () => {
+    const nowMuted = toggleMute();
+    setMutedState(nowMuted);
   };
 
   // ═══ STYLES ═══
@@ -184,6 +198,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
             HIGH SCORE: {String(highScore).padStart(5, "0")}
           </div>
         )}
+        <button onClick={handleToggleMute} style={{ ...btn, background: "transparent", color: c.m, fontSize: 12, padding: "8px 16px", marginTop: 12, border: `1px solid ${c.b}` }}>
+          {muted ? "UNMUTE" : "MUTE"} SFX
+        </button>
       </div>
     );
   }

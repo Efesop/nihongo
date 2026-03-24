@@ -1,4 +1,5 @@
-import { TILE, SCALE, MOVE_SPEED } from "./constants.js";
+import { TILE, SCALE, MOVE_SPEED, ENEMY_CONFIG } from "./constants.js";
+import { playSound } from "./audio.js";
 
 // ═══ PLAYER FACTORY ═══
 export function makePlayer(groundY, startX = 100) {
@@ -9,24 +10,26 @@ export function makePlayer(groundY, startX = 100) {
     grounded: false, wallSliding: false, wallDir: 0, invincible: 0,
     afterimages: [],
     slashCombo: 0, comboWindow: 0,
+    scaleX: 1, scaleY: 1,
   };
 }
 
 // ═══ ENEMY FACTORY ═══
 export function makeEnemy(type, x, platformY) {
+  const cfg = ENEMY_CONFIG[type] || ENEMY_CONFIG.oni;
   return {
     x, y: platformY - TILE * SCALE, vx: 0, vy: 0,
     type, facing: -1, state: "patrol", frame: 0, frameTimer: 0,
-    hp: type === "samurai" ? 2 : 1,
+    hp: cfg.hp,
     dead: false, deathTimer: 0,
     patrolOrigin: x, patrolRange: 80,
-    alertRange: type === "ninja" ? 350 : 200,
+    alertRange: cfg.alertRange,
     attackTimer: type === "ninja" ? 800 : 0,
-    attackCooldown: type === "ninja" ? 1400 : 800,
+    attackCooldown: cfg.cooldown || (type === "ninja" ? 1400 : 800),
     blocking: false, blockTimer: 0,
     throwAnim: 0,
     alert: 0,
-    dazed: 0, // stun timer — can't act while > 0
+    dazed: 0,
     _hitThisSlash: false,
   };
 }
@@ -102,6 +105,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
         });
         e.attackTimer = 900; // fires more often
         e.throwAnim = 400;
+        playSound("shuriken");
       }
       if (dist < 100) e.vx = -toPlayer * 150; // retreats faster
     } else {

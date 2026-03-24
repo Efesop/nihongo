@@ -2,17 +2,19 @@ import {
   GRAVITY, MOVE_SPEED, JUMP_FORCE, SLASH_DURATION, SLASH_RANGE,
   DASH_SPEED, DASH_DURATION, DASH_COOLDOWN,
   TILE, SCALE, GROUND_Y, TOTAL_ROOMS, STAR_3, STAR_2,
+  ENEMY_CONFIG, KILL_ZOOM, KILL_ZOOM_3RD, MILESTONE_ZOOM, LAST_KILL_FREEZE,
   lerp, clamp, rnd, rndInt,
 } from "./constants.js";
 import { updateEnemyAI, makeEnemy, makePlayer } from "./entities.js";
 import { ROOMS } from "./levels.js";
+import { playSound } from "./audio.js";
 
 // ═══ ROOM MANAGEMENT ═══
 export function loadRoom(g, roomIndex) {
   const room = ROOMS[roomIndex];
   if (!room) return;
   g.currentRoom = roomIndex;
-  g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: 16 }));
+  g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
   g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0)));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
@@ -27,6 +29,9 @@ export function loadRoom(g, roomIndex) {
   g.camera.shakeTimer = 0;
   g.camera.shakeX = 0;
   g.camera.shakeY = 0;
+  g.camera.zoom = 1;
+  g.camera.zoomTarget = 1;
+  g.camera.lookAhead = 0;
   g.slowMo.meter = g.slowMo.max;
   g.slowMo.active = false;
   g.hitStop = 0;
@@ -36,6 +41,9 @@ export function loadRoom(g, roomIndex) {
   g.roomClearTimer = 0;
   g.combo = 0;
   g.comboTimer = 0;
+  g.letterbox = 0;
+  g.fadeOverlay = 1; // fade in from black
+  g.roomTitle = { text: `ROOM ${roomIndex + 1}`, timer: 1200 };
 }
 
 function restartRoom(g) {
@@ -46,7 +54,9 @@ function restartRoom(g) {
 
 function clearRoom(g, callbacks) {
   g.roomState = "cleared";
-  g.roomClearTimer = 2000; // 2s pause to show rating
+  g.roomClearTimer = 2200; // 2.2s pause to show rating
+  playSound("roomClear");
+  g.letterbox = 0; // will animate to 1
   // Calculate star rating
   const time = g.roomTimer;
   const stars = time < STAR_3 ? 3 : time < STAR_2 ? 2 : 1;
@@ -77,6 +87,7 @@ export function update(g, callbacks) {
   if (g.hitStop > 0) { g.hitStop -= rawDt * 1000; return; }
 
   // Slow-mo
+  const wasSlowMo = g.slowMo.active;
   if (g.input.slowmo && g.slowMo.meter > 0) {
     g.slowMo.active = true;
     g.slowMo.meter = Math.max(0, g.slowMo.meter - 40 * rawDt);
@@ -87,6 +98,8 @@ export function update(g, callbacks) {
     g.time.scale = 1;
     g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 15 * rawDt);
   }
+  if (!wasSlowMo && g.slowMo.active) playSound("slowmoOn");
+  if (wasSlowMo && !g.slowMo.active) playSound("slowmoOff");
 
   const dt = rawDt * g.time.scale;
   g.time.dt = dt;
@@ -175,6 +188,7 @@ export function update(g, callbacks) {
     if (moveDir !== 0) p.facing = moveDir;
     p.vy = 0;
     p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: 200 });
+    playSound("dash");
   }
   g.input.dashPressed = false;
 
@@ -207,13 +221,14 @@ export function update(g, callbacks) {
   for (const ai of p.afterimages) ai.life -= rawDt * 1000;
   p.afterimages = p.afterimages.filter(ai => ai.life > 0);
 
-  // Running dust
+  // Running dust + footstep sounds
   if (p.grounded && Math.abs(p.vx) > 100 && Math.random() < dt * 8) {
     g.particles.push({
       x: p.x + rnd(-6, 6), y: p.y + TILE * SCALE,
       vx: -p.facing * rnd(20, 50), vy: rnd(-30, -10),
       life: 250, maxLife: 250, color: "#666666", size: rndInt(2, 3),
     });
+    if (Math.random() < 0.4) playSound("footstep", { playbackRate: rnd(0.8, 1.2) });
   }
 
   // Jump + wall jump
@@ -222,12 +237,14 @@ export function update(g, callbacks) {
       p.vy = JUMP_FORCE;
       p.grounded = false;
       spawnDust(g, p.x, p.y + TILE * SCALE);
+      playSound("jump");
     } else if (p.wallSliding) {
       // Wall jump — launch away from wall
       p.vy = JUMP_FORCE * 0.85;
       p.vx = -p.wallDir * MOVE_SPEED * 1.2;
       p.facing = -p.wallDir;
       p.wallSliding = false;
+      playSound("jump", { playbackRate: 1.2 });
       // Wall jump dust
       for (let i = 0; i < 4; i++) {
         g.particles.push({
@@ -259,16 +276,22 @@ export function update(g, callbacks) {
 
     // Afterimage
     p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
+    playSound(combo === 1 ? "slash1" : combo === 2 ? "slash2" : "slash3");
 
     // Lunge — each hit goes further, big slide
     const lungeSpeed = combo === 1 ? DASH_SPEED * 1.0 : combo === 2 ? DASH_SPEED * 1.2 : DASH_SPEED * 1.6;
     p.vx = p.facing * lungeSpeed;
 
-    // Slash trail — combo level passed through for visual variation
+    // Slash arc — animated sweeping crescent
+    const arcDuration = combo === 3 ? 450 : 300;
     g.slashEffects.push({
       x: p.x, y: p.y + TILE * SCALE * 0.4,
-      facing: p.facing, timer: 300, maxTimer: 300,
+      facing: p.facing, timer: arcDuration, maxTimer: arcDuration,
       combo,
+      // Arc sweep parameters per combo level
+      startAngle: combo === 1 ? -0.8 : combo === 2 ? -1.8 : -Math.PI,
+      endAngle: combo === 1 ? 0.8 : combo === 2 ? 0.6 : Math.PI,
+      radius: combo === 1 ? 70 : combo === 2 ? 80 : 100,
     });
 
     // Speed lines — more on higher combos
@@ -330,6 +353,7 @@ export function update(g, callbacks) {
       // Landing impact — dust + small shake if falling fast
       if (!wasGrounded && p.vy > 300) {
         spawnDust(g, p.x, p.y + TILE * SCALE);
+        playSound("land", { volume: Math.min(1, p.vy / 600) });
         if (p.vy > 500) g.camera.shakeTimer = 50;
       }
       p.vy = 0;
@@ -395,6 +419,21 @@ export function update(g, callbacks) {
 
   if (p.invincible > 0) p.invincible -= rawDt * 1000;
 
+  // ── Squash/stretch — target scales based on state, lerp toward them ──
+  let targetSX = 1, targetSY = 1;
+  if (p.dashTimer > 0) { targetSX = 1.2; targetSY = 0.8; }
+  else if (p.slashTimer > 0) {
+    const slashProg = 1 - p.slashTimer / (p.slashDuration || SLASH_DURATION);
+    if (slashProg < 0.2) { targetSX = 0.9; targetSY = 1.1; }
+    else { targetSX = 1.15; targetSY = 0.85; }
+  }
+  else if (!p.grounded && p.vy < -200) { targetSX = 0.9; targetSY = 1.1; }
+  else if (!p.grounded && p.vy > 200) { targetSX = 0.95; targetSY = 1.05; }
+  else if (p.grounded && !wasGrounded) { targetSX = 1.15; targetSY = 0.85; } // landing squash
+  const scaleSmooth = 1 - Math.pow(0.0001, rawDt); // fast ease
+  p.scaleX = lerp(p.scaleX, targetSX, scaleSmooth);
+  p.scaleY = lerp(p.scaleY, targetSY, scaleSmooth);
+
   // ── Enemies ──
   for (const e of g.enemies) {
     if (e.dead) { e.deathTimer -= dt * 1000; continue; }
@@ -439,6 +478,7 @@ export function update(g, callbacks) {
           e.blockTimer = 500;
           g.hitStop = 80;
           g.camera.shakeTimer = 100;
+          playSound("clash");
           for (let i = 0; i < 10; i++) {
             g.particles.push({
               x: (p.x + e.x) / 2, y: p.y + 15,
@@ -476,6 +516,7 @@ export function update(g, callbacks) {
             x: (p.x + e.x) / 2, y: Math.min(p.y, e.y) - 15,
             text: "CLASH!", color: "#ffdd44", life: 900, maxLife: 900,
           });
+          playSound("clash");
           for (let i = 0; i < 12; i++) {
             g.particles.push({
               x: (p.x + e.x) / 2, y: p.y + TILE * SCALE * 0.4,
@@ -511,6 +552,7 @@ export function update(g, callbacks) {
         g.score += 150;
         setScore(g.score);
         g.hitStop = 30;
+        playSound("deflect");
         // Deflect text
         g.floatingTexts.push({ x: proj.x, y: proj.y - 20, text: "DEFLECT!", color: "#ffffff", life: 800, maxLife: 800 });
         for (let i = 0; i < 8; i++) {
@@ -558,10 +600,21 @@ export function update(g, callbacks) {
   if (g.flashTimer > 0) g.flashTimer -= dt * 1000;
 
   // ── Camera (frame-rate independent) ──
-  const targetCX = p.x - g.W / 2 + (isDesktop ? SIDEBAR_W / 2 : 0);
+  // Look-ahead: offset camera in player's facing direction
+  const lookAheadTarget = Math.abs(p.vx) > 50 ? p.facing * 80 : 0;
+  g.camera.lookAhead = lerp(g.camera.lookAhead, lookAheadTarget, 1 - Math.pow(0.01, rawDt));
+  // Slow-mo: camera follows more slowly for cinematic feel
+  const baseCamSmooth = g.slowMo.active ? 0.05 : 0.001;
+  const camSmooth = 1 - Math.pow(baseCamSmooth, rawDt);
+  const targetCX = p.x - g.W / 2 + g.camera.lookAhead + (isDesktop ? SIDEBAR_W / 2 : 0);
   const camTarget = clamp(targetCX, 0, Math.max(0, g.levelW - g.W));
-  const camSmooth = 1 - Math.pow(0.001, rawDt);
   g.camera.x = lerp(g.camera.x, camTarget, camSmooth);
+  // Zoom: lerp toward target zoom
+  g.camera.zoom = lerp(g.camera.zoom, g.camera.zoomTarget, 1 - Math.pow(0.001, rawDt));
+  // Slow-mo: slight zoom out for more visibility
+  if (g.slowMo.active) g.camera.zoomTarget = 0.97;
+  else if (g.camera.zoomTarget < 1) g.camera.zoomTarget = 1;
+
   if (g.camera.shakeTimer > 0) {
     g.camera.shakeTimer -= rawDt * 1000;
     const amp = g.camera.shakeTimer > 80 ? 6 : 3;
@@ -575,11 +628,14 @@ export function update(g, callbacks) {
   // ── Room state machine ──
   if (g.roomState === "playing") {
     g.roomTimer += rawDt;
-
-    // Check if all enemies dead → room clear
+    // Last-kill freeze is triggered in killEnemy — fallback for edge cases
     if (g.enemies.filter(e => !e.dead).length === 0 && g.roomTimer > 0.5) {
-      clearRoom(g, callbacks);
+      if (g.roomState === "playing") clearRoom(g, callbacks);
     }
+  } else if (g.roomState === "lastKillFreeze") {
+    // Dramatic pause on last kill before room clear
+    g.roomClearTimer -= rawDt * 1000;
+    if (g.roomClearTimer <= 0) clearRoom(g, callbacks);
   } else if (g.roomState === "cleared") {
     g.roomClearTimer -= rawDt * 1000;
     if (g.roomClearTimer <= 0) {
@@ -603,6 +659,18 @@ export function update(g, callbacks) {
   // Death flash countdown
   if (g.deathFlash > 0) g.deathFlash -= rawDt * 1000;
 
+  // ── Transition animations ──
+  // Letterbox: ease in during cleared, ease out otherwise
+  if (g.roomState === "cleared" || g.roomState === "lastKillFreeze") {
+    g.letterbox = Math.min(1, (g.letterbox || 0) + rawDt * 3); // ~330ms to full
+  } else {
+    if (g.letterbox > 0) g.letterbox = Math.max(0, g.letterbox - rawDt * 4);
+  }
+  // Fade overlay: fades out on room load
+  if (g.fadeOverlay > 0) g.fadeOverlay = Math.max(0, g.fadeOverlay - rawDt * 4); // ~250ms fade-in
+  // Room title countdown
+  if (g.roomTitle && g.roomTitle.timer > 0) g.roomTitle.timer -= rawDt * 1000;
+
   // Shadow zone detection
   g.player.inShadow = false;
   if (g.shadows) {
@@ -623,11 +691,27 @@ function killEnemy(g, e, p, callbacks) {
   g.comboTimer = 2000;
   g.combo++;
   if (g.combo > g.maxCombo) g.maxCombo = g.combo;
-  const pts = e.type === "samurai" ? 300 : e.type === "ninja" ? 150 : 100;
+  const pts = (ENEMY_CONFIG[e.type] || ENEMY_CONFIG.oni).score;
   g.score += pts * g.combo;
   callbacks.setScore(g.score);
   callbacks.setMaxCombo(g.maxCombo);
   g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 20);
+  playSound("kill", { playbackRate: e.type === "oni" ? 0.8 : e.type === "ninja" ? 1.2 : 1.0 });
+  if (g.combo === 5 || g.combo === 10 || g.combo === 15) {
+    playSound("comboMilestone");
+    g.camera.zoom = MILESTONE_ZOOM;
+  }
+  // Kill zoom — 3rd combo kill gets extra zoom
+  g.camera.zoom = Math.max(g.camera.zoom, p.slashCombo === 3 ? KILL_ZOOM_3RD : KILL_ZOOM);
+  g.camera.zoomTarget = 1;
+
+  // Last kill freeze — check if this was the final enemy
+  const aliveEnemies = g.enemies.filter(en => !en.dead && en !== e).length;
+  if (aliveEnemies === 0 && g.roomState === "playing" && g.roomTimer > 0.3) {
+    g.roomState = "lastKillFreeze";
+    g.roomClearTimer = LAST_KILL_FREEZE;
+    g.camera.zoom = MILESTONE_ZOOM;
+  }
 
   // Brief auto-slow on kill for flow (aim next target)
   g.time.scale = Math.min(g.time.scale, 0.5);
@@ -651,23 +735,35 @@ function killEnemy(g, e, p, callbacks) {
     });
   }
 
-  // Blood burst — red particles in every direction
+  // Blood burst — directional cone in slash direction
   const bloodColors = ["#cc1111", "#aa0000", "#ee2222", "#880000", "#ff3333"];
+  const slashDir = p.facing;
   for (let i = 0; i < 20; i++) {
+    // Cone-shaped spray: mostly in slash direction with spread
+    const baseVx = slashDir * rnd(100, 450);
+    const spread = rnd(-150, 150);
     g.particles.push({
       x: e.x + rnd(-8, 8), y: e.y + TILE * SCALE / 2 + rnd(-8, 8),
-      vx: rnd(-400, 400), vy: rnd(-550, -30),
+      vx: baseVx + spread, vy: rnd(-550, -30),
       life: 600, maxLife: 600, color: bloodColors[i % 5], size: rnd(1.5, 4),
     });
   }
-  // White flash particles
+  // White flash particles (additive blend)
   for (let i = 0; i < 5; i++) {
     g.particles.push({
       x: e.x + rnd(-5, 5), y: e.y + TILE * SCALE / 2,
       vx: rnd(-200, 200), vy: rnd(-300, -100),
       life: 200, maxLife: 200, color: "#ffffff", size: rnd(2, 4),
+      glow: true, // flag for additive blending in renderer
     });
   }
+  // Impact ripple ring
+  g.particles.push({
+    x: e.x, y: e.y + TILE * SCALE / 2,
+    vx: 0, vy: 0,
+    life: 300, maxLife: 300, color: "#ffffff", size: 1,
+    isRipple: true,
+  });
   // Blood stains on the ground — persist longer
   for (let i = 0; i < 4; i++) {
     g.particles.push({
@@ -685,6 +781,7 @@ function killPlayer(g, callbacks) {
   g.player.dead = true;
   g.player.deathTimer = 500;
   g.camera.shakeTimer = 200;
+  playSound("death");
   // Blood burst from player
   for (let i = 0; i < 12; i++) {
     g.particles.push({

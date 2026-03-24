@@ -75,6 +75,26 @@ export const PAL = {
   "Z": "#6666cc",          // projectile blue
 };
 
+// ═══ ENEMY CONFIG ═══
+export const ENEMY_CONFIG = {
+  oni:     { hp: 1, speed: 0.7, alertRange: 200, attackRange: 65, cooldown: 800, score: 100 },
+  ninja:   { hp: 1, speed: 0,   alertRange: 350, fireRate: 900,  retreatSpeed: 150, score: 150 },
+  samurai: { hp: 2, speed: 0.5, alertRange: 200, attackRange: 60, cooldown: 700, score: 300 },
+};
+
+// ═══ CAMERA ═══
+export const LOOK_AHEAD_DIST = 80;
+export const KILL_ZOOM = 1.08;
+export const KILL_ZOOM_3RD = 1.12;
+export const MILESTONE_ZOOM = 1.15;
+export const SLOWMO_ZOOM = 0.97;
+
+// ═══ COMBAT TIMING ═══
+export const COMBO_WINDOW = 350;
+export const DEATH_TIMER = 500;
+export const ROOM_CLEAR_PAUSE = 2200;
+export const LAST_KILL_FREEZE = 400;
+
 // ═══ HELPERS ═══
 export function lerp(a, b, t) { return a + (b - a) * t; }
 export function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }

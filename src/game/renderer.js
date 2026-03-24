@@ -12,6 +12,16 @@ export function render(g, ctx, isDesktop, font) {
 
   ctx.fillStyle = "#0a0a14";
   ctx.fillRect(0, 0, W, H);
+
+  // Apply camera zoom (centered on viewport)
+  const zoom = cam.zoom || 1;
+  if (zoom !== 1) {
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-W / 2, -H / 2);
+  }
+
   renderBackground(ctx, W, H, cx, g);
 
   // Ambient particles (behind world objects)
@@ -143,31 +153,66 @@ export function render(g, ctx, isDesktop, font) {
     ctx.globalAlpha = 1;
   }
 
-  // Projectiles with trails
+  // Projectiles with glowing trails
   for (const proj of g.projectiles) {
+    // Enhanced trail: glowing streak instead of squares
     if (proj.trail && proj.trail.length > 1) {
-      for (let i = 0; i < proj.trail.length - 1; i++) {
-        ctx.globalAlpha = (i / proj.trail.length) * 0.4;
-        ctx.fillStyle = "#8888cc";
-        const t = proj.trail[i];
-        const size = 2 + (i / proj.trail.length) * 3;
-        ctx.fillRect(t.x - size / 2, t.y - size / 2, size, size);
+      ctx.lineCap = "round";
+      for (let i = 1; i < proj.trail.length; i++) {
+        const t0 = proj.trail[i - 1];
+        const t1 = proj.trail[i];
+        const p = i / proj.trail.length;
+        // Outer glow
+        ctx.globalAlpha = p * 0.2;
+        ctx.strokeStyle = "#6644aa";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(t0.x, t0.y);
+        ctx.lineTo(t1.x, t1.y);
+        ctx.stroke();
+        // Core streak
+        ctx.globalAlpha = p * 0.6;
+        ctx.strokeStyle = "#aa88dd";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(t0.x, t0.y);
+        ctx.lineTo(t1.x, t1.y);
+        ctx.stroke();
       }
+      ctx.lineCap = "butt";
       ctx.globalAlpha = 1;
     }
     ctx.save();
     ctx.translate(proj.x, proj.y);
+    // Glow aura around shuriken
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = "#6644aa";
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // Shuriken sprite with spin
     ctx.rotate(proj.rotation);
     const sprFrame = Math.floor(g.time.elapsed * 8) % 2 === 0 ? "shuriken" : "shuriken2";
     const spr = getSprite(sprFrame);
     if (spr) ctx.drawImage(spr, -spr.width / 2, -spr.height / 2);
+    // Bright flash at 4 points as it spins (light catching edges)
+    for (let i = 0; i < 4; i++) {
+      const flashAngle = (proj.rotation || 0) + i * Math.PI / 2;
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(Math.cos(flashAngle) * 6, Math.sin(flashAngle) * 6, 1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
     ctx.restore();
   }
 
   // Player afterimages (dash trail)
   const mascot = getMascotImage();
   if (mascot) {
-    const ic = IDLE_CROP;
+    const ic = CROPS.idle;
     for (const ai of g.player.afterimages) {
       ctx.globalAlpha = (ai.life / 200) * 0.3;
       const aspect = ic.w / ic.h;
@@ -188,74 +233,85 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash trails — tear/rip shapes, not rectangles ──
+  // ── Slash arcs — animated sweeping crescents ──
   for (const s of g.slashEffects) {
-    const progress = 1 - s.timer / s.maxTimer;
-    const alpha = progress < 0.08 ? progress / 0.08 : Math.pow(1 - progress, 0.5);
-    const dir = s.facing;
+    const progress = 1 - s.timer / s.maxTimer; // 0→1 over duration
     const combo = s.combo || 1;
     const isThird = combo === 3;
+    const dir = s.facing;
+    const r = s.radius || 70;
 
-    let len, angle;
-    if (combo === 1) { len = 100; angle = -0.45; }
-    else if (combo === 2) { len = 110; angle = 0.35; }
-    else { len = 140; angle = -0.1; }
+    // Sweep progress: arc expands from start to end angle
+    const sweepProg = Math.min(1, progress * 2.5); // sweep completes at 40% of total duration
+    const fadeProg = progress > 0.4 ? (progress - 0.4) / 0.6 : 0; // fade out after sweep
+    const alpha = (1 - fadeProg) * (progress < 0.05 ? progress / 0.05 : 1);
 
-    const x1 = s.x - dir * 5;
-    const y1 = s.y;
-    const x2 = x1 + dir * Math.cos(angle) * len;
-    const y2 = y1 + Math.sin(angle) * len;
+    // Arc angles — flip for facing direction
+    const startA = dir > 0 ? -s.startAngle : s.startAngle;
+    const endA = dir > 0 ? -s.endAngle : s.endAngle;
+    const currentEnd = startA + (endA - startA) * sweepProg;
 
-    const glowCol = isThird ? "#2070cc" : "#aabbee";
-    const midCol = isThird ? "#40aaff" : "#dde4ff";
-    const coreCol = isThird ? "#80ddff" : "#ffffff";
+    // Colors per combo
+    const glowCol = isThird ? "#2070cc" : combo === 2 ? "#cc8833" : "#aabbee";
+    const midCol = isThird ? "#40aaff" : combo === 2 ? "#ffaa44" : "#dde4ff";
+    const coreCol = isThird ? "#80ddff" : combo === 2 ? "#ffdd88" : "#ffffff";
 
     ctx.save();
-
-    // Draw tear/rip shape — tapered: thick at start, thin at tip
-    // Outer glow tear
-    ctx.globalAlpha = alpha * 0.25;
-    ctx.fillStyle = glowCol;
-    ctx.beginPath();
-    const perpX = Math.sin(angle) * (isThird ? 20 : 14);
-    const perpY = -Math.cos(angle) * (isThird ? 20 : 14);
-    ctx.moveTo(x1 + perpX, y1 + perpY);
-    ctx.lineTo(x1 - perpX, y1 - perpY);
-    ctx.lineTo(x2, y2);
-    ctx.closePath();
-    ctx.fill();
-
-    // Mid tear
-    ctx.globalAlpha = alpha * 0.6;
-    ctx.fillStyle = midCol;
-    ctx.beginPath();
-    const mp = 0.5;
-    ctx.moveTo(x1 + perpX * mp, y1 + perpY * mp);
-    ctx.lineTo(x1 - perpX * mp, y1 - perpY * mp);
-    ctx.lineTo(x2, y2);
-    ctx.closePath();
-    ctx.fill();
-
-    // Core tear — brightest, thinnest
-    ctx.globalAlpha = alpha * 0.9;
-    ctx.fillStyle = coreCol;
-    ctx.beginPath();
-    const cp = 0.2;
-    ctx.moveTo(x1 + perpX * cp, y1 + perpY * cp);
-    ctx.lineTo(x1 - perpX * cp, y1 - perpY * cp);
-    ctx.lineTo(x2, y2);
-    ctx.closePath();
-    ctx.fill();
-
+    ctx.translate(s.x, s.y);
     ctx.lineCap = "round";
-    // Thin core line through center for sharpness
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = coreCol;
-    ctx.lineWidth = 1.5;
+
+    // Layer 1: Outer glow arc (widest, dimmest)
+    ctx.globalAlpha = alpha * 0.2;
+    ctx.strokeStyle = glowCol;
+    ctx.lineWidth = isThird ? 24 : combo === 2 ? 18 : 14;
     ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    ctx.arc(0, 0, r, startA, currentEnd, startA > currentEnd);
     ctx.stroke();
+
+    // Layer 2: Mid arc
+    ctx.globalAlpha = alpha * 0.5;
+    ctx.strokeStyle = midCol;
+    ctx.lineWidth = isThird ? 12 : combo === 2 ? 9 : 7;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, startA, currentEnd, startA > currentEnd);
+    ctx.stroke();
+
+    // Layer 3: Core arc (thinnest, brightest)
+    ctx.globalAlpha = alpha * 0.9;
+    ctx.strokeStyle = coreCol;
+    ctx.lineWidth = isThird ? 4 : 2.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, startA, currentEnd, startA > currentEnd);
+    ctx.stroke();
+
+    // Leading edge spark — bright dot at the tip of the sweep
+    if (sweepProg < 1) {
+      const tipX = Math.cos(currentEnd) * r;
+      const tipY = Math.sin(currentEnd) * r;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, isThird ? 5 : 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Glow around tip
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.fillStyle = coreCol;
+      ctx.beginPath();
+      ctx.arc(tipX, tipY, isThird ? 12 : 7, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 3rd combo: shockwave ring expanding outward
+    if (isThird && progress > 0.3) {
+      const ringProg = (progress - 0.3) / 0.7;
+      const ringR = 50 + ringProg * 120;
+      ctx.globalAlpha = (1 - ringProg) * 0.35;
+      ctx.strokeStyle = "#40aaff";
+      ctx.lineWidth = 3 - ringProg * 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     ctx.lineCap = "butt";
     ctx.globalAlpha = 1;
@@ -269,9 +325,9 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillStyle = part.color;
     ctx.fillRect(part.x - part.size / 2, part.y, part.size, part.size * 0.3);
   }
-  // Regular particles
+  // Regular particles (normal blend)
   for (const part of g.particles) {
-    if (part.isStain) continue;
+    if (part.isStain || part.glow || part.isRipple) continue;
     ctx.globalAlpha = part.life / part.maxLife;
     ctx.fillStyle = part.color;
     if (part.isLine) {
@@ -279,6 +335,34 @@ export function render(g, ctx, isDesktop, font) {
     } else {
       ctx.fillRect(part.x - part.size / 2, part.y - part.size / 2, part.size, part.size);
     }
+  }
+  // Glow particles (additive blending — makes white flashes actually glow)
+  ctx.globalCompositeOperation = "lighter";
+  for (const part of g.particles) {
+    if (!part.glow) continue;
+    ctx.globalAlpha = part.life / part.maxLife;
+    ctx.fillStyle = part.color;
+    ctx.beginPath();
+    ctx.arc(part.x, part.y, part.size, 0, Math.PI * 2);
+    ctx.fill();
+    // Outer glow
+    ctx.globalAlpha = (part.life / part.maxLife) * 0.3;
+    ctx.beginPath();
+    ctx.arc(part.x, part.y, part.size * 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = "source-over";
+  // Impact ripple rings
+  for (const part of g.particles) {
+    if (!part.isRipple) continue;
+    const rippleProg = 1 - part.life / part.maxLife;
+    const rippleR = 10 + rippleProg * 60;
+    ctx.globalAlpha = (1 - rippleProg) * 0.5;
+    ctx.strokeStyle = part.color;
+    ctx.lineWidth = 2 - rippleProg * 1.5;
+    ctx.beginPath();
+    ctx.arc(part.x, part.y, rippleR, 0, Math.PI * 2);
+    ctx.stroke();
   }
   ctx.globalAlpha = 1;
 
@@ -299,6 +383,9 @@ export function render(g, ctx, isDesktop, font) {
   ctx.globalAlpha = 1;
 
   ctx.restore(); // end camera
+
+  // End zoom transform (before HUD — HUD stays unzoomed)
+  if (zoom !== 1) ctx.restore();
 
   // Post-processing
   if (g.flashTimer > 0) {
@@ -324,6 +411,56 @@ export function render(g, ctx, isDesktop, font) {
   vg.addColorStop(1, "rgba(0,0,0,0.45)");
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, W, H);
+
+  // ── Letterbox bars (room clear cinematic) ──
+  if (g.letterbox > 0) {
+    const barH = Math.round(40 * g.letterbox);
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, barH);
+    ctx.fillRect(0, H - barH, W, barH);
+  }
+
+  // ── Fade overlay (room transitions) ──
+  if (g.fadeOverlay > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${g.fadeOverlay})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── Death flash (red tint) ──
+  if (g.deathFlash > 0) {
+    ctx.fillStyle = `rgba(200,20,20,${(g.deathFlash / 300) * 0.3})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── Room title ("ROOM X") ──
+  if (g.roomTitle && g.roomTitle.timer > 0) {
+    const t = g.roomTitle.timer;
+    const maxT = 1200;
+    // Slide in from left (first 300ms), hold, slide out right (last 300ms)
+    let xOff = 0;
+    let alpha = 1;
+    if (t > maxT - 300) {
+      // Sliding in
+      const p = (t - (maxT - 300)) / 300;
+      xOff = -W * 0.3 * p;
+      alpha = 1 - p;
+    } else if (t < 300) {
+      // Sliding out
+      const p = 1 - t / 300;
+      xOff = W * 0.3 * p;
+      alpha = 1 - p;
+    }
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `bold 28px ${font}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(g.roomTitle.text, W / 2 + xOff, H * 0.35);
+    ctx.font = `12px ${font}`;
+    ctx.fillStyle = "#aaaacc";
+    ctx.fillText("CLEAR ALL ENEMIES", W / 2 + xOff, H * 0.35 + 24);
+    ctx.restore();
+  }
 
   renderHUD(ctx, g, W, isDesktop, font);
 }
@@ -368,12 +505,22 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
   ctx.save();
   ctx.translate(p.x, p.y + DRAW_SIZE);
+  // Squash/stretch
+  if (p.scaleX !== undefined && (p.scaleX !== 1 || p.scaleY !== 1)) {
+    ctx.scale(p.scaleX, p.scaleY);
+  }
 
   if (p.invincible > 0 && Math.floor(p.invincible / 50) % 2 === 0) ctx.globalAlpha = 0.4;
   if (p.inShadow) ctx.globalAlpha = 0.35;
   ctx.imageSmoothingEnabled = false;
 
   // ── Pick the right sprite for the current state ──
+  // Dead check FIRST — overrides all other states
+  if (p.dead) {
+    const key = (p.deathTimer || 0) > 200 ? "death1" : "death2";
+    const img = getImage(key);
+    if (drawSpriteFrame(ctx, img, key, s, p.facing)) { ctx.restore(); return; }
+  }
 
   if (p.state === "run") {
     const frameIndex = (Math.floor(elapsed * 8) % 4) + 1;
@@ -411,13 +558,6 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     if (drawSpriteFrame(ctx, img, "dash", s, p.facing)) { ctx.restore(); return; }
   }
 
-  // ── Dead ──
-  if (p.dead) {
-    const key = (p.deathTimer || 0) > 200 ? "death1" : "death2";
-    const img = getImage(key);
-    if (drawSpriteFrame(ctx, img, key, s, p.facing)) { ctx.restore(); return; }
-  }
-
   // ── Idle — use mascot with breathing ──
   if (p.state === "idle" && !isSlashing) {
     if (drawSpriteFrame(ctx, mascot, "idle", s, p.facing)) { ctx.restore(); return; }
@@ -443,7 +583,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
       // All slash frames face LEFT — flip for right
       if (p.facing > 0) ctx.scale(-1, 1);
 
-      const sc = SLASH_CROP;
+      const sc = CROPS.slash;
       const sa = sc.w / sc.h;
       const sdw = s * sa * 1.05;
       const sdh = s * 1.05;
@@ -464,12 +604,12 @@ function drawPlayer(ctx, p, mascot, elapsed) {
         ctx.globalAlpha = 1;
       }
     } else {
-      // Fallback if images not loaded
-      ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH, drawW, drawH);
+      // Fallback if slash images not loaded — draw idle mascot
+      drawSpriteFrame(ctx, mascot, "idle", s, p.facing);
     }
   } else {
-    // Normal draw for all other states
-    ctx.drawImage(mascot, SRC_X, SRC_Y, SRC_W, SRC_H, -drawW / 2, -drawH + oy, drawW, drawH);
+    // Fallback for any unhandled state — draw idle mascot
+    drawSpriteFrame(ctx, mascot, "idle", s, p.facing);
   }
 
   ctx.globalAlpha = 1;
@@ -553,7 +693,7 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, Math.round(-drawW / 2), Math.round(-drawH + oy), Math.round(drawW), Math.round(drawH));
 
-  // ── Oni: club swing ──
+  // ── Oni: club swing + red arc trail ──
   if (e.type === "oni" && (e.state === "attack" || e.state === "chase")) {
     const isAttacking = e.state === "attack";
     const progress = isAttacking ? e.attackTimer / 800 : 1;
@@ -564,6 +704,21 @@ function drawEnemyFromImage(ctx, e, elapsed) {
 
     ctx.save();
     ctx.translate(6, -drawH * 0.4 + oy);
+
+    // Wind-up glow: pulsing red aura builds around club head
+    if (isAttacking && progress > 0.3) {
+      const pulse = 0.5 + Math.sin(elapsed * 20) * 0.3;
+      const glowSize = 8 + (1 - progress) * 12;
+      ctx.save();
+      ctx.rotate(clubAngle);
+      ctx.globalAlpha = pulse * 0.5;
+      ctx.fillStyle = "#ff3333";
+      ctx.beginPath();
+      ctx.arc(0, -12, glowSize, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     ctx.rotate(clubAngle);
     ctx.fillStyle = "#6b4830";
     ctx.fillRect(-2, 0, 4, 28);
@@ -573,21 +728,65 @@ function drawEnemyFromImage(ctx, e, elapsed) {
     ctx.fillRect(-4, -7, 2, 2);
     ctx.fillRect(2, -7, 2, 2);
     ctx.fillRect(-1, -4, 2, 2);
-    // Impact flash on strike
-    if (isAttacking && progress < 0.25) {
-      ctx.fillStyle = "rgba(255,200,50,0.6)";
+
+    // Strike: red arc trail + bigger impact flash
+    if (isAttacking && progress < 0.3) {
+      const strikeProg = 1 - progress / 0.3;
+      // Red impact arc
+      ctx.globalAlpha = (1 - strikeProg) * 0.6;
+      ctx.strokeStyle = "#ff4422";
+      ctx.lineWidth = 8;
+      ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.arc(0, -10, 12, 0, Math.PI * 2);
+      ctx.arc(0, -10, 30, -2.0, -2.0 + strikeProg * 3.5);
+      ctx.stroke();
+      ctx.lineCap = "butt";
+      // Impact flash burst
+      ctx.globalAlpha = (1 - strikeProg) * 0.7;
+      ctx.fillStyle = "#ffaa33";
+      ctx.beginPath();
+      ctx.arc(0, -10, 15 + strikeProg * 10, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
+
+    // Ground danger telegraph during wind-up
+    if (isAttacking && progress > 0.5) {
+      const tp = (progress - 0.5) / 0.5;
+      ctx.globalAlpha = tp * 0.2;
+      ctx.fillStyle = "#ff3333";
+      ctx.fillRect(-35, -2, 70, 4);
+      ctx.globalAlpha = 1;
+    }
   }
 
-  // ── Ninja: throwing motion ──
+  // ── Ninja: throwing motion + energy buildup ──
   if (e.type === "ninja" && e.throwAnim > 0) {
     const tp = e.throwAnim / 500;
     ctx.save();
     ctx.translate(4, -drawH * 0.45 + oy);
+
+    // Purple energy buildup in hand during wind-up
+    if (tp > 0.5) {
+      const chargeP = (tp - 0.5) / 0.5;
+      ctx.globalAlpha = chargeP * 0.6;
+      ctx.fillStyle = "#8844cc";
+      ctx.beginPath();
+      ctx.arc(22, 0, 4 + chargeP * 4, 0, Math.PI * 2);
+      ctx.fill();
+      // Spiral particles inward
+      for (let i = 0; i < 3; i++) {
+        const angle = elapsed * 8 + i * 2.1;
+        const dist = 10 + (1 - chargeP) * 8;
+        ctx.fillStyle = "#aa66ee";
+        ctx.beginPath();
+        ctx.arc(22 + Math.cos(angle) * dist, Math.sin(angle) * dist, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
     // Arm sweeps out
     const armAngle = (1 - tp) * 1.5 - 0.5;
     ctx.rotate(armAngle);
@@ -604,6 +803,52 @@ function drawEnemyFromImage(ctx, e, elapsed) {
       ctx.restore();
     }
     ctx.restore();
+  }
+
+  // ── Samurai: block shield + katana glow ──
+  if (e.type === "samurai") {
+    if (e.blocking) {
+      // Blue-white energy shield semicircle
+      const shieldPulse = 0.5 + Math.sin(elapsed * 10) * 0.3;
+      ctx.globalAlpha = shieldPulse * 0.4;
+      ctx.strokeStyle = "#88bbff";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const shieldAngle = e.facing > 0 ? -Math.PI / 2 : Math.PI / 2;
+      ctx.arc(e.facing * 15, -drawH * 0.4, 25, shieldAngle - 1.2, shieldAngle + 1.2);
+      ctx.stroke();
+      ctx.globalAlpha = shieldPulse * 0.15;
+      ctx.fillStyle = "#aaddff";
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    if (e.state === "attack") {
+      const aProgress = e.attackTimer / 700;
+      // Katana glow during wind-up
+      if (aProgress > 0.3) {
+        ctx.globalAlpha = (aProgress - 0.3) * 0.5;
+        ctx.strokeStyle = "#ff4444";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(e.facing * 8, -drawH * 0.3);
+        ctx.lineTo(e.facing * 35, -drawH * 0.6);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      // Red slash arc on strike
+      if (aProgress < 0.3) {
+        const sp = 1 - aProgress / 0.3;
+        ctx.globalAlpha = (1 - sp) * 0.5;
+        ctx.strokeStyle = "#cc3322";
+        ctx.lineWidth = 6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.arc(e.facing * 10, -drawH * 0.4, 35, -1.5, -1.5 + sp * 3);
+        ctx.stroke();
+        ctx.lineCap = "butt";
+        ctx.globalAlpha = 1;
+      }
+    }
   }
 
   ctx.restore();
