@@ -550,8 +550,8 @@ export function update(g, callbacks) {
         e.vy += GRAVITY * dt;
         e.y += e.vy * dt;
         e.vx *= 0.92; // friction
-        // Blood trail particles while sliding
-        if (Math.abs(e.vx) > 30 && Math.random() < dt * 15) {
+        // Blood trail particles while sliding — heavy splatter
+        if (Math.abs(e.vx) > 20 && Math.random() < dt * 25) {
           g.particles.push({
             x: e.x + rnd(-8, 8), y: e.y + TILE * SCALE - 2,
             vx: 0, vy: 0, life: 8000, maxLife: 8000,
@@ -653,10 +653,12 @@ export function update(g, callbacks) {
     }
     if (p.slashTimer <= 0) e._hitThisSlash = false;
 
-    // Enemy attack → player. Damage window: the strike phase (lower half of timer)
-    if (e.state === "attack" && e.attackTimer < 350 &&
+    // Enemy attack → player. Damage only during strike phase (visual matches hitbox)
+    // Oni: timer < 200 (of 600), Samurai: timer < 210 (of 700)
+    const strikeWindow = e.type === "samurai" ? 210 : 200;
+    if (e.state === "attack" && e.attackTimer < strikeWindow &&
         !e.dead && !p.dead && p.invincible <= 0) {
-      if (Math.abs(e.x - p.x) < 55 && Math.abs(e.y - p.y) < TILE * SCALE) {
+      if (Math.abs(e.x - p.x) < 60 && Math.abs(e.y - p.y) < TILE * SCALE) {
         if (p.slashTimer > 0) {
           // CLASH — both knocked back, enemy dazed longer, player brief stun
           const knockDir = p.x < e.x ? -1 : 1;
@@ -857,12 +859,12 @@ function killEnemy(g, e, p, callbacks) {
   } else {
     // ── KNOCKBACK DEATH: enemy flies back, slides with blood trail ──
     e.deathStyle = "knockback";
-    e.deathTimer = 700;
-    e.vx = p.facing * rnd(300, 500); // fly in slash direction
-    e.vy = rnd(-150, -50);           // slight upward launch
+    e.deathTimer = 1200; // long enough to see full slide
+    e.vx = p.facing * rnd(350, 550); // fly in slash direction
+    e.vy = rnd(-200, -80);           // upward launch
     e._knockbackActive = true;
+    g.hitStop = 70;
   }
-  g.hitStop = 70;
   g.camera.shakeTimer = 150;
   g.comboTimer = 2000;
   g.combo++;

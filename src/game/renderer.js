@@ -188,58 +188,58 @@ export function render(g, ctx, isDesktop, font) {
   for (const e of g.enemies) {
     if (e.x < cx - 100 || e.x > cx + W + 100) continue;
     if (e.dead) {
+      // Get the correct death sprite directly
+      const map = ENEMY_SPRITE_MAP[e.type];
+      const _drawDeathSprite = (spriteEntry) => {
+        const key = spriteEntry?.key || map?.fallback;
+        const img = key ? getImage(key) : null;
+        if (!img) return;
+        const facesR = spriteEntry?.R || false;
+        if (facesR ? (e.facing < 0) : (e.facing > 0)) ctx.scale(-1, 1);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, EC.x, EC.y, EC.w, EC.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
+      };
+
+      if (e.deathStyle === "knockback") {
+        // ── Knockback: tumble backward, slide with blood trail ──
+        ctx.globalAlpha = Math.max(0.2, e.deathTimer / 700);
+        ctx.save();
+        ctx.translate(e.x, e.y + TILE * SCALE);
+        const tumble = (1 - e.deathTimer / 700) * e.facing * 1.5;
+        ctx.rotate(tumble);
+        _drawDeathSprite(map?.hit || map?.idle);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
       if (e.deathStyle === "cinematic") {
         // ── Cinematic: shock → kneel → face plant ──
         ctx.save();
         ctx.translate(e.x, e.y + TILE * SCALE);
         if (e.deathPhase === 0) {
-          // White flash while standing
+          // White flash + show hit sprite
           ctx.globalAlpha = 0.8;
           ctx.fillStyle = "#ffffff";
-          ctx.fillRect(-25, -TILE * SCALE, 50, TILE * SCALE);
+          ctx.fillRect(-30, -DRAW_H, 60, DRAW_H);
           ctx.globalAlpha = 1;
-          ctx.scale(e.facing < 0 ? -1 : 1, 1);
+          _drawDeathSprite(map?.hit || map?.idle);
         } else if (e.deathPhase === 1) {
-          // Kneeling — squash vertically
+          // Kneeling sprite
           ctx.globalAlpha = 0.9;
-          ctx.scale(e.facing < 0 ? -1 : 1, 0.6);
+          _drawDeathSprite(map?.kneel || map?.hit);
         } else {
-          // Face plant — rotate + squash
-          ctx.globalAlpha = Math.max(0.2, e.deathTimer / 400);
-          ctx.rotate(e.facing * 0.5);
-          ctx.translate(e.facing * 12, 0);
-          ctx.scale(e.facing < 0 ? -1 : 1, 0.35);
+          // Face-down dead sprite
+          ctx.globalAlpha = Math.max(0.3, e.deathTimer / 400);
+          _drawDeathSprite(map?.dead || map?.kneel);
         }
-        const fakeE = { ...e, x: 0, y: -TILE * SCALE, dead: false };
-        drawEnemy(ctx, fakeE, g.time.elapsed, font);
         ctx.restore();
         ctx.globalAlpha = 1;
         continue;
       }
 
-      if (e.deathStyle === "knockback") {
-        // ── Knockback: tumble backward with rotation ──
-        ctx.globalAlpha = Math.max(0.15, e.deathTimer / 500);
-        ctx.save();
-        ctx.translate(e.x, e.y + TILE * SCALE);
-        const tumble = (1 - e.deathTimer / 700) * e.facing * 1.5;
-        ctx.rotate(tumble);
-        const fakeE = { ...e, x: 0, y: -TILE * SCALE, dead: false };
-        drawEnemy(ctx, fakeE, g.time.elapsed, font);
-        ctx.restore();
-        ctx.globalAlpha = 1;
-        continue;
-      }
-
-      // Default flash + fade
-      if (e.deathTimer > 400) {
-        ctx.fillStyle = "#ffffff";
-        ctx.globalAlpha = (e.deathTimer - 400) / 100;
-        ctx.fillRect(e.x - 25, e.y, 50, 60);
-        ctx.globalAlpha = 1;
-        continue;
-      }
-      ctx.globalAlpha = Math.max(0, e.deathTimer / 400);
+      // Default fade
+      ctx.globalAlpha = Math.max(0, e.deathTimer / 500);
     }
     drawEnemy(ctx, e, g.time.elapsed, font);
     ctx.globalAlpha = 1;
