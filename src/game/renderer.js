@@ -233,97 +233,140 @@ export function render(g, ctx, isDesktop, font) {
     drawPlayer(ctx, g.player, mascot, g.time.elapsed);
   }
 
-  // ── Slash arcs — animated sweeping crescents ──
+  // ── Slash blade trails — massive flowing sword swings ──
+  // Inspired by Katana Zero: wide tapered crescent shapes, not thin arcs
+  ctx.globalCompositeOperation = "lighter"; // additive blending for glow
   for (const s of g.slashEffects) {
-    const progress = 1 - s.timer / s.maxTimer; // 0→1 over duration
+    const progress = 1 - s.timer / s.maxTimer;
     const combo = s.combo || 1;
     const isThird = combo === 3;
     const dir = s.facing;
-    const r = s.radius || 70;
 
-    // Sweep progress: arc expands from start to end angle
-    const sweepProg = Math.min(1, progress * 2.5); // sweep completes at 40% of total duration
-    const fadeProg = progress > 0.4 ? (progress - 0.4) / 0.6 : 0; // fade out after sweep
-    const alpha = (1 - fadeProg) * (progress < 0.05 ? progress / 0.05 : 1);
+    // Sweep timing: blade appears fast, lingers and fades
+    const sweepProg = Math.min(1, progress * 3); // sweep in first 33%
+    const fadeProg = progress > 0.3 ? (progress - 0.3) / 0.7 : 0;
+    const alpha = (1 - Math.pow(fadeProg, 0.5)) * (progress < 0.03 ? progress / 0.03 : 1);
 
-    // Arc angles — flip for facing direction
-    const startA = dir > 0 ? -s.startAngle : s.startAngle;
-    const endA = dir > 0 ? -s.endAngle : s.endAngle;
-    const currentEnd = startA + (endA - startA) * sweepProg;
+    // Blade trail dimensions — BIG, like Katana Zero
+    const reach = combo === 1 ? 120 : combo === 2 ? 140 : 180;
+    const width = combo === 1 ? 50 : combo === 2 ? 60 : 80;
+    // Angle of swing
+    const swingAngle = combo === 1 ? -0.3 : combo === 2 ? 0.4 : -0.15;
 
-    // Colors per combo
-    const glowCol = isThird ? "#2070cc" : combo === 2 ? "#cc8833" : "#aabbee";
-    const midCol = isThird ? "#40aaff" : combo === 2 ? "#ffaa44" : "#dde4ff";
-    const coreCol = isThird ? "#80ddff" : combo === 2 ? "#ffdd88" : "#ffffff";
+    // Colors: cyan/white core like Katana Zero
+    const outerCol = isThird ? "rgba(30,100,220," : combo === 2 ? "rgba(200,130,50," : "rgba(140,170,230,";
+    const midCol = isThird ? "rgba(60,170,255," : combo === 2 ? "rgba(255,180,70," : "rgba(200,220,255,";
+    const coreCol = isThird ? "rgba(130,220,255," : combo === 2 ? "rgba(255,230,140," : "rgba(240,245,255,";
 
     ctx.save();
     ctx.translate(s.x, s.y);
-    ctx.lineCap = "round";
 
-    // Layer 1: Outer glow arc (widest, dimmest)
-    ctx.globalAlpha = alpha * 0.2;
-    ctx.strokeStyle = glowCol;
-    ctx.lineWidth = isThird ? 24 : combo === 2 ? 18 : 14;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, startA, currentEnd, startA > currentEnd);
-    ctx.stroke();
+    // The blade trail is a thick tapered crescent shape
+    // Origin at player, sweeps outward. Thick at the base, thin at the tip.
+    const currentReach = reach * sweepProg;
+    const baseWidth = width * Math.min(1, sweepProg * 2); // widens fast
 
-    // Layer 2: Mid arc
-    ctx.globalAlpha = alpha * 0.5;
-    ctx.strokeStyle = midCol;
-    ctx.lineWidth = isThird ? 12 : combo === 2 ? 9 : 7;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, startA, currentEnd, startA > currentEnd);
-    ctx.stroke();
+    // Draw multiple layers for glow effect
+    for (let layer = 0; layer < 3; layer++) {
+      const layerScale = layer === 0 ? 1.6 : layer === 1 ? 1.0 : 0.4;
+      const layerAlpha = layer === 0 ? 0.15 : layer === 1 ? 0.4 : 0.85;
+      const col = layer === 0 ? outerCol : layer === 1 ? midCol : coreCol;
 
-    // Layer 3: Core arc (thinnest, brightest)
-    ctx.globalAlpha = alpha * 0.9;
-    ctx.strokeStyle = coreCol;
-    ctx.lineWidth = isThird ? 4 : 2.5;
-    ctx.beginPath();
-    ctx.arc(0, 0, r, startA, currentEnd, startA > currentEnd);
-    ctx.stroke();
+      ctx.globalAlpha = alpha * layerAlpha;
+      ctx.fillStyle = col + (alpha * layerAlpha).toFixed(2) + ")";
 
-    // Leading edge spark — bright dot at the tip of the sweep
-    if (sweepProg < 1) {
-      const tipX = Math.cos(currentEnd) * r;
-      const tipY = Math.sin(currentEnd) * r;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = "#ffffff";
       ctx.beginPath();
-      ctx.arc(tipX, tipY, isThird ? 5 : 3, 0, Math.PI * 2);
-      ctx.fill();
-      // Glow around tip
-      ctx.globalAlpha = alpha * 0.4;
-      ctx.fillStyle = coreCol;
-      ctx.beginPath();
-      ctx.arc(tipX, tipY, isThird ? 12 : 7, 0, Math.PI * 2);
+      // Crescent: bezier curve from base to tip on one side, back on other
+      const bw = baseWidth * layerScale;
+      const tipOffset = swingAngle * currentReach;
+      const cx1 = dir * currentReach * 0.4;
+      const cy1 = tipOffset * 0.3 - bw * 0.6;
+      const cx2 = dir * currentReach * 0.7;
+      const cy2 = tipOffset * 0.7 - bw * 0.3;
+      const tipX = dir * currentReach;
+      const tipY = tipOffset;
+
+      // Top edge of blade
+      ctx.moveTo(0, -bw * 0.3);
+      ctx.bezierCurveTo(cx1, cy1, cx2, cy2, tipX, tipY - 2 * layerScale);
+      // Tip
+      ctx.lineTo(tipX + dir * 5 * layerScale, tipY);
+      // Bottom edge of blade (return curve)
+      ctx.bezierCurveTo(cx2, cy2 + bw * 0.8, cx1, cy1 + bw * 1.2, 0, bw * 0.5);
+      ctx.closePath();
       ctx.fill();
     }
 
-    // 3rd combo: shockwave ring expanding outward
-    if (isThird && progress > 0.3) {
-      const ringProg = (progress - 0.3) / 0.7;
-      const ringR = 50 + ringProg * 120;
-      ctx.globalAlpha = (1 - ringProg) * 0.35;
-      ctx.strokeStyle = "#40aaff";
-      ctx.lineWidth = 3 - ringProg * 2;
+    // Bright leading edge line
+    if (sweepProg < 1) {
+      ctx.globalAlpha = alpha * 0.9;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = isThird ? 2.5 : 1.5;
       ctx.beginPath();
-      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      const tipX = dir * currentReach;
+      const tipY = swingAngle * currentReach;
+      ctx.moveTo(tipX - dir * 15, tipY - 8);
+      ctx.lineTo(tipX + dir * 3, tipY);
+      ctx.lineTo(tipX - dir * 15, tipY + 8);
       ctx.stroke();
     }
 
-    ctx.lineCap = "butt";
+    // Spark particles along the blade trail
+    if (sweepProg > 0.2 && sweepProg < 0.9) {
+      for (let i = 0; i < (isThird ? 6 : 3); i++) {
+        const t = Math.random();
+        const sparkX = dir * currentReach * t;
+        const sparkY = swingAngle * currentReach * t + (Math.random() - 0.5) * baseWidth;
+        ctx.globalAlpha = alpha * (0.4 + Math.random() * 0.4);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(sparkX - 1, sparkY - 1, 2, 2);
+      }
+    }
+
+    // 3rd combo: shockwave ring + screen-wide flash
+    if (isThird && progress > 0.2) {
+      const ringProg = (progress - 0.2) / 0.8;
+      // Expanding ring
+      const ringR = 40 + ringProg * 150;
+      ctx.globalAlpha = (1 - ringProg) * 0.3;
+      ctx.strokeStyle = "#40aaff";
+      ctx.lineWidth = 4 - ringProg * 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+      // Second ring (delayed)
+      if (ringProg > 0.15) {
+        const ring2Prog = (ringProg - 0.15) / 0.85;
+        const ring2R = 30 + ring2Prog * 130;
+        ctx.globalAlpha = (1 - ring2Prog) * 0.2;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, ring2R, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
     ctx.globalAlpha = 1;
     ctx.restore();
   }
+  ctx.globalCompositeOperation = "source-over";
 
-  // Blood stains (render first, behind everything else moving)
+  // Blood stains — larger organic puddle shapes
   for (const part of g.particles) {
     if (!part.isStain) continue;
-    ctx.globalAlpha = Math.min(0.6, part.life / part.maxLife);
+    const stainAlpha = Math.min(0.7, part.life / part.maxLife);
+    ctx.globalAlpha = stainAlpha;
     ctx.fillStyle = part.color;
-    ctx.fillRect(part.x - part.size / 2, part.y, part.size, part.size * 0.3);
+    // Draw as ellipse for organic splatter look
+    ctx.beginPath();
+    ctx.ellipse(part.x, part.y + 1, part.size, part.size * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Darker core
+    ctx.globalAlpha = stainAlpha * 0.5;
+    ctx.fillStyle = "#220000";
+    ctx.beginPath();
+    ctx.ellipse(part.x, part.y + 1, part.size * 0.5, part.size * 0.15, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
   // Regular particles (normal blend)
   for (const part of g.particles) {

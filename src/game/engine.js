@@ -735,45 +735,66 @@ function killEnemy(g, e, p, callbacks) {
     });
   }
 
-  // Blood burst — directional cone in slash direction
-  const bloodColors = ["#cc1111", "#aa0000", "#ee2222", "#880000", "#ff3333"];
+  // ── MASSIVE blood burst — Katana Zero style ──
+  const bloodColors = ["#cc1111", "#aa0000", "#ee2222", "#880000", "#ff3333", "#dd2020"];
   const slashDir = p.facing;
-  for (let i = 0; i < 20; i++) {
-    // Cone-shaped spray: mostly in slash direction with spread
-    const baseVx = slashDir * rnd(100, 450);
-    const spread = rnd(-150, 150);
+  const killCenter = { x: e.x, y: e.y + TILE * SCALE / 2 };
+
+  // Main blood spray — big directional cone (40 particles, bigger, faster)
+  for (let i = 0; i < 40; i++) {
+    const baseVx = slashDir * rnd(150, 600);
+    const spread = rnd(-200, 200);
     g.particles.push({
-      x: e.x + rnd(-8, 8), y: e.y + TILE * SCALE / 2 + rnd(-8, 8),
-      vx: baseVx + spread, vy: rnd(-550, -30),
-      life: 600, maxLife: 600, color: bloodColors[i % 5], size: rnd(1.5, 4),
+      x: killCenter.x + rnd(-10, 10), y: killCenter.y + rnd(-10, 10),
+      vx: baseVx + spread, vy: rnd(-600, 50),
+      life: 800, maxLife: 800, color: bloodColors[i % 6], size: rnd(2, 6),
     });
   }
-  // White flash particles (additive blend)
-  for (let i = 0; i < 5; i++) {
+  // Blood streak lines — long directional trails
+  for (let i = 0; i < 8; i++) {
     g.particles.push({
-      x: e.x + rnd(-5, 5), y: e.y + TILE * SCALE / 2,
-      vx: rnd(-200, 200), vy: rnd(-300, -100),
-      life: 200, maxLife: 200, color: "#ffffff", size: rnd(2, 4),
-      glow: true, // flag for additive blending in renderer
+      x: killCenter.x, y: killCenter.y + rnd(-15, 15),
+      vx: slashDir * rnd(200, 700), vy: rnd(-200, 100),
+      life: 500, maxLife: 500, color: bloodColors[i % 6], size: rnd(1.5, 3),
+      isLine: true, // renders as horizontal streak
+    });
+  }
+  // Upward blood fountain
+  for (let i = 0; i < 10; i++) {
+    g.particles.push({
+      x: killCenter.x + rnd(-8, 8), y: killCenter.y,
+      vx: rnd(-80, 80), vy: rnd(-700, -300),
+      life: 700, maxLife: 700, color: bloodColors[i % 6], size: rnd(2, 5),
+    });
+  }
+  // White flash particles (additive glow)
+  for (let i = 0; i < 8; i++) {
+    g.particles.push({
+      x: killCenter.x + rnd(-10, 10), y: killCenter.y + rnd(-10, 10),
+      vx: rnd(-300, 300), vy: rnd(-400, -100),
+      life: 250, maxLife: 250, color: "#ffffff", size: rnd(3, 6),
+      glow: true,
     });
   }
   // Impact ripple ring
   g.particles.push({
-    x: e.x, y: e.y + TILE * SCALE / 2,
+    x: killCenter.x, y: killCenter.y,
     vx: 0, vy: 0,
-    life: 300, maxLife: 300, color: "#ffffff", size: 1,
+    life: 350, maxLife: 350, color: "#ffffff", size: 1,
     isRipple: true,
   });
-  // Blood stains on the ground — persist longer
-  for (let i = 0; i < 4; i++) {
+  // Large blood stains on the ground — more, bigger, spread wider
+  for (let i = 0; i < 8; i++) {
     g.particles.push({
-      x: e.x + rnd(-30, 30), y: e.y + TILE * SCALE - 2,
+      x: killCenter.x + slashDir * rnd(0, 80) + rnd(-40, 40),
+      y: e.y + TILE * SCALE - 2,
       vx: 0, vy: 0,
-      life: 8000, maxLife: 8000, color: "#550000", size: rnd(3, 7),
+      life: 10000, maxLife: 10000, color: i < 3 ? "#550000" : "#3a0000",
+      size: rnd(4, 12),
       isStain: true,
     });
   }
-  g.flashTimer = 80;
+  g.flashTimer = 120; // longer flash
 }
 
 function killPlayer(g, callbacks) {
