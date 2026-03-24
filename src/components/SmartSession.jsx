@@ -123,9 +123,14 @@ export default function SmartSession({
     }
   }, [ci, fb]);
 
-  // Post-session AI review
+  // Post-session AI review + error pattern analysis every 10 sessions
   useEffect(() => {
     if (done && score.c + score.w > 0 && !sessionFeedback) {
+      // Track session count
+      const sessionCount = (data.settings?.sessionCount || 0) + 1;
+      save({ settings: { ...data.settings, sessionCount } });
+
+      // Regular post-session review
       fetch('/api/coach', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,8 +139,35 @@ export default function SmartSession({
           userData: data,
         }),
       }).then(r => r.json()).then(review => {
-        if (review.userCoaching) save({ settings: { ...data.settings, coaching: review.userCoaching, nextFocus: review.nextFocus } });
+        if (review.userCoaching) save({ settings: { ...data.settings, coaching: review.userCoaching, nextFocus: review.nextFocus, sessionCount } });
       }).catch(() => {});
+
+      // Error pattern analysis every 10 sessions
+      if (sessionCount % 10 === 0) {
+        const allMistakes = struggled.map(s => s.label);
+        const helpItems = data.settings?.helpRequested || [];
+        const lowBoxKana = Object.entries(data.kana || {}).filter(([_, v]) => v.box <= 1 && v.stability).map(([ch]) => ch);
+        const lowBoxPhr = Object.entries(data.phr || {}).filter(([_, v]) => v.box <= 1 && v.stability).map(([id]) => id);
+
+        fetch('/api/coach', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: 'review',
+            sessionResults: {
+              errorPatternAnalysis: true,
+              recentMistakes: allMistakes,
+              helpRequested: helpItems,
+              persistentlyWeak: { kana: lowBoxKana.slice(0, 15), phrases: lowBoxPhr.slice(0, 10) },
+              totalSessions: sessionCount,
+            },
+            userData: data,
+          }),
+        }).then(r => r.json()).then(analysis => {
+          if (analysis.platformInsight) {
+            save({ settings: { ...data.settings, errorAnalysis: analysis.userCoaching, sessionCount } });
+          }
+        }).catch(() => {});
+      }
     }
   }, [done]);
 
@@ -616,6 +648,22 @@ export default function SmartSession({
           <div style={{ fontSize: 13, color: c.m, lineHeight: 1.5 }}>{m[3] || m[2]}</div>
         </div>}
       </div>
+      {/* Personalise mnemonic button */}
+      {data.onboarding?.why && <button onClick={async () => {
+        try {
+          const res = await fetch('/api/mnemonic', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ character: ex.item, romaji: ex.romaji, currentMnemonic: m ? m[2] : '', interests: [data.onboarding.why, data.onboarding.focus].filter(Boolean) }),
+          });
+          const pm = await res.json();
+          if (pm.mnemonic) {
+            // Show personalised mnemonic inline
+            const el = document.getElementById('personal-mnemonic');
+            if (el) el.innerHTML = `<div style="margin-top:10px;padding:10px 14px;background:${c.a}15;border:1px solid ${c.a}33;border-radius:8px"><div style="font-size:13px;color:${c.a};font-weight:600">${pm.emoji} ${pm.title}</div><div style="font-size:12px;color:${c.tx};margin-top:4px">${pm.mnemonic}</div></div>`;
+          }
+        } catch {}
+      }} style={{ ...btn, width: "100%", padding: "8px 16px", borderRadius: 8, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: 11, marginBottom: 10 }}>✨ Make this mnemonic personal to me</button>}
+      <div id="personal-mnemonic"></div>
       <button onClick={() => { updateKanaSRS(ex.item, true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
     </>);
