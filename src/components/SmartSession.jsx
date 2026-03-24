@@ -219,6 +219,7 @@ export default function SmartSession({
   }, [loading]);
 
   // Loading state — animated running mascot
+  const runFrames = ["/images/run1-right-foot-contact.png", "/images/run2-push-off.png", "/images/run3-airborne.png", "/images/run4-left-foot-reaching.png"];
   const loadingMessages = ["Preparing your training...", "Sharpening the blade...", "Setting up the dojo...", "Evaluating your weakness..."];
   const [loadingMsg] = useState(() => loadingMessages[Math.floor(Math.random() * loadingMessages.length)]);
   const [loadingFrame, setLoadingFrame] = useState(0);
@@ -231,7 +232,7 @@ export default function SmartSession({
 
   if (loading) return <div style={inner}>
     <div style={{ textAlign: "center", padding: "60px 20px" }}>
-      <img src={`/images/tinysenpairun/ts${(loadingFrame % 4) + 1}.png`} alt="Senpai"
+      <img src={runFrames[loadingFrame % 4]} alt="Senpai"
         style={{ width: 80, height: 80, imageRendering: "pixelated", marginBottom: 16 }} />
       <div style={{ fontSize: 15, color: c.m }}>{loadingMsg}</div>
       <button onClick={() => { stopAudio(); setTab("home"); }} style={{ ...btn, marginTop: 24, padding: "8px 20px", borderRadius: 8, border: "1px solid " + c.b, background: "transparent", color: c.m, fontSize: 12 }}>← cancel</button>
@@ -758,7 +759,7 @@ export default function SmartSession({
 
     if (branchLoading) return withSenpai(<>
       <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
-        <img src={`/images/tinysenpairun/ts${(loadingFrame % 4) + 1}.png`} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
+        <img src={runFrames[loadingFrame % 4]} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
         <div style={{ fontSize: 13, color: c.m }}>Setting the scene...</div>
       </div>
     </>);
@@ -838,7 +839,7 @@ export default function SmartSession({
 
     if (storyLoading) return withSenpai(<>
       <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
-        <img src={`/images/tinysenpairun/ts${(loadingFrame % 4) + 1}.png`} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
+        <img src={runFrames[loadingFrame % 4]} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
         <div style={{ fontSize: 13, color: c.m }}>Senpai is writing a story for you...</div>
       </div>
     </>);
@@ -964,7 +965,7 @@ export default function SmartSession({
                 if (targetBlank >= 0) handleDrop(targetBlank, optId);
               }}
               disabled={used}
-              style={{ ...btn, padding: "10px 10px", borderRadius: 8, border: "1px solid " + (draggingId === optId ? c.a : c.b), background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, fontSize: 14, textAlign: "left", opacity: used ? .4 : 1, cursor: used ? "default" : "grab", transition: "all .15s" }}>
+              style={{ ...btn, padding: "12px 10px", borderRadius: 8, border: "1px solid " + (draggingId === optId ? c.a : c.b), background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, fontSize: 16, textAlign: "left", opacity: used ? .4 : 1, cursor: used ? "default" : "grab", transition: "all .15s" }}>
               {p[1]}
             </button>;
           })}
