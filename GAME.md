@@ -32,14 +32,15 @@ The game lives in `src/game/` as a self-contained module:
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `Game.jsx` | ~238 | React wrapper — menus, game loop, screen states (menu/playing/paused/victory) |
-| `engine.js` | ~709 | Main update loop — physics, combat, collision, particles, room management, scoring |
-| `renderer.js` | ~700+ | All canvas drawing — player, enemies, backgrounds, effects, HUD |
-| `entities.js` | ~136 | Player & enemy factory functions + enemy AI state machines |
-| `sprites.js` | ~126 | PNG image loading, gray-bg removal, small sprite cache for projectiles |
+| `Game.jsx` | ~250 | React wrapper — menus, game loop, screen states, mute toggle |
+| `engine.js` | ~750+ | Update loop — physics, combat, collision, particles, camera, room management |
+| `renderer.js` | ~800+ | All canvas drawing — player, enemies, backgrounds, effects, transitions, HUD |
+| `entities.js` | ~140 | Player & enemy factories + enemy AI state machines |
+| `sprites.js` | ~130 | PNG loading with gray-bg removal, sprite cache for projectiles |
+| `audio.js` | ~220 | jsfxr sound system — 17 retro SFX, volume control, mute toggle |
 | `levels.js` | ~305 | 10 room definitions (platforms, enemies, decorations, shadows) |
 | `input.js` | ~101 | Keyboard + mobile touch zone handlers |
-| `constants.js` | ~88 | Physics values, color palette, math helpers |
+| `constants.js` | ~110 | Physics, ENEMY_CONFIG, camera/combat constants, color palette, helpers |
 
 ### Integration with Main App
 ```jsx
@@ -125,10 +126,12 @@ When player's slash collides with enemy's attack frame simultaneously:
 | 10 | Boss arena | 9 mixed | Wide open with 4 wall-jump pillars |
 
 ### Room Flow
-1. All enemies dead for 0.5s → room cleared
-2. Star rating: <6s = ★★★, <12s = ★★, else = ★
-3. 2-second pause showing rating → next room loads (or victory after room 10)
-4. Death → instant restart of current room (400ms delay), death counter increments
+1. Kill last enemy → **400ms last-kill freeze** (dramatic pause, camera zoom 1.15x)
+2. Room cleared → **letterbox bars** slide in, star rating displayed
+3. Star rating: <6s = ★★★, <12s = ★★, else = ★
+4. 2.2s pause → **fade to black** → next room loads → **fade in from black** + "ROOM X" title slides in
+5. Victory after room 10 (score, combo, high score screen)
+6. Death → red flash + 400ms delay → restart room with fade-in + death counter increment
 
 ### Platform Types
 ```javascript
@@ -171,23 +174,44 @@ Dark overlay areas where player becomes semi-transparent. Killing an enemy from 
 - **Rain**: Diagonal streaks with splash particles on ground impact
 
 ### Combat
-- **Blood burst**: 20 red particles on enemy kill, persistent ground stains
-- **Slash trail**: Tapered tear/rip shape, 3 opacity layers (glow → mid → core), varies by combo
+- **Blood burst**: 40+ directional particles in slash direction, streak lines, upward fountain
+- **Blood stains**: Large organic ellipse puddles with dark cores, persist 10s
+- **Slash trails**: Long bezier-curve blade crescents (200-320px reach), 3-layer additive glow
+  - Combo 1: Cyan/white horizontal blade trail
+  - Combo 2: Gold/orange upward arc
+  - Combo 3: Blue lightning with crackling bolts along blade + expanding shockwave rings
 - **Speed lines**: Horizontal particle lines during dash/slash, more on higher combos
 - **Sparks**: Blue/white on clash, red/yellow/orange on kills
-- **Lightning**: Blue spark shower + bolt lines on 3rd combo hit
+- **Impact ripple**: Expanding circle ring on enemy kill
+- **White flash particles**: Additive blending (`globalCompositeOperation: "lighter"`) for actual glow
+- **Enemy attack effects**: Oni red arc trail + ground telegraph, ninja purple energy buildup, samurai blue shield + red katana glow
 
 ### Post-Processing
-- **Kill flash**: White overlay ~20% opacity for 80ms
+- **Kill flash**: White overlay ~20% opacity for 120ms
 - **Slow-mo tint**: Purple overlay + red/blue chromatic strips
 - **Scanlines**: 3px spacing, 5% opacity (CRT effect)
 - **Vignette**: Radial gradient darkening edges
+- **Camera zoom**: 1.08x on kills, 1.12x on 3rd combo, 1.15x on milestones, 0.97x during slow-mo
 
 ### Feedback
 - **Hit-stop**: 70-120ms freeze on impact (enemy kill = 70ms, clash = 120ms)
 - **Camera shake**: Variable amplitude/duration on kills, landings, clashes
+- **Camera look-ahead**: 80px offset in player's facing direction during movement
+- **Last-kill freeze**: 400ms dramatic pause when final room enemy dies
 - **Floating text**: CLASH!, DOUBLE KILL!, STEALTH, DEFLECT! — scale up and fade
-- **Death flash**: Red overlay on room restart
+- **Death flash**: Red tint overlay on room restart
+- **Squash/stretch**: Player scales on jump (0.9x/1.1x), landing (1.15x/0.85x), dash (1.2x/0.8x), slash
+- **Letterbox**: Black bars slide in on room clear for cinematic effect
+- **Fade overlay**: Rooms fade in from black on load
+- **Room title**: "ROOM X" text slides in/out on room start
+
+### Audio (jsfxr)
+17 retro 8-bit sound effects generated at runtime via jsfxr library:
+- **Combat**: slash1/2/3 (progressive intensity), kill (pitch varies by enemy), clash, deflect
+- **Movement**: jump, land (volume scales with fall speed), dash, footsteps, wall slide
+- **UI**: room clear chime, menu start stab, combo milestone ping
+- **Ambient**: slow-mo on/off sweeps, shuriken throw
+- Mute toggle in menu, persisted in localStorage
 
 ---
 
@@ -209,40 +233,52 @@ Mobile shows faint button zone outlines on the HUD.
 
 ## Assets
 
-### Player Sprites
-All face **LEFT** by default. Flipped via `ctx.scale(-1, 1)` for right-facing.
+### Player Sprites — `public/images/tinysenpai/`
+Sprites face MIXED directions (measured by pixel analysis). Each has a per-frame `R` flag in `CROPS` object.
 
-| Sprite | Path | Crop Rect (x,y,w,h) |
-|--------|------|---------------------|
-| Idle | `public/images/tinysenpai2.png` | 64, 160, 896, 660 |
-| Run 1-4 | `public/images/tinysenpairun/ts{1-4}.png` | 140, 140, 750, 730 |
-| Slash 1-4 | `public/images/tinysenpaistrike/{1-4}.png` | 80, 100, 860, 800 |
-| Jump (launch) | `public/images/tinysenpaiother/jump1-launch.png` | 160, 190, 700, 650 |
-| Jump (airborne) | `public/images/tinysenpaiother/jump2-airborne.png` | 250, 150, 600, 720 |
-| Fall | `public/images/tinysenpaiother/fall.png` | 260, 60, 550, 860 |
-| Wall slide | `public/images/tinysenpaiother/wall-slide.png` | 140, 120, 660, 800 |
-| Dash | `public/images/tinysenpaiother/dash.png` | 60, 210, 900, 600 |
-| Death (hit) | `public/images/tinysenpaiother/death1-hit.png` | 100, 80, 810, 800 |
-| Death (fallen) | `public/images/tinysenpaiother/death2-fallen.png` | 80, 420, 920, 310 |
+| Sprite | Path | Faces | R flag |
+|--------|------|-------|--------|
+| Idle | `tinysenpai/idle.png` | LEFT | false |
+| Run 1 | `tinysenpai/run/1.png` | LEFT | false |
+| Run 2 | `tinysenpai/run/2.png` | LEFT | false |
+| Run 3 | `tinysenpai/run/3.png` | LEFT | false |
+| Run 4 | `tinysenpai/run/4.png` | LEFT | false |
+| Slash 1 | `tinysenpai/slash/1.png` | LEFT | false |
+| Slash 2 | `tinysenpai/slash/2.png` | RIGHT | true |
+| Slash 3 | `tinysenpai/slash/3.png` | LEFT | false |
+| Slash 4 | `tinysenpai/slash/4.png` | RIGHT | true |
+| Jump launch | `tinysenpai/jump/launch.png` | LEFT | false |
+| Jump airborne | `tinysenpai/jump/airborne.png` | RIGHT | true |
+| Fall | `tinysenpai/fall.png` | LEFT | false |
+| Wall slide | `tinysenpai/wallslide.png` | RIGHT | true |
+| Dash | `tinysenpai/dash.png` | LEFT | false |
+| Death hit | `tinysenpai/death/hit.png` | LEFT | false |
+| Death fallen | `tinysenpai/death/fallen.png` | LEFT | false |
 
 ### Enemy Sprites
-| Sprite | Path | Crop Rect |
-|--------|------|-----------|
-| Oni (demon) | `public/images/demon.png` | 170, 160, 690, 670 |
-| Ninja | `public/images/ninja.png` | 150, 230, 780, 570 |
-| Samurai | *Procedural fallback (no PNG yet)* | — |
+| Sprite | Path | Faces | Crop Rect |
+|--------|------|-------|-----------|
+| Oni (demon) | `public/images/demon.png` | LEFT | 170, 160, 690, 670 |
+| Ninja | `public/images/ninja.png` | LEFT | 150, 230, 780, 570 |
+| Samurai | *Procedural fallback (no PNG yet)* | — | — |
 
 ### Environment
 | Asset | Path |
 |-------|------|
 | Forest background | `public/images/forest.png` |
+| Temple background | *Not yet created* |
+| Neon Tokyo background | *Not yet created* |
+| Castle background | *Not yet created* |
 
-### Generating New Assets
-See [SPRITES.md](SPRITES.md) for pixel art prompt templates. Key rules:
-- 1024x1024 PNG, pixel art, chibi proportions
-- All characters face **LEFT**
-- Gray background (auto-removed on load via `sprites.js`)
-- Black pixel outlines, consistent style with `tinysenpai2.png`
+### Adding New Sprites
+See [SPRITES.md](SPRITES.md) for generation prompts and complete asset list.
+
+**Critical rules:**
+1. **Measure direction** with PIL pixel-weight analysis — NEVER guess
+2. Set the `R` flag per-sprite in `CROPS` object in `renderer.js`
+3. Load with `removeGrayBg = true` in `sprites.js`
+4. All sprites draw at identical `DRAW_W × DRAW_H` — no per-sprite sizing
+5. Gray background auto-removed on load (avg > 100, maxDiff < 35)
 
 ---
 
@@ -272,8 +308,17 @@ Enemies that attack → timer expires → patrol → immediately re-attack (play
 ### Death rendering order
 Dead check must come BEFORE run/jump/fall checks in `drawPlayer()`, otherwise the death sprite is never shown (pre-death state takes priority).
 
-### Gray background removal
-Enemy PNGs have gray backgrounds removed at load time by `sprites.js`. The algorithm detects pixels where `avg > 100` and `maxDiff < 35` from the average, making them transparent.
+### Sprite direction: MEASURE, don't guess
+AI-generated sprites face unpredictable directions. Use PIL pixel-weight analysis to objectively measure which way each sprite faces. Set per-frame `R` flags in CROPS. This was learned after 6+ failed iterations of guessing directions visually.
+
+### Gray background removal — ALWAYS enable
+ALL player and enemy sprites must be loaded with `removeGrayBg = true` in `loadGameImages()`. The algorithm makes gray/near-gray pixels transparent at load time (avg > 100, maxDiff < 35). Forgetting this causes visible gray rectangles around sprites.
+
+### Consistent sprite sizing
+ALL player sprites must draw at the same `DRAW_W × DRAW_H` regardless of the source image aspect ratio. Otherwise the character grows/shrinks between animation states (e.g., run sprites are squarer, making character taller; jump sprites are narrower, making character smaller).
+
+### Undefined variable references crash the game loop
+If `render()` throws a ReferenceError (e.g., accessing undefined constants), `requestAnimationFrame(loop)` never executes and the game freezes. Always verify constants exist before deploying. The original freeze was caused by `IDLE_CROP` and `SLASH_CROP` being referenced after they were refactored into the `CROPS` object.
 
 ### Game container positioning
 Uses `position: fixed` with `left: SIDEBAR_W` (desktop) and `bottom: 70px` (mobile). Fixed positioning is required because parent div uses `minHeight: 100vh`.
