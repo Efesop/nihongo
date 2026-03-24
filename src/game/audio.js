@@ -24,7 +24,7 @@ let _currentMusic = "music_forest"; // per-environment music key
 const SFX_CRITICAL = [
   "swoosh1", "swoosh2", "swoosh3", "swoosh4", "swoosh5", "swoosh6",
   "shing", "slash3_electric", "hit_impact", "hit_impact2", "hit_impact3",
-  "kill", "blood_splatter", "clash", "deflect",
+  "kill", "blood_splatter", "clash", "deflect", "backstab", "samurai_block",
   "jump", "land", "dash", "menuStart", "death",
   "wall_grab", "wall_launch",
 ];

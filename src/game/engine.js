@@ -686,7 +686,7 @@ export function update(g, callbacks) {
           const attackFromBehind = (p.x < e.x && e.facing > 0) || (p.x > e.x && e.facing < 0);
           if (attackFromBehind) {
             // Backstab — instant kill regardless of HP
-            playRandom("hit", { volume: 0.8 });
+            playSound("backstab", { volume: 0.8 });
             g.floatingTexts.push({
               x: e.x, y: e.y - 20, text: "BACKSTAB!", color: "#ff4444",
               life: 1000, maxLife: 1000,
@@ -698,7 +698,7 @@ export function update(g, callbacks) {
             e.blockTimer = 500;
             g.hitStop = 80;
             g.camera.shakeTimer = 100;
-            playSound("clash");
+            playSound("samurai_block");
             p.vx = -p.facing * 250; // bounce back
             p.slashTimer = 0;
             p.comboWindow = 0;
