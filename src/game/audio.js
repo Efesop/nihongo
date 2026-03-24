@@ -21,17 +21,23 @@ let _wantsMusic = false;
 let _currentMusic = "music_forest"; // per-environment music key
 
 // ═══ SOUND REGISTRY ═══
-const SFX_CRITICAL = [ // load first — needed immediately
-  "slash1", "slash2", "slash3", "swoosh1", "swoosh2", "swoosh3",
-  "hit_impact", "kill", "blood_splatter", "clash", "deflect",
+const SFX_CRITICAL = [
+  "swoosh1", "swoosh2", "swoosh3", "swoosh4", "swoosh5", "swoosh6",
+  "slash3_electric", "hit_impact", "hit_impact2", "hit_impact3",
+  "kill", "blood_splatter", "clash", "deflect",
   "jump", "land", "dash", "menuStart", "death",
 ];
-const SFX_GAMEPLAY = [ // load second — needed during play
+const SFX_GAMEPLAY = [
   "wallSlide", "step1", "step2", "step3",
-  "oni_alert", "oni_alert2", "oni_attack", "oni_attack2", "oni_death",
-  "ninja_alert", "ninja_alert2", "ninja_throw", "ninja_throw2", "ninja_death",
-  "samurai_alert", "samurai_alert2", "samurai_attack", "samurai_attack2", "samurai_death",
+  "oni_alert", "oni_alert2", "oni_attack", "oni_attack2",
+  "oni_death", "oni_death2", "oni_death3",
+  "ninja_alert", "ninja_alert2", "ninja_throw", "ninja_throw2",
+  "ninja_death", "ninja_death2", "ninja_death3",
+  "samurai_alert", "samurai_alert2", "samurai_attack", "samurai_attack2",
+  "samurai_death", "samurai_death2", "samurai_death3",
   "shuriken", "slowmoOn", "slowmoOff", "roomClear", "comboMilestone",
+  // Keep old slash sounds as backup
+  "slash1", "slash2", "slash3",
 ];
 const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY];
 const AMBIENT_NAMES = ["rain_loop", "forest_night"];
@@ -40,14 +46,21 @@ const MUSIC_NAMES = ["music_forest"];
 // Sound variant groups — playRandom picks one at random
 const VARIANTS = {
   step:           ["step1", "step2", "step3"],
-  swoosh:         ["swoosh1", "swoosh2", "swoosh3"],
+  swoosh:         ["swoosh1", "swoosh2", "swoosh3", "swoosh4", "swoosh5", "swoosh6"],
+  hit:            ["hit_impact", "hit_impact2", "hit_impact3"],
   oni_alert:      ["oni_alert", "oni_alert2"],
   oni_attack:     ["oni_attack", "oni_attack2"],
+  oni_death:      ["oni_death", "oni_death2", "oni_death3"],
   ninja_alert:    ["ninja_alert", "ninja_alert2"],
   ninja_throw:    ["ninja_throw", "ninja_throw2"],
+  ninja_death:    ["ninja_death", "ninja_death2", "ninja_death3"],
   samurai_alert:  ["samurai_alert", "samurai_alert2"],
   samurai_attack: ["samurai_attack", "samurai_attack2"],
+  samurai_death:  ["samurai_death", "samurai_death2", "samurai_death3"],
 };
+
+// Track active "exclusive" sounds so new slash cancels old one
+const _exclusive = {}; // channel → { source, gain }
 
 // ═══ JSFXR FALLBACKS (only for core sounds — enemies/ambient have no fallback) ═══
 const JSFXR = {
@@ -104,7 +117,7 @@ export function initAudio() {
     }
   });
 
-  _loadAllSounds();
+  return _loadAllSounds(); // returns promise — game can await this
 }
 
 async function _loadMP3(name) {
@@ -178,12 +191,55 @@ export function playSound(name, opts = {}) {
   } catch { /* */ }
 }
 
-// Play a random variant from a group (e.g. playRandom("step") picks step1/step2/step3)
+// Play a random variant from a group
 export function playRandom(group, opts = {}) {
   const variants = VARIANTS[group];
   if (!variants) { playSound(group, opts); return; }
   const name = variants[Math.floor(Math.random() * variants.length)];
   playSound(name, opts);
+}
+
+// Play on an exclusive channel — stops previous sound on that channel first
+// Use for slashes so new swing immediately cancels previous swing sound
+export function playExclusive(channel, name, opts = {}) {
+  if (_muted) return;
+  // Stop previous sound on this channel
+  const prev = _exclusive[channel];
+  if (prev) {
+    try { prev.gain.gain.linearRampToValueAtTime(0, _ctx.currentTime + 0.03); } catch { /* */ }
+    try { prev.source.stop(_ctx.currentTime + 0.04); } catch { /* */ }
+  }
+  const buf = _buffers[name];
+  if (!buf || typeof buf !== "object" || !_ctx || !_masterGain) {
+    playSound(name, opts);
+    return;
+  }
+  try {
+    if (_ctx.state === "suspended") _ctx.resume();
+    const src = _ctx.createBufferSource();
+    src.buffer = buf;
+    const g = _ctx.createGain();
+    g.gain.value = Math.max(0, Math.min(1, (opts.volume ?? 1) * _sfxVolume));
+    src.connect(g);
+    g.connect(_masterGain);
+    if (opts.playbackRate) src.playbackRate.value = opts.playbackRate;
+    src.start(0);
+    _exclusive[channel] = { source: src, gain: g };
+    src.onended = () => { if (_exclusive[channel]?.source === src) delete _exclusive[channel]; };
+  } catch { /* */ }
+}
+
+// Play random on exclusive channel
+export function playRandomExclusive(channel, group, opts = {}) {
+  const variants = VARIANTS[group];
+  const name = variants ? variants[Math.floor(Math.random() * variants.length)] : group;
+  playExclusive(channel, name, opts);
+}
+
+// Returns true once all critical + music/ambient are loaded
+export function isAudioReady() {
+  // Check at least a few critical sounds + music loaded
+  return !!_buffers.swoosh1 && !!_buffers.jump && (!!_buffers.music_forest || !_ctx);
 }
 
 // ═══ MUSIC + AMBIENT ═══

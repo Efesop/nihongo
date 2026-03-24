@@ -7,7 +7,7 @@ import {
 } from "./constants.js";
 import { updateEnemyAI, makeEnemy, makePlayer } from "./entities.js";
 import { ROOMS } from "./levels.js";
-import { playSound, playRandom } from "./audio.js";
+import { playSound, playRandom, playRandomExclusive } from "./audio.js";
 
 // ═══ ROOM MANAGEMENT ═══
 export function loadRoom(g, roomIndex) {
@@ -255,6 +255,10 @@ export function update(g, callbacks) {
   } else if (p.slashTimer > 0) {
     // Keep momentum — long slide through enemies
     p.vx *= 0.97;
+  } else if (p.wallJumpCooldown > 0) {
+    // During wall jump — preserve launch momentum, no air control override
+    // Player automatically flies to opposite wall without needing to steer
+    p.vx *= 0.99; // tiny drag so they don't overshoot
   } else {
     p.vx = moveDir * MOVE_SPEED;
     if (moveDir !== 0) p.facing = moveDir;
@@ -277,7 +281,7 @@ export function update(g, callbacks) {
         vx: -p.facing * rnd(20, 50), vy: rnd(-30, -10),
         life: 250, maxLife: 250, color: "#666666", size: rndInt(2, 3),
       });
-      playRandom("step", { volume: 0.5, playbackRate: rnd(0.9, 1.1) });
+      playRandom("step", { volume: 0.8, playbackRate: rnd(0.9, 1.1) });
     }
   } else {
     p._stepTimer = 0;
@@ -330,8 +334,10 @@ export function update(g, callbacks) {
 
     // Afterimage
     p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
-    // Swoosh sound for the swing (hit impact plays separately on contact)
-    playRandom("swoosh", { volume: combo === 3 ? 0.7 : 0.5 });
+    // Swoosh on exclusive channel — new slash instantly cancels previous sound
+    playRandomExclusive("slash", "swoosh", { volume: combo === 3 ? 0.7 : 0.5 });
+    // 3rd hit: layer electric thunder on top
+    if (combo === 3) playSound("slash3_electric", { volume: 0.5 });
 
     // Lunge — each hit goes further, big slide
     const lungeSpeed = combo === 1 ? DASH_SPEED * 1.0 : combo === 2 ? DASH_SPEED * 1.2 : DASH_SPEED * 1.6;
@@ -397,25 +403,28 @@ export function update(g, callbacks) {
   p.y += p.vy * dt;
 
   // ── Horizontal wall collision — walls are SOLID, player can't walk through ──
+  // Skip during wall jump (player is being launched between walls)
   const pw = TILE * SCALE * 0.5;
-  for (const plat of g.platforms) {
-    if (!plat.wall) continue;
-    const playerBottom = p.y + TILE * SCALE;
-    const playerTop = p.y;
-    // Only collide if player overlaps the wall vertically
-    if (playerBottom <= plat.y || playerTop >= plat.y + plat.h) continue;
-    const playerRight = p.x + pw;
-    const playerLeft = p.x - pw;
-    if (playerRight > plat.x && playerLeft < plat.x + plat.w) {
-      // Player overlaps wall — push out from nearest face
-      const overlapLeft = playerRight - plat.x;
-      const overlapRight = (plat.x + plat.w) - playerLeft;
-      if (overlapLeft < overlapRight) {
-        p.x = plat.x - pw;
-        if (p.vx > 0) p.vx = 0;
-      } else {
-        p.x = plat.x + plat.w + pw;
-        if (p.vx < 0) p.vx = 0;
+  if (p.wallJumpCooldown <= 0) {
+    for (const plat of g.platforms) {
+      if (!plat.wall) continue;
+      const playerBottom = p.y + TILE * SCALE;
+      const playerTop = p.y;
+      // Only collide if player overlaps the wall vertically
+      if (playerBottom <= plat.y || playerTop >= plat.y + plat.h) continue;
+      const playerRight = p.x + pw;
+      const playerLeft = p.x - pw;
+      if (playerRight > plat.x && playerLeft < plat.x + plat.w) {
+        // Player overlaps wall — push out from nearest face
+        const overlapLeft = playerRight - plat.x;
+        const overlapRight = (plat.x + plat.w) - playerLeft;
+        if (overlapLeft < overlapRight) {
+          p.x = plat.x - pw;
+          if (p.vx > 0) p.vx = 0;
+        } else {
+          p.x = plat.x + plat.w + pw;
+          if (p.vx < 0) p.vx = 0;
+        }
       }
     }
   }
@@ -562,14 +571,22 @@ export function update(g, callbacks) {
       }
     }
 
-    // ── Slash collision (can hit multiple per slash) ──
+    // ── Slash collision — vertical reach depends on combo ──
+    // Combo 1 (horizontal): same level only. Combo 2 (upward arc): can reach above.
+    // Combo 3 (big swing): wide reach.
     if (p.slashTimer > 0 && !e.dead && !e._hitThisSlash) {
       const slashX = p.x + p.facing * SLASH_RANGE / 2;
       const ew = TILE * SCALE * 0.7;
+      const dy = e.y - p.y; // negative = enemy is above
+      const combo = p.slashCombo;
+      // Vertical reach: combo 1 = same level (±30px), combo 2 = upward arc (can reach 60px above),
+      // combo 3 = full sweep (±60px)
+      const hitAbove = combo === 1 ? 30 : combo === 2 ? 70 : 60;
+      const hitBelow = combo === 1 ? 30 : combo === 2 ? 20 : 60;
       if (Math.abs(slashX - e.x) < (SLASH_RANGE + ew) / 2 &&
-          Math.abs(p.y - e.y) < TILE * SCALE * 1.2) {
+          dy > -hitAbove && dy < hitBelow) {
         e._hitThisSlash = true;
-        playSound("hit_impact", { volume: 0.6 }); // meaty hit on contact
+        playRandom("hit", { volume: 0.6 }); // meaty hit on contact
         if (e.type === "samurai" && e.hp > 1 && !e.blocking) {
           // Block — sparks, no kill
           e.hp--;
@@ -797,9 +814,9 @@ function killEnemy(g, e, p, callbacks) {
   g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 20);
   playSound("kill", { playbackRate: e.type === "oni" ? 0.8 : e.type === "ninja" ? 1.2 : 1.0 });
   playSound("blood_splatter", { volume: 0.5 });
-  // Per-type death sound
-  const deathSfx = { oni: "oni_death", ninja: "ninja_death", samurai: "samurai_death" };
-  playSound(deathSfx[e.type] || "oni_death", { volume: 0.6 });
+  // Per-type death sound (random variant)
+  const deathGroup = { oni: "oni_death", ninja: "ninja_death", samurai: "samurai_death" };
+  playRandom(deathGroup[e.type] || "oni_death", { volume: 0.6 });
   if (g.combo === 5 || g.combo === 10 || g.combo === 15) {
     playSound("comboMilestone");
     g.camera.zoom = MILESTONE_ZOOM;

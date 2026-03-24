@@ -6,7 +6,7 @@ import { makePlayer, makeEnemy } from "./entities.js";
 import { update } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
-import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, stopMusic } from "./audio.js";
+import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, stopMusic, isAudioReady } from "./audio.js";
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
@@ -134,8 +134,17 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const [muted, setMutedState] = useState(() => isMuted());
 
   const startGame = async () => {
-    initAudio();
+    setScreen("loading");
+    // Start loading audio + sprites in parallel
+    const audioPromise = initAudio();
     await loadMascotImage();
+    await audioPromise;
+    // Wait a tiny bit for buffers to be ready, then poll
+    let waited = 0;
+    while (!isAudioReady() && waited < 3000) {
+      await new Promise(r => setTimeout(r, 100));
+      waited += 100;
+    }
     playSound("menuStart");
     startMusic();
     setScore(0);
@@ -169,6 +178,26 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const glowText = { textShadow: `0 0 20px ${c.a}, 0 0 60px ${c.a}40` };
 
   const cssFx = `@keyframes glitch{0%{text-shadow:2px 0 #c0282a,-2px 0 #4f8ec4}25%{text-shadow:-2px -1px #c0282a,2px 1px #4f8ec4}50%{text-shadow:1px 2px #c0282a,-1px -2px #4f8ec4}75%{text-shadow:-1px 1px #c0282a,1px -1px #4f8ec4}100%{text-shadow:2px 0 #c0282a,-2px 0 #4f8ec4}}@keyframes scanmove{0%{background-position:0 0}100%{background-position:0 100%}}@keyframes glitchBig{0%{transform:translate(0);opacity:1}10%{transform:translate(-3px,2px);opacity:.8}20%{transform:translate(3px,-1px);opacity:.9}30%{transform:translate(0);opacity:1}90%{transform:translate(0);opacity:1}95%{transform:translate(2px,1px);opacity:.7}100%{transform:translate(0);opacity:1}}`;
+
+  // ═══ LOADING ═══
+  if (screen === "loading") {
+    return (
+      <div style={{ ...overlay, background: "#0a0a14" }}>
+        <style>{cssFx}</style>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite" }} />
+        <div style={{ fontSize: 48, color: c.tx, filter: `drop-shadow(0 0 10px ${c.a}40)` }}>斬</div>
+        <div style={{ fontSize: 14, fontFamily: font, color: c.a, letterSpacing: ".15em", marginTop: 16, animation: "glitch 2s ease-in-out infinite" }}>
+          LOADING
+        </div>
+        <div style={{ width: 120, height: 2, background: c.s2, borderRadius: 2, marginTop: 12, overflow: "hidden" }}>
+          <div style={{ width: "100%", height: "100%", background: c.a, animation: "scanmove 1s linear infinite", transformOrigin: "left" }} />
+        </div>
+        <div style={{ fontSize: 10, fontFamily: font, color: c.m, marginTop: 12, letterSpacing: ".08em" }}>
+          準備中...
+        </div>
+      </div>
+    );
+  }
 
   // ═══ MENU ═══
   if (screen === "menu") {
