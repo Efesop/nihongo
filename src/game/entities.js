@@ -1,5 +1,5 @@
 import { TILE, SCALE, MOVE_SPEED, ENEMY_CONFIG } from "./constants.js";
-import { playSound } from "./audio.js";
+import { playSound, playRandom } from "./audio.js";
 
 // ═══ PLAYER FACTORY ═══
 export function makePlayer(groundY, startX = 100) {
@@ -80,11 +80,11 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = 0;
       if (e.attackTimer <= 0) e.state = "chase";
     } else if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") { e.alert = 400; playSound("oni_alert", { volume: 0.5 }); }
+      if (e.state === "patrol") { e.alert = 400; playRandom("oni_alert", { volume: 0.5 }); }
       e.state = "chase";
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.7;
-      if (dist < 65) { e.state = "attack"; e.attackTimer = 600; playSound("oni_attack", { volume: 0.6 }); }
+      if (dist < 65) { e.state = "attack"; e.attackTimer = 600; playRandom("oni_attack", { volume: 0.6 }); }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
@@ -94,7 +94,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
     if (dist > 20 && playerVisible) e.facing = toPlayer;
     e.vx = 0;
     if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") { e.alert = 400; playSound("ninja_alert", { volume: 0.4 }); }
+      if (e.state === "patrol") { e.alert = 400; playRandom("ninja_alert", { volume: 0.4 }); }
       e.state = "chase";
       e.attackTimer -= dt * 1000;
       if (e.attackTimer <= 0) {
@@ -104,7 +104,7 @@ export function updateEnemyAI(e, player, dt, projectiles) {
         });
         e.attackTimer = 900;
         e.throwAnim = 400;
-        playSound("ninja_throw");
+        playRandom("ninja_throw");
       }
       if (dist < 100) e.vx = -toPlayer * 150;
     } else {
@@ -123,10 +123,10 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = 0;
       if (e.attackTimer <= 0) e.state = "chase";
     } else if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") { e.alert = 400; playSound("samurai_alert", { volume: 0.6 }); }
+      if (e.state === "patrol") { e.alert = 400; playRandom("samurai_alert", { volume: 0.6 }); }
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.5;
-      if (dist < 60) { e.state = "attack"; e.attackTimer = 700; playSound("samurai_attack", { volume: 0.7 }); }
+      if (dist < 60) { e.state = "attack"; e.attackTimer = 700; playRandom("samurai_attack", { volume: 0.7 }); }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;

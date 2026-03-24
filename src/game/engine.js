@@ -7,7 +7,7 @@ import {
 } from "./constants.js";
 import { updateEnemyAI, makeEnemy, makePlayer } from "./entities.js";
 import { ROOMS } from "./levels.js";
-import { playSound } from "./audio.js";
+import { playSound, playRandom } from "./audio.js";
 
 // ═══ ROOM MANAGEMENT ═══
 export function loadRoom(g, roomIndex) {
@@ -177,12 +177,12 @@ export function update(g, callbacks) {
             em.y > plat.y && em.y < plat.y + 8) {
           em.life = 0;
           splashed = true;
-          // Small splash particles on platform
-          for (let j = 0; j < 2; j++) {
+          // Visible splash on platform surface
+          for (let j = 0; j < 3; j++) {
             g.particles.push({
-              x: em.x, y: plat.y,
-              vx: rnd(-25, 25), vy: rnd(-35, -10),
-              life: 120, maxLife: 120, color: "#99aacc", size: rnd(0.5, 1.2),
+              x: em.x + rnd(-3, 3), y: plat.y,
+              vx: rnd(-35, 35), vy: rnd(-50, -15),
+              life: 180, maxLife: 180, color: j === 0 ? "#bbccee" : "#99aacc", size: rnd(1, 2),
             });
           }
           break;
@@ -204,11 +204,11 @@ export function update(g, callbacks) {
       // Splash on ground
       if (!splashed && em.y > g.groundY) {
         em.life = 0;
-        for (let j = 0; j < 2; j++) {
+        for (let j = 0; j < 3; j++) {
           g.particles.push({
-            x: em.x, y: g.groundY,
-            vx: rnd(-25, 25), vy: rnd(-35, -10),
-            life: 120, maxLife: 120, color: "#99aacc", size: rnd(0.5, 1),
+            x: em.x + rnd(-3, 3), y: g.groundY,
+            vx: rnd(-35, 35), vy: rnd(-50, -15),
+            life: 180, maxLife: 180, color: j === 0 ? "#bbccee" : "#99aacc", size: rnd(1, 2),
           });
         }
       }
@@ -266,14 +266,21 @@ export function update(g, callbacks) {
   for (const ai of p.afterimages) ai.life -= rawDt * 1000;
   p.afterimages = p.afterimages.filter(ai => ai.life > 0);
 
-  // Running dust + footstep sounds
-  if (p.grounded && Math.abs(p.vx) > 100 && Math.random() < dt * 10) {
-    g.particles.push({
-      x: p.x + rnd(-6, 6), y: p.y + TILE * SCALE,
-      vx: -p.facing * rnd(20, 50), vy: rnd(-30, -10),
-      life: 250, maxLife: 250, color: "#666666", size: rndInt(2, 3),
-    });
-    playSound("footstep", { volume: 0.6, playbackRate: rnd(0.8, 1.2) });
+  // Running dust + footstep sounds — synced to animation frame changes
+  if (p.grounded && Math.abs(p.vx) > 100) {
+    p._stepTimer = (p._stepTimer || 0) + rawDt * 1000;
+    // Play step every ~130ms (matches run animation feel)
+    if (p._stepTimer > 130) {
+      p._stepTimer = 0;
+      g.particles.push({
+        x: p.x + rnd(-6, 6), y: p.y + TILE * SCALE,
+        vx: -p.facing * rnd(20, 50), vy: rnd(-30, -10),
+        life: 250, maxLife: 250, color: "#666666", size: rndInt(2, 3),
+      });
+      playRandom("step", { volume: 0.5, playbackRate: rnd(0.9, 1.1) });
+    }
+  } else {
+    p._stepTimer = 0;
   }
 
   // Jump + wall jump
@@ -285,12 +292,12 @@ export function update(g, callbacks) {
       spawnDust(g, p.x, p.y + TILE * SCALE);
       playSound("jump");
     } else if (p.wallSliding) {
-      // Wall jump — launch away from wall
+      // Wall jump — strong launch away from wall (just press jump to bounce)
       p.vy = JUMP_FORCE * 0.9;
-      p.vx = -p.wallDir * MOVE_SPEED * 1.4;
+      p.vx = -p.wallDir * MOVE_SPEED * 1.6;
       p.facing = -p.wallDir;
       p.wallSliding = false;
-      p.wallJumpCooldown = 200; // prevent re-grabbing same wall
+      p.wallJumpCooldown = 150; // brief cooldown before grabbing opposite wall
       playSound("jump", { playbackRate: 1.2 });
       // Wall jump dust
       for (let i = 0; i < 4; i++) {
@@ -323,7 +330,8 @@ export function update(g, callbacks) {
 
     // Afterimage
     p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
-    playSound(combo === 1 ? "slash1" : combo === 2 ? "slash2" : "slash3");
+    // Swoosh sound for the swing (hit impact plays separately on contact)
+    playRandom("swoosh", { volume: combo === 3 ? 0.7 : 0.5 });
 
     // Lunge — each hit goes further, big slide
     const lungeSpeed = combo === 1 ? DASH_SPEED * 1.0 : combo === 2 ? DASH_SPEED * 1.2 : DASH_SPEED * 1.6;
@@ -561,6 +569,7 @@ export function update(g, callbacks) {
       if (Math.abs(slashX - e.x) < (SLASH_RANGE + ew) / 2 &&
           Math.abs(p.y - e.y) < TILE * SCALE * 1.2) {
         e._hitThisSlash = true;
+        playSound("hit_impact", { volume: 0.6 }); // meaty hit on contact
         if (e.type === "samurai" && e.hp > 1 && !e.blocking) {
           // Block — sparks, no kill
           e.hp--;

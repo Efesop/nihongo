@@ -57,7 +57,7 @@ export const ROOMS = [
       // Wall shaft — open at bottom (walls start at -210, step is at -140, so 70px entry gap)
       // Player jumps from step into the shaft and bounces up
       { x: 540, y: -380, w: 35, h: 170, wall: true },  // left wall (170px tall, starts above entry)
-      { x: 695, y: -380, w: 35, h: 170, wall: true },  // right wall (120px inner gap)
+      { x: 675, y: -380, w: 35, h: 170, wall: true },  // right wall (100px inner gap)
       // Top platform — exit from shaft
       { x: 520, y: -390, w: 230 },
       // Continue right at height
@@ -114,7 +114,7 @@ export const ROOMS = [
       { x: 380, y: -80, w: 160 },
       // Tower shaft — open at bottom, walls start above the step
       { x: 420, y: -420, w: 35, h: 280, wall: true },   // left wall
-      { x: 575, y: -420, w: 35, h: 280, wall: true },   // right wall (120px inner gap)
+      { x: 555, y: -420, w: 35, h: 280, wall: true },   // right wall (100px inner gap)
       // Rest ledge halfway up (inside shaft, narrow)
       { x: 455, y: -250, w: 120 },
       // Top exit
@@ -170,14 +170,14 @@ export const ROOMS = [
       // First canyon — entry step, shaft, top platform
       { x: 320, y: -70, w: 140 },
       { x: 380, y: -280, w: 35, h: 170, wall: true },   // left wall
-      { x: 535, y: -280, w: 35, h: 170, wall: true },   // right wall
+      { x: 515, y: -280, w: 35, h: 170, wall: true },   // right wall (100px gap)
       { x: 360, y: -290, w: 230 },                       // top exit
       // Bridge between canyons
       { x: 600, y: -200, w: 200 },
       { x: 700, y: -100, w: 150 },
       // Second canyon
       { x: 880, y: -280, w: 35, h: 170, wall: true },
-      { x: 1035, y: -280, w: 35, h: 170, wall: true },
+      { x: 1015, y: -280, w: 35, h: 170, wall: true },  // 100px gap
       { x: 860, y: -290, w: 230 },
       // End area — descend
       { x: 1100, y: -200, w: 200 },
@@ -241,7 +241,7 @@ export const ROOMS = [
       { x: 1250, y: -80, w: 150 },
       // Wall jump section (120px inner gap, open at bottom)
       { x: 1320, y: -320, w: 35, h: 200, wall: true },
-      { x: 1475, y: -320, w: 35, h: 200, wall: true },
+      { x: 1455, y: -320, w: 35, h: 200, wall: true },  // 100px gap
       { x: 1300, y: -330, w: 230 },
       // Upper path
       { x: 1540, y: -260, w: 400 },

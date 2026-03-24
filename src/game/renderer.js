@@ -556,7 +556,43 @@ export function render(g, ctx, isDesktop, font) {
     ctx.restore();
   }
 
+  // ── Fog / mist layer — drifts across the scene for atmosphere ──
+  renderFog(ctx, W, H, g.time.elapsed, cx);
+
   renderHUD(ctx, g, W, isDesktop, font);
+}
+
+// ═══ FOG / MIST ═══
+function renderFog(ctx, W, H, t, cx) {
+  ctx.save();
+  // Two fog layers moving at different speeds for parallax depth
+  for (let layer = 0; layer < 2; layer++) {
+    const speed = layer === 0 ? 12 : 8;
+    const alpha = layer === 0 ? 0.04 : 0.03;
+    const yBase = H * (layer === 0 ? 0.5 : 0.65);
+    const height = H * (layer === 0 ? 0.35 : 0.25);
+    const offset = (t * speed - cx * (layer === 0 ? 0.1 : 0.05)) % (W * 2);
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#c8d0e0";
+
+    // Draw several fog blobs per layer
+    for (let i = -1; i < 4; i++) {
+      const bx = i * W * 0.6 + offset;
+      const by = yBase + Math.sin(t * 0.3 + i * 2.1) * 20;
+      const bw = W * 0.5 + Math.sin(t * 0.2 + i) * 40;
+
+      // Soft elliptical fog blob
+      const grad = ctx.createRadialGradient(bx, by, 0, bx, by, bw);
+      grad.addColorStop(0, "rgba(200,210,225,1)");
+      grad.addColorStop(0.5, "rgba(200,210,225,0.5)");
+      grad.addColorStop(1, "rgba(200,210,225,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(bx - bw, by - height / 2, bw * 2, height);
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 // ═══════════════════════════════════════════

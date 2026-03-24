@@ -21,17 +21,33 @@ let _wantsMusic = false;
 let _currentMusic = "music_forest"; // per-environment music key
 
 // ═══ SOUND REGISTRY ═══
-const SFX_NAMES = [
-  "slash1", "slash2", "slash3", "kill", "blood_splatter", "clash", "deflect",
-  "jump", "land", "dash", "wallSlide", "footstep",
-  "oni_alert", "oni_attack", "oni_death",
-  "ninja_alert", "ninja_throw", "ninja_death",
-  "samurai_alert", "samurai_attack", "samurai_death",
-  "shuriken", "slowmoOn", "slowmoOff", "roomClear",
-  "comboMilestone", "menuStart", "death",
+const SFX_CRITICAL = [ // load first — needed immediately
+  "slash1", "slash2", "slash3", "swoosh1", "swoosh2", "swoosh3",
+  "hit_impact", "kill", "blood_splatter", "clash", "deflect",
+  "jump", "land", "dash", "menuStart", "death",
 ];
+const SFX_GAMEPLAY = [ // load second — needed during play
+  "wallSlide", "step1", "step2", "step3",
+  "oni_alert", "oni_alert2", "oni_attack", "oni_attack2", "oni_death",
+  "ninja_alert", "ninja_alert2", "ninja_throw", "ninja_throw2", "ninja_death",
+  "samurai_alert", "samurai_alert2", "samurai_attack", "samurai_attack2", "samurai_death",
+  "shuriken", "slowmoOn", "slowmoOff", "roomClear", "comboMilestone",
+];
+const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY];
 const AMBIENT_NAMES = ["rain_loop", "forest_night"];
 const MUSIC_NAMES = ["music_forest"];
+
+// Sound variant groups — playRandom picks one at random
+const VARIANTS = {
+  step:           ["step1", "step2", "step3"],
+  swoosh:         ["swoosh1", "swoosh2", "swoosh3"],
+  oni_alert:      ["oni_alert", "oni_alert2"],
+  oni_attack:     ["oni_attack", "oni_attack2"],
+  ninja_alert:    ["ninja_alert", "ninja_alert2"],
+  ninja_throw:    ["ninja_throw", "ninja_throw2"],
+  samurai_alert:  ["samurai_alert", "samurai_alert2"],
+  samurai_attack: ["samurai_attack", "samurai_attack2"],
+};
 
 // ═══ JSFXR FALLBACKS (only for core sounds — enemies/ambient have no fallback) ═══
 const JSFXR = {
@@ -104,9 +120,9 @@ async function _loadMP3(name) {
   return false;
 }
 
-async function _loadAllSounds() {
+async function _loadBatch(names) {
   let mp3 = 0, fb = 0;
-  for (const name of SFX_NAMES) {
+  for (const name of names) {
     if (await _loadMP3(name)) { mp3++; continue; }
     const def = JSFXR[name];
     if (!def) continue;
@@ -119,10 +135,22 @@ async function _loadAllSounds() {
       if (a?.src) { _buffers[name] = a.src; fb++; }
     } catch { /* */ }
   }
-  console.log(`[audio] SFX: ${mp3} MP3 + ${fb} jsfxr`);
-  for (const n of AMBIENT_NAMES) await _loadMP3(n);
+  return { mp3, fb };
+}
+
+async function _loadAllSounds() {
+  // Phase 1: critical combat SFX (needed immediately)
+  const p1 = await _loadBatch(SFX_CRITICAL);
+  console.log(`[audio] Critical: ${p1.mp3} MP3 + ${p1.fb} jsfxr`);
+
+  // Phase 2: music + ambient (start playing ASAP)
   for (const n of MUSIC_NAMES) await _loadMP3(n);
+  for (const n of AMBIENT_NAMES) await _loadMP3(n);
   if (_wantsMusic) { _startMusicNow(); _startAmbientNow(); }
+
+  // Phase 3: remaining gameplay SFX (enemy sounds, steps, etc)
+  const p2 = await _loadBatch(SFX_GAMEPLAY);
+  console.log(`[audio] Gameplay: ${p2.mp3} MP3 + ${p2.fb} jsfxr`);
 }
 
 // ═══ PLAY SFX ═══
@@ -148,6 +176,14 @@ export function playSound(name, opts = {}) {
       a.play().catch(() => {});
     }
   } catch { /* */ }
+}
+
+// Play a random variant from a group (e.g. playRandom("step") picks step1/step2/step3)
+export function playRandom(group, opts = {}) {
+  const variants = VARIANTS[group];
+  if (!variants) { playSound(group, opts); return; }
+  const name = variants[Math.floor(Math.random() * variants.length)];
+  playSound(name, opts);
 }
 
 // ═══ MUSIC + AMBIENT ═══
