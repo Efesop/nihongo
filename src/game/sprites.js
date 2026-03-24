@@ -64,8 +64,8 @@ export function loadGameImages() {
     loadImg("death1", "/images/tinysenpai/death/hit.png", true),
     loadImg("death2", "/images/tinysenpai/death/fallen.png", true),
     // Enemies — also need gray bg removal
-    loadImg("oni", "/images/demon.png", true),
-    loadImg("ninja", "/images/ninja.png", true),
+    loadImg("oni", "/images/oni/demon.png", true),
+    loadImg("ninja", "/images/ninja/ninja.png", true),
     // Backgrounds
     loadImg("bg_forest", "/images/forest.png"),
   ]);

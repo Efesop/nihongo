@@ -219,7 +219,7 @@ export default function SmartSession({
   }, [loading]);
 
   // Loading state — animated running mascot
-  const runFrames = ["/images/run1-right-foot-contact.png", "/images/run2-push-off.png", "/images/run3-airborne.png", "/images/run4-left-foot-reaching.png"];
+  const runFrames = ["/images/tinysenpai/run/1.png", "/images/tinysenpai/run/2.png", "/images/tinysenpai/run/3.png", "/images/tinysenpai/run/4.png"];
   const loadingMessages = ["Preparing your training...", "Sharpening the blade...", "Setting up the dojo...", "Evaluating your weakness..."];
   const [loadingMsg] = useState(() => loadingMessages[Math.floor(Math.random() * loadingMessages.length)]);
   const [loadingFrame, setLoadingFrame] = useState(0);
@@ -246,10 +246,10 @@ export default function SmartSession({
     const pct = score.c + score.w > 0 ? Math.round(score.c / (score.c + score.w) * 100) : 0;
 
     // Grade + mascot pose based on performance
-    const grade = pct >= 90 ? { rank: "S", label: "Perfect!", img: "/images/tinysenpaistrike/4.png", color: c.go, note: "Making it harder next time", adj: -1 }
-      : pct >= 70 ? { rank: "A", label: "Great job!", img: "/images/tinysenpaistrike/1.png", color: c.g, note: "Good balance — keeping this level", adj: 0 }
-      : pct >= 50 ? { rank: "B", label: "Keep going!", img: "/images/tinysenpairun/ts1.png", color: c.a, note: "A bit tough — easing off slightly", adj: 1 }
-      : { rank: "C", label: "Let's practice more", img: "/images/tinysenpai2.png", color: c.m, note: "Tough session — easing off next time", adj: 1 };
+    const grade = pct >= 90 ? { rank: "S", label: "Perfect!", img: "/images/tinysenpai/grades-strike/4.png", color: c.go, note: "Making it harder next time", adj: -1 }
+      : pct >= 70 ? { rank: "A", label: "Great job!", img: "/images/tinysenpai/grades-strike/1.png", color: c.g, note: "Good balance — keeping this level", adj: 0 }
+      : pct >= 50 ? { rank: "B", label: "Keep going!", img: "/images/tinysenpai/grades-run/ts1.png", color: c.a, note: "A bit tough — easing off slightly", adj: 1 }
+      : { rank: "C", label: "Let's practice more", img: "/images/tinysenpai/tinysenpai2.png", color: c.m, note: "Tough session — easing off next time", adj: 1 };
 
     // Auto-save difficulty adjustment
     if (!sessionFeedback) {
@@ -329,7 +329,7 @@ export default function SmartSession({
     {/* Chat panel — opens below mascot */}
     {chatOpen && <div style={{ background: c.s2, borderRadius: 14, border: "1px solid " + c.b, overflow: "hidden" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderBottom: "1px solid " + c.b }}>
-        <img src="/images/tinysenpai2.png" alt="Senpai" style={{ width: 32, height: 32, imageRendering: "pixelated" }} />
+        <img src="/images/tinysenpai/tinysenpai2.png" alt="Senpai" style={{ width: 32, height: 32, imageRendering: "pixelated" }} />
         <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>Senpai</div>
         <button onClick={() => { setChatOpen(false); setChatInput(""); }} style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: "transparent", color: c.m, fontSize: 14 }}>✕</button>
       </div>
@@ -337,12 +337,12 @@ export default function SmartSession({
         {chatMessages.slice(-4).map((m, i) => m.role === "user"
           ? <div key={i} style={{ textAlign: "right", marginBottom: 8 }}><span style={{ display: "inline-block", padding: "8px 12px", borderRadius: "10px 4px 10px 10px", background: c.a + "18", color: c.tx, fontSize: 13, maxWidth: "75%" }}>{m.content}</span></div>
           : <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 8 }}>
-              <img src="/images/tinysenpai2.png" alt="" style={{ width: 28, height: 28, imageRendering: "pixelated", flexShrink: 0, marginTop: 2 }} />
+              <img src="/images/tinysenpai/tinysenpai2.png" alt="" style={{ width: 28, height: 28, imageRendering: "pixelated", flexShrink: 0, marginTop: 2 }} />
               <span style={{ display: "inline-block", padding: "8px 12px", borderRadius: "4px 10px 10px 10px", background: c.s, color: c.tx, fontSize: 13, lineHeight: 1.5, maxWidth: "80%" }}>{m.content}</span>
             </div>
         )}
         {chatLoading && <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "4px 0" }}>
-          <img src="/images/tinysenpai2.png" alt="" style={{ width: 24, height: 24, imageRendering: "pixelated" }} />
+          <img src="/images/tinysenpai/tinysenpai2.png" alt="" style={{ width: 24, height: 24, imageRendering: "pixelated" }} />
           <span style={{ fontSize: 12, color: c.m, fontStyle: "italic" }}>Thinking...</span>
         </div>}
       </div>}
@@ -364,7 +364,7 @@ export default function SmartSession({
           onMouseEnter={() => { setSenpaiHover(true); typeOut(hoverQuips[Math.floor(Math.random() * hoverQuips.length)]); }}
           onMouseLeave={() => { setSenpaiHover(false); if (typingRef.current) { clearInterval(typingRef.current); setSenpaiMsg(null); setTypingText(""); } }}
           style={{ width: 56, height: 56, borderRadius: 28, background: c.s2, border: "2px solid " + (senpaiHover ? c.a : c.b), display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "border-color .2s" }}>
-          <img src={senpaiHover ? "/images/tinysenpaistrike/1.png" : "/images/tinysenpai2.png"} alt="Senpai"
+          <img src={senpaiHover ? "/images/tinysenpai/grades-strike/1.png" : "/images/tinysenpai/tinysenpai2.png"} alt="Senpai"
             style={{ width: 44, height: 44, imageRendering: "pixelated" }} />
         </div>
       </div>
