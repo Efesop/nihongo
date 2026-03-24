@@ -201,15 +201,36 @@ export function render(g, ctx, isDesktop, font) {
       };
 
       if (e.deathStyle === "knockback") {
-        // ── Knockback: sent flying, tumble, slide with blood trail ──
-        ctx.globalAlpha = Math.max(0.15, Math.min(1, e.deathTimer / 1000));
+        // ── Knockback: per-pose sprite with appropriate rotation ──
+        ctx.globalAlpha = Math.max(0.15, Math.min(1, e.deathTimer / 1200));
         ctx.save();
         ctx.translate(e.x, e.y + TILE * SCALE);
-        // Tumble rotation: fast at start, slows as they slide to a stop
-        const tumbleSpeed = Math.min(1, Math.abs(e.vx) / 200);
-        const tumble = (1 - e.deathTimer / 2000) * e.facing * 2.5 * tumbleSpeed;
-        ctx.rotate(tumble);
-        _drawDeathSprite(map?.hit || map?.idle);
+
+        // Get the knockback pose sprite
+        const kbPose = e._kbPose || "kb_back";
+        const kbSprite = map?.[kbPose] || map?.hit || map?.idle;
+
+        // Rotation per pose type
+        if (kbPose === "kb_tumble") {
+          // Spinning tumble — continuous rotation
+          const spin = (1 - e.deathTimer / 2000) * (e._kbDir || 1) * 4;
+          ctx.rotate(spin);
+        } else if (kbPose === "kb_back") {
+          // On back — slight tilt in knockback direction
+          ctx.rotate((e._kbDir || 1) * 0.15);
+        }
+        // kb_seated — no rotation, upright sitting
+
+        // Flip based on knockback direction (sprites face left = knocked left)
+        if ((e._kbDir || 1) > 0) ctx.scale(-1, 1);
+
+        ctx.imageSmoothingEnabled = false;
+        const key = kbSprite?.key || map?.fallback;
+        const img = key ? getImage(key) : null;
+        if (img) {
+          ctx.drawImage(img, EC.x, EC.y, EC.w, EC.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
+        }
+
         ctx.restore();
         ctx.globalAlpha = 1;
         continue;
@@ -830,7 +851,10 @@ const ENEMY_SPRITE_MAP = {
     kneel:   { key: "oni_kneel", R: false },
     dead:    { key: "oni_dead", R: false },
     hit:     { key: "oni_hit", R: false },
-    // Fallback
+    // Knockback variants (randomly assigned on kill)
+    kb_back:   { key: "oni_kb_back", R: false },
+    kb_tumble: { key: "oni_kb_tumble", R: false },
+    kb_seated: { key: "oni_kb_seated", R: false },
     fallback: "oni",
   },
   ninja: {
@@ -845,6 +869,9 @@ const ENEMY_SPRITE_MAP = {
     kneel:   { key: "ninja_kneel", R: false },
     dead:    { key: "ninja_dead", R: false },
     hit:     { key: "ninja_hit", R: false },
+    kb_back:   { key: "ninja_kb_back", R: false },
+    kb_tumble: { key: "ninja_kb_tumble", R: false },
+    kb_seated: { key: "ninja_kb_seated", R: false },
     fallback: "ninja",
   },
   samurai: {

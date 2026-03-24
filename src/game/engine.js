@@ -880,10 +880,14 @@ function killEnemy(g, e, p, callbacks) {
   } else {
     // ── KNOCKBACK DEATH: enemy sent flying back, slides along ground ──
     e.deathStyle = "knockback";
-    e.deathTimer = 2000; // long slide visible
-    e.vx = p.facing * rnd(400, 650); // strong horizontal launch
-    e.vy = rnd(-120, -40);           // slight pop up, mostly horizontal
+    e.deathTimer = 2000;
+    e.vx = p.facing * rnd(400, 650);
+    e.vy = rnd(-120, -40);
     e._onGround = false;
+    e._kbDir = p.facing; // direction knocked (for sprite flip)
+    // Random knockback pose
+    const kbPoses = ["kb_back", "kb_tumble", "kb_seated"];
+    e._kbPose = kbPoses[Math.floor(Math.random() * kbPoses.length)];
     g.hitStop = 70;
   }
   g.camera.shakeTimer = 150;

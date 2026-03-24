@@ -80,6 +80,9 @@ export function loadGameImages() {
     loadImg("oni_hit", "/images/oni/oni-hit.png", true),
     loadImg("oni_kneel", "/images/oni/oni-kneel-defeat.png", true),
     loadImg("oni_dead", "/images/oni/oni-fallen-dead.png", true),
+    loadImg("oni_kb_back", "/images/oni/oni-knockback-back.png", true),
+    loadImg("oni_kb_tumble", "/images/oni/oni-knockback-tumble.png", true),
+    loadImg("oni_kb_seated", "/images/oni/oni-knockback-seated.png", true),
     // Ninja — full animation set
     loadImg("ninja", "/images/ninja/ninja.png", true),
     loadImg("ninja_idle", "/images/ninja/ninja-idle.png", true),
@@ -92,6 +95,9 @@ export function loadGameImages() {
     loadImg("ninja_hit", "/images/ninja/ninja-hit.png", true),
     loadImg("ninja_kneel", "/images/ninja/ninja-kneel.png", true),
     loadImg("ninja_dead", "/images/ninja/ninja-dead.png", true),
+    loadImg("ninja_kb_back", "/images/ninja/ninja-knockback-back.png", true),
+    loadImg("ninja_kb_tumble", "/images/ninja/ninja-knockback-tumble.png", true),
+    loadImg("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png", true),
     // Samurai — partial set (kneel + dead)
     loadImg("samurai_kneel", "/images/samurai/samurai-kneel.png", true),
     loadImg("samurai_dead", "/images/samurai/samurai-dead.png", true),
