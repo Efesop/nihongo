@@ -24,6 +24,7 @@ import DailyDrill from "./components/DailyDrill.jsx";
 import Onboarding from "./components/Onboarding.jsx";
 import Profile from "./components/Profile.jsx";
 import Layout from "./components/Layout.jsx";
+import JapanMap from "./components/JapanMap.jsx";
 
 export default function App(){
   const { user, isLoaded: clerkLoaded } = useUser();
@@ -533,7 +534,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`;
 
   // ═══ TABS & ROUTING ═══
-  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"smart",icon:"▶",label:"Learn"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
+  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"smart",icon:"▶",label:"Learn"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"map",icon:"🗾",label:"Map"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
   const handleTabClick=(id)=>{
     stopAudio(); // Stop any playing audio on tab switch
     setTab(id);
@@ -608,6 +609,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr}
       stopAudio={stopAudio} speakStory={speakStory} setTab={setTab}
     />}
+    {tab==="map"&&<JapanMap data={data} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}/>}
     {tab==="game"&&<Game theme={theme} c={c} isDesktop={isDesktop} SIDEBAR_W={SIDEBAR_W}/>}
     {showProfile&&<Profile
       c={c} card={card} btn={btn}
