@@ -8,7 +8,9 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
   const [hovered, setHovered] = useState(null);
   const [infoTab, setInfoTab] = useState("overview");
 
-  const region = selected ? REGIONS[selected] : null;
+  // On desktop, hover shows info. On mobile, tap selects.
+  const activeRegion = isDesktop ? (hovered || selected) : selected;
+  const region = activeRegion ? REGIONS[activeRegion] : null;
   const phrData = data?.phr || {};
 
   // Calculate phrase progress for selected region
@@ -35,21 +37,19 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     : "Tap a region to explore Japan. I'll tell you what you need to know... if you're worthy.";
 
   // ═══ MAP SVG ═══
-  const mapSvg = <svg viewBox="0 0 1050 1000" style={{ width: "100%", maxWidth: isDesktop ? 420 : 500, height: "auto" }}>
+  const mapSvg = <svg viewBox="0 0 1050 1000" style={{ width: "100%", height: "auto" }}>
     {/* Water/background */}
     <rect x="0" y="0" width="400" height="700" fill="transparent" />
 
     {/* Region paths */}
     {REGION_ORDER.map(id => {
       const r = REGIONS[id];
-      const isSelected = selected === id;
-      const isHovered = hovered === id;
-      const active = isSelected || isHovered;
+      const isActive = activeRegion === id;
       return <path key={id}
         d={REGION_PATHS[id]}
-        fill={isSelected ? r.color + "55" : isHovered ? r.color + "30" : c.s2}
-        stroke={active ? r.color : c.b}
-        strokeWidth={isSelected ? 2.5 : 1.2}
+        fill={isActive ? r.color + "44" : c.s2}
+        stroke={isActive ? r.color : c.b}
+        strokeWidth={isActive ? 2 : 1}
         style={{ cursor: "pointer", transition: "all .25s" }}
         onMouseEnter={() => setHovered(id)}
         onMouseLeave={() => setHovered(null)}
@@ -61,10 +61,10 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     {REGION_ORDER.map(id => {
       const r = REGIONS[id];
       const pos = LABEL_POS[id];
-      const active = selected === id || hovered === id;
+      const isActive = activeRegion === id;
       return <text key={"l-" + id} x={pos.x} y={pos.y}
-        textAnchor="middle" fontSize={active ? 11 : 9}
-        fill={active ? r.color : c.m + "aa"}
+        textAnchor="middle" fontSize={isActive ? 13 : 10}
+        fill={isActive ? r.color : c.m + "aa"}
         style={{ pointerEvents: "none", fontFamily: font, fontWeight: 700, transition: "all .2s" }}>
         {r.name}
       </text>;
@@ -76,8 +76,11 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
   const regionButtons = <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginTop: 8 }}>
     {REGION_ORDER.map(id => {
       const r = REGIONS[id];
-      const isActive = selected === id;
-      return <button key={id} onClick={() => { setSelected(isActive ? null : id); setInfoTab("overview"); }}
+      const isActive = activeRegion === id;
+      return <button key={id}
+        onClick={() => { setSelected(isActive ? null : id); setInfoTab("overview"); }}
+        onMouseEnter={isDesktop ? () => setHovered(id) : undefined}
+        onMouseLeave={isDesktop ? () => setHovered(null) : undefined}
         style={{ ...btn, padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: isActive ? 700 : 400,
           background: isActive ? r.color + "22" : "transparent", color: isActive ? r.color : c.m,
           border: "1px solid " + (isActive ? r.color + "44" : c.b + "44") }}>
@@ -105,7 +108,7 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
       <div style={{ fontSize: 14, fontFamily: mono, color: c.m, marginTop: 4 }}>{region.romaji} · {region.english}</div>
       {/* Progress */}
       {(() => {
-        const { known, total } = getRegionProgress(selected);
+        const { known, total } = getRegionProgress(activeRegion);
         if (total === 0) return null;
         const pct = Math.round(known / total * 100);
         return <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
@@ -236,12 +239,12 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
 
     {isDesktop ? (
       /* Desktop: side by side */
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        <div style={{ flex: "0 0 45%", maxWidth: 380 }}>
+      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+        <div style={{ flex: "0 0 55%" }}>
           {mapSvg}
           {regionButtons}
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {region ? infoPanel : defaultPanel}
         </div>
       </div>
