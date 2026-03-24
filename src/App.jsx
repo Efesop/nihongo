@@ -326,7 +326,7 @@ function AuthedApp({ user, getToken }){
   const nextKana=()=>{
     if(kI+1>=kCards.length){
       setKScreen("results");
-      setD(prev=>{const nd={...prev,sessions:prev.sessions+1};store.set(KEY,nd);return nd;});
+      save({sessions:(data.sessions||0)+1});
     } else {setKI(kI+1);setKInput("");setKFb(null);setKPeek(false);}
   };
 
