@@ -3,8 +3,11 @@
 // for wall jumping. Rooms get progressively longer and more complex.
 //
 // Platform types:
-//   { x, y, w }           — standard thin platform (land on top only)
-//   { x, y, w, h, wall:true } — solid block (wall jumpable sides)
+//   { x, y, w }               — standard thin platform (land on top only)
+//   { x, y, w, h, wall:true } — solid wall block (blocks movement, wall-jumpable)
+//
+// Wall shafts: walls are open at bottom for entry. Player jumps up into shaft,
+// bounces between walls to climb, exits at the top platform.
 
 export const ROOMS = [
   // ── Room 1: Tutorial corridor — run right, slash enemies ──
@@ -44,34 +47,35 @@ export const ROOMS = [
     deco: [{ type: "lantern", x: 200 }, { type: "torii", x: 1400 }],
   },
 
-  // ── Room 3: Wall jump introduction — bounce between walls to climb ──
+  // ── Room 3: Wall jump intro — step up, enter shaft, climb to top ──
   {
     platforms: [
-      { x: 0, y: 0, w: 500 },
-      // Step platforms (can reach without wall jump)
-      { x: 380, y: -70, w: 140 },
-      { x: 500, y: -140, w: 140 },
-      // Vertical shaft with walls (120px gap — tight enough for wall-to-wall climbing)
-      { x: 500, y: -280, w: 25, h: 290, wall: true },
-      { x: 645, y: -280, w: 25, h: 290, wall: true },
-      // Top platform
-      { x: 480, y: -290, w: 210 },
-      { x: 700, y: -290, w: 500 },
-      // Enemies guard the top
-      { x: 1250, y: -290, w: 300 },
-      // Ground continues
-      { x: 700, y: 0, w: 300 },
+      { x: 0, y: 0, w: 550 },
+      // Step platforms leading to shaft entry
+      { x: 400, y: -70, w: 160 },
+      { x: 520, y: -140, w: 160 },
+      // Wall shaft — open at bottom (walls start at -210, step is at -140, so 70px entry gap)
+      // Player jumps from step into the shaft and bounces up
+      { x: 540, y: -380, w: 35, h: 170, wall: true },  // left wall (170px tall, starts above entry)
+      { x: 695, y: -380, w: 35, h: 170, wall: true },  // right wall (120px inner gap)
+      // Top platform — exit from shaft
+      { x: 520, y: -390, w: 230 },
+      // Continue right at height
+      { x: 760, y: -390, w: 500 },
+      { x: 1310, y: -390, w: 300 },
+      // Ground continues right
+      { x: 760, y: 0, w: 300 },
     ],
     enemies: [
       { type: "oni", x: 300, y: 0 },
-      { type: "ninja", x: 600, y: -290 },
-      { type: "oni", x: 900, y: -290 },
-      { type: "oni", x: 1100, y: -290 },
-      { type: "samurai", x: 1400, y: -290 },
+      { type: "ninja", x: 900, y: -390 },
+      { type: "oni", x: 1050, y: -390 },
+      { type: "oni", x: 1200, y: -390 },
+      { type: "samurai", x: 1450, y: -390 },
     ],
     shadows: [],
     playerStart: 60,
-    deco: [{ type: "lantern", x: 585 }],
+    deco: [{ type: "lantern", x: 620 }],
   },
 
   // ── Room 4: Rooftop run — long platforming section ──
@@ -102,33 +106,34 @@ export const ROOMS = [
     deco: [{ type: "sign", x: 700 }, { type: "torii", x: 1400 }, { type: "lantern", x: 2100 }],
   },
 
-  // ── Room 5: Tower assault — climb up through wall jumps ──
+  // ── Room 5: Tower — climb the shaft with wall jumps ──
   {
     platforms: [
-      { x: 0, y: 0, w: 400 },
-      // Tower walls (120px gap for wall jumping)
-      { x: 400, y: -400, w: 20, h: 410, wall: true },
-      { x: 540, y: -400, w: 20, h: 410, wall: true },
-      // Interior ledges (rest stops during climb)
-      { x: 420, y: -120, w: 120 },
-      { x: 420, y: -260, w: 120 },
-      // Top
-      { x: 380, y: -410, w: 200 },
-      { x: 600, y: -350, w: 500 },
-      { x: 1150, y: -300, w: 300 },
+      { x: 0, y: 0, w: 450 },
+      // Entry step
+      { x: 380, y: -80, w: 160 },
+      // Tower shaft — open at bottom, walls start above the step
+      { x: 420, y: -420, w: 35, h: 280, wall: true },   // left wall
+      { x: 575, y: -420, w: 35, h: 280, wall: true },   // right wall (120px inner gap)
+      // Rest ledge halfway up (inside shaft, narrow)
+      { x: 455, y: -250, w: 120 },
+      // Top exit
+      { x: 400, y: -430, w: 230 },
+      // Continue right from tower top
+      { x: 650, y: -380, w: 500 },
+      { x: 1200, y: -320, w: 300 },
     ],
     enemies: [
       { type: "oni", x: 250, y: 0 },
-      { type: "ninja", x: 460, y: -120 },
-      { type: "oni", x: 460, y: -260 },
-      { type: "samurai", x: 500, y: -410 },
-      { type: "ninja", x: 800, y: -350 },
-      { type: "oni", x: 1000, y: -350 },
-      { type: "samurai", x: 1300, y: -300 },
+      { type: "ninja", x: 490, y: -250 },
+      { type: "samurai", x: 520, y: -430 },
+      { type: "ninja", x: 850, y: -380 },
+      { type: "oni", x: 1050, y: -380 },
+      { type: "samurai", x: 1350, y: -320 },
     ],
     shadows: [],
     playerStart: 60,
-    deco: [{ type: "lantern", x: 475 }],
+    deco: [{ type: "lantern", x: 510 }],
   },
 
   // ── Room 6: Ninja gauntlet — shurikens from every angle ──
@@ -158,37 +163,40 @@ export const ROOMS = [
     deco: [{ type: "torii", x: 600 }, { type: "torii", x: 1200 }, { type: "torii", x: 1800 }],
   },
 
-  // ── Room 7: Canyon — wall jump between narrow gaps ──
+  // ── Room 7: Canyon — two wall-jump shafts in sequence ──
   {
     platforms: [
-      { x: 0, y: 0, w: 350 },
-      // Canyon walls (120px gap)
-      { x: 350, y: -200, w: 20, h: 210, wall: true },
-      { x: 490, y: -200, w: 20, h: 210, wall: true },
-      { x: 330, y: -210, w: 200 },
+      { x: 0, y: 0, w: 400 },
+      // First canyon — entry step, shaft, top platform
+      { x: 320, y: -70, w: 140 },
+      { x: 380, y: -280, w: 35, h: 170, wall: true },   // left wall
+      { x: 535, y: -280, w: 35, h: 170, wall: true },   // right wall
+      { x: 360, y: -290, w: 230 },                       // top exit
+      // Bridge between canyons
+      { x: 600, y: -200, w: 200 },
+      { x: 700, y: -100, w: 150 },
       // Second canyon
-      { x: 590, y: -100, w: 200 },
-      { x: 840, y: -200, w: 20, h: 210, wall: true },
-      { x: 980, y: -200, w: 20, h: 210, wall: true },
-      { x: 820, y: -210, w: 200 },
-      // End area
-      { x: 1100, y: -150, w: 200 },
+      { x: 880, y: -280, w: 35, h: 170, wall: true },
+      { x: 1035, y: -280, w: 35, h: 170, wall: true },
+      { x: 860, y: -290, w: 230 },
+      // End area — descend
+      { x: 1100, y: -200, w: 200 },
       { x: 1350, y: -100, w: 200 },
       { x: 1600, y: 0, w: 400 },
     ],
     enemies: [
       { type: "oni", x: 200, y: 0 },
-      { type: "ninja", x: 450, y: -210 },
-      { type: "oni", x: 700, y: -100 },
-      { type: "ninja", x: 950, y: -210 },
-      { type: "samurai", x: 1200, y: -150 },
+      { type: "ninja", x: 480, y: -290 },
+      { type: "oni", x: 700, y: -200 },
+      { type: "ninja", x: 980, y: -290 },
+      { type: "samurai", x: 1200, y: -200 },
       { type: "oni", x: 1450, y: -100 },
       { type: "oni", x: 1700, y: 0 },
       { type: "samurai", x: 1850, y: 0 },
     ],
     shadows: [],
     playerStart: 50,
-    deco: [{ type: "lantern", x: 435 }, { type: "lantern", x: 935 }],
+    deco: [{ type: "lantern", x: 460 }, { type: "lantern", x: 960 }],
   },
 
   // ── Room 8: Fortress — complex multi-level structure ──
@@ -198,7 +206,8 @@ export const ROOMS = [
       { x: 500, y: -60, w: 400 },
       { x: 900, y: -120, w: 400 },
       { x: 700, y: -200, w: 300 },
-      { x: 1100, y: -200, w: 20, h: 90, wall: true },
+      // Short wall obstacle
+      { x: 1100, y: -200, w: 30, h: 90, wall: true },
       { x: 1300, y: 0, w: 500 },
       { x: 1300, y: -140, w: 300 },
       { x: 1650, y: -80, w: 200 },
@@ -222,25 +231,27 @@ export const ROOMS = [
     deco: [{ type: "torii", x: 650 }, { type: "lantern", x: 1000 }, { type: "torii", x: 1800 }],
   },
 
-  // ── Room 9: The gauntlet — long, relentless, everything ──
+  // ── Room 9: The gauntlet — wall jump section mid-run ──
   {
     platforms: [
       { x: 0, y: 0, w: 800 },
       { x: 600, y: -80, w: 250 },
       { x: 900, y: 0, w: 400 },
-      // Wall jump section (120px gap)
-      { x: 1300, y: -250, w: 20, h: 260, wall: true },
-      { x: 1440, y: -250, w: 20, h: 260, wall: true },
-      { x: 1280, y: -260, w: 200 },
+      // Entry step to wall shaft
+      { x: 1250, y: -80, w: 150 },
+      // Wall jump section (120px inner gap, open at bottom)
+      { x: 1320, y: -320, w: 35, h: 200, wall: true },
+      { x: 1475, y: -320, w: 35, h: 200, wall: true },
+      { x: 1300, y: -330, w: 230 },
       // Upper path
-      { x: 1500, y: -200, w: 400 },
-      { x: 1950, y: -130, w: 300 },
+      { x: 1540, y: -260, w: 400 },
+      { x: 1990, y: -180, w: 300 },
       // Lower path continues
-      { x: 1500, y: 0, w: 400 },
-      { x: 1950, y: 0, w: 400 },
+      { x: 1540, y: 0, w: 400 },
+      { x: 1990, y: 0, w: 400 },
       // Final arena
-      { x: 2400, y: 0, w: 600 },
-      { x: 2550, y: -100, w: 200 },
+      { x: 2440, y: 0, w: 600 },
+      { x: 2590, y: -100, w: 200 },
     ],
     enemies: [
       { type: "oni", x: 300, y: 0 },
@@ -248,33 +259,33 @@ export const ROOMS = [
       { type: "ninja", x: 725, y: -80 },
       { type: "oni", x: 1000, y: 0 },
       { type: "samurai", x: 1200, y: 0 },
-      { type: "ninja", x: 1380, y: -260 },
-      { type: "oni", x: 1650, y: -200 },
-      { type: "oni", x: 1800, y: -200 },
-      { type: "samurai", x: 2050, y: -130 },
-      { type: "oni", x: 1650, y: 0 },
-      { type: "ninja", x: 2100, y: 0 },
-      { type: "oni", x: 2550, y: 0 },
-      { type: "samurai", x: 2700, y: 0 },
-      { type: "samurai", x: 2850, y: 0 },
+      { type: "ninja", x: 1400, y: -330 },
+      { type: "oni", x: 1700, y: -260 },
+      { type: "oni", x: 1850, y: -260 },
+      { type: "samurai", x: 2100, y: -180 },
+      { type: "oni", x: 1700, y: 0 },
+      { type: "ninja", x: 2150, y: 0 },
+      { type: "oni", x: 2600, y: 0 },
+      { type: "samurai", x: 2750, y: 0 },
+      { type: "samurai", x: 2900, y: 0 },
     ],
     shadows: [],
     playerStart: 50,
-    deco: [{ type: "torii", x: 400 }, { type: "lantern", x: 1385 }, { type: "torii", x: 2500 }],
+    deco: [{ type: "torii", x: 400 }, { type: "lantern", x: 1400 }, { type: "torii", x: 2500 }],
   },
 
-  // ── Room 10: Boss arena — wide open with pillars ──
+  // ── Room 10: Boss arena — pillars with wall-jump tops ──
   {
     platforms: [
       { x: 0, y: 0, w: 2000 },
-      // Pillars for wall jumping
-      { x: 400, y: -180, w: 25, h: 190, wall: true },
+      // Pillars — solid columns you can wall-jump up and land on top
+      { x: 400, y: -180, w: 35, h: 190, wall: true },
       { x: 400, y: -190, w: 100 },
-      { x: 800, y: -180, w: 25, h: 190, wall: true },
+      { x: 800, y: -180, w: 35, h: 190, wall: true },
       { x: 800, y: -190, w: 100 },
-      { x: 1200, y: -180, w: 25, h: 190, wall: true },
+      { x: 1200, y: -180, w: 35, h: 190, wall: true },
       { x: 1200, y: -190, w: 100 },
-      { x: 1600, y: -180, w: 25, h: 190, wall: true },
+      { x: 1600, y: -180, w: 35, h: 190, wall: true },
       { x: 1600, y: -190, w: 100 },
     ],
     enemies: [

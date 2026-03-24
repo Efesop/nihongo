@@ -95,15 +95,57 @@ export function render(g, ctx, isDesktop, font) {
     const accent = hasBg ? "#3a8a5a" : "#c0282a";
 
     if (plat.wall) {
-      // Solid wall block — darker, wall-jumpable
+      // Solid climbable wall — stone/brick texture
       const h = plat.h || 100;
-      ctx.fillStyle = hasBg ? "#0e1a14" : "#12121e";
-      ctx.fillRect(plat.x, plat.y, plat.w, h);
-      ctx.fillStyle = accent + "44";
-      ctx.fillRect(plat.x, plat.y, 1, h);
-      ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, h);
-      ctx.fillStyle = accent + "66";
-      ctx.fillRect(plat.x, plat.y, plat.w, 1);
+      const w = plat.w;
+      const wx = plat.x;
+      const wy = plat.y;
+
+      // Base fill — dark stone
+      const wallGrad = ctx.createLinearGradient(wx, wy, wx + w, wy);
+      wallGrad.addColorStop(0, hasBg ? "#141e18" : "#16162a");
+      wallGrad.addColorStop(0.5, hasBg ? "#1a2820" : "#1c1c34");
+      wallGrad.addColorStop(1, hasBg ? "#141e18" : "#16162a");
+      ctx.fillStyle = wallGrad;
+      ctx.fillRect(wx, wy, w, h);
+
+      // Brick/stone rows
+      const brickH = 16;
+      for (let row = 0; row < Math.ceil(h / brickH); row++) {
+        const by = wy + row * brickH;
+        if (by > wy + h) break;
+        const bh = Math.min(brickH, wy + h - by);
+        // Offset every other row for brick pattern
+        const offset = row % 2 === 0 ? 0 : w * 0.4;
+        // Mortar line (horizontal)
+        ctx.fillStyle = hasBg ? "#0a120e" : "#0e0e1a";
+        ctx.fillRect(wx, by, w, 1);
+        // Brick color variation per row using deterministic hash
+        const rowHash = hash(wx + row * 7, wy + row * 13);
+        const brightness = 0.7 + rowHash * 0.3;
+        const r = Math.floor((hasBg ? 20 : 22) * brightness);
+        const g = Math.floor((hasBg ? 32 : 22) * brightness);
+        const b = Math.floor((hasBg ? 26 : 40) * brightness);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(wx + 1, by + 1, w - 2, bh - 1);
+        // Vertical mortar line in each brick row
+        const mx = wx + offset;
+        if (mx > wx && mx < wx + w) {
+          ctx.fillStyle = hasBg ? "#0a120e" : "#0e0e1a";
+          ctx.fillRect(mx, by, 1, bh);
+        }
+      }
+
+      // Edge highlights — mossy green accent on edges
+      ctx.fillStyle = accent + "55";
+      ctx.fillRect(wx, wy, 2, h);           // left edge
+      ctx.fillRect(wx + w - 2, wy, 2, h);   // right edge
+      ctx.fillStyle = accent + "88";
+      ctx.fillRect(wx, wy, w, 2);           // top cap
+      // Inner edge shadow
+      ctx.fillStyle = "rgba(0,0,0,0.3)";
+      ctx.fillRect(wx + 2, wy + 2, 1, h - 2);
+      ctx.fillRect(wx + w - 3, wy + 2, 1, h - 2);
     } else {
       // Standard thin platform
       const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);

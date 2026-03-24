@@ -388,17 +388,40 @@ export function update(g, callbacks) {
   p.x += p.vx * dt;
   p.y += p.vy * dt;
 
-  // Platform collision — skip wall blocks (they use wall-slide logic instead)
+  // ── Horizontal wall collision — walls are SOLID, player can't walk through ──
+  const pw = TILE * SCALE * 0.5;
+  for (const plat of g.platforms) {
+    if (!plat.wall) continue;
+    const playerBottom = p.y + TILE * SCALE;
+    const playerTop = p.y;
+    // Only collide if player overlaps the wall vertically
+    if (playerBottom <= plat.y || playerTop >= plat.y + plat.h) continue;
+    const playerRight = p.x + pw;
+    const playerLeft = p.x - pw;
+    if (playerRight > plat.x && playerLeft < plat.x + plat.w) {
+      // Player overlaps wall — push out from nearest face
+      const overlapLeft = playerRight - plat.x;
+      const overlapRight = (plat.x + plat.w) - playerLeft;
+      if (overlapLeft < overlapRight) {
+        p.x = plat.x - pw;
+        if (p.vx > 0) p.vx = 0;
+      } else {
+        p.x = plat.x + plat.w + pw;
+        if (p.vx < 0) p.vx = 0;
+      }
+    }
+  }
+
+  // ── Platform collision — landing on top of surfaces ──
   const wasGrounded = p.grounded;
   p.grounded = false;
   for (const plat of g.platforms) {
-    if (plat.wall) continue; // Wall blocks are not landing surfaces
-    const pw = TILE * SCALE * 0.5;
+    // Can land on TOP of wall blocks (only the very top surface)
+    const landH = plat.wall ? 6 : plat.h;
     if (p.x + pw > plat.x && p.x - pw < plat.x + plat.w &&
-        p.y + TILE * SCALE > plat.y && p.y + TILE * SCALE < plat.y + plat.h + Math.abs(p.vy * dt) + 10 &&
+        p.y + TILE * SCALE > plat.y && p.y + TILE * SCALE < plat.y + landH + Math.abs(p.vy * dt) + 10 &&
         p.vy >= 0) {
       p.y = plat.y - TILE * SCALE;
-      // Landing impact — dust + small shake if falling fast
       if (!wasGrounded && p.vy > 300) {
         spawnDust(g, p.x, p.y + TILE * SCALE);
         playSound("land", { volume: Math.min(1, p.vy / 600) });
@@ -411,37 +434,41 @@ export function update(g, callbacks) {
 
   p.x = Math.max(10, Math.min(g.levelW - 10, p.x));
 
-  // Wall sliding detection — grab walls while airborne (no vy>0 check — allows grabbing while rising)
-  // wallJumpCooldown prevents re-grabbing the wall you just jumped from
+  // ── Wall sliding — grab walls while airborne, slide down with particles ──
   const wasWallSliding = p.wallSliding;
   p.wallSliding = false;
   p.wallDir = 0;
   if (!p.grounded && p.wallJumpCooldown <= 0) {
-    const pw = TILE * SCALE * 0.5;
     for (const plat of g.platforms) {
       if (!plat.wall) continue;
       const playerBottom = p.y + TILE * SCALE;
       const playerTop = p.y;
-      // Check right side of player against left side of wall
-      if (p.x + pw > plat.x && p.x + pw < plat.x + 10 &&
-          playerBottom > plat.y && playerTop < plat.y + plat.h) {
+      if (playerBottom <= plat.y || playerTop >= plat.y + plat.h) continue;
+      // Player's right side against wall's left face
+      if (Math.abs((p.x + pw) - plat.x) < 5) {
         p.wallSliding = true;
-        p.wallDir = 1; // wall is to the right
-        if (p.vy > 0) p.vy = Math.min(p.vy, 100); // slow fall (only cap when falling)
+        p.wallDir = 1;
+        if (p.vy > 0) p.vy = Math.min(p.vy, 100);
         p.x = plat.x - pw;
       }
-      // Check left side of player against right side of wall
-      if (p.x - pw < plat.x + plat.w && p.x - pw > plat.x + plat.w - 10 &&
-          playerBottom > plat.y && playerTop < plat.y + plat.h) {
+      // Player's left side against wall's right face
+      if (Math.abs((p.x - pw) - (plat.x + plat.w)) < 5) {
         p.wallSliding = true;
-        p.wallDir = -1; // wall is to the left
+        p.wallDir = -1;
         if (p.vy > 0) p.vy = Math.min(p.vy, 100);
         p.x = plat.x + plat.w + pw;
       }
     }
   }
-  // Play wall-slide sound when first grabbing a wall
+  // Wall-slide effects — sound + dust particles
   if (p.wallSliding && !wasWallSliding) playSound("wallSlide");
+  if (p.wallSliding && p.vy > 0 && Math.random() < dt * 12) {
+    g.particles.push({
+      x: p.x + p.wallDir * pw, y: p.y + rnd(20, TILE * SCALE),
+      vx: -p.wallDir * rnd(15, 40), vy: rnd(-30, -5),
+      life: 200, maxLife: 200, color: "#888888", size: rndInt(1, 3),
+    });
+  }
 
   if (p.y > g.H + 100) killPlayer(g, callbacks);
 
@@ -510,9 +537,21 @@ export function update(g, callbacks) {
     // Move enemy AFTER AI sets velocity, BEFORE platform clamping
     e.x += e.vx * dt;
 
-    // Clamp to platform bounds
+    // Clamp to platform bounds + wall collision for enemies
     if (onPlatform) {
       e.x = Math.max(platLeft, Math.min(platRight, e.x));
+    }
+    // Enemies can't walk through walls either
+    const epw = TILE * SCALE * 0.4;
+    for (const wall of g.platforms) {
+      if (!wall.wall) continue;
+      const eBottom = e.y + TILE * SCALE;
+      if (eBottom <= wall.y || e.y >= wall.y + wall.h) continue;
+      if (e.x + epw > wall.x && e.x - epw < wall.x + wall.w) {
+        if (e.x < wall.x + wall.w / 2) { e.x = wall.x - epw; }
+        else { e.x = wall.x + wall.w + epw; }
+        e.vx = 0;
+      }
     }
 
     // ── Slash collision (can hit multiple per slash) ──
