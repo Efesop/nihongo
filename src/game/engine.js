@@ -267,13 +267,13 @@ export function update(g, callbacks) {
   p.afterimages = p.afterimages.filter(ai => ai.life > 0);
 
   // Running dust + footstep sounds
-  if (p.grounded && Math.abs(p.vx) > 100 && Math.random() < dt * 8) {
+  if (p.grounded && Math.abs(p.vx) > 100 && Math.random() < dt * 10) {
     g.particles.push({
       x: p.x + rnd(-6, 6), y: p.y + TILE * SCALE,
       vx: -p.facing * rnd(20, 50), vy: rnd(-30, -10),
       life: 250, maxLife: 250, color: "#666666", size: rndInt(2, 3),
     });
-    if (Math.random() < 0.4) playSound("footstep", { playbackRate: rnd(0.8, 1.2) });
+    playSound("footstep", { volume: 0.6, playbackRate: rnd(0.8, 1.2) });
   }
 
   // Jump + wall jump

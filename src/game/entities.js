@@ -80,11 +80,11 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = 0;
       if (e.attackTimer <= 0) e.state = "chase";
     } else if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") e.alert = 400;
+      if (e.state === "patrol") { e.alert = 400; playSound("enemy_alert", { volume: 0.5 }); }
       e.state = "chase";
       e.facing = toPlayer;
-      e.vx = toPlayer * MOVE_SPEED * 0.7; // faster chase
-      if (dist < 65) { e.state = "attack"; e.attackTimer = 600; } // bigger attack range
+      e.vx = toPlayer * MOVE_SPEED * 0.7;
+      if (dist < 65) { e.state = "attack"; e.attackTimer = 600; playSound("enemy_attack", { volume: 0.6 }); }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
@@ -124,10 +124,10 @@ export function updateEnemyAI(e, player, dt, projectiles) {
       e.vx = 0;
       if (e.attackTimer <= 0) e.state = "chase";
     } else if (dist < e.alertRange && playerVisible) {
-      if (e.state === "patrol") e.alert = 400;
+      if (e.state === "patrol") { e.alert = 400; playSound("enemy_alert", { volume: 0.6 }); }
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.5;
-      if (dist < 60) { e.state = "attack"; e.attackTimer = 700; }
+      if (dist < 60) { e.state = "attack"; e.attackTimer = 700; playSound("enemy_attack", { volume: 0.7 }); }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
