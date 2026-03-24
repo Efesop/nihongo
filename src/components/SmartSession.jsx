@@ -464,7 +464,7 @@ export default function SmartSession({
           setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
           updateKanaSRS(ex.item, ok);
           setTimeout(() => advance(ok), ok ? 1500 : 2500);
-        }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + c.b, background: c.s, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
+        }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + c.b, background: c.s, color: c.tx, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
           {ch}
         </button>)}
       </div>}
