@@ -518,17 +518,28 @@ export function render(g, ctx, isDesktop, font) {
 // Crop rects per sprite — fitted to actual character bounds
 // R = faces right (AI-generated sprites), L = faces left (original mascot)
 // Idle faces LEFT, all AI-generated action sprites face RIGHT
+// R = sprite faces right. Per-frame direction since AI generates mixed.
+// Crop rects will need re-measuring after new sprites are placed.
 const CROPS = {
-  idle:    { x: 64,  y: 160, w: 896, h: 660, R: false },
-  run:     { x: 140, y: 140, w: 750, h: 730, R: true },
-  slash:   { x: 80,  y: 100, w: 860, h: 800, R: true },
-  jump1:   { x: 160, y: 190, w: 700, h: 650, R: true },
-  jump2:   { x: 250, y: 150, w: 600, h: 720, R: true },
-  fall:    { x: 260, y: 60,  w: 550, h: 860, R: true },
-  wallslide:{ x: 140, y: 120, w: 660, h: 800, R: true },
-  dash:    { x: 60,  y: 210, w: 900, h: 600, R: true },
-  death1:  { x: 100, y: 80,  w: 810, h: 800, R: true },
-  death2:  { x: 80,  y: 420, w: 920, h: 310, R: true },
+  idle:      { x: 64,  y: 160, w: 896, h: 660, R: false },
+  // Run frames — each has own direction
+  run1:      { x: 100, y: 80,  w: 820, h: 860, R: false },
+  run2:      { x: 60,  y: 60,  w: 900, h: 880, R: true },
+  run3:      { x: 120, y: 100, w: 760, h: 780, R: true },
+  run4:      { x: 100, y: 80,  w: 830, h: 850, R: true },
+  // Slash frames — each has own direction
+  slash1:    { x: 60,  y: 100, w: 900, h: 800, R: true },
+  slash2:    { x: 30,  y: 40,  w: 950, h: 920, R: false },
+  slash3:    { x: 100, y: 60,  w: 780, h: 880, R: true },
+  slash4:    { x: 80,  y: 100, w: 860, h: 800, R: true },
+  // Other poses
+  jump1:     { x: 120, y: 80,  w: 780, h: 840, R: true },
+  jump2:     { x: 140, y: 100, w: 720, h: 780, R: false },
+  fall:      { x: 160, y: 80,  w: 700, h: 860, R: false },
+  wallslide: { x: 140, y: 120, w: 660, h: 800, R: true },
+  dash:      { x: 60,  y: 210, w: 900, h: 600, R: true },
+  death1:    { x: 80,  y: 60,  w: 860, h: 880, R: false },
+  death2:    { x: 30,  y: 350, w: 960, h: 400, R: true },
 };
 
 // Helper: draw a sprite image with crop and flip
@@ -572,8 +583,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (p.state === "run") {
     const frameIndex = (Math.floor(elapsed * 8) % 4) + 1;
     const img = getImage("run" + frameIndex);
-    // Run frames face LEFT — flip for right
-    if (drawSpriteFrame(ctx, img, "run", s, p.facing)) { ctx.restore(); return; }
+    if (drawSpriteFrame(ctx, img, "run" + frameIndex, s, p.facing)) { ctx.restore(); return; }
   }
 
   if (p.state === "jump") {
@@ -627,12 +637,12 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
     const slashImg = getImage(slashImgKey);
     if (slashImg) {
-      if (p.facing < 0) ctx.scale(-1, 1); // slash sprites face right
+      // Per-frame flip using the slash crop's R flag
+      const sc = CROPS[slashImgKey] || CROPS.slash1;
+      if (sc.R ? (p.facing < 0) : (p.facing > 0)) ctx.scale(-1, 1);
 
-      const sc = CROPS.slash;
-      const sa = sc.w / sc.h;
-      const sdw = s * sa * 1.05;
-      const sdh = s * 1.05;
+      const sdw = DRAW_W * 1.05;
+      const sdh = DRAW_H * 1.05;
 
       ctx.drawImage(slashImg, sc.x, sc.y, sc.w, sc.h, -sdw / 2, -sdh, sdw, sdh);
 

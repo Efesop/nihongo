@@ -46,29 +46,28 @@ function loadImg(key, src, removeGrayBg = false) {
 
 export function loadGameImages() {
   return Promise.all([
-    loadImg("player", "/images/tinysenpai2.png"),
+    // Player — organized in tinysenpai/ subfolder
+    loadImg("player", "/images/tinysenpai/idle.png"),
+    loadImg("run1", "/images/tinysenpai/run/1.png"),
+    loadImg("run2", "/images/tinysenpai/run/2.png"),
+    loadImg("run3", "/images/tinysenpai/run/3.png"),
+    loadImg("run4", "/images/tinysenpai/run/4.png"),
+    loadImg("slash1", "/images/tinysenpai/slash/1.png"),
+    loadImg("slash2", "/images/tinysenpai/slash/2.png"),
+    loadImg("slash3", "/images/tinysenpai/slash/3.png"),
+    loadImg("slash4", "/images/tinysenpai/slash/4.png"),
+    loadImg("jump1", "/images/tinysenpai/jump/launch.png"),
+    loadImg("jump2", "/images/tinysenpai/jump/airborne.png"),
+    loadImg("fall", "/images/tinysenpai/fall.png"),
+    loadImg("wallslide", "/images/tinysenpai/wallslide.png"),
+    loadImg("dash", "/images/tinysenpai/dash.png"),
+    loadImg("death1", "/images/tinysenpai/death/hit.png"),
+    loadImg("death2", "/images/tinysenpai/death/fallen.png"),
+    // Enemies
     loadImg("oni", "/images/demon.png"),
     loadImg("ninja", "/images/ninja.png"),
-    loadImg("run1", "/images/tinysenpairun/ts1.png"),
-    loadImg("run2", "/images/tinysenpairun/ts2.png"),
-    loadImg("run3", "/images/tinysenpairun/ts3.png"),
-    loadImg("run4", "/images/tinysenpairun/ts4.png"),
-    loadImg("slash1", "/images/tinysenpaistrike/1.png"),
-    loadImg("slash2", "/images/tinysenpaistrike/2.png"),
-    loadImg("slash3", "/images/tinysenpaistrike/3.png"),
-    loadImg("slash4", "/images/tinysenpaistrike/4.png"),
-    loadImg("jump1", "/images/tinysenpaiother/jump1-launch.png"),
-    loadImg("jump2", "/images/tinysenpaiother/jump2-airborne.png"),
-    loadImg("fall", "/images/tinysenpaiother/fall.png"),
-    loadImg("wallslide", "/images/tinysenpaiother/wall-slide.png"),
-    loadImg("dash", "/images/tinysenpaiother/dash.png"),
-    loadImg("death1", "/images/tinysenpaiother/death1-hit.png"),
-    loadImg("death2", "/images/tinysenpaiother/death2-fallen.png"),
+    // Backgrounds
     loadImg("bg_forest", "/images/forest.png"),
-    // Add more as PNGs are created:
-    // loadImg("samurai", "/images/ronin.png"),
-    // loadImg("bg_temple", "/images/temple.png"),
-    // loadImg("bg_neon", "/images/neon.png"),
   ]);
 }
 
