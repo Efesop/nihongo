@@ -547,42 +547,71 @@ export function update(g, callbacks) {
       e.deathTimer -= dt * 1000;
       // Knockback death physics — fly back and slide along ground with blood trail
       if (e.deathStyle === "knockback") {
-        // Apply gravity only if airborne
-        if (!e._onGround) {
-          e.vy += GRAVITY * dt;
-          e.y += e.vy * dt;
-        }
-        // Horizontal slide with friction
-        e.x += e.vx * dt;
-        e.vx *= e._onGround ? 0.94 : 0.99; // more friction on ground
-
-        // Land on platforms
+        // Check if still on a platform (re-check each frame — fall off edges)
+        e._onGround = false;
+        let groundPlat = null;
         for (const plat of g.platforms) {
           if (plat.wall) continue;
-          if (e.x > plat.x - 20 && e.x < plat.x + plat.w + 20 &&
-              e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + 30 &&
-              e.vy >= 0) {
+          // Must be within platform x bounds (not past edges)
+          if (e.x > plat.x && e.x < plat.x + plat.w &&
+              e.y + TILE * SCALE >= plat.y - 2 && e.y + TILE * SCALE <= plat.y + 20) {
+            e._onGround = true;
+            groundPlat = plat;
             e.y = plat.y - TILE * SCALE;
             e.vy = 0;
-            e._onGround = true;
           }
         }
 
-        // Blood trail while sliding on ground
-        if (e._onGround && Math.abs(e.vx) > 15) {
-          // Continuous blood stain trail
+        // Gravity when airborne (fell off edge or launched)
+        if (!e._onGround) {
+          e.vy += GRAVITY * dt;
+          e.y += e.vy * dt;
+          // Land on platforms from above
+          for (const plat of g.platforms) {
+            if (plat.wall) continue;
+            if (e.x > plat.x && e.x < plat.x + plat.w &&
+                e.y + TILE * SCALE > plat.y && e.y + TILE * SCALE < plat.y + Math.abs(e.vy * dt) + 10 &&
+                e.vy >= 0) {
+              e.y = plat.y - TILE * SCALE;
+              e.vy = 0;
+              e._onGround = true;
+              groundPlat = plat;
+            }
+          }
+        }
+
+        // Horizontal slide with friction
+        e.x += e.vx * dt;
+        e.vx *= e._onGround ? 0.93 : 0.99;
+
+        // Stop at walls
+        const epw = TILE * SCALE * 0.3;
+        for (const wall of g.platforms) {
+          if (!wall.wall) continue;
+          if (e.y + TILE * SCALE <= wall.y || e.y >= wall.y + wall.h) continue;
+          if (e.x + epw > wall.x && e.x - epw < wall.x + wall.w) {
+            if (e.vx > 0) e.x = wall.x - epw;
+            else e.x = wall.x + wall.w + epw;
+            e.vx = 0;
+          }
+        }
+
+        // Kill if fallen off screen
+        if (e.y > g.H + 200) { e.deathTimer = 0; }
+
+        // Blood trail ONLY while on a platform and sliding
+        if (e._onGround && Math.abs(e.vx) > 15 && groundPlat) {
           if (Math.random() < dt * 30) {
             g.particles.push({
-              x: e.x + rnd(-5, 5), y: e.y + TILE * SCALE - 1,
+              x: e.x + rnd(-5, 5), y: groundPlat.y - 1,
               vx: 0, vy: 0, life: 10000, maxLife: 10000,
               color: rnd(0,1) > 0.4 ? "#550000" : "#3a0000",
               size: rnd(4, 10), isStain: true,
             });
           }
-          // Blood droplets spraying up
           if (Math.random() < dt * 12) {
             g.particles.push({
-              x: e.x + rnd(-6, 6), y: e.y + TILE * SCALE - 4,
+              x: e.x + rnd(-6, 6), y: groundPlat.y - 4,
               vx: -e.vx * rnd(0.1, 0.3), vy: rnd(-80, -30),
               life: 300, maxLife: 300,
               color: rnd(0,1) > 0.5 ? "#cc1111" : "#aa0000", size: rnd(1, 3),
