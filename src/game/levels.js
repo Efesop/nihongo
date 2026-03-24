@@ -44,15 +44,18 @@ export const ROOMS = [
     deco: [{ type: "lantern", x: 200 }, { type: "torii", x: 1400 }],
   },
 
-  // ── Room 3: Wall jump introduction — narrow shaft to climb ──
+  // ── Room 3: Wall jump introduction — wider shaft, step platforms as alternative ──
   {
     platforms: [
       { x: 0, y: 0, w: 500 },
-      // Vertical shaft with walls
-      { x: 500, y: -250, w: 20, h: 260, wall: true },
-      { x: 650, y: -250, w: 20, h: 260, wall: true },
+      // Step platforms (can reach without wall jump)
+      { x: 380, y: -70, w: 140 },
+      { x: 500, y: -140, w: 140 },
+      // Vertical shaft with walls (wider gap = easier wall jump)
+      { x: 480, y: -250, w: 25, h: 260, wall: true },
+      { x: 680, y: -250, w: 25, h: 260, wall: true },
       // Top platform
-      { x: 480, y: -260, w: 210 },
+      { x: 460, y: -260, w: 270 },
       { x: 750, y: -260, w: 500 },
       // Enemies guard the top
       { x: 1300, y: -260, w: 300 },

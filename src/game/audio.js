@@ -236,13 +236,19 @@ export function initAudio() {
   _muted = localStorage.getItem("nihongo-game-muted") === "true";
 
   // Pre-generate all sounds as Audio elements
+  let generated = 0;
   for (const [name, def] of Object.entries(SOUNDS)) {
     try {
-      _audioCache[name] = sfxr.toAudio(def);
-    } catch {
-      // Silently skip sounds that fail to generate
+      const audio = sfxr.toAudio(def);
+      if (audio) {
+        _audioCache[name] = audio;
+        generated++;
+      }
+    } catch (e) {
+      console.warn(`[audio] Failed to generate "${name}":`, e.message);
     }
   }
+  console.log(`[audio] Generated ${generated}/${Object.keys(SOUNDS).length} sounds`);
 }
 
 // ═══ PLAY SOUND ═══

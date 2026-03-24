@@ -534,7 +534,7 @@ const CROPS = {
   slash4:    { x: 80, y: 100, w: 860, h: 800, R: true },
   jump1:     { ...F, R: false },
   jump2:     { ...F, R: true },
-  fall:      { ...F, R: false },
+  fall:      { ...F, R: true },
   wallslide: { ...F, R: true },
   dash:      { ...F, R: false },
   death1:    { ...F, R: false },
