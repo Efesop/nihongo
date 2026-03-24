@@ -254,8 +254,8 @@ export function update(g, callbacks) {
       });
     }
   } else if (p.slashTimer > 0) {
-    // Keep momentum — long slide through enemies
-    p.vx *= 0.97;
+    // Keep momentum — long slide through enemies (less friction = further)
+    p.vx *= 0.985;
   } else if (p.wallJumpCooldown > 0) {
     // During wall jump — preserve launch momentum, no air control override
     // Player automatically flies to opposite wall without needing to steer

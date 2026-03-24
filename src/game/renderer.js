@@ -642,7 +642,7 @@ const CROPS = {
   run3:      { ...F, R: false },
   run4:      { ...F, R: false },
   slash1:    { ...F, R: false },
-  slash2:    { ...F, R: true },
+  slash2:    { ...F, R: false },
   slash3:    { ...F, R: false },
   slash4:    { x: 80, y: 100, w: 860, h: 800, R: true },
   jump1:     { ...F, R: false },
