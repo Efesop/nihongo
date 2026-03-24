@@ -349,7 +349,7 @@ export default function SmartSession({
   const advance = (correct) => {
     stopAudio(); // Prevent audio overlap between cards
     senpaiReact(correct);
-    if (!correct) setStruggled(s => [...s, { label: typeof ex.item === 'string' ? ex.item : ex.item[1], type: ex.type }]);
+    if (!correct && ex.item) setStruggled(s => [...s, { label: typeof ex.item === 'string' ? ex.item : ex.item?.[1] || ex.type, type: ex.type }]);
     setFb(null); setInput(""); setChoiceAnswer(null);
     if (ci + 1 >= cards.length) setDone(true);
     else setCi(ci + 1);
