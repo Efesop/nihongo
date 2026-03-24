@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { REGIONS, REGION_ORDER, REGION_PATHS, LABEL_POS, CITY_POS, CURRENT_SEASON } from "../data/regions.js";
+import { REGIONS, REGION_ORDER, REGION_PATHS, LABEL_POS, CURRENT_SEASON } from "../data/regions.js";
 import { PHRASES } from "../data/phrases.js";
 import { font, mono } from "../data/constants.js";
 
@@ -35,7 +35,7 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     : "Tap a region to explore Japan. I'll tell you what you need to know... if you're worthy.";
 
   // ═══ MAP SVG ═══
-  const mapSvg = <svg viewBox="0 0 400 700" style={{ width: "100%", maxWidth: isDesktop ? 340 : 400, height: "auto" }}>
+  const mapSvg = <svg viewBox="0 0 1050 1000" style={{ width: "100%", maxWidth: isDesktop ? 420 : 500, height: "auto" }}>
     {/* Water/background */}
     <rect x="0" y="0" width="400" height="700" fill="transparent" />
 
@@ -70,19 +70,6 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
       </text>;
     })}
 
-    {/* City dots when region selected */}
-    {selected && (CITY_POS[selected] || []).map((pos, i) => {
-      const city = REGIONS[selected].cities[i];
-      if (!city) return null;
-      return <g key={"c-" + i}>
-        <circle cx={pos.x} cy={pos.y} r={3.5} fill={REGIONS[selected].color} stroke={c.tx} strokeWidth={1}
-          style={{ cursor: "pointer" }} />
-        <text x={pos.x} y={pos.y - 8} textAnchor="middle" fontSize="7"
-          fill={c.tx} style={{ pointerEvents: "none", fontFamily: font, fontWeight: 600 }}>
-          {city.name}
-        </text>
-      </g>;
-    })}
   </svg>;
 
   // ═══ REGION SELECTOR BUTTONS (fallback for mobile) ═══
