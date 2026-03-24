@@ -1,15 +1,15 @@
 import { sfxr } from "jsfxr";
 
 // ═══ GAME AUDIO SYSTEM ═══
-// Uses jsfxr to generate retro 8-bit SFX at runtime.
-// All sounds are pre-generated as Audio elements on init for instant playback.
+// Uses jsfxr + Web Audio API for reliable game SFX.
+// All sounds pre-generated as AudioBuffers on init for instant playback.
 
 let _initialized = false;
 let _muted = false;
 let _sfxVolume = 0.5;
-const _audioCache = {};  // name → Audio element
-const _activePool = [];  // currently playing Audio elements
-const MAX_SIMULTANEOUS = 10;
+let _ctx = null;        // AudioContext
+let _masterGain = null;  // Master gain node for mute control
+const _buffers = {};     // name → AudioBuffer
 
 // ═══ SOUND DEFINITIONS ═══
 // Each sound is a jsfxr parameter object or preset string.
@@ -235,46 +235,73 @@ export function initAudio() {
   _initialized = true;
   _muted = localStorage.getItem("nihongo-game-muted") === "true";
 
-  // Pre-generate all sounds as Audio elements
+  // Create AudioContext (called during user gesture — START button click)
+  try {
+    _ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_ctx.state === "suspended") _ctx.resume();
+    _masterGain = _ctx.createGain();
+    _masterGain.gain.value = _muted ? 0 : 1;
+    _masterGain.connect(_ctx.destination);
+  } catch (e) {
+    console.warn("[audio] No AudioContext:", e);
+    _ctx = null;
+  }
+
+  // Pre-generate all sounds — try Web Audio (AudioBuffer), fallback to HTML Audio (blob URL)
   let generated = 0;
   for (const [name, def] of Object.entries(SOUNDS)) {
     try {
+      // Primary: Web Audio API via sfxr.toWebAudio
+      if (_ctx && typeof sfxr.toWebAudio === "function") {
+        const source = sfxr.toWebAudio(def, _ctx);
+        if (source && source.buffer) {
+          _buffers[name] = source.buffer; // AudioBuffer
+          generated++;
+          continue;
+        }
+      }
+    } catch (e) {
+      console.warn(`[audio] WebAudio failed for "${name}":`, e.message);
+    }
+    try {
+      // Fallback: HTML Audio element — store blob URL
       const audio = sfxr.toAudio(def);
-      if (audio) {
-        _audioCache[name] = audio;
+      if (audio && audio.src) {
+        _buffers[name] = audio.src; // string (blob URL)
         generated++;
       }
     } catch (e) {
-      console.warn(`[audio] Failed to generate "${name}":`, e.message);
+      console.warn(`[audio] Fallback failed for "${name}":`, e.message);
     }
   }
-  console.log(`[audio] Generated ${generated}/${Object.keys(SOUNDS).length} sounds`);
+  console.log(`[audio] Generated ${generated}/${Object.keys(SOUNDS).length} sounds (mode: ${_ctx ? "WebAudio" : "HTMLAudio"})`);
 }
 
 // ═══ PLAY SOUND ═══
 export function playSound(name, opts = {}) {
-  if (_muted || !_initialized) return;
-  const cached = _audioCache[name];
-  if (!cached) return;
-
-  // Clean up finished sounds from pool
-  for (let i = _activePool.length - 1; i >= 0; i--) {
-    if (_activePool[i].ended || _activePool[i].paused) {
-      _activePool.splice(i, 1);
-    }
-  }
-
-  // Limit simultaneous sounds
-  if (_activePool.length >= MAX_SIMULTANEOUS) return;
+  if (_muted) return;
+  const buf = _buffers[name];
+  if (!buf) return;
 
   try {
-    // Clone the audio for overlapping playback
-    const audio = cached.cloneNode();
-    const vol = (opts.volume ?? 1) * _sfxVolume;
-    audio.volume = Math.max(0, Math.min(1, vol));
-    if (opts.playbackRate) audio.playbackRate = opts.playbackRate;
-    audio.play().catch(() => {});
-    _activePool.push(audio);
+    if (typeof buf === "object" && _ctx && _masterGain) {
+      // Web Audio API path — AudioBuffer
+      if (_ctx.state === "suspended") _ctx.resume();
+      const source = _ctx.createBufferSource();
+      source.buffer = buf;
+      const gain = _ctx.createGain();
+      gain.gain.value = Math.max(0, Math.min(1, (opts.volume ?? 1) * _sfxVolume));
+      source.connect(gain);
+      gain.connect(_masterGain);
+      if (opts.playbackRate) source.playbackRate.value = opts.playbackRate;
+      source.start(0);
+    } else if (typeof buf === "string") {
+      // HTML Audio fallback — create fresh Audio from blob URL
+      const audio = new Audio(buf);
+      audio.volume = Math.max(0, Math.min(1, (opts.volume ?? 1) * _sfxVolume));
+      if (opts.playbackRate) audio.playbackRate = opts.playbackRate;
+      audio.play().catch(() => {});
+    }
   } catch {
     // Audio playback can fail in many browser contexts — never crash
   }
@@ -284,17 +311,18 @@ export function playSound(name, opts = {}) {
 export function toggleMute() {
   _muted = !_muted;
   localStorage.setItem("nihongo-game-muted", _muted);
-  // Stop all active sounds when muting
-  if (_muted) {
-    for (const a of _activePool) {
-      try { a.pause(); } catch {}
-    }
-    _activePool.length = 0;
+  // Instant mute/unmute via master gain
+  if (_masterGain) {
+    _masterGain.gain.value = _muted ? 0 : 1;
   }
   return _muted;
 }
 
-export function isMuted() { return _muted; }
+export function isMuted() {
+  // Read from localStorage if not yet initialized (so menu shows correct state)
+  if (!_initialized) return localStorage.getItem("nihongo-game-muted") === "true";
+  return _muted;
+}
 
 export function setSfxVolume(v) {
   _sfxVolume = Math.max(0, Math.min(1, v));

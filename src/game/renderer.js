@@ -56,13 +56,20 @@ export function render(g, ctx, isDesktop, font) {
       ctx.fillRect(-em.size, -em.size * 0.3, em.size * 2, em.size * 0.6);
       ctx.restore();
     } else if (em.type === "rain") {
-      // Rain streak — thin diagonal line
-      ctx.globalAlpha = lifeAlpha * 0.35;
+      // Rain streak — bright diagonal line, more visible
+      ctx.globalAlpha = lifeAlpha * 0.6;
       ctx.strokeStyle = em.color;
-      ctx.lineWidth = em.size * 0.5;
+      ctx.lineWidth = em.size * 0.6;
       ctx.beginPath();
       ctx.moveTo(sx, em.y);
-      ctx.lineTo(sx + 2, em.y - em.size * 12);
+      ctx.lineTo(sx + 3, em.y - em.size * 16);
+      ctx.stroke();
+      // Subtle glow around rain
+      ctx.globalAlpha = lifeAlpha * 0.15;
+      ctx.lineWidth = em.size * 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, em.y);
+      ctx.lineTo(sx + 3, em.y - em.size * 16);
       ctx.stroke();
     } else {
       // Dust mote
@@ -546,7 +553,7 @@ const CROPS = {
 // All sprites draw at IDENTICAL size so character never grows/shrinks.
 const DRAW_W = DRAW_SIZE * SPRITE_SCALE * (CROPS.idle.w / CROPS.idle.h); // ~109px visual width
 const DRAW_H = DRAW_SIZE * SPRITE_SCALE; // ~81px visual height
-const FOOT_NUDGE = 8; // push sprites down to compensate for empty space in generous crops
+const FOOT_NUDGE = 16; // push sprites down to compensate for empty space in generous crops
 function drawSpriteFrame(ctx, img, cropKey, s, facing) {
   if (!img) return false;
   const crop = CROPS[cropKey];
@@ -599,11 +606,12 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (p.wallSliding) {
     const img = getImage("wallslide");
     if (img) {
-      // Wall slide: flip based on wall direction
+      // Wall slide: flip based on wall direction (not facing)
       const crop = CROPS.wallslide;
-      if (p.wallDir < 0) ctx.scale(-1, 1);
-      const aspect = crop.w / crop.h;
-      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -s * aspect / 2, -s, s * aspect, s);
+      // wallDir=1 means wall is right, player faces left toward wall; wallDir=-1 means wall is left
+      const wallFacing = -p.wallDir; // face toward the wall
+      if (crop.R ? (wallFacing < 0) : (wallFacing > 0)) ctx.scale(-1, 1);
+      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
       ctx.restore();
       return;
     }

@@ -44,30 +44,30 @@ export const ROOMS = [
     deco: [{ type: "lantern", x: 200 }, { type: "torii", x: 1400 }],
   },
 
-  // ── Room 3: Wall jump introduction — wider shaft, step platforms as alternative ──
+  // ── Room 3: Wall jump introduction — bounce between walls to climb ──
   {
     platforms: [
       { x: 0, y: 0, w: 500 },
       // Step platforms (can reach without wall jump)
       { x: 380, y: -70, w: 140 },
       { x: 500, y: -140, w: 140 },
-      // Vertical shaft with walls (wider gap = easier wall jump)
-      { x: 480, y: -250, w: 25, h: 260, wall: true },
-      { x: 680, y: -250, w: 25, h: 260, wall: true },
+      // Vertical shaft with walls (120px gap — tight enough for wall-to-wall climbing)
+      { x: 500, y: -280, w: 25, h: 290, wall: true },
+      { x: 645, y: -280, w: 25, h: 290, wall: true },
       // Top platform
-      { x: 460, y: -260, w: 270 },
-      { x: 750, y: -260, w: 500 },
+      { x: 480, y: -290, w: 210 },
+      { x: 700, y: -290, w: 500 },
       // Enemies guard the top
-      { x: 1300, y: -260, w: 300 },
+      { x: 1250, y: -290, w: 300 },
       // Ground continues
-      { x: 750, y: 0, w: 300 },
+      { x: 700, y: 0, w: 300 },
     ],
     enemies: [
       { type: "oni", x: 300, y: 0 },
-      { type: "ninja", x: 600, y: -260 },
-      { type: "oni", x: 900, y: -260 },
-      { type: "oni", x: 1100, y: -260 },
-      { type: "samurai", x: 1450, y: -260 },
+      { type: "ninja", x: 600, y: -290 },
+      { type: "oni", x: 900, y: -290 },
+      { type: "oni", x: 1100, y: -290 },
+      { type: "samurai", x: 1400, y: -290 },
     ],
     shadows: [],
     playerStart: 60,
@@ -106,34 +106,29 @@ export const ROOMS = [
   {
     platforms: [
       { x: 0, y: 0, w: 400 },
-      // Tower left wall
+      // Tower walls (120px gap for wall jumping)
       { x: 400, y: -400, w: 20, h: 410, wall: true },
-      // Interior platforms (staircase)
-      { x: 420, y: -80, w: 150 },
-      { x: 600, y: -160, w: 150 },
-      { x: 420, y: -240, w: 150 },
-      { x: 600, y: -320, w: 150 },
-      // Tower right wall
-      { x: 770, y: -400, w: 20, h: 410, wall: true },
+      { x: 540, y: -400, w: 20, h: 410, wall: true },
+      // Interior ledges (rest stops during climb)
+      { x: 420, y: -120, w: 120 },
+      { x: 420, y: -260, w: 120 },
       // Top
-      { x: 380, y: -410, w: 430 },
-      { x: 850, y: -350, w: 500 },
-      { x: 1400, y: -300, w: 300 },
+      { x: 380, y: -410, w: 200 },
+      { x: 600, y: -350, w: 500 },
+      { x: 1150, y: -300, w: 300 },
     ],
     enemies: [
       { type: "oni", x: 250, y: 0 },
-      { type: "ninja", x: 500, y: -80 },
-      { type: "oni", x: 680, y: -160 },
-      { type: "ninja", x: 500, y: -240 },
-      { type: "oni", x: 680, y: -320 },
-      { type: "samurai", x: 600, y: -410 },
-      { type: "ninja", x: 1000, y: -350 },
-      { type: "oni", x: 1200, y: -350 },
-      { type: "samurai", x: 1550, y: -300 },
+      { type: "ninja", x: 460, y: -120 },
+      { type: "oni", x: 460, y: -260 },
+      { type: "samurai", x: 500, y: -410 },
+      { type: "ninja", x: 800, y: -350 },
+      { type: "oni", x: 1000, y: -350 },
+      { type: "samurai", x: 1300, y: -300 },
     ],
     shadows: [],
     playerStart: 60,
-    deco: [{ type: "lantern", x: 590 }, { type: "lantern", x: 590 }],
+    deco: [{ type: "lantern", x: 475 }],
   },
 
   // ── Room 6: Ninja gauntlet — shurikens from every angle ──
@@ -167,15 +162,15 @@ export const ROOMS = [
   {
     platforms: [
       { x: 0, y: 0, w: 350 },
-      // Canyon walls
+      // Canyon walls (120px gap)
       { x: 350, y: -200, w: 20, h: 210, wall: true },
-      { x: 500, y: -200, w: 20, h: 210, wall: true },
-      { x: 350, y: -210, w: 190 },
+      { x: 490, y: -200, w: 20, h: 210, wall: true },
+      { x: 330, y: -210, w: 200 },
       // Second canyon
-      { x: 600, y: -100, w: 200 },
-      { x: 850, y: -200, w: 20, h: 210, wall: true },
-      { x: 1000, y: -200, w: 20, h: 210, wall: true },
-      { x: 850, y: -210, w: 170 },
+      { x: 590, y: -100, w: 200 },
+      { x: 840, y: -200, w: 20, h: 210, wall: true },
+      { x: 980, y: -200, w: 20, h: 210, wall: true },
+      { x: 820, y: -210, w: 200 },
       // End area
       { x: 1100, y: -150, w: 200 },
       { x: 1350, y: -100, w: 200 },
@@ -233,10 +228,10 @@ export const ROOMS = [
       { x: 0, y: 0, w: 800 },
       { x: 600, y: -80, w: 250 },
       { x: 900, y: 0, w: 400 },
-      // Wall jump section
+      // Wall jump section (120px gap)
       { x: 1300, y: -250, w: 20, h: 260, wall: true },
-      { x: 1450, y: -250, w: 20, h: 260, wall: true },
-      { x: 1280, y: -260, w: 210 },
+      { x: 1440, y: -250, w: 20, h: 260, wall: true },
+      { x: 1280, y: -260, w: 200 },
       // Upper path
       { x: 1500, y: -200, w: 400 },
       { x: 1950, y: -130, w: 300 },

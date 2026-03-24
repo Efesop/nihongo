@@ -34,6 +34,16 @@ export function loadRoom(g, roomIndex) {
   g.camera.lookAhead = 0;
   g.slowMo.meter = g.slowMo.max;
   g.slowMo.active = false;
+  // Reset input flags so held keys from previous life don't carry over
+  g.input.left = false;
+  g.input.right = false;
+  g.input.up = false;
+  g.input.slash = false;
+  g.input.slowmo = false;
+  g.input.dash = false;
+  g.input.slashPressed = false;
+  g.input.jumpPressed = false;
+  g.input.dashPressed = false;
   g.hitStop = 0;
   g.flashTimer = 0;
   g.roomTimer = 0;
@@ -86,9 +96,10 @@ export function update(g, callbacks) {
   // Hit-stop freeze
   if (g.hitStop > 0) { g.hitStop -= rawDt * 1000; return; }
 
-  // Slow-mo
+  // Slow-mo — require 20% meter to START (prevents rapid flicker when meter depletes)
   const wasSlowMo = g.slowMo.active;
-  if (g.input.slowmo && g.slowMo.meter > 0) {
+  const canSlowMo = g.slowMo.active ? g.slowMo.meter > 0 : g.slowMo.meter > 20;
+  if (g.input.slowmo && canSlowMo) {
     g.slowMo.active = true;
     g.slowMo.meter = Math.max(0, g.slowMo.meter - 40 * rawDt);
     g.time.scale = 0.25;
@@ -137,13 +148,13 @@ export function update(g, callbacks) {
       phase: rnd(0, Math.PI * 2),
     });
   }
-  // Rain — diagonal streaks falling fast
-  for (let i = 0; i < 3; i++) {
+  // Rain — diagonal streaks falling fast (6 per frame for heavy rain)
+  for (let i = 0; i < 6; i++) {
     g.embers.push({
-      x: g.camera.x + rnd(-50, g.W + 50), y: -5,
-      vx: rnd(-30, -15), vy: rnd(600, 900),
+      x: g.camera.x + rnd(-100, g.W + 100), y: rnd(-20, -5),
+      vx: rnd(-40, -20), vy: rnd(700, 1000),
       life: rnd(400, 700), maxLife: 700,
-      size: rnd(1, 2), color: "#8899bb", type: "rain",
+      size: rnd(1.5, 2.5), color: rnd(0,1) > 0.3 ? "#99aacc" : "#bbccee", type: "rain",
     });
   }
 
@@ -158,14 +169,48 @@ export function update(g, callbacks) {
     } else if (em.type === "rain") {
       em.x += em.vx * dt;
       em.y += em.vy * dt;
-      // Splash when hitting ground
-      if (em.y > g.groundY) {
+      // Splash when hitting platforms, player, or ground
+      let splashed = false;
+      // Check platform surfaces
+      for (const plat of g.platforms) {
+        if (!plat.wall && em.x > plat.x && em.x < plat.x + plat.w &&
+            em.y > plat.y && em.y < plat.y + 8) {
+          em.life = 0;
+          splashed = true;
+          // Small splash particles on platform
+          for (let j = 0; j < 2; j++) {
+            g.particles.push({
+              x: em.x, y: plat.y,
+              vx: rnd(-25, 25), vy: rnd(-35, -10),
+              life: 120, maxLife: 120, color: "#99aacc", size: rnd(0.5, 1.2),
+            });
+          }
+          break;
+        }
+      }
+      // Splash on player
+      if (!splashed && !g.player.dead) {
+        const p = g.player;
+        if (em.x > p.x - 20 && em.x < p.x + 20 && em.y > p.y && em.y < p.y + TILE * SCALE) {
+          em.life = 0;
+          splashed = true;
+          g.particles.push({
+            x: em.x, y: em.y,
+            vx: rnd(-30, 30), vy: rnd(-40, -15),
+            life: 80, maxLife: 80, color: "#bbccee", size: rnd(0.5, 1),
+          });
+        }
+      }
+      // Splash on ground
+      if (!splashed && em.y > g.groundY) {
         em.life = 0;
-        g.particles.push({
-          x: em.x, y: g.groundY,
-          vx: rnd(-20, 20), vy: rnd(-30, -10),
-          life: 100, maxLife: 100, color: "#8899bb", size: rnd(0.5, 1),
-        });
+        for (let j = 0; j < 2; j++) {
+          g.particles.push({
+            x: em.x, y: g.groundY,
+            vx: rnd(-25, 25), vy: rnd(-35, -10),
+            life: 120, maxLife: 120, color: "#99aacc", size: rnd(0.5, 1),
+          });
+        }
       }
     } else {
       em.x += em.vx * dt + Math.sin(g.time.elapsed * 0.8 + (em.phase || 0)) * dt * 5;
@@ -232,6 +277,7 @@ export function update(g, callbacks) {
   }
 
   // Jump + wall jump
+  if (p.wallJumpCooldown > 0) p.wallJumpCooldown -= rawDt * 1000;
   if (g.input.jumpPressed) {
     if (p.grounded) {
       p.vy = JUMP_FORCE;
@@ -240,10 +286,11 @@ export function update(g, callbacks) {
       playSound("jump");
     } else if (p.wallSliding) {
       // Wall jump — launch away from wall
-      p.vy = JUMP_FORCE * 0.85;
-      p.vx = -p.wallDir * MOVE_SPEED * 1.2;
+      p.vy = JUMP_FORCE * 0.9;
+      p.vx = -p.wallDir * MOVE_SPEED * 1.4;
       p.facing = -p.wallDir;
       p.wallSliding = false;
+      p.wallJumpCooldown = 200; // prevent re-grabbing same wall
       playSound("jump", { playbackRate: 1.2 });
       // Wall jump dust
       for (let i = 0; i < 4; i++) {
@@ -341,10 +388,11 @@ export function update(g, callbacks) {
   p.x += p.vx * dt;
   p.y += p.vy * dt;
 
-  // Platform collision
+  // Platform collision — skip wall blocks (they use wall-slide logic instead)
   const wasGrounded = p.grounded;
   p.grounded = false;
   for (const plat of g.platforms) {
+    if (plat.wall) continue; // Wall blocks are not landing surfaces
     const pw = TILE * SCALE * 0.5;
     if (p.x + pw > plat.x && p.x - pw < plat.x + plat.w &&
         p.y + TILE * SCALE > plat.y && p.y + TILE * SCALE < plat.y + plat.h + Math.abs(p.vy * dt) + 10 &&
@@ -363,13 +411,14 @@ export function update(g, callbacks) {
 
   p.x = Math.max(10, Math.min(g.levelW - 10, p.x));
 
-  // Wall sliding detection — check if player is against a wall while airborne
+  // Wall sliding detection — grab walls while airborne (no vy>0 check — allows grabbing while rising)
+  // wallJumpCooldown prevents re-grabbing the wall you just jumped from
+  const wasWallSliding = p.wallSliding;
   p.wallSliding = false;
   p.wallDir = 0;
-  if (!p.grounded && p.vy > 0) {
+  if (!p.grounded && p.wallJumpCooldown <= 0) {
     const pw = TILE * SCALE * 0.5;
     for (const plat of g.platforms) {
-      // Only walls that are tall enough (platforms with h > 30 or walls array)
       if (!plat.wall) continue;
       const playerBottom = p.y + TILE * SCALE;
       const playerTop = p.y;
@@ -378,7 +427,7 @@ export function update(g, callbacks) {
           playerBottom > plat.y && playerTop < plat.y + plat.h) {
         p.wallSliding = true;
         p.wallDir = 1; // wall is to the right
-        p.vy = Math.min(p.vy, 100); // slow fall
+        if (p.vy > 0) p.vy = Math.min(p.vy, 100); // slow fall (only cap when falling)
         p.x = plat.x - pw;
       }
       // Check left side of player against right side of wall
@@ -386,11 +435,13 @@ export function update(g, callbacks) {
           playerBottom > plat.y && playerTop < plat.y + plat.h) {
         p.wallSliding = true;
         p.wallDir = -1; // wall is to the left
-        p.vy = Math.min(p.vy, 100); // slow fall
+        if (p.vy > 0) p.vy = Math.min(p.vy, 100);
         p.x = plat.x + plat.w + pw;
       }
     }
   }
+  // Play wall-slide sound when first grabbing a wall
+  if (p.wallSliding && !wasWallSliding) playSound("wallSlide");
 
   if (p.y > g.H + 100) killPlayer(g, callbacks);
 
