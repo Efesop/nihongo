@@ -129,26 +129,54 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // ═══ BUILD THE QUEUE ═══
 
+  // Track used items to prevent duplicates
+  const usedKana = new Set();
+  const usedPhrases = new Set();
+
+  function addKana(ch) {
+    if (usedKana.has(ch)) return false;
+    usedKana.add(ch);
+    queue.push(kanaExercise(ch));
+    return true;
+  }
+
+  function addPhrase(p) {
+    if (usedPhrases.has(p[0])) return false;
+    usedPhrases.add(p[0]);
+    queue.push(phraseExercise(p));
+    return true;
+  }
+
+  function addLearnKana(ch) {
+    if (usedKana.has(ch)) return false;
+    usedKana.add(ch);
+    queue.push(learnCard(ch));
+    return true;
+  }
+
+  function addLearnPhrase(p) {
+    if (usedPhrases.has(p[0])) return false;
+    usedPhrases.add(p[0]);
+    queue.push(learnPhraseCard(p));
+    return true;
+  }
+
   // How much kana does the user know?
   const kanaLearned = ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1).length;
 
   // If user knows very few kana, focus on teaching kana first
   if (kanaLearned < 10) {
-    // Beginner: all learn cards, introduce 5 vowels first, then K row
-    const toTeach = unseenKana.slice(0, Math.min(sessionLength, 8));
-    toTeach.forEach(ch => queue.push(learnCard(ch)));
-    // Add 1-2 quizzes on any they've already seen
+    unseenKana.slice(0, Math.min(sessionLength, 8)).forEach(ch => addLearnKana(ch));
     const reviewable = ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1);
-    shuffle(reviewable).slice(0, 2).forEach(ch => queue.push(kanaExercise(ch)));
+    shuffle(reviewable).slice(0, 2).forEach(ch => addKana(ch));
     return queue.slice(0, sessionLength);
   }
 
   // If user knows kana but no phrases yet, mix in phrase introductions
   if (kanaLearned >= 10 && Object.keys(phrData).length === 0) {
-    // Ready for phrases — add kana review + phrase learn cards
-    shuffle(dueKana).slice(0, 4).forEach(ch => queue.push(kanaExercise(ch)));
-    unseenPhrases.slice(0, 3).forEach(p => queue.push(learnPhraseCard(p)));
-    shuffle(ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1)).slice(0, 3).forEach(ch => queue.push(kanaExercise(ch)));
+    shuffle(dueKana).slice(0, 4).forEach(ch => addKana(ch));
+    unseenPhrases.slice(0, 3).forEach(p => addLearnPhrase(p));
+    shuffle(ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1)).slice(0, 3).forEach(ch => addKana(ch));
     return queue.slice(0, sessionLength);
   }
 
@@ -157,54 +185,50 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const helpKana = helpRequested.filter(id => ALL_BASE_KANA.includes(id));
   const helpPhrases = helpRequested.filter(id => PHRASES.find(p => p[0] === id));
 
-  // Add helped items first (they struggled enough to ask)
-  helpKana.slice(0, 2).forEach(ch => { if (ROMAJI[ch]) queue.push(kanaExercise(ch)); });
-  helpPhrases.slice(0, 1).forEach(id => { const p = PHRASES.find(pp => pp[0] === id); if (p) queue.push(phraseExercise(p)); });
+  helpKana.slice(0, 2).forEach(ch => { if (ROMAJI[ch]) addKana(ch); });
+  helpPhrases.slice(0, 1).forEach(id => { const p = PHRASES.find(pp => pp[0] === id); if (p) addPhrase(p); });
 
   // Start with 1-2 easy wins (due items the user probably knows)
-  const easyWins = shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 2);
-  easyWins.forEach(ch => queue.push(kanaExercise(ch)));
+  shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 2).forEach(ch => addKana(ch));
 
   // Add due items (mixed kana + phrases)
-  const duePool = [
-    ...shuffle(dueKana.filter(ch => !easyWins.includes(ch))).slice(0, 4).map(ch => kanaExercise(ch)),
-    ...shuffle(duePhrases).slice(0, 3).map(p => phraseExercise(p)),
-  ];
-  shuffle(duePool).forEach(ex => queue.push(ex));
+  shuffle(dueKana).slice(0, 6).forEach(ch => addKana(ch));
+  shuffle(duePhrases).slice(0, 4).forEach(p => addPhrase(p));
 
-  // Add struggling items
-  const strugglePool = [
-    ...shuffle(strugglingKana).slice(0, 2).map(ch => kanaExercise(ch)),
-    ...shuffle(strugglingPhrases).slice(0, 1).map(p => phraseExercise(p)),
-  ];
-  shuffle(strugglePool).forEach(ex => queue.push(ex));
+  // Add struggling items (only ones not already added)
+  shuffle(strugglingKana).slice(0, 3).forEach(ch => addKana(ch));
+  shuffle(strugglingPhrases).slice(0, 2).forEach(p => addPhrase(p));
 
   // Add new content (learn cards) + immediate follow-up quiz
   if (unseenKana.length > 0 && queue.length < sessionLength - 2) {
-    const newKana = unseenKana.slice(0, 2);
+    const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, 2);
     newKana.forEach(ch => {
-      queue.push(learnCard(ch));
-      // Queue a quiz on it 2-3 cards later (immediate reinforcement)
+      addLearnKana(ch);
       queue.push({ type: "_delayed_kana", item: ch, romaji: ROMAJI[ch], delay: 2 });
     });
   }
   if (unseenPhrases.length > 0 && queue.length < sessionLength - 1) {
-    const np = unseenPhrases[0];
-    queue.push(learnPhraseCard(np));
-    // Queue a scenario quiz on it 2-3 cards later
-    queue.push({ type: "_delayed_phrase", item: np, delay: 2 });
+    const np = unseenPhrases.find(p => !usedPhrases.has(p[0]));
+    if (np) {
+      addLearnPhrase(np);
+      queue.push({ type: "_delayed_phrase", item: np, delay: 2 });
+    }
   }
 
-  // Fill remaining slots with more due/struggling items if available
-  while (queue.length < sessionLength) {
-    const remaining = [
-      ...shuffle(dueKana).slice(0, 2).map(ch => kanaExercise(ch)),
-      ...shuffle(duePhrases).slice(0, 2).map(p => phraseExercise(p)),
-      ...shuffle(strugglingKana).slice(0, 1).map(ch => kanaExercise(ch)),
+  // Fill remaining slots — only items not already used
+  if (queue.length < sessionLength) {
+    const unusedDueKana = shuffle(dueKana.filter(ch => !usedKana.has(ch)));
+    const unusedDuePhrases = shuffle(duePhrases.filter(p => !usedPhrases.has(p[0])));
+    const unusedUnseen = unseenKana.filter(ch => !usedKana.has(ch));
+    const fillers = [
+      ...unusedDueKana.slice(0, 3).map(ch => ({ add: () => addKana(ch) })),
+      ...unusedDuePhrases.slice(0, 3).map(p => ({ add: () => addPhrase(p) })),
+      ...unusedUnseen.slice(0, 2).map(ch => ({ add: () => addLearnKana(ch) })),
     ];
-    if (remaining.length === 0) break;
-    queue.push(remaining[0]);
-    if (queue.length >= sessionLength) break;
+    for (const f of fillers) {
+      if (queue.length >= sessionLength) break;
+      f.add();
+    }
   }
 
   // If still too few (brand new user), add learn cards
