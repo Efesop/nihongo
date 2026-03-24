@@ -14,8 +14,9 @@ const GRAMMAR_COLORS = {
 };
 
 /**
- * Renders Japanese phrase text with tappable word segments.
- * Each segment shows a tooltip with meaning and grammar type.
+ * Renders Japanese phrase text with interactive word segments.
+ * Each segment is color-coded by grammar type.
+ * Hover/tap shows a tooltip with meaning and romaji.
  */
 export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight = 700 }) {
   const [activeSegment, setActiveSegment] = useState(null);
@@ -23,8 +24,8 @@ export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight 
 
   if (!breakdown) return null;
 
-  return <div>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "baseline", lineHeight: 1.4 }}>
+  return <div style={{ position: "relative" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "baseline", lineHeight: 1.4 }}>
       {breakdown.map((seg, i) => {
         const [jp, rom, meaning, type] = seg;
         const isActive = activeSegment === i;
@@ -32,35 +33,40 @@ export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight 
 
         return <span key={i}
           onClick={(e) => { e.stopPropagation(); setActiveSegment(isActive ? null : i); }}
+          onMouseEnter={() => setActiveSegment(i)}
+          onMouseLeave={() => setActiveSegment(null)}
           style={{
             fontSize, fontWeight,
             cursor: "pointer",
-            padding: "2px 4px",
+            padding: "2px 6px",
             borderRadius: 6,
-            background: isActive ? gramCol + "22" : "transparent",
-            borderBottom: isActive ? "2px solid " + gramCol : "1px dotted " + (c.m || "#666") + "66",
+            background: isActive ? gramCol + "28" : gramCol + "10",
+            borderBottom: "2px solid " + (isActive ? gramCol : gramCol + "44"),
             transition: "all .15s",
             position: "relative",
           }}>
           {jp}
           {isActive && <div style={{
-            position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
-            marginTop: 6, padding: "8px 12px", borderRadius: 8,
+            position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
+            marginBottom: 8, padding: "8px 12px", borderRadius: 8,
             background: c.s2 || "#2a2a2a", border: "1px solid " + (c.b || "#444"),
             boxShadow: "0 4px 12px rgba(0,0,0,.3)",
-            whiteSpace: "nowrap", zIndex: 10,
+            whiteSpace: "nowrap", zIndex: 50,
             fontSize: 12, fontWeight: 400, textAlign: "center",
+            pointerEvents: "none",
           }}>
             <div style={{ fontWeight: 600, marginBottom: 2 }}>{meaning}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
               <span style={{ fontSize: 11, fontFamily: "monospace", color: gramCol }}>{rom}</span>
               <span style={{ fontSize: 9, padding: "1px 6px", borderRadius: 4, background: gramCol + "22", color: gramCol, fontWeight: 600 }}>{type}</span>
             </div>
+            {/* Arrow */}
+            <div style={{ position: "absolute", bottom: -5, left: "50%", transform: "translateX(-50%)", width: 0, height: 0, borderLeft: "5px solid transparent", borderRight: "5px solid transparent", borderTop: "5px solid " + (c.b || "#444") }} />
           </div>}
         </span>;
       })}
     </div>
-    {/* Dismiss when tapping elsewhere */}
+    {/* Dismiss on tap elsewhere (mobile) */}
     {activeSegment !== null && <div onClick={() => setActiveSegment(null)} style={{ position: "fixed", inset: 0, zIndex: 5 }} />}
   </div>;
 }
