@@ -534,14 +534,16 @@ export default function SmartSession({
     }
     const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
     return withSenpai(<>
-      <div style={{ ...card, textAlign: "center", padding: "32px 20px", marginBottom: 14 }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>👂</div>
-        <div style={{ fontSize: 14, color: c.m, marginBottom: 14 }}>What did you hear?</div>
-        <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 play again</button>
-        {answered && <div style={{ marginTop: 14, textAlign: "left", display: "inline-block" }}>
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
+        <div style={{ textAlign: "center", marginBottom: answered ? 16 : 0 }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>👂</div>
+          <div style={{ fontSize: 14, color: c.m, marginBottom: 12 }}>What did you hear?</div>
+          <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 play again</button>
+        </div>
+        {answered && <div style={{ borderTop: "1px solid " + c.b, paddingTop: 16 }}>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 24 : 20} />
-          <div style={{ fontSize: 13, fontFamily: mono, color: c.a, marginTop: 6 }}>{p[2]}</div>
-          <div style={{ fontSize: 14, color: c.m, marginTop: 2 }}>{p[3]}</div>
+          <div style={{ fontSize: 13, fontFamily: mono, color: c.a, marginTop: 8 }}>{p[2]}</div>
+          <div style={{ fontSize: 15, color: c.tx, marginTop: 4 }}>{p[3]}</div>
         </div>}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
