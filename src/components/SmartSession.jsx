@@ -48,6 +48,7 @@ export default function SmartSession({
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
+  const convoShuffledRef = useRef({ blankIdx: -1, options: [] });
 
   // Typewriter effect for senpai speech
   const typeOut = (text, displayMs = 3000) => {
@@ -685,6 +686,7 @@ export default function SmartSession({
     const knownPhraseTexts = PHRASES.filter(pp => (data.phr || {})[pp[0]]).map(pp => [pp[1], pp[3]]);
     const familiarParts = [];
     const blocks = ["ください", "おねがいします", "です", "ですか", "ません", "はどこ", "があります"];
+    const blockMeaning = { "ください": "please (give me)", "おねがいします": "please (request)", "です": "is/am/are", "ですか": "is it? (question)", "ません": "not (negative)", "はどこ": "where is...?", "があります": "there is..." };
     blocks.forEach(b => {
       if (p[1].includes(b) && knownPhraseTexts.some(([jp]) => jp.includes(b) && jp !== p[1])) {
         const source = knownPhraseTexts.find(([jp]) => jp.includes(b) && jp !== p[1]);
@@ -704,7 +706,7 @@ export default function SmartSession({
             <span style={{ fontSize: 16 }}>{CAT_ICONS[p[4]]}</span>
             <span style={{ fontSize: 13, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
           </div>
-          <div style={{ fontSize: 11, fontFamily: mono, color: c.g, marginTop: 4 }}>New phrase!</div>
+          <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginTop: 4 }}>New phrase!</div>
         </div>
         <div style={{ padding: "20px 20px" }}>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 28 : 22} />
@@ -714,7 +716,7 @@ export default function SmartSession({
           {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.as, borderRadius: 8, border: "1px solid " + c.a + "20" }}>
             <div style={{ fontSize: 12, color: c.a, fontWeight: 700, marginBottom: 6 }}>Familiar patterns</div>
             {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: 13, color: c.tx, marginBottom: 2 }}>
-              You've seen <span style={{ fontWeight: 700, color: c.a }}>{fp.block}</span> <span style={{ color: c.m }}>in</span> <span style={{ color: c.m, fontStyle: "italic" }}>"{fp.from}"</span>
+              You've seen <span title={blockMeaning[fp.block] || fp.block} style={{ fontWeight: 700, color: c.a, cursor: "help", borderBottom: "1px dotted " + c.a + "66" }}>{fp.block}</span>{blockMeaning[fp.block] && <span style={{ color: c.m, fontSize: 11 }}> ({blockMeaning[fp.block]})</span>} <span style={{ color: c.m }}>in</span> <span style={{ color: c.m, fontStyle: "italic" }}>"{fp.from}"</span>
             </div>)}
           </div>}
           <div style={{ fontSize: 11, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
@@ -918,9 +920,14 @@ export default function SmartSession({
           const nextBlank = blanks.findIndex((_, i) => convoAnswers[i] === undefined);
           if (nextBlank === -1 && !allFilled) return null;
           const currentOptions = nextBlank >= 0 ? blanks[nextBlank].options : [];
+          // Shuffle once per blank — store in ref to avoid re-shuffling on hover/re-render
+          if (convoShuffledRef.current.blankIdx !== nextBlank) {
+            convoShuffledRef.current = { blankIdx: nextBlank, options: shuffle([...currentOptions]) };
+          }
+          const shuffledOpts = convoShuffledRef.current.options;
           const usedIds = Object.values(convoAnswers);
           return nextBlank >= 0 && <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
-            {shuffle(currentOptions).map((optId, i) => {
+            {shuffledOpts.map((optId, i) => {
               const p = phraseById(optId);
               if (!p) return null;
               const used = usedIds.includes(optId);
