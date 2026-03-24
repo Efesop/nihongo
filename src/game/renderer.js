@@ -220,7 +220,7 @@ export function render(g, ctx, isDesktop, font) {
       const dh = DRAW_SIZE * 0.95;
       ctx.save();
       ctx.translate(ai.x, ai.y + DRAW_SIZE);
-      if (ai.facing > 0) ctx.scale(-1, 1);
+      if (ai.facing < 0) ctx.scale(-1, 1);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(mascot, ic.x, ic.y, ic.w, ic.h, -dw / 2, -dh, dw, dh);
       ctx.restore();
@@ -486,12 +486,12 @@ const CROPS = {
 };
 
 // Helper: draw a sprite image with crop and flip
-// flipForRight=true means image faces LEFT and should flip for RIGHT
-function drawSpriteFrame(ctx, img, cropKey, s, facing, flipForRight = true) {
+// Sprites face RIGHT by default (verified from actual PNGs) — flip for LEFT
+function drawSpriteFrame(ctx, img, cropKey, s, facing) {
   if (!img) return false;
   const crop = CROPS[cropKey];
   if (!crop) return false;
-  if (flipForRight ? facing > 0 : facing < 0) ctx.scale(-1, 1);
+  if (facing < 0) ctx.scale(-1, 1);
   const aspect = crop.w / crop.h;
   const dw = s * aspect;
   const dh = s;
@@ -526,7 +526,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     const frameIndex = (Math.floor(elapsed * 8) % 4) + 1;
     const img = getImage("run" + frameIndex);
     // Run frames face LEFT — flip for right
-    if (drawSpriteFrame(ctx, img, "run", s, p.facing, true)) { ctx.restore(); return; }
+    if (drawSpriteFrame(ctx, img, "run", s, p.facing)) { ctx.restore(); return; }
   }
 
   if (p.state === "jump") {
@@ -545,7 +545,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     if (img) {
       // Wall slide: flip based on wall direction
       const crop = CROPS.wallslide;
-      if (p.wallDir < 0) ctx.scale(-1, 1);
+      if (p.wallDir > 0) ctx.scale(-1, 1);
       const aspect = crop.w / crop.h;
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -s * aspect / 2, -s, s * aspect, s);
       ctx.restore();
@@ -580,8 +580,8 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
     const slashImg = getImage(slashImgKey);
     if (slashImg) {
-      // All slash frames face LEFT — flip for right
-      if (p.facing > 0) ctx.scale(-1, 1);
+      // Slash frames face RIGHT — flip for left
+      if (p.facing < 0) ctx.scale(-1, 1);
 
       const sc = CROPS.slash;
       const sa = sc.w / sc.h;
@@ -666,7 +666,7 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
 
   // Flip based on facing
-  if (e.facing > 0) ctx.scale(-1, 1);
+  if (e.facing < 0) ctx.scale(-1, 1);
 
   let oy = 0;
   if (e.state === "patrol") {
