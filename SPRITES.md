@@ -1,9 +1,10 @@
 # Game Assets — Complete List
 
-All character sprites: 1024x1024 PNG, pixel art chibi style, solid gray background, **facing RIGHT**.
+All character sprites: 1024x1024 PNG, pixel art chibi style, solid gray background, **facing LEFT**.
 All backgrounds: 1536x1024 or wider, pixel art, side-scrolling perspective.
 
 **Gray backgrounds are auto-removed on load** by `sprites.js`.
+**Flip logic**: code flips sprites when `facing > 0` (right). Natural direction = LEFT.
 
 ---
 

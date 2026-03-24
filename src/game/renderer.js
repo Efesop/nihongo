@@ -220,7 +220,7 @@ export function render(g, ctx, isDesktop, font) {
       const dh = DRAW_SIZE * 0.95;
       ctx.save();
       ctx.translate(ai.x, ai.y + DRAW_SIZE);
-      if (ai.facing < 0) ctx.scale(-1, 1);
+      if (ai.facing > 0) ctx.scale(-1, 1);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(mascot, ic.x, ic.y, ic.w, ic.h, -dw / 2, -dh, dw, dh);
       ctx.restore();
@@ -530,25 +530,16 @@ const CROPS = {
 };
 
 // Helper: draw a sprite image with crop and flip
-// Player starts facing RIGHT (facing=1). Flip when facing LEFT (facing=-1).
+// Sprites face LEFT. Flip when facing RIGHT (facing > 0).
+// All sprites draw at IDENTICAL size (idle dimensions) so character never grows/shrinks.
+const DRAW_W = DRAW_SIZE * (CROPS.idle.w / CROPS.idle.h); // ~81px
+const DRAW_H = DRAW_SIZE; // 60px
 function drawSpriteFrame(ctx, img, cropKey, s, facing) {
   if (!img) return false;
   const crop = CROPS[cropKey];
   if (!crop) return false;
-  if (facing < 0) ctx.scale(-1, 1);
-  // Consistent size: fit within DRAW_SIZE bounding box (no growing/shrinking)
-  const aspect = crop.w / crop.h;
-  let dw, dh;
-  if (aspect >= 1) {
-    // Wider than tall: constrain by width
-    dw = s * 1.3; // slightly wider than DRAW_SIZE for presence
-    dh = dw / aspect;
-  } else {
-    // Taller than wide: constrain by height
-    dh = s;
-    dw = dh * aspect;
-  }
-  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -dw / 2, -dh, dw, dh);
+  if (facing > 0) ctx.scale(-1, 1);
+  ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H, DRAW_W, DRAW_H);
   return true;
 }
 
@@ -598,7 +589,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     if (img) {
       // Wall slide: flip based on wall direction
       const crop = CROPS.wallslide;
-      if (p.wallDir > 0) ctx.scale(-1, 1);
+      if (p.wallDir < 0) ctx.scale(-1, 1);
       const aspect = crop.w / crop.h;
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -s * aspect / 2, -s, s * aspect, s);
       ctx.restore();
@@ -633,7 +624,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
     const slashImg = getImage(slashImgKey);
     if (slashImg) {
-      if (p.facing < 0) ctx.scale(-1, 1);
+      if (p.facing > 0) ctx.scale(-1, 1);
 
       const sc = CROPS.slash;
       const sa = sc.w / sc.h;
@@ -718,7 +709,7 @@ function drawEnemyFromImage(ctx, e, elapsed) {
   ctx.translate(Math.round(e.x), Math.round(e.y + DRAW_SIZE));
 
   // Flip based on facing
-  if (e.facing < 0) ctx.scale(-1, 1);
+  if (e.facing > 0) ctx.scale(-1, 1);
 
   let oy = 0;
   if (e.state === "patrol") {
