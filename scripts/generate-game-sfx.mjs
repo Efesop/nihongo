@@ -1,108 +1,102 @@
 #!/usr/bin/env node
 /**
- * Generate game SFX using ElevenLabs Sound Effects API.
+ * Generate game SFX + music using ElevenLabs Sound Effects API.
  * Run: ELEVENLABS_API_KEY=your_key node scripts/generate-game-sfx.mjs
  *
- * Outputs to public/audio/game/
- * Files are served as static assets — loaded at game start.
+ * Delete any file in public/audio/game/ to regenerate just that one.
  */
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dir, '..');
-const OUT = join(ROOT, 'public', 'audio', 'game');
+const OUT = join(__dir, '..', 'public', 'audio', 'game');
 mkdirSync(OUT, { recursive: true });
 
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 if (!API_KEY) { console.error('Set ELEVENLABS_API_KEY env var'); process.exit(1); }
 
-// ── SFX DEFINITIONS ──
-// Each entry: [filename, prompt, duration_seconds, prompt_influence]
-const SFX = [
-  // Combat
-  ['slash1', 'Quick sharp katana sword slash through air, fast metallic swish, game sound effect', 0.8, 0.5],
-  ['slash2', 'Powerful upward katana sword arc, aggressive metallic swoosh with slight ring, game sound effect', 0.8, 0.5],
-  ['slash3', 'Epic heavy katana lightning slash with electrical crackle and metallic ring, powerful final strike, game sound effect', 1.2, 0.5],
-  ['kill', 'Heavy violent sword impact on flesh, meaty crunch hit with bass thump, game kill sound effect', 0.8, 0.5],
-  ['clash', 'Loud sharp metal on metal sword clash, bright sparks, two katana blades clashing, game sound effect', 1.0, 0.5],
-  ['deflect', 'Quick metallic ping deflection, sword blocking projectile with sharp ring, game sound effect', 0.6, 0.5],
+// ═══ COMPLETE AUDIO DESIGN ═══
+// Style: dark feudal Japanese action — Katana Zero meets Sekiro
+// Every sound should feel weighty, satisfying, and thematic.
 
-  // Movement
-  ['jump', 'Quick light jump whoosh, character leaping upward, short burst of air, retro game sound', 0.5, 0.4],
-  ['land', 'Soft landing impact on stone ground, feet touching surface with thud, game sound effect', 0.5, 0.4],
-  ['dash', 'Fast rushing air whoosh, quick dash burst movement, game sound effect', 0.5, 0.5],
-  ['wallSlide', 'Short friction scraping on rough stone wall, sliding down surface, game sound effect', 0.8, 0.4],
-  ['footstep', 'Single quick light footstep on stone, running step, game sound effect', 0.3, 0.3],
+const SOUNDS = [
+  // ────── COMBAT ──────
+  ['slash1',        'Sharp fast katana blade cutting through air, quick steel swoosh, Japanese sword slash, game sfx', 0.6, 0.5],
+  ['slash2',        'Powerful upward katana arc with metallic ring, aggressive sword swing, heavier slash, game sfx', 0.7, 0.5],
+  ['slash3',        'Massive heavy katana strike with electric crackle, thunderous final blow, devastating sword slash, game sfx', 1.0, 0.5],
+  ['kill',          'Violent katana cutting through flesh, wet blood slash with heavy meaty impact, brutal sword kill, game sfx', 0.8, 0.6],
+  ['blood_splatter','Wet blood splatter on ground, gore splash dripping, violent aftermath, game sfx', 0.7, 0.5],
+  ['clash',         'Two katana blades clashing violently, sharp metal on metal ring with sparks, sword parry, game sfx', 0.8, 0.6],
+  ['deflect',       'Quick metallic sword deflection ping, blade redirecting projectile, sharp ring, game sfx', 0.5, 0.5],
 
-  // Projectiles
-  ['shuriken', 'Spinning blade flying through air, shuriken throw with metallic whistle, game sound effect', 0.8, 0.5],
+  // ────── MOVEMENT ──────
+  ['jump',          'Quick ninja leap, soft fabric whoosh upward, light agile movement burst, game sfx', 0.5, 0.4],
+  ['land',          'Ninja landing on wooden rooftop, soft controlled impact with slight creak, game sfx', 0.5, 0.4],
+  ['dash',          'Fast ninja dash burst, rushing wind displacement, quick teleport whoosh, game sfx', 0.5, 0.5],
+  ['wallSlide',     'Body scraping down rough stone wall, friction slide with fabric rustle, game sfx', 0.8, 0.4],
+  ['footstep',      'Quick wooden geta sandal clack on stone, single fast running step, Japanese warrior, game sfx', 0.5, 0.3],
 
-  // UI / State
-  ['slowmoOn', 'Deep dramatic time slowdown effect, world slowing to a crawl, deep pitch drop, game sound effect', 1.0, 0.5],
-  ['slowmoOff', 'Quick time speed-up whoosh, resuming normal speed from slow motion, game sound effect', 0.6, 0.5],
-  ['roomClear', 'Short triumphant victory chime, room cleared fanfare with rising notes, game sound effect', 1.5, 0.5],
-  ['comboMilestone', 'Quick satisfying achievement ping, bright rewarding chime, game combo sound', 0.5, 0.4],
-  ['menuStart', 'Dramatic katana unsheathing sound, sword drawing from scabbard, game start, intense', 1.5, 0.5],
-  ['death', 'Dark painful impact with descending tone, character death hit with reverb, game sound effect', 1.0, 0.5],
+  // ────── ENEMIES: ONI (DEMON) ──────
+  ['oni_alert',     'Deep guttural demon growl, angry beast spotting prey, dark menacing rumble, game monster sfx', 0.8, 0.5],
+  ['oni_attack',    'Fierce demon battle roar, heavy beast lunging attack cry, aggressive, game monster sfx', 0.7, 0.6],
+  ['oni_death',     'Demon death howl, beast collapsing with fading groan, dark creature dying, game sfx', 1.0, 0.5],
+
+  // ────── ENEMIES: NINJA ──────
+  ['ninja_alert',   'Sharp menacing ninja breath, quiet deadly whisper, stealthy threat, game sfx', 0.6, 0.4],
+  ['ninja_throw',   'Ninja shuriken throw with sharp exhale, spinning metal release, game sfx', 0.6, 0.5],
+  ['ninja_death',   'Quick ninja death gasp, sharp final exhale, falling body, game sfx', 0.7, 0.4],
+
+  // ────── ENEMIES: SAMURAI ──────
+  ['samurai_alert', 'Japanese samurai war cry kiai, commanding warrior battle shout, honorable challenge, game sfx', 0.8, 0.5],
+  ['samurai_attack','Fierce samurai kiai strike yell, powerful focused attack shout with sword, game sfx', 0.6, 0.6],
+  ['samurai_death', 'Samurai death groan, warrior falling with honor, heavy armor impact, game sfx', 1.0, 0.5],
+
+  // ────── PROJECTILES ──────
+  ['shuriken',      'Spinning shuriken blade whistling through air, metal star flying fast, game sfx', 0.7, 0.5],
+
+  // ────── UI / STATE ──────
+  ['slowmoOn',      'Deep dramatic time freeze, world slowing to crawl, bass drop with reverb, game slow motion sfx', 0.8, 0.5],
+  ['slowmoOff',     'Time snapping back to speed, quick whoosh resume from slow motion, game sfx', 0.5, 0.5],
+  ['roomClear',     'Triumphant Japanese victory fanfare, short taiko drum hit with koto chime, room cleared, game sfx', 1.5, 0.5],
+  ['comboMilestone','Satisfying combo achievement chime, bright rewarding ping with resonance, game sfx', 0.5, 0.4],
+  ['menuStart',     'Dramatic katana unsheathing from scabbard, steel sliding on wood, game start, intense, game sfx', 1.5, 0.6],
+  ['death',         'Player death impact, painful hit with dark descending tone, defeat, game sfx', 1.0, 0.5],
 ];
 
-// ── MUSIC ──
-const MUSIC = [
-  ['bgm_ambient', 'Dark atmospheric Japanese ambient music loop, koto and shakuhachi flute, rain and wind, mysterious night forest mood, videogame background music', 30, 0.4, true],
+const LOOPS = [
+  // ────── AMBIENT (continuous background layers) ──────
+  ['rain_loop',     'Steady rain falling on wooden Japanese rooftops and stone paths, gentle but present, no thunder, nature ambience', 10, 0.4, true],
+  ['forest_night',  'Dark Japanese forest at night, wind through bamboo, distant owl, rustling leaves, mysterious atmosphere, no music', 10, 0.4, true],
+
+  // ────── MUSIC (per-environment) ──────
+  ['music_forest',  'Dark intense Japanese action game music, taiko drums rhythmic beat, shamisen melody, koto accents, tense ninja combat atmosphere, fast paced, video game boss fight loop', 30, 0.5, true],
 ];
 
-// ── GENERATE ──
-async function generateSFX(name, prompt, duration, influence, loop = false) {
-  const outPath = join(OUT, `${name}.mp3`);
-  if (existsSync(outPath)) {
-    process.stdout.write(`  ${name}: exists, skipping\n`);
-    return;
-  }
-
+async function generate(name, prompt, dur, influence, loop = false) {
+  const path = join(OUT, `${name}.mp3`);
+  if (existsSync(path)) { console.log(`  ${name}: exists`); return; }
   process.stdout.write(`  ${name}: generating...`);
-  const body = {
-    text: prompt,
-    model_id: 'eleven_text_to_sound_v2',
-    duration_seconds: duration,
-    prompt_influence: influence,
-  };
+  const body = { text: prompt, model_id: 'eleven_text_to_sound_v2', duration_seconds: dur, prompt_influence: influence };
   if (loop) body.loop = true;
-
   const res = await fetch('https://api.elevenlabs.io/v1/sound-generation', {
     method: 'POST',
     headers: { 'xi-api-key': API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-
-  if (!res.ok) {
-    const err = await res.text();
-    process.stdout.write(` FAILED (${res.status}): ${err.slice(0, 100)}\n`);
-    return;
-  }
-
+  if (!res.ok) { console.log(` FAILED (${res.status})`); return; }
   const buf = await res.arrayBuffer();
-  writeFileSync(outPath, Buffer.from(buf));
-  process.stdout.write(` done (${(buf.byteLength / 1024).toFixed(1)}KB)\n`);
-
-  // Rate limit — safe for free tier (~3 req/s)
-  await new Promise(r => setTimeout(r, 500));
+  writeFileSync(path, Buffer.from(buf));
+  console.log(` done (${(buf.byteLength / 1024).toFixed(1)}KB)`);
+  await new Promise(r => setTimeout(r, 400));
 }
 
 async function main() {
-  console.log('\n=== Generating Game SFX ===\n');
-  for (const [name, prompt, dur, infl] of SFX) {
-    await generateSFX(name, prompt, dur, infl);
-  }
-
-  console.log('\n=== Generating Background Music ===\n');
-  for (const [name, prompt, dur, infl, loop] of MUSIC) {
-    await generateSFX(name, prompt, dur, infl, loop);
-  }
-
-  console.log('\n\nDone! Files in public/audio/game/');
-  console.log('Commit them to your repo and deploy.\n');
+  console.log('\n=== SFX ===');
+  for (const [n, p, d, i] of SOUNDS) await generate(n, p, d, i);
+  console.log('\n=== Loops + Music ===');
+  for (const [n, p, d, i, l] of LOOPS) await generate(n, p, d, i, l);
+  console.log('\nDone!\n');
 }
 
-main().catch(e => { console.error('\n\nError:', e.message); process.exit(1); });
+main().catch(e => { console.error(e.message); process.exit(1); });

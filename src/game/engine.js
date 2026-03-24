@@ -787,6 +787,10 @@ function killEnemy(g, e, p, callbacks) {
   callbacks.setMaxCombo(g.maxCombo);
   g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 20);
   playSound("kill", { playbackRate: e.type === "oni" ? 0.8 : e.type === "ninja" ? 1.2 : 1.0 });
+  playSound("blood_splatter", { volume: 0.5 });
+  // Per-type death sound
+  const deathSfx = { oni: "oni_death", ninja: "ninja_death", samurai: "samurai_death" };
+  playSound(deathSfx[e.type] || "oni_death", { volume: 0.6 });
   if (g.combo === 5 || g.combo === 10 || g.combo === 15) {
     playSound("comboMilestone");
     g.camera.zoom = MILESTONE_ZOOM;

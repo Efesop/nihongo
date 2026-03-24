@@ -1,38 +1,40 @@
 import { sfxr } from "jsfxr";
 
 // ═══ GAME AUDIO SYSTEM ═══
-// Primary: ElevenLabs-generated MP3 files (high quality)
-// Fallback: jsfxr-generated 8-bit sounds (instant, no network)
-// Playback: Web Audio API for reliability
+// ElevenLabs MP3 primary → jsfxr fallback → Web Audio API playback
+// Three independent audio buses: SFX, Music, Ambient
+// Pauses automatically when tab is hidden.
 
 let _initialized = false;
 let _muted = false;
-let _sfxVolume = 0.25;    // ElevenLabs MP3s are loud — keep this low
-let _musicVolume = 0.15;
-let _ambientVolume = 0.12;
+let _sfxVolume = 0.25;
+let _musicVolume = 0.18;
+let _ambientVolume = 0.10;
 let _ctx = null;
-let _masterGain = null;
-let _musicGain = null;
-let _ambientGain = null;
+let _masterGain = null;   // SFX bus
+let _musicGain = null;    // Music bus
+let _ambientGain = null;  // Ambient bus
 let _musicSource = null;
-const _ambientSources = {};  // name → BufferSourceNode
+const _ambientSources = {};
 const _buffers = {};
-let _wantsMusic = false;     // set true when game starts, so music plays once loaded
+let _wantsMusic = false;
+let _currentMusic = "music_forest"; // per-environment music key
 
-// ═══ SOUND NAMES ═══
+// ═══ SOUND REGISTRY ═══
 const SFX_NAMES = [
-  "slash1", "slash2", "slash3", "kill", "clash", "deflect",
+  "slash1", "slash2", "slash3", "kill", "blood_splatter", "clash", "deflect",
   "jump", "land", "dash", "wallSlide", "footstep",
+  "oni_alert", "oni_attack", "oni_death",
+  "ninja_alert", "ninja_throw", "ninja_death",
+  "samurai_alert", "samurai_attack", "samurai_death",
   "shuriken", "slowmoOn", "slowmoOff", "roomClear",
   "comboMilestone", "menuStart", "death",
-  "enemy_alert", "enemy_attack",
 ];
+const AMBIENT_NAMES = ["rain_loop", "forest_night"];
+const MUSIC_NAMES = ["music_forest"];
 
-const AMBIENT_NAMES = ["rain_loop", "forest_loop"];
-const MUSIC_NAMES = ["bgm_ambient"];
-
-// ═══ JSFXR FALLBACK DEFINITIONS ═══
-const JSFXR_FALLBACK = {
+// ═══ JSFXR FALLBACKS (only for core sounds — enemies/ambient have no fallback) ═══
+const JSFXR = {
   slash1: { oldParams: true, wave_type: 1, p_env_sustain: 0.05, p_env_punch: 0.4, p_env_decay: 0.15, p_base_freq: 0.35, p_freq_ramp: -0.25, p_duty: 0.6, p_duty_ramp: -0.1, p_lpf_freq: 1, p_hpf_freq: 0.15, sound_vol: 0.3, sample_rate: 44100, sample_size: 8 },
   slash2: { oldParams: true, wave_type: 1, p_env_sustain: 0.06, p_env_punch: 0.5, p_env_decay: 0.18, p_base_freq: 0.42, p_freq_ramp: -0.3, p_arp_mod: 0.15, p_arp_speed: 0.5, p_duty: 0.5, p_duty_ramp: -0.15, p_lpf_freq: 1, p_hpf_freq: 0.1, sound_vol: 0.35, sample_rate: 44100, sample_size: 8 },
   slash3: { oldParams: true, wave_type: 0, p_env_sustain: 0.12, p_env_punch: 0.7, p_env_decay: 0.28, p_base_freq: 0.5, p_freq_ramp: -0.15, p_vib_strength: 0.15, p_vib_speed: 0.4, p_arp_mod: -0.2, p_arp_speed: 0.7, p_duty: 0.4, p_duty_ramp: 0.1, p_repeat_speed: 0.45, p_lpf_freq: 0.8, p_lpf_resonance: 0.3, p_hpf_freq: 0.05, sound_vol: 0.4, sample_rate: 44100, sample_size: 8 },
@@ -53,7 +55,7 @@ const JSFXR_FALLBACK = {
   footstep: { oldParams: true, wave_type: 3, p_env_sustain: 0.01, p_env_punch: 0.3, p_env_decay: 0.04, p_base_freq: 0.08, p_freq_ramp: -0.1, p_lpf_freq: 0.4, p_hpf_freq: 0.1, sound_vol: 0.08, sample_rate: 44100, sample_size: 8 },
 };
 
-// ═══ INITIALIZATION ═══
+// ═══ INIT ═══
 export function initAudio() {
   if (_initialized) return;
   _initialized = true;
@@ -76,6 +78,16 @@ export function initAudio() {
     _ctx = null;
   }
 
+  // Pause audio when tab is hidden, resume when visible
+  document.addEventListener("visibilitychange", () => {
+    if (!_ctx) return;
+    if (document.hidden) {
+      _ctx.suspend();
+    } else {
+      _ctx.resume();
+    }
+  });
+
   _loadAllSounds();
 }
 
@@ -88,72 +100,60 @@ async function _loadMP3(name) {
       _buffers[name] = await _ctx.decodeAudioData(ab);
       return true;
     }
-  } catch { /* not available */ }
+  } catch { /* */ }
   return false;
 }
 
 async function _loadAllSounds() {
-  let mp3 = 0, fallback = 0;
-
-  // Load SFX — MP3 first, jsfxr fallback
+  let mp3 = 0, fb = 0;
   for (const name of SFX_NAMES) {
     if (await _loadMP3(name)) { mp3++; continue; }
-    const def = JSFXR_FALLBACK[name];
+    const def = JSFXR[name];
     if (!def) continue;
     try {
       if (_ctx && typeof sfxr.toWebAudio === "function") {
         const s = sfxr.toWebAudio(def, _ctx);
-        if (s?.buffer) { _buffers[name] = s.buffer; fallback++; continue; }
+        if (s?.buffer) { _buffers[name] = s.buffer; fb++; continue; }
       }
       const a = sfxr.toAudio(def);
-      if (a?.src) { _buffers[name] = a.src; fallback++; }
-    } catch { /* skip */ }
+      if (a?.src) { _buffers[name] = a.src; fb++; }
+    } catch { /* */ }
   }
-  console.log(`[audio] SFX: ${mp3} MP3, ${fallback} jsfxr`);
-
-  // Load ambient loops
-  for (const name of AMBIENT_NAMES) await _loadMP3(name);
-
-  // Load music
-  for (const name of MUSIC_NAMES) await _loadMP3(name);
-
-  // Auto-start music + ambient if game already requested it
-  if (_wantsMusic) {
-    _startMusicNow();
-    _startAmbientNow();
-  }
+  console.log(`[audio] SFX: ${mp3} MP3 + ${fb} jsfxr`);
+  for (const n of AMBIENT_NAMES) await _loadMP3(n);
+  for (const n of MUSIC_NAMES) await _loadMP3(n);
+  if (_wantsMusic) { _startMusicNow(); _startAmbientNow(); }
 }
 
-// ═══ PLAY SOUND ═══
+// ═══ PLAY SFX ═══
 export function playSound(name, opts = {}) {
   if (_muted) return;
   const buf = _buffers[name];
   if (!buf) return;
-
   try {
     if (typeof buf === "object" && _ctx && _masterGain) {
       if (_ctx.state === "suspended") _ctx.resume();
-      const source = _ctx.createBufferSource();
-      source.buffer = buf;
-      const gain = _ctx.createGain();
-      gain.gain.value = Math.max(0, Math.min(1, (opts.volume ?? 1) * _sfxVolume));
-      source.connect(gain);
-      gain.connect(_masterGain);
-      if (opts.playbackRate) source.playbackRate.value = opts.playbackRate;
-      source.start(0);
+      const src = _ctx.createBufferSource();
+      src.buffer = buf;
+      const g = _ctx.createGain();
+      g.gain.value = Math.max(0, Math.min(1, (opts.volume ?? 1) * _sfxVolume));
+      src.connect(g);
+      g.connect(_masterGain);
+      if (opts.playbackRate) src.playbackRate.value = opts.playbackRate;
+      src.start(0);
     } else if (typeof buf === "string") {
-      const audio = new Audio(buf);
-      audio.volume = Math.max(0, Math.min(1, (opts.volume ?? 1) * _sfxVolume));
-      if (opts.playbackRate) audio.playbackRate = opts.playbackRate;
-      audio.play().catch(() => {});
+      const a = new Audio(buf);
+      a.volume = Math.max(0, Math.min(1, (opts.volume ?? 1) * _sfxVolume));
+      if (opts.playbackRate) a.playbackRate = opts.playbackRate;
+      a.play().catch(() => {});
     }
-  } catch { /* never crash */ }
+  } catch { /* */ }
 }
 
 // ═══ MUSIC + AMBIENT ═══
 function _startMusicNow() {
   if (!_ctx || !_musicGain || _musicSource) return;
-  const buf = _buffers.bgm_ambient;
+  const buf = _buffers[_currentMusic];
   if (!buf || typeof buf !== "object") return;
   try {
     _musicSource = _ctx.createBufferSource();
@@ -161,7 +161,6 @@ function _startMusicNow() {
     _musicSource.loop = true;
     _musicSource.connect(_musicGain);
     _musicSource.start(0);
-    console.log("[audio] Music started");
   } catch { /* */ }
 }
 
@@ -172,13 +171,12 @@ function _startAmbientNow() {
     const buf = _buffers[name];
     if (!buf || typeof buf !== "object") continue;
     try {
-      const source = _ctx.createBufferSource();
-      source.buffer = buf;
-      source.loop = true;
-      source.connect(_ambientGain);
-      source.start(0);
-      _ambientSources[name] = source;
-      console.log(`[audio] Ambient "${name}" started`);
+      const src = _ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      src.connect(_ambientGain);
+      src.start(0);
+      _ambientSources[name] = src;
     } catch { /* */ }
   }
 }
@@ -191,13 +189,22 @@ export function startMusic() {
 
 export function stopMusic() {
   _wantsMusic = false;
-  if (_musicSource) {
+  try { _musicSource?.stop(); } catch { /* */ }
+  _musicSource = null;
+  for (const [k, s] of Object.entries(_ambientSources)) {
+    try { s.stop(); } catch { /* */ }
+    delete _ambientSources[k];
+  }
+}
+
+// Switch music for different environments (call when entering new biome)
+export function setMusic(key) {
+  if (key === _currentMusic && _musicSource) return;
+  _currentMusic = key;
+  if (_wantsMusic && _musicSource) {
     try { _musicSource.stop(); } catch { /* */ }
     _musicSource = null;
-  }
-  for (const [name, source] of Object.entries(_ambientSources)) {
-    try { source.stop(); } catch { /* */ }
-    delete _ambientSources[name];
+    _startMusicNow();
   }
 }
 
