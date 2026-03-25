@@ -1,5 +1,6 @@
 import { useState, memo } from "react";
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { geoCentroid } from "d3-geo";
 import { REGIONS, REGION_ORDER, CURRENT_SEASON } from "../data/regions.js";
 import { PHRASES } from "../data/phrases.js";
 import { font, mono } from "../data/constants.js";
@@ -130,37 +131,41 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
             pointerEvents: "none" }}>
           {r.name}
         </text>
-        <text textAnchor="middle" y={10}
-          style={{ fontFamily: mono, fontSize: isActive ? 9 : 7, fontWeight: 600,
+        <text textAnchor="middle" y={12}
+          style={{ fontFamily: mono, fontSize: isActive ? 11 : 9, fontWeight: 600,
             fill: isActive ? r.color + "dd" : c.m + "cc",
-            stroke: c.bg, strokeWidth: 2, paintOrder: "stroke",
+            stroke: c.bg, strokeWidth: 2.5, paintOrder: "stroke",
             pointerEvents: "none" }}>
           {r.english}
         </text>
       </Marker>;
     })}
-    {/* Prefecture name on zoomed view — show hovered prefecture */}
-    {zoom > 1.5 && hoveredPref && (() => {
-      // Find the prefecture's coordinates from the geographies
-      const prefRegion = hoveredPref.region;
-      const prefCenter = REGION_CENTERS[prefRegion];
-      return <Marker coordinates={prefCenter}>
-        <text textAnchor="middle" y={-6}
-          style={{ fontFamily: font, fontSize: 8, fontWeight: 800,
-            fill: c.tx,
-            stroke: c.bg, strokeWidth: 3, paintOrder: "stroke",
-            pointerEvents: "none" }}>
-          {hoveredPref.nameJa}
-        </text>
-        <text textAnchor="middle" y={4}
-          style={{ fontFamily: mono, fontSize: 5, fontWeight: 600,
-            fill: REGIONS[prefRegion]?.color || c.m,
-            stroke: c.bg, strokeWidth: 2, paintOrder: "stroke",
-            pointerEvents: "none" }}>
-          {hoveredPref.name?.replace(/ (Ken|Fu|To|Do)$/, "")}
-        </text>
-      </Marker>;
-    })()}
+    {/* Prefecture labels on zoomed view — show ALL prefectures in region */}
+    {zoom > 1.5 && <Geographies geography={TOPO_URL}>
+      {({ geographies }) => geographies
+        .filter(geo => PREF_IDS[geo.properties.id] === selected)
+        .map(geo => {
+          const centroid = geoCentroid(geo);
+          const isHov = hoveredPref?.name === geo.properties.nam;
+          const col = REGIONS[selected]?.color || c.m;
+          return <Marker key={"pl-" + geo.properties.id} coordinates={centroid}>
+            <text textAnchor="middle" y={-2}
+              style={{ fontFamily: font, fontSize: isHov ? 6 : 4.5, fontWeight: 800,
+                fill: isHov ? c.tx : c.tx + "bb",
+                stroke: c.bg, strokeWidth: 2.5, paintOrder: "stroke",
+                pointerEvents: "none" }}>
+              {geo.properties.nam_ja}
+            </text>
+            <text textAnchor="middle" y={4}
+              style={{ fontFamily: mono, fontSize: isHov ? 3.5 : 2.5, fontWeight: 600,
+                fill: isHov ? col : c.m + "aa",
+                stroke: c.bg, strokeWidth: 1.5, paintOrder: "stroke",
+                pointerEvents: "none" }}>
+              {geo.properties.nam?.replace(/ (Ken|Fu|To|Do)$/, "")}
+            </text>
+          </Marker>;
+        })}
+    </Geographies>}
   </ComposableMap>;
 
   // ═══ REGION BUTTONS ═══
