@@ -95,28 +95,27 @@ export default function SmartSession({
 
   const situations = { greet: "You meet someone.", food: "You're at a restaurant.", train: "You're navigating transport.", hotel: "You're at your hotel.", shop: "You're at a store.", dir: "You need directions.", sos: "It's an emergency." };
 
-  // Build session on mount — call coaching API first
+  // Build session IMMEDIATELY, then optionally fetch coaching in background
   useEffect(() => {
     if (cards.length === 0 && !done) {
-      (async () => {
-        try {
-          const res = await fetch('/api/coach', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode: 'plan', userData: data }),
-          });
-          const plan = await res.json();
-          if (!plan.error) setCoachingPlan(plan);
-          const session = buildSmartSession(data, 10, plan.difficulty || data.settings?.sessionDifficulty || 0);
-          if (session.length > 0) setCards(session);
-          else setDone(true);
-        } catch {
-          // Fallback: build session without AI coaching
-          const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
-          if (session.length > 0) setCards(session);
-          else setDone(true);
-        }
-        setLoading(false);
-      })();
+      // Build session right away — no waiting for API
+      try {
+        const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
+        if (session.length > 0) setCards(session);
+        else setDone(true);
+      } catch (e) {
+        console.error("Session build failed:", e);
+        setDone(true);
+      }
+      setLoading(false);
+
+      // Coaching in background (non-blocking)
+      fetch('/api/coach', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'plan', userData: data }),
+      }).then(r => r.json()).then(plan => {
+        if (!plan.error) setCoachingPlan(plan);
+      }).catch(() => {});
     }
   }, []);
 

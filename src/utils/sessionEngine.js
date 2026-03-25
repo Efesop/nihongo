@@ -114,6 +114,9 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 86400000;
   });
 
+  // How much kana does the user know? (needed for unseen filtering + beginner check)
+  const kanaLearned = ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1).length;
+
   // 3. New items (never seen)
   // Base kana first, then dakuten after 30+ base learned, then yōon after 60+ base
   const unseenBaseKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]);
@@ -228,9 +231,6 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     queue.push(learnPhraseCard(p));
     return true;
   }
-
-  // How much kana does the user know?
-  const kanaLearned = ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1).length;
 
   // If user knows very few kana, focus on teaching kana first
   if (kanaLearned < 10) {
