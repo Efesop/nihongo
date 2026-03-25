@@ -1,6 +1,47 @@
 # Learning Science: What Actually Works
 
-Research-backed findings that should drive every feature decision in TinySenpai.
+> **The fastest path to Japanese fluency, backed by science.** Every feature must accelerate learning. Every decision is measured against: "Does this help the user understand Japanese faster?" If it doesn't, cut it.
+
+---
+
+## The Learning Journey
+
+Each layer unlocks naturally based on progress — no manual gates:
+
+```
+Week 1-2:  Base kana (learn cards + visual quiz + listen grid)
+  ↓ 20+ kana
+Week 2-3:  Confused pairs unlock (シ/ツ, は/ほ side-by-side drilling)
+  ↓ 30+ kana
+Week 3-4:  Dakuten in sessions + first phrases + context words on kana cards
+  ↓ 10+ phrases
+Week 4-5:  Grammar patterns emerge ("You've seen です in 6 phrases...")
+  ↓ 15+ phrases + box 2+
+Week 5-6:  Reverse exercises (English → pick Japanese, no romaji)
+  ↓ 60+ kana
+Week 6-8:  Yōon + sentence listening at natural speed
+  ↓ Ongoing
+Always:    Map connects language to places, SRS reviews everything
+```
+
+---
+
+## Evidence Base for Current Features
+
+| Feature | Evidence | Key Study |
+|---------|----------|-----------|
+| Retrieval practice (quizzing) | **Strong** | Roediger & Karpicke 2006 — 100%+ better than restudying |
+| FSRS-5 spaced repetition | **Strong** | Ebbinghaus curve, Murre & Dros 2015 replication |
+| Confused pairs interleaving | **Strong** | Kornell & Bjork 2008 — 43% better discrimination |
+| Desirable difficulties | **Strong** | Bjork & Kroll 2015 — trick questions improve retention |
+| Production > recognition | **Strong** | Karpicke & Roediger 2008, MacLeod et al 2010 |
+| Grammar pattern noticing | **Strong** | Norris & Ortega 2000 — explicit d=1.13 vs implicit d=0.54 |
+| Context sentences for vocab | **Moderate-Strong** | Nation 2001, Hulstijn & Laufer 2001 |
+| Dual coding (image + text) | **Strong** | 89% better transfer in dual coding studies |
+| Emotional memory (stories) | **Strong** | Zero forgetting at 1.5 months for emotional content |
+| Streaks / gamification | **Moderate** | Duolingo: 7-day streak → 2.4x retention |
+| Natural-speed listening | **Moderate** | Chang & Millett 2014 — graduated approach recommended |
+| Handwriting / motor memory | **Moderate** | Naka & Naoi 1995 — helps, especially complex characters |
 
 ---
 

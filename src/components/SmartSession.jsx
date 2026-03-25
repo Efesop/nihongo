@@ -7,6 +7,7 @@ import { shuffle } from "../utils/helpers.js";
 import { buildSmartSession, getSessionSummary, matchRomaji, getDistractors } from "../utils/sessionEngine.js";
 import PhraseSegments from "./PhraseSegments.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
+import { KANA_WORDS } from "../data/kanaWords.js";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -715,6 +716,14 @@ export default function SmartSession({
           </div>
           <div style={{ fontSize: 13, color: c.m, lineHeight: 1.5 }}>{m[3] || m[2]}</div>
         </div>}
+        {KANA_WORDS[ex.item] && <div style={{ marginTop: 10, padding: "10px 14px", background: c.a + "08", borderRadius: 8, border: "1px solid " + c.a + "15" }}>
+          <div style={{ fontSize: 11, color: c.a, fontWeight: 600, marginBottom: 6 }}>Words with {ex.item}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {KANA_WORDS[ex.item].map((w, i) => <span key={i} style={{ fontSize: 13, color: c.tx }}>
+              <span style={{ fontWeight: 600 }}>{w.word}</span> <span style={{ fontSize: 11, color: c.m }}>({w.meaning})</span>
+            </span>)}
+          </div>
+        </div>}
       </div>
       {/* Personalise mnemonic button */}
       {data.onboarding?.why && <button onClick={async () => {
@@ -1095,6 +1104,155 @@ export default function SmartSession({
         setConvoAnswers({}); setConvoSubmitted(false);
         advance(correct >= total / 2);
       }} style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Continue →</button>
+    </>);
+  }
+
+  // ═══ EXERCISE: CONFUSED PAIRS ═══
+  if (ex.type === "kana-pair") {
+    const pair = ex.pair;
+    const targetIdx = choiceAnswer?.targetIdx ?? Math.floor(Math.random() * 2);
+    const targetChar = pair.chars[targetIdx];
+    const targetRomaji = pair.romaji[targetIdx];
+    if (!choiceAnswer) {
+      speak(targetChar);
+      setTimeout(() => setChoiceAnswer({ targetIdx, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
+    return withSenpai(<>
+      <div style={{ ...card, padding: "28px 20px", marginBottom: 14, textAlign: "center" }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.a, textTransform: "uppercase", marginBottom: 8 }}>Confused Pair</div>
+        <div style={{ fontSize: 16, color: c.m, marginBottom: 20 }}>Which one is <span style={{ fontWeight: 700, color: c.tx, fontFamily: mono }}>{targetRomaji}</span>?</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
+          {pair.chars.map((ch, i) => {
+            const isTarget = i === targetIdx;
+            const isSelected = choiceAnswer.selected === i;
+            let bg = c.s2, border = c.b, col = c.tx;
+            if (answered && isTarget) { bg = "#4caf5018"; border = "#4caf5055"; col = "#4caf50"; }
+            if (answered && isSelected && !isTarget) { bg = c.rs; border = c.a + "55"; col = c.a; }
+            return <button key={i} onClick={() => {
+              if (answered) return;
+              const ok = i === targetIdx;
+              setChoiceAnswer({ ...choiceAnswer, selected: i });
+              setFb(ok ? "ok" : "no");
+              setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+              updateKanaSRS(targetChar, ok);
+              setTimeout(() => advance(ok), ok ? 1500 : 3000);
+            }} style={{ ...btn, width: 120, height: 120, borderRadius: 16, border: "2px solid " + border, background: bg, fontSize: 56, color: col, transition: "all .2s" }}>
+              {ch}
+            </button>;
+          })}
+        </div>
+        <button onClick={() => speak(targetChar)} style={{ ...btn, marginTop: 12, padding: "6px 16px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: 13, color: c.m }}>🔊 hear again</button>
+        {answered && <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b }}>
+          <div style={{ fontSize: 13, color: c.tx }}>{pair.hint}</div>
+          <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
+            {pair.chars.map((ch, i) => <div key={i} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 28 }}>{ch}</div>
+              <div style={{ fontSize: 12, fontFamily: mono, color: c.a }}>{pair.romaji[i]}</div>
+            </div>)}
+          </div>
+        </div>}
+      </div>
+    </>);
+  }
+
+  // ═══ EXERCISE: GRAMMAR PATTERN ═══
+  if (ex.type === "grammar-pattern") {
+    const gp = ex.pattern;
+    return withSenpai(<>
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: "#4caf50", textTransform: "uppercase", marginBottom: 8 }}>Grammar Unlocked</div>
+        <div style={{ fontSize: 36, fontWeight: 800, color: c.a, marginBottom: 4 }}>{gp.pattern}</div>
+        <div style={{ fontSize: 16, color: c.tx, fontWeight: 600, marginBottom: 12 }}>{gp.meaning}</div>
+        <div style={{ fontSize: 14, color: c.tx, lineHeight: 1.7, marginBottom: 14 }}>{gp.explanation}</div>
+        <div style={{ padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>Example</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: c.tx }}>{gp.example}</div>
+        </div>
+      </div>
+      <button onClick={() => { advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
+    </>);
+  }
+
+  // ═══ EXERCISE: KANA REVERSE (see romaji → pick character) ═══
+  if (ex.type === "kana-reverse") {
+    if (!choiceAnswer) {
+      const allKana = Object.keys(ROMAJI).filter(ch => ch !== ex.item);
+      const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
+      const sameScript = allKana.filter(ch => isHira ? ch.charCodeAt(0) >= 0x3040 && ch.charCodeAt(0) <= 0x309F : ch.charCodeAt(0) >= 0x30A0);
+      const choices = shuffle([ex.item, ...shuffle(sameScript).slice(0, 7)]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
+    return withSenpai(<>
+      <div style={{ ...card, textAlign: "center", padding: "28px 20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Production — pick the character</div>
+        <div style={{ fontSize: 40, fontWeight: 800, fontFamily: mono, color: c.a, marginBottom: 20 }}>{ex.romaji}</div>
+        {answered && <div style={{ fontSize: 11, color: choiceAnswer.selected === ex.item ? "#4caf50" : c.a, marginBottom: 8 }}>{choiceAnswer.selected === ex.item ? "✓ Correct!" : "✗ Wrong — it's " + ex.item}</div>}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+        {choiceAnswer.choices.map((ch, i) => {
+          const isCorrect = ch === ex.item;
+          const isSelected = choiceAnswer.selected === ch;
+          let bg = c.s, border = c.b, col = c.tx;
+          if (answered && isCorrect) { bg = "#4caf5018"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
+          return <button key={i} onClick={() => {
+            if (answered) return;
+            const ok = ch === ex.item;
+            setChoiceAnswer({ ...choiceAnswer, selected: ch });
+            setFb(ok ? "ok" : "no");
+            setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            updateKanaSRS(ex.item, ok);
+            setTimeout(() => advance(ok), ok ? 1500 : 2500);
+          }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: answered ? bg : c.s, color: answered ? col : c.tx, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
+            {ch}
+          </button>;
+        })}
+      </div>
+    </>);
+  }
+
+  // ═══ EXERCISE: PHRASE REVERSE (see English → pick Japanese) ═══
+  if (ex.type === "phrase-reverse") {
+    const p = ex.item;
+    if (!choiceAnswer) {
+      const distractors = getDistractors(p, 3);
+      const choices = shuffle([p, ...distractors]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
+    return withSenpai(<>
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Production — find the Japanese</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: c.tx, marginBottom: 6 }}>{p[3]}</div>
+        <div style={{ fontSize: 13, color: c.m, fontStyle: "italic" }}>{p[5]}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {choiceAnswer.choices.map((choice, i) => {
+          const isCorrect = choice[0] === p[0];
+          const isSelected = choiceAnswer.selected === choice[0];
+          let bg = "transparent", border = c.b, col = c.tx;
+          if (answered && isCorrect) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
+          return <button key={i} onClick={() => {
+            if (answered) return;
+            const ok = choice[0] === p[0];
+            setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
+            setFb(ok ? "ok" : "no");
+            setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            reviewPhr(p[0], ok);
+            if (ok) speakPhrase(p[0], p[1]);
+            setTimeout(() => advance(ok), ok ? 2000 : 3000);
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 18, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
+            {choice[1]}
+          </button>;
+        })}
+      </div>
     </>);
   }
 

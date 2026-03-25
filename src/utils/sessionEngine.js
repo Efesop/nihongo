@@ -3,6 +3,8 @@ import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { SRS_DAYS } from "../data/constants.js";
 import { shuffle } from "./helpers.js";
 import { CONVERSATIONS } from "../data/conversations.js";
+import { CONFUSED_PAIRS } from "../data/confusedPairs.js";
+import { getUnlockedPatterns } from "../data/grammarPatterns.js";
 
 // All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -285,8 +287,47 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     } else break;
   }
 
-  // Add a conversation exercise if user knows enough phrases (1 per session)
+  // ═══ SPECIAL EXERCISE TYPES ═══
   const phrasesLearned = Object.keys(phrData).length;
+
+  // Confused pairs (after 20+ kana, 1 per session, 40% chance)
+  if (kanaLearned >= 20 && queue.length < sessionLength && Math.random() < 0.4) {
+    // Pick pairs where user knows both characters
+    const eligible = CONFUSED_PAIRS.filter(pair =>
+      pair.chars.every(ch => kanaData[ch]?.box >= 1)
+    );
+    if (eligible.length > 0) {
+      const pair = eligible[Math.floor(Math.random() * eligible.length)];
+      queue.push({ type: "kana-pair", pair });
+    }
+  }
+
+  // Grammar pattern exercise (after unlocked, 1 per session, 30% chance)
+  if (phrasesLearned >= 5 && queue.length < sessionLength && Math.random() < 0.3) {
+    const unlocked = getUnlockedPatterns(phrData, PHRASES);
+    if (unlocked.length > 0) {
+      const gp = unlocked[Math.floor(Math.random() * unlocked.length)];
+      queue.push({ type: "grammar-pattern", pattern: gp });
+    }
+  }
+
+  // Reverse exercise — production practice (box 2+ items, 1 per session)
+  if (queue.length < sessionLength) {
+    const productionPhrases = PHRASES.filter(p => (phrData[p[0]]?.box || 0) >= 2 && !usedPhrases.has(p[0]));
+    if (productionPhrases.length > 0) {
+      const p = shuffle(productionPhrases)[0];
+      usedPhrases.add(p[0]);
+      queue.push({ type: "phrase-reverse", item: p });
+    }
+  }
+  if (queue.length < sessionLength) {
+    const productionKana = ALL_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 2 && !usedKana.has(ch));
+    if (productionKana.length > 0) {
+      const ch = shuffle(productionKana)[0];
+      usedKana.add(ch);
+      queue.push({ type: "kana-reverse", item: ch, romaji: ROMAJI[ch] });
+    }
+  }
 
   // Add an AI-generated story if user knows enough phrases (1 per session, 25% chance)
   if (phrasesLearned >= 3 && queue.length < sessionLength && Math.random() < 0.25) {
