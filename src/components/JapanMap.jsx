@@ -117,29 +117,50 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
         />;
       })}
     </Geographies>
-    {/* Region labels */}
     {/* Region name labels on overview */}
     {zoom <= 1.5 && REGION_ORDER.map(id => {
       const r = REGIONS[id];
       const pos = REGION_CENTERS[id];
       const isActive = activeRegion === id;
       return <Marker key={"label-" + id} coordinates={pos}>
-        <text textAnchor="middle" y={-3}
-          style={{ fontFamily: font, fontSize: isActive ? 11 : 9, fontWeight: 800,
-            fill: isActive ? r.color : c.tx + "bb",
-            stroke: c.bg, strokeWidth: 3, paintOrder: "stroke",
+        <text textAnchor="middle" y={-5}
+          style={{ fontFamily: font, fontSize: isActive ? 18 : 14, fontWeight: 800,
+            fill: isActive ? r.color : c.tx + "cc",
+            stroke: c.bg, strokeWidth: 4, paintOrder: "stroke",
             pointerEvents: "none" }}>
           {r.name}
         </text>
-        <text textAnchor="middle" y={8}
-          style={{ fontFamily: mono, fontSize: isActive ? 6 : 5, fontWeight: 600,
-            fill: isActive ? r.color + "dd" : c.m + "aa",
+        <text textAnchor="middle" y={10}
+          style={{ fontFamily: mono, fontSize: isActive ? 9 : 7, fontWeight: 600,
+            fill: isActive ? r.color + "dd" : c.m + "cc",
             stroke: c.bg, strokeWidth: 2, paintOrder: "stroke",
             pointerEvents: "none" }}>
           {r.english}
         </text>
       </Marker>;
     })}
+    {/* Prefecture name on zoomed view — show hovered prefecture */}
+    {zoom > 1.5 && hoveredPref && (() => {
+      // Find the prefecture's coordinates from the geographies
+      const prefRegion = hoveredPref.region;
+      const prefCenter = REGION_CENTERS[prefRegion];
+      return <Marker coordinates={prefCenter}>
+        <text textAnchor="middle" y={-6}
+          style={{ fontFamily: font, fontSize: 8, fontWeight: 800,
+            fill: c.tx,
+            stroke: c.bg, strokeWidth: 3, paintOrder: "stroke",
+            pointerEvents: "none" }}>
+          {hoveredPref.nameJa}
+        </text>
+        <text textAnchor="middle" y={4}
+          style={{ fontFamily: mono, fontSize: 5, fontWeight: 600,
+            fill: REGIONS[prefRegion]?.color || c.m,
+            stroke: c.bg, strokeWidth: 2, paintOrder: "stroke",
+            pointerEvents: "none" }}>
+          {hoveredPref.name?.replace(/ (Ken|Fu|To|Do)$/, "")}
+        </text>
+      </Marker>;
+    })()}
   </ComposableMap>;
 
   // ═══ REGION BUTTONS ═══
