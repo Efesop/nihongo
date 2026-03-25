@@ -37,9 +37,7 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     : "Tap a region to explore Japan. I'll tell you what you need to know... if you're worthy.";
 
   // ═══ MAP SVG ═══
-  const mapSvg = <svg viewBox="0 0 1050 1000" style={{ width: "100%", height: "auto" }}>
-    {/* Water/background */}
-    <rect x="0" y="0" width="400" height="700" fill="transparent" />
+  const mapSvg = <svg viewBox="80 20 940 980" style={{ width: "100%", height: "auto" }}>
 
     {/* Region paths */}
     {REGION_ORDER.map(id => {
@@ -240,11 +238,11 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     {isDesktop ? (
       /* Desktop: side by side */
       <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        <div style={{ flex: "0 0 55%" }}>
+        <div style={{ flex: "0 0 50%" }}>
           {mapSvg}
           {regionButtons}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, minHeight: 500 }}>
           {region ? infoPanel : defaultPanel}
         </div>
       </div>
