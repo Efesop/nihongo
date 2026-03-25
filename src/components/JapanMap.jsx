@@ -63,23 +63,29 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     <svg viewBox={`${zoomBBox.x} ${zoomBBox.y} ${zoomBBox.w} ${zoomBBox.h}`} style={{ width: "100%", height: "auto" }}>
       {regionPrefs.map(([id, pref]) => {
         const isHovered = hoveredPref === id;
-        return <g key={id}>
-          <path d={pref.path}
-            fill={isHovered ? zoomedColor + "55" : zoomedColor + "18"}
-            stroke={isHovered ? zoomedColor : c.b}
-            strokeWidth={isHovered ? 2 : 0.8}
-            style={{ cursor: "pointer", transition: "all .2s" }}
-            onMouseEnter={() => { setHoveredPref(id); setHovered(zoomedRegion); }}
-            onMouseLeave={() => setHoveredPref(null)}
-          />
-          <text x={pref.center.x} y={pref.center.y}
-            textAnchor="middle" fontSize={isHovered ? 14 : 10}
-            fill={isHovered ? c.tx : c.m + "88"}
-            style={{ pointerEvents: "none", fontFamily: font, fontWeight: 700, transition: "all .2s" }}>
-            {pref.name}
-          </text>
-        </g>;
+        return <path key={id} d={pref.path}
+          fill={isHovered ? zoomedColor + "55" : zoomedColor + "18"}
+          stroke={isHovered ? zoomedColor : c.b + "88"}
+          strokeWidth={isHovered ? 1.5 : 0.5}
+          strokeLinejoin="round"
+          style={{ cursor: "pointer", transition: "all .15s" }}
+          onMouseEnter={() => { setHoveredPref(id); setHovered(zoomedRegion); }}
+          onMouseLeave={() => setHoveredPref(null)}
+        />;
       })}
+      {/* Only show label for hovered prefecture */}
+      {hoveredPref && PREFECTURE_DATA?.[hoveredPref] && <text
+        x={PREFECTURE_DATA[hoveredPref].center.x} y={PREFECTURE_DATA[hoveredPref].center.y}
+        textAnchor="middle" fontSize={Math.max(10, zoomBBox.w / 30)}
+        fill={c.tx} style={{ pointerEvents: "none", fontFamily: font, fontWeight: 800 }}>
+        {PREFECTURE_DATA[hoveredPref].name}
+      </text>}
+      {hoveredPref && PREFECTURE_DATA?.[hoveredPref] && <text
+        x={PREFECTURE_DATA[hoveredPref].center.x} y={PREFECTURE_DATA[hoveredPref].center.y + Math.max(12, zoomBBox.w / 25)}
+        textAnchor="middle" fontSize={Math.max(7, zoomBBox.w / 45)}
+        fill={zoomedColor} style={{ pointerEvents: "none", fontFamily: mono, fontWeight: 600 }}>
+        {PREFECTURE_DATA[hoveredPref].romaji}
+      </text>}
     </svg>
   ) : (
     // OVERVIEW — show regions
@@ -92,6 +98,7 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
           fill={isActive ? r.color + "44" : c.s2}
           stroke={isActive ? r.color : c.b}
           strokeWidth={isActive ? 2 : 1}
+          strokeLinejoin="round"
           style={{ cursor: "pointer", transition: "all .25s" }}
           onMouseEnter={() => setHovered(id)}
           onMouseLeave={() => setHovered(null)}
