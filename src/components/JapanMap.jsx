@@ -225,7 +225,7 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
   </div> : null;
 
   // ═══ RENDER ═══
-  return <div style={inner}>
+  return <div style={{ ...inner, maxWidth: isDesktop ? 1100 : inner.maxWidth }}>
     {/* Header */}
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
       <span style={{ fontSize: 22 }}>🗾</span>
@@ -236,22 +236,20 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     </div>
 
     {isDesktop ? (
-      /* Desktop: side by side */
-      <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
-        <div style={{ flex: "0 0 50%" }}>
+      /* Desktop: side by side, wider than normal inner container */
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        <div style={{ flex: "0 0 55%", minWidth: 0 }}>
           {mapSvg}
           {regionButtons}
         </div>
-        <div style={{ flex: 1, minWidth: 0, minHeight: 500 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           {region ? infoPanel : defaultPanel}
         </div>
       </div>
     ) : (
       /* Mobile: stacked */
       <>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          {mapSvg}
-        </div>
+        {mapSvg}
         {regionButtons}
         <div style={{ marginTop: 16 }}>
           {region ? infoPanel : defaultPanel}

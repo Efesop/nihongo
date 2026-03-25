@@ -4,10 +4,20 @@ import { SRS_DAYS } from "../data/constants.js";
 import { shuffle } from "./helpers.js";
 import { CONVERSATIONS } from "../data/conversations.js";
 
-// All base kana (no dakuten/yōon for now — keep it simpler)
+// All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
   .filter(g => !g.dk && !g.yo)
   .flatMap(g => g.c);
+
+const ALL_DAKUTEN = [...H_GROUPS, ...K_GROUPS]
+  .filter(g => g.dk)
+  .flatMap(g => g.c);
+
+const ALL_YOON = [...H_GROUPS, ...K_GROUPS]
+  .filter(g => g.yo)
+  .flatMap(g => g.c);
+
+const ALL_KANA = [...ALL_BASE_KANA, ...ALL_DAKUTEN, ...ALL_YOON];
 
 // Common building-block words that appear across many phrases
 const BUILDING_BLOCKS = [
@@ -67,11 +77,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // Error patterns — items the user frequently gets wrong (3+ errors)
   const errors = data.errors || {};
-  const frequentErrorKana = ALL_BASE_KANA.filter(ch => (errors[ch] || 0) >= 3 && kanaData[ch]);
+  const frequentErrorKana = ALL_KANA.filter(ch => (errors[ch] || 0) >= 3 && kanaData[ch]);
   const frequentErrorPhrases = PHRASES.filter(p => (errors[p[0]] || 0) >= 3 && phrData[p[0]]);
 
-  // 1. Due for review (highest priority)
-  const dueKana = ALL_BASE_KANA.filter(ch => {
+  // 1. Due for review (highest priority) — includes dakuten & yōon
+  const dueKana = ALL_KANA.filter(ch => {
     const d = kanaData[ch];
     return d && d.box >= 1 && now >= (d.next || 0);
   });
@@ -82,7 +92,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   });
 
   // 2. Struggling (box 1-2 AND due — don't repeat items just answered)
-  const strugglingKana = ALL_BASE_KANA.filter(ch => {
+  const strugglingKana = ALL_KANA.filter(ch => {
     const d = kanaData[ch];
     return d && d.box >= 1 && d.box <= 2 && now >= (d.next || 0);
   });
@@ -93,7 +103,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   });
 
   // 2b. Recently learned (last 24h, box 0-1) — reinforce even if not SRS-due
-  const recentKana = ALL_BASE_KANA.filter(ch => {
+  const recentKana = ALL_KANA.filter(ch => {
     const d = kanaData[ch];
     return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 86400000;
   });
@@ -102,8 +112,12 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 86400000;
   });
 
-  // 3. New items (never seen) — smart ordering for phrases
-  const unseenKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]);
+  // 3. New items (never seen)
+  // Base kana first, then dakuten after 30+ base learned, then yōon after 60+ base
+  const unseenBaseKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]);
+  const unseenDakuten = kanaLearned >= 30 ? ALL_DAKUTEN.filter(ch => !kanaData[ch] && ROMAJI[ch]) : [];
+  const unseenYoon = kanaLearned >= 60 ? ALL_YOON.filter(ch => !kanaData[ch] && ROMAJI[ch]) : [];
+  const unseenKana = [...unseenBaseKana, ...unseenDakuten, ...unseenYoon];
   const unseenPhrases = smartPhraseOrder(PHRASES.filter(p => !phrData[p[0]]), phrData);
 
   // ═══ PICK EXERCISE TYPE BASED ON MASTERY ═══
