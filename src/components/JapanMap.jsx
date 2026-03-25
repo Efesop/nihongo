@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { REGIONS, REGION_ORDER, REGION_PATHS, LABEL_POS, CURRENT_SEASON } from "../data/regions.js";
+import { REGIONS, REGION_ORDER, REGION_PATHS, LABEL_POS, CURRENT_SEASON, PREFECTURE_DATA } from "../data/regions.js";
 import { PHRASES } from "../data/phrases.js";
 import { font, mono } from "../data/constants.js";
 
@@ -7,6 +7,8 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
   const [selected, setSelected] = useState(null);
   const [hovered, setHovered] = useState(null);
   const [infoTab, setInfoTab] = useState("overview");
+  const [zoomedRegion, setZoomedRegion] = useState(null);
+  const [hoveredPref, setHoveredPref] = useState(null);
 
   // On desktop, hover shows info. On mobile, tap selects.
   const activeRegion = isDesktop ? (hovered || selected) : selected;
@@ -36,47 +38,91 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     ? region.senpaiQuote
     : "Tap a region to explore Japan. I'll tell you what you need to know... if you're worthy.";
 
+  // ═══ PREFECTURE DATA FOR ZOOMED REGION ═══
+  const regionPrefs = zoomedRegion ? Object.entries(PREFECTURE_DATA || {}).filter(([, p]) => p.region === zoomedRegion) : [];
+
+  // Calculate bounding box for zoomed region
+  const getRegionBBox = (regionId) => {
+    const prefs = Object.entries(PREFECTURE_DATA || {}).filter(([, p]) => p.region === regionId);
+    if (prefs.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    prefs.forEach(([, p]) => {
+      const coords = p.path.match(/(\d+),(\d+)/g) || [];
+      coords.forEach(c => { const [x, y] = c.split(",").map(Number); minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); });
+    });
+    const pad = 30;
+    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
+  };
+
   // ═══ MAP SVG ═══
-  const mapSvg = <svg viewBox="80 20 940 980" style={{ width: "100%", height: "auto" }}>
+  const zoomBBox = zoomedRegion ? getRegionBBox(zoomedRegion) : null;
+  const zoomedColor = zoomedRegion ? REGIONS[zoomedRegion]?.color : c.a;
 
-    {/* Region paths */}
-    {REGION_ORDER.map(id => {
-      const r = REGIONS[id];
-      const isActive = activeRegion === id;
-      return <path key={id}
-        d={REGION_PATHS[id]}
-        fill={isActive ? r.color + "44" : c.s2}
-        stroke={isActive ? r.color : c.b}
-        strokeWidth={isActive ? 2 : 1}
-        style={{ cursor: "pointer", transition: "all .25s" }}
-        onMouseEnter={() => setHovered(id)}
-        onMouseLeave={() => setHovered(null)}
-        onClick={() => { setSelected(selected === id ? null : id); setInfoTab("overview"); }}
-      />;
-    })}
+  const mapSvg = zoomedRegion && zoomBBox ? (
+    // ZOOMED VIEW — show prefectures
+    <svg viewBox={`${zoomBBox.x} ${zoomBBox.y} ${zoomBBox.w} ${zoomBBox.h}`} style={{ width: "100%", height: "auto" }}>
+      {regionPrefs.map(([id, pref]) => {
+        const isHovered = hoveredPref === id;
+        return <g key={id}>
+          <path d={pref.path}
+            fill={isHovered ? zoomedColor + "55" : zoomedColor + "18"}
+            stroke={isHovered ? zoomedColor : c.b}
+            strokeWidth={isHovered ? 2 : 0.8}
+            style={{ cursor: "pointer", transition: "all .2s" }}
+            onMouseEnter={() => { setHoveredPref(id); setHovered(zoomedRegion); }}
+            onMouseLeave={() => setHoveredPref(null)}
+          />
+          <text x={pref.center.x} y={pref.center.y}
+            textAnchor="middle" fontSize={isHovered ? 14 : 10}
+            fill={isHovered ? c.tx : c.m + "88"}
+            style={{ pointerEvents: "none", fontFamily: font, fontWeight: 700, transition: "all .2s" }}>
+            {pref.name}
+          </text>
+        </g>;
+      })}
+    </svg>
+  ) : (
+    // OVERVIEW — show regions
+    <svg viewBox="80 20 940 980" style={{ width: "100%", height: "auto" }}>
+      {REGION_ORDER.map(id => {
+        const r = REGIONS[id];
+        const isActive = activeRegion === id;
+        return <path key={id}
+          d={REGION_PATHS[id]}
+          fill={isActive ? r.color + "44" : c.s2}
+          stroke={isActive ? r.color : c.b}
+          strokeWidth={isActive ? 2 : 1}
+          style={{ cursor: "pointer", transition: "all .25s" }}
+          onMouseEnter={() => setHovered(id)}
+          onMouseLeave={() => setHovered(null)}
+          onClick={() => { setZoomedRegion(id); setSelected(id); setInfoTab("overview"); setHoveredPref(null); }}
+        />;
+      })}
+      {REGION_ORDER.map(id => {
+        const r = REGIONS[id];
+        const pos = LABEL_POS[id];
+        const isActive = activeRegion === id;
+        return <text key={"l-" + id} x={pos.x} y={pos.y}
+          textAnchor="middle" fontSize={isActive ? 13 : 10}
+          fill={isActive ? r.color : c.m + "aa"}
+          style={{ pointerEvents: "none", fontFamily: font, fontWeight: 700, transition: "all .2s" }}>
+          {r.name}
+        </text>;
+      })}
+    </svg>
+  );
 
-    {/* Region labels */}
-    {REGION_ORDER.map(id => {
-      const r = REGIONS[id];
-      const pos = LABEL_POS[id];
-      const isActive = activeRegion === id;
-      return <text key={"l-" + id} x={pos.x} y={pos.y}
-        textAnchor="middle" fontSize={isActive ? 13 : 10}
-        fill={isActive ? r.color : c.m + "aa"}
-        style={{ pointerEvents: "none", fontFamily: font, fontWeight: 700, transition: "all .2s" }}>
-        {r.name}
-      </text>;
-    })}
-
-  </svg>;
-
-  // ═══ REGION SELECTOR BUTTONS (fallback for mobile) ═══
-  const regionButtons = <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginTop: 8 }}>
-    {REGION_ORDER.map(id => {
+  // ═══ REGION SELECTOR BUTTONS + BACK BUTTON ═══
+  const regionButtons = <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center", marginTop: 8, alignItems: "center" }}>
+    {zoomedRegion && <button onClick={() => { setZoomedRegion(null); setHoveredPref(null); setSelected(null); }}
+      style={{ ...btn, padding: "4px 12px", borderRadius: 6, fontSize: 11, fontWeight: 600, background: c.a + "18", color: c.a, border: "1px solid " + c.a + "33" }}>
+      ← All regions
+    </button>}
+    {!zoomedRegion && REGION_ORDER.map(id => {
       const r = REGIONS[id];
       const isActive = activeRegion === id;
       return <button key={id}
-        onClick={() => { setSelected(isActive ? null : id); setInfoTab("overview"); }}
+        onClick={() => { setZoomedRegion(id); setSelected(id); setInfoTab("overview"); setHoveredPref(null); }}
         onMouseEnter={isDesktop ? () => setHovered(id) : undefined}
         onMouseLeave={isDesktop ? () => setHovered(null) : undefined}
         style={{ ...btn, padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: isActive ? 700 : 400,
@@ -85,6 +131,9 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
         {r.name}
       </button>;
     })}
+    {zoomedRegion && <span style={{ fontSize: 12, color: zoomedColor, fontWeight: 700, marginLeft: 8 }}>
+      {REGIONS[zoomedRegion]?.name} — hover over prefectures
+    </span>}
   </div>;
 
   // ═══ INFO PANEL ═══
@@ -104,6 +153,10 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 32, fontWeight: 800, color: region.color, lineHeight: 1 }}>{region.name}</div>
       <div style={{ fontSize: 14, fontFamily: mono, color: c.m, marginTop: 4 }}>{region.romaji} · {region.english}</div>
+      {hoveredPref && PREFECTURE_DATA?.[hoveredPref] && <div style={{ marginTop: 6, padding: "6px 10px", background: region.color + "12", borderRadius: 6, border: "1px solid " + region.color + "22", display: "inline-block" }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: c.tx }}>{PREFECTURE_DATA[hoveredPref].name}</span>
+        <span style={{ fontSize: 12, fontFamily: mono, color: region.color, marginLeft: 8 }}>{PREFECTURE_DATA[hoveredPref].romaji}</span>
+      </div>}
       {/* Progress */}
       {(() => {
         const { known, total } = getRegionProgress(activeRegion);
