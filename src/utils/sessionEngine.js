@@ -124,19 +124,57 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // ═══ PICK EXERCISE TYPE BASED ON MASTERY ═══
 
+  // Multi-dimensional skill tracking: check weakest skill per item
+  // data.skills = { [itemId]: { visual: 0-5, listen: 0-5, production: 0-5 } }
+  const skills = data.skills || {};
+  function getWeakestSkill(id) {
+    const s = skills[id];
+    if (!s) return "visual"; // default for new items
+    const v = s.visual || 0, l = s.listen || 0, p = s.production || 0;
+    if (l <= v && l <= p) return "listen";
+    if (p <= v && p <= l) return "production";
+    return "visual";
+  }
+
   function kanaExercise(ch) {
     const box = kanaData[ch]?.box || 0;
+    const errorCount = errors[ch] || 0;
     const adjusted = box + difficultyMod;
-    // Mostly visual, listen only at higher mastery (20% chance)
+
+    // Leech treatment: 5+ errors → show mnemonic + breakdown instead of quiz
+    if (errorCount >= 5 && Math.random() < 0.5) {
+      return { type: "leech-review", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], errorCount, isKana: true };
+    }
+
+    // Pick exercise based on weakest skill
+    const weak = getWeakestSkill(ch);
+    if (weak === "listen" && adjusted >= 1) return { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
+    if (weak === "production" && adjusted >= 2) return { type: "kana-reverse", item: ch, romaji: ROMAJI[ch] };
+
+    // Default progression
     if (adjusted <= 2) return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
-    return Math.random() > 0.8
-      ? { type: "kana-listen", item: ch, romaji: ROMAJI[ch] }
-      : { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
+    const r = Math.random();
+    if (r > 0.6) return { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
+    if (r > 0.3) return { type: "kana-reverse", item: ch, romaji: ROMAJI[ch] };
+    return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
   }
 
   function phraseExercise(p) {
     const box = phrData[p[0]]?.box || 0;
+    const errorCount = errors[p[0]] || 0;
     const adjusted = box + difficultyMod;
+
+    // Leech treatment
+    if (errorCount >= 5 && Math.random() < 0.5) {
+      return { type: "leech-review", item: p, errorCount, isKana: false };
+    }
+
+    // Pick based on weakest skill
+    const weak = getWeakestSkill(p[0]);
+    if (weak === "listen" && adjusted >= 1) return { type: "phrase-listen", item: p };
+    if (weak === "production" && adjusted >= 2) return { type: "phrase-reverse", item: p };
+
+    // Default progression
     const r = Math.random();
     if (adjusted <= 0) return { type: "phrase-scenario", item: p };
     if (adjusted <= 1) return r > 0.6 ? { type: "phrase-listen", item: p } : { type: "phrase-scenario", item: p };
@@ -145,8 +183,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       if (r > 0.4) return { type: "phrase-listen", item: p };
       return { type: "phrase-scenario", item: p };
     }
-    // Mastered — harder exercises
-    if (r > 0.5) return { type: "phrase-production", item: p };
+    if (r > 0.5) return { type: "phrase-reverse", item: p };
     return { type: "phrase-listen", item: p };
   }
 
@@ -247,19 +284,26 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     knownKana.slice(0, 3 - kanaInQueue).forEach(ch => addKana(ch));
   }
 
-  // Add new content (learn cards) + immediate follow-up quiz
+  // Productive failure: quiz FIRST on unseen items, then reveal learn card
+  // Research: struggling before instruction → better outcomes (Finding #16)
   if (unseenKana.length > 0 && queue.length < sessionLength - 2) {
     const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, 2);
     newKana.forEach(ch => {
-      addLearnKana(ch);
-      queue.push({ type: "_delayed_kana", item: ch, romaji: ROMAJI[ch], delay: 2 });
+      usedKana.add(ch);
+      // First: a "try first" quiz — user sees the character, tries to guess
+      queue.push({ type: "try-first-kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch] });
+      // Then: the learn card reveals the answer + mnemonic (delayed 1-2 cards later)
+      queue.push({ type: "_delayed_learn_kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], delay: 1 });
     });
   }
   if (unseenPhrases.length > 0 && queue.length < sessionLength - 1) {
     const np = unseenPhrases.find(p => !usedPhrases.has(p[0]));
     if (np) {
-      addLearnPhrase(np);
-      queue.push({ type: "_delayed_phrase", item: np, delay: 2 });
+      usedPhrases.add(np[0]);
+      // First: situation prompt — "what would you say?"
+      queue.push({ type: "try-first-phrase", item: np });
+      // Then: learn card with full breakdown
+      queue.push({ type: "_delayed_learn_phrase", item: np, delay: 1 });
     }
   }
 
@@ -349,7 +393,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
-  // Process delayed items — move them 2-3 positions after their learn card
+  // Process delayed items — move them after their trigger card
   const finalQueue = [];
   const delayed = [];
   for (const item of queue) {
@@ -357,6 +401,10 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       delayed.push({ ...kanaExercise(item.item), _insertAfter: finalQueue.length + item.delay });
     } else if (item.type === "_delayed_phrase") {
       delayed.push({ ...phraseExercise(item.item), _insertAfter: finalQueue.length + item.delay });
+    } else if (item.type === "_delayed_learn_kana") {
+      delayed.push({ type: "learn-card", item: item.item, romaji: item.romaji, mnemonic: item.mnemonic, _insertAfter: finalQueue.length + item.delay });
+    } else if (item.type === "_delayed_learn_phrase") {
+      delayed.push({ type: "learn-phrase", item: item.item, _insertAfter: finalQueue.length + item.delay });
     } else {
       finalQueue.push(item);
     }

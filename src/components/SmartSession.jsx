@@ -1256,6 +1256,136 @@ export default function SmartSession({
     </>);
   }
 
+  // ═══ EXERCISE: TRY FIRST — KANA (productive failure) ═══
+  if (ex.type === "try-first-kana") {
+    if (!fb) setTimeout(() => speak(ex.item), 300);
+    const submit = () => {
+      if (fb || !input.trim()) return;
+      const ok = input.trim().toLowerCase() === ex.romaji;
+      setFb(ok ? "ok" : "no");
+      // Don't update SRS here — the learn card after will handle it
+      setTimeout(() => advance(true), ok ? 1500 : 2500);
+    };
+    return withSenpai(<>
+      <div style={{ ...card, textAlign: "center", padding: "28px 20px", marginBottom: 14, background: fb === "ok" ? "#4caf5012" : fb === "no" ? c.rs : c.s }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.a, textTransform: "uppercase", marginBottom: 8 }}>Try first — what sound does this make?</div>
+        <div style={{ fontSize: isDesktop ? 120 : 90, lineHeight: 1, marginBottom: 12 }}>{ex.item}</div>
+        {fb && <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 24, fontWeight: 700, fontFamily: mono, color: fb === "ok" ? "#4caf50" : c.a }}>{ex.romaji}</div>
+          <div style={{ fontSize: 13, color: c.m, marginTop: 4 }}>{fb === "ok" ? "You already knew this!" : "No worries — you'll learn it next"}</div>
+        </div>}
+      </div>
+      {!fb && <div style={{ display: "flex", gap: 8 }}>
+        <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") submit(); }}
+          placeholder="guess..." autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+          style={{ flex: 1, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontFamily: mono, fontSize: 20, outline: "none", textAlign: "center" }} />
+        <button onClick={submit} style={{ ...btn, padding: "14px 22px", borderRadius: 10, background: c.a, color: "#fff", fontSize: 14, fontWeight: 600 }}>Go</button>
+      </div>}
+      {!fb && <button onClick={() => { setFb("no"); setTimeout(() => advance(true), 1500); }}
+        style={{ ...btn, width: "100%", marginTop: 8, padding: "10px", borderRadius: 8, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: 12 }}>I don't know yet →</button>}
+    </>);
+  }
+
+  // ═══ EXERCISE: TRY FIRST — PHRASE (productive failure) ═══
+  if (ex.type === "try-first-phrase") {
+    const p = ex.item;
+    const catCol = CAT_COLORS[p[4]];
+    if (!choiceAnswer) {
+      const distractors = getDistractors(p, 3);
+      const choices = shuffle([p, ...distractors]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
+    return withSenpai(<>
+      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.a, textTransform: "uppercase", marginBottom: 8 }}>Try first — what would you say?</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 16 }}>{CAT_ICONS[p[4]]}</span>
+          <span style={{ fontSize: 13, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
+        </div>
+        {p[5] && <div style={{ fontSize: 14, color: c.tx, marginBottom: 10, padding: "8px 12px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
+        <div style={{ fontSize: 20, fontWeight: 700, color: c.tx }}>{p[3]}</div>
+        {answered && <div style={{ marginTop: 12, fontSize: 13, color: choiceAnswer.selected === p[0] ? "#4caf50" : c.a }}>
+          {choiceAnswer.selected === p[0] ? "You already knew this!" : "Good try — you'll learn this phrase next"}
+        </div>}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {choiceAnswer.choices.map((choice, i) => {
+          let bg = "transparent", border = c.b, col = c.tx;
+          if (answered && choice[0] === p[0]) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && choiceAnswer.selected === choice[0] && choice[0] !== p[0]) { bg = c.rs; border = c.a + "55"; col = c.a; }
+          return <button key={i} onClick={() => {
+            if (answered) return;
+            setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
+            setFb(choice[0] === p[0] ? "ok" : "no");
+            setTimeout(() => advance(true), 2000);
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 17, textAlign: "left" }}>
+            {choice[1]}
+          </button>;
+        })}
+      </div>
+    </>);
+  }
+
+  // ═══ EXERCISE: LEECH REVIEW (special treatment for hard items) ═══
+  if (ex.type === "leech-review") {
+    if (ex.isKana) {
+      const m = ex.mnemonic;
+      const isHiragana = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
+      const imgPath = `/images/mnemonics/approved/${isHiragana ? "hiragana" : "katakana"}/${ex.item.codePointAt(0).toString(16)}.png`;
+      return withSenpai(<>
+        <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginBottom: 8 }}>This one keeps tripping you up ({ex.errorCount} mistakes)</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ flex: "1 1 40%", textAlign: "center" }}>
+              <div style={{ fontSize: 90, lineHeight: 1 }}>{ex.item}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: c.a, fontFamily: mono, marginTop: 8 }}>{ex.romaji}</div>
+              <button onClick={() => speak(ex.item)} style={{ ...btn, marginTop: 8, padding: "5px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊</button>
+            </div>
+            <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }}
+              style={{ flex: "1 1 60%", maxWidth: "50%", borderRadius: 12 }} />
+          </div>
+          {m && <div style={{ marginTop: 14, padding: "12px 16px", background: c.a + "10", borderRadius: 8, border: "1px solid " + c.a + "22" }}>
+            <div style={{ fontSize: 11, color: c.a, fontWeight: 700, marginBottom: 4 }}>Remember it like this:</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 20 }}>{m[0]}</span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{m[1]}</span>
+            </div>
+            <div style={{ fontSize: 13, color: c.tx, lineHeight: 1.5 }}>{m[3] || m[2]}</div>
+          </div>}
+          {KANA_WORDS[ex.item] && <div style={{ marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8 }}>
+            <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>Used in real words:</div>
+            {KANA_WORDS[ex.item].map((w, i) => <span key={i} style={{ fontSize: 13, color: c.tx, marginRight: 12 }}>
+              <span style={{ fontWeight: 600 }}>{w.word}</span> <span style={{ color: c.m }}>({w.meaning})</span>
+            </span>)}
+          </div>}
+        </div>
+        <button onClick={() => { updateKanaSRS(ex.item, true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>I've got it now →</button>
+      </>);
+    }
+    // Phrase leech
+    const p = ex.item;
+    return withSenpai(<>
+      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginBottom: 12 }}>This phrase keeps tripping you up ({ex.errorCount} mistakes)</div>
+        <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 28 : 22} />
+        <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8 }}>{p[2]}</div>
+        <div style={{ fontSize: 18, fontWeight: 600, color: c.tx, marginTop: 4 }}>{p[3]}</div>
+        {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + c.a }}>{p[5]}</div>}
+        <div style={{ marginTop: 12, padding: "10px 14px", background: c.a + "10", borderRadius: 8, border: "1px solid " + c.a + "22" }}>
+          <div style={{ fontSize: 11, color: c.a, fontWeight: 700, marginBottom: 4 }}>Break it down:</div>
+          <div style={{ fontSize: 13, color: c.tx }}>Tap each word above to see what it means. Listen carefully to the pronunciation.</div>
+        </div>
+        <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
+          style={{ ...btn, width: "100%", marginTop: 10, padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 hear it slowly</button>
+      </div>
+      <button onClick={() => { reviewPhr(p[0], true); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>I've got it now →</button>
+    </>);
+  }
+
   // Fallback
   return withSenpai(<div style={{ textAlign: "center", color: c.m, padding: 40 }}>Unknown exercise type</div>);
 }
