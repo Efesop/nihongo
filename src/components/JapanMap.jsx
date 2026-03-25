@@ -24,7 +24,7 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
   const [selected, setSelected] = useState(null); // region id (clicked)
   const [infoTab, setInfoTab] = useState("overview");
   const [zoom, setZoom] = useState(1);
-  const [center, setCenter] = useState([137, 38]);
+  const [center, setCenter] = useState([137, 36]);
 
   const activeRegion = isDesktop ? (hovered || selected) : selected;
   const region = activeRegion ? REGIONS[activeRegion] : null;
@@ -59,7 +59,7 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
   const handleRegionClick = (regionId) => {
     if (selected === regionId) {
       // Zoom back out
-      setSelected(null); setZoom(1); setCenter([137, 38]);
+      setSelected(null); setZoom(1); setCenter([137, 36]);
     } else {
       setSelected(regionId); setInfoTab("overview");
       setZoom(4); setCenter(REGION_CENTERS[regionId] || [137, 38]);
@@ -69,9 +69,9 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
   // ═══ MAP ═══
   const mapContent = <ComposableMap
     projection="geoMercator"
-    projectionConfig={{ center, scale: 2000 * zoom }}
+    projectionConfig={{ center, scale: 1500 * zoom }}
     width={500}
-    height={600}
+    height={700}
     style={{ width: "100%", height: "auto" }}
   >
     <Geographies geography={TOPO_URL}>
@@ -118,28 +118,28 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
       })}
     </Geographies>
     {/* Region labels */}
+    {/* Region name labels on overview */}
     {zoom <= 1.5 && REGION_ORDER.map(id => {
       const r = REGIONS[id];
       const pos = REGION_CENTERS[id];
       const isActive = activeRegion === id;
       return <Marker key={"label-" + id} coordinates={pos}>
-        <text textAnchor="middle" y={-4} style={{ fontFamily: font, fontSize: isActive ? 8 : 6, fontWeight: 700, fill: isActive ? r.color : c.m + "cc", pointerEvents: "none" }}>
+        <text textAnchor="middle" y={-3}
+          style={{ fontFamily: font, fontSize: isActive ? 11 : 9, fontWeight: 800,
+            fill: isActive ? r.color : c.tx + "bb",
+            stroke: c.bg, strokeWidth: 3, paintOrder: "stroke",
+            pointerEvents: "none" }}>
           {r.name}
         </text>
-        <text textAnchor="middle" y={6} style={{ fontFamily: mono, fontSize: 4, fill: isActive ? r.color + "cc" : c.m + "88", pointerEvents: "none" }}>
+        <text textAnchor="middle" y={8}
+          style={{ fontFamily: mono, fontSize: isActive ? 6 : 5, fontWeight: 600,
+            fill: isActive ? r.color + "dd" : c.m + "aa",
+            stroke: c.bg, strokeWidth: 2, paintOrder: "stroke",
+            pointerEvents: "none" }}>
           {r.english}
         </text>
       </Marker>;
     })}
-    {/* Hovered prefecture label */}
-    {zoom > 1.5 && hoveredPref && <Marker coordinates={center}>
-      <text textAnchor="middle" y={-6} style={{ fontFamily: font, fontSize: 5, fontWeight: 800, fill: c.tx, pointerEvents: "none" }}>
-        {hoveredPref.nameJa}
-      </text>
-      <text textAnchor="middle" y={2} style={{ fontFamily: mono, fontSize: 3.5, fill: REGIONS[hoveredPref.region]?.color || c.m, pointerEvents: "none" }}>
-        {hoveredPref.name?.replace(/ (Ken|Fu|To|Do)$/, "")}
-      </text>
-    </Marker>}
   </ComposableMap>;
 
   // ═══ REGION BUTTONS ═══
