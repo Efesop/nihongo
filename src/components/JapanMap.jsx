@@ -149,17 +149,17 @@ export default function JapanMap({ data, c, inner, card, btn, isDesktop }) {
           const isHov = hoveredPref?.name === geo.properties.nam;
           const col = REGIONS[selected]?.color || c.m;
           return <Marker key={"pl-" + geo.properties.id} coordinates={centroid}>
-            <text textAnchor="middle" y={-2}
-              style={{ fontFamily: font, fontSize: isHov ? 6 : 4.5, fontWeight: 800,
+            <text textAnchor="middle" y={-4}
+              style={{ fontFamily: font, fontSize: isHov ? 16 : 12, fontWeight: 800,
                 fill: isHov ? c.tx : c.tx + "bb",
-                stroke: c.bg, strokeWidth: 2.5, paintOrder: "stroke",
+                stroke: c.bg, strokeWidth: 4, paintOrder: "stroke",
                 pointerEvents: "none" }}>
               {geo.properties.nam_ja}
             </text>
-            <text textAnchor="middle" y={4}
-              style={{ fontFamily: mono, fontSize: isHov ? 3.5 : 2.5, fontWeight: 600,
-                fill: isHov ? col : c.m + "aa",
-                stroke: c.bg, strokeWidth: 1.5, paintOrder: "stroke",
+            <text textAnchor="middle" y={10}
+              style={{ fontFamily: mono, fontSize: isHov ? 9 : 7, fontWeight: 600,
+                fill: isHov ? col : c.m + "cc",
+                stroke: c.bg, strokeWidth: 2.5, paintOrder: "stroke",
                 pointerEvents: "none" }}>
               {geo.properties.nam?.replace(/ (Ken|Fu|To|Do)$/, "")}
             </text>
