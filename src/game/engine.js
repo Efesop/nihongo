@@ -11,7 +11,7 @@ import { ROOMS } from "./levels.js";
 import { ROOM_ENCOUNTERS, ROOM_DIALOGUE, STORY_TRIGGERS } from "./story.js";
 import { updateStory, initStoryState } from "./storyRenderer.js";
 import { crossfadeMusic } from "./audio.js";
-import { playSound, playRandom, playRandomExclusive } from "./audio.js";
+import { playSound, playRandom, playRandomExclusive, setAmbientTheme } from "./audio.js";
 
 // ═══ ROOM MANAGEMENT ═══
 export function loadRoom(g, roomIndex) {
@@ -19,6 +19,8 @@ export function loadRoom(g, roomIndex) {
   if (!room) return;
   g.currentRoom = roomIndex;
   g._rooms = ROOMS; // expose for renderer theme lookup
+  // Set ambient theme (no rain in dojo)
+  setAmbientTheme(room.theme || (roomIndex >= 15 ? "temple" : "forest"));
   g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
   g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));

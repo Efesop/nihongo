@@ -28,7 +28,7 @@ export const ROOM_DIALOGUE = {
     { speaker: "player", textJp: "先生！まだ星が出てますよ！", text: "Sensei! The stars are still out!", emotion: "surprised" },
     { speaker: "sensei", textJp: "それがどうした。茶を入れたぞ。飲んでから始めろ。", text: "So what? I made tea. Drink it before we start.", emotion: "idle" },
     { speaker: "player", textJp: "...いつも世話になってます。", text: "...Thank you. For everything.", emotion: "idle" },
-    { speaker: "sensei", textJp: "礼は後だ。立て。案山子まで走って斬れ。", text: "Thank me later. Stand up. Run to the dummy and cut it down.", emotion: "serious" },
+    { speaker: "sensei", textJp: "礼は後だ。立て。あの的を斬ってみろ。", text: "Thank me later. Stand up. Strike down that target.", emotion: "serious" },
   ],
 
   1: [

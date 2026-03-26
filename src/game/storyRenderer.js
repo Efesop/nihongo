@@ -226,23 +226,27 @@ export function renderStoryScene(ctx, g, W, H, font) {
   // ── 1. Background image or gradient fallback ──
   const bgImg = scene.bgKey ? getImage(scene.bgKey) : null;
   if (bgImg) {
-    // Draw background scaled to fill, maintaining aspect ratio
+    // COVER mode: scale image to fill entire screen, crop excess
     const imgAspect = bgImg.width / bgImg.height;
     const screenAspect = W / H;
-    let sx = 0, sy = 0, sw = bgImg.width, sh = bgImg.height;
-    if (imgAspect > screenAspect) {
-      // Image wider — crop sides
-      sw = bgImg.height * screenAspect;
-      sx = (bgImg.width - sw) / 2;
+    let dw, dh, dx, dy;
+    if (screenAspect > imgAspect) {
+      // Screen is wider than image — scale to width, crop top/bottom
+      dw = W;
+      dh = W / imgAspect;
+      dx = 0;
+      dy = (H - dh) / 2;
     } else {
-      // Image taller — crop top/bottom
-      sh = bgImg.width / screenAspect;
-      sy = (bgImg.height - sh) / 2;
+      // Screen is taller than image — scale to height, crop sides
+      dh = H;
+      dw = H * imgAspect;
+      dx = (W - dw) / 2;
+      dy = 0;
     }
-    ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, W, H);
+    ctx.drawImage(bgImg, dx, dy, dw, dh);
 
     // Darken overlay for readability
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
     ctx.fillRect(0, 0, W, H);
   } else {
     // Gradient fallback
@@ -289,9 +293,11 @@ export function renderStoryScene(ctx, g, W, H, font) {
   ctx.fillRect(0, H - barH, W, barH);
 
   // ── 7. Characters in scene ──
+  // Use ACTUAL in-game sprites scaled up with pixelated rendering.
+  // Characters stand on the visual floor of the background (~65% down).
   const panelH = H * 0.28;
-  const groundY = H - panelH - 10;
-  const charH = 80; // Medium size ~80px as user requested
+  const floorY = H - panelH - 5; // where characters' feet touch the ground
+  const charH = Math.min(150, H * 0.25); // large characters that fill the scene
   const bob = Math.sin((s.bobTimer || 0) * 2) * 2;
 
   // Determine who's in this scene
@@ -300,15 +306,28 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const rightChar = speakers.find(x => x !== leftChar) || null;
   const activeSide = line.speaker === leftChar ? "left" : (line.speaker === rightChar ? "right" : null);
 
-  // Get emotion-based sprite key
-  const getCharSpriteKey = (charKey, emotion) => {
-    const emotionMap = {
-      surprised: "surprised", serious: "serious", amused: "amused",
-      angry: "angry", bitter: "bitter", concerned: "concerned",
-      determined: "determined", sad: "sad",
-    };
-    const emotionSuffix = emotionMap[emotion] || "idle";
-    return `story_${charKey}_${emotionSuffix}`;
+  // Map character keys to their ACTUAL in-game sprite keys
+  const CHAR_SPRITE_MAP = {
+    player: "player",       // the actual TinySenpai idle sprite
+    sensei: "story_sensei_idle",
+    shadow: "story_shadow_idle",
+    elder:  "story_elder_idle",
+  };
+  // Emotion variants — try story sprite first, fallback to base
+  const getCharSprite = (charKey, emotion) => {
+    if (charKey === "player") {
+      // Player always uses the ACTUAL in-game sprite for consistency
+      return getImage("player");
+    }
+    // Try emotion variant first
+    if (emotion) {
+      const emotionMap = { serious: "serious", amused: "amused", angry: "angry", bitter: "bitter", concerned: "concerned" };
+      if (emotionMap[emotion]) {
+        const img = getImage(`story_${charKey}_${emotionMap[emotion]}`);
+        if (img) return img;
+      }
+    }
+    return getImage(CHAR_SPRITE_MAP[charKey]) || getImage(`story_${charKey}_idle`);
   };
 
   const drawChar = (charKey, side, isActive) => {
@@ -316,54 +335,60 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const charInfo = CHARACTERS[charKey];
     if (!charInfo) return;
 
-    const x = side === "left" ? W * 0.2 : W * 0.8;
-    const y = groundY - charH + (isActive ? bob : 0);
-
-    // Get sprite with emotion
+    // Position: centered in each half of the screen, not at edges
+    const x = side === "left" ? W * 0.32 : W * 0.68;
     const emotion = isActive ? line.emotion : null;
-    const spriteKey = getCharSpriteKey(charKey, emotion);
-    const sprite = getImage(spriteKey) || getImage(`story_${charKey}_idle`);
+    const sprite = getCharSprite(charKey, emotion);
 
     ctx.save();
-    if (!isActive) ctx.globalAlpha = 0.4;
+    if (!isActive) ctx.globalAlpha = 0.35;
 
     if (sprite) {
-      // Draw character sprite, maintain aspect ratio
       const aspect = sprite.width / sprite.height;
       const drawH = charH;
       const drawW = drawH * aspect;
       const drawX = x - drawW / 2;
-      const drawY = y;
+      const drawY = floorY - drawH + (isActive ? bob : 0);
 
-      // Glow effect for active speaker
-      if (isActive) {
-        ctx.shadowColor = charInfo.color;
-        ctx.shadowBlur = 15;
-      }
-
+      // Flip player sprite to face right (sprites face left by default)
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(sprite, drawX, drawY, drawW, drawH);
+      if (side === "left") {
+        // Player faces right — flip horizontally
+        ctx.save();
+        ctx.translate(drawX + drawW, drawY);
+        ctx.scale(-1, 1);
+        // Glow for active speaker
+        if (isActive) { ctx.shadowColor = charInfo.color; ctx.shadowBlur = 20; }
+        ctx.drawImage(sprite, 0, 0, drawW, drawH);
+        ctx.restore();
+      } else {
+        // NPC faces left (default sprite direction)
+        if (isActive) { ctx.shadowColor = charInfo.color; ctx.shadowBlur = 20; }
+        ctx.drawImage(sprite, drawX, drawY, drawW, drawH);
+      }
       ctx.imageSmoothingEnabled = true;
       ctx.shadowBlur = 0;
-    } else {
-      // Fallback: large kanji with color
-      const kanji = charInfo.name?.[0] || "?";
-      ctx.textAlign = "center";
-      ctx.font = `bold ${charH * 0.5}px "Noto Sans JP",sans-serif`;
-      if (isActive) {
-        ctx.shadowColor = charInfo.color;
-        ctx.shadowBlur = 20;
-      }
-      ctx.fillStyle = charInfo.color;
-      ctx.fillText(kanji, x, y + charH * 0.6);
-      ctx.shadowBlur = 0;
-      ctx.textAlign = "left";
 
-      // Name below
-      ctx.font = `bold 11px "Noto Sans JP",sans-serif`;
-      ctx.fillStyle = charInfo.color + "aa";
+      // Name plate below character
       ctx.textAlign = "center";
-      ctx.fillText(charInfo.nameEn || "", x, y + charH + 14);
+      ctx.font = `bold 12px "Noto Sans JP",sans-serif`;
+      ctx.fillStyle = isActive ? charInfo.color : charInfo.color + "60";
+      ctx.fillText(charInfo.nameEn || charInfo.name || "", x, floorY + 16);
+      ctx.textAlign = "left";
+    } else {
+      // Fallback: large colored kanji silhouette
+      const kanji = charInfo.name?.[0] || "?";
+      const fy = floorY - charH * 0.6 + (isActive ? bob : 0);
+      ctx.textAlign = "center";
+      ctx.font = `bold ${charH * 0.6}px "Noto Sans JP",sans-serif`;
+      if (isActive) { ctx.shadowColor = charInfo.color; ctx.shadowBlur = 25; }
+      ctx.fillStyle = charInfo.color;
+      ctx.fillText(kanji, x, fy + charH * 0.5);
+      ctx.shadowBlur = 0;
+      // Name
+      ctx.font = `bold 12px "Noto Sans JP",sans-serif`;
+      ctx.fillStyle = charInfo.color + "aa";
+      ctx.fillText(charInfo.nameEn || "", x, fy + charH * 0.7);
       ctx.textAlign = "left";
     }
 

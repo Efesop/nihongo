@@ -257,9 +257,13 @@ function _startMusicNow() {
   } catch { /* */ }
 }
 
+let _currentTheme = "forest"; // track which ambient set to play
+
 function _startAmbientNow() {
   if (!_ctx || !_ambientGain) return;
-  for (const name of AMBIENT_NAMES) {
+  // Indoor themes (dojo) don't get rain
+  const ambientForTheme = _currentTheme === "dojo" ? [] : AMBIENT_NAMES;
+  for (const name of ambientForTheme) {
     if (_ambientSources[name]) continue;
     const buf = _buffers[name];
     if (!buf || typeof buf !== "object") continue;
@@ -272,6 +276,19 @@ function _startAmbientNow() {
       _ambientSources[name] = src;
     } catch { /* */ }
   }
+}
+
+// Set the ambient theme (controls which ambient loops play)
+export function setAmbientTheme(theme) {
+  if (theme === _currentTheme) return;
+  _currentTheme = theme;
+  // Stop all current ambient
+  for (const [k, s] of Object.entries(_ambientSources)) {
+    try { s.stop(); } catch { /* */ }
+    delete _ambientSources[k];
+  }
+  // Restart with new theme filter
+  if (_wantsMusic) _startAmbientNow();
 }
 
 export function startMusic() {
