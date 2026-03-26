@@ -304,7 +304,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const speakers = [...new Set(s.lines.map(l => l.speaker).filter(x => x !== "system"))];
   const leftChar = speakers.includes("player") ? "player" : speakers[0] || null;
   const rightChar = speakers.find(x => x !== leftChar) || null;
-  const activeSide = line.speaker === leftChar ? "left" : (line.speaker === rightChar ? "right" : null);
+  const activeSide = line.speaker === leftChar ? "left" : (line.speaker === rightChar ? "right" : "both");
 
   // Map character keys to their ACTUAL in-game sprite keys
   const CHAR_SPRITE_MAP = {
@@ -395,8 +395,8 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.restore();
   };
 
-  drawChar(leftChar, "left", activeSide === "left");
-  drawChar(rightChar, "right", activeSide === "right");
+  drawChar(leftChar, "left", activeSide === "left" || activeSide === "both");
+  drawChar(rightChar, "right", activeSide === "right" || activeSide === "both");
 
   // ── 8. Ground line ──
   const gGrad = ctx.createLinearGradient(0, 0, W, 0);
@@ -405,7 +405,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
   gGrad.addColorStop(0.7, "rgba(255,255,255,0.06)");
   gGrad.addColorStop(1, "transparent");
   ctx.fillStyle = gGrad;
-  ctx.fillRect(0, groundY + 2, W, 1);
+  ctx.fillRect(0, floorY + 2, W, 1);
 
   // ── 9. Dialogue panel ──
   const panelY = H - panelH;

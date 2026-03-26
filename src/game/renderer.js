@@ -11,7 +11,17 @@ export function render(g, ctx, isDesktop, font) {
 
   // Story mode — render scene instead of gameplay
   if (g.gameState === "story") {
-    renderStoryScene(ctx, g, W, H, font);
+    try {
+      renderStoryScene(ctx, g, W, H, font);
+    } catch (e) {
+      console.error("[story render]", e);
+      // Draw minimal fallback so loop doesn't freeze
+      ctx.fillStyle = "#0a0a14";
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "#888";
+      ctx.font = "14px monospace";
+      ctx.fillText("story render error — click to advance", 20, H / 2);
+    }
     return;
   }
 
