@@ -101,8 +101,29 @@ export function loadGameImages() {
     // Samurai — partial set (kneel + dead)
     loadImg("samurai_kneel", "/images/samurai/samurai-kneel.png", true),
     loadImg("samurai_dead", "/images/samurai/samurai-dead.png", true),
-    // Backgrounds
+    // Backgrounds — gameplay
     loadImg("bg_forest", "/images/forest.png"),
+    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
+    // Backgrounds — story scenes
+    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),
+    loadImg("bg_dojo_night_story", "/images/tinysenpai/game/bg_dojo_night_story.png"),
+    loadImg("bg_forest_story", "/images/tinysenpai/game/bg_forest_story.png"),
+    loadImg("bg_temple_story", "/images/tinysenpai/game/bg_temple_story.png"),
+    // Story character sprites (full body, 64x128)
+    loadImg("story_player_idle", "/images/tinysenpai/game/story_player_idle.png", true),
+    loadImg("story_player_surprised", "/images/tinysenpai/game/story_player_surprised.png", true),
+    loadImg("story_player_determined", "/images/tinysenpai/game/story_player_determined.png", true),
+    loadImg("story_player_kneeling", "/images/tinysenpai/game/story_player_kneeling.png", true),
+    loadImg("story_sensei_idle", "/images/tinysenpai/game/story_sensei_idle.png", true),
+    loadImg("story_sensei_serious", "/images/tinysenpai/game/story_sensei_serious.png", true),
+    loadImg("story_sensei_amused", "/images/tinysenpai/game/story_sensei_amused.png", true),
+    loadImg("story_shadow_idle", "/images/tinysenpai/game/story_shadow_idle.png", true),
+    loadImg("story_shadow_angry", "/images/tinysenpai/game/story_shadow_angry.png", true),
+    loadImg("story_shadow_bitter", "/images/tinysenpai/game/story_shadow_bitter.png", true),
+    loadImg("story_elder_idle", "/images/tinysenpai/game/story_elder_idle.png", true),
+    loadImg("story_elder_concerned", "/images/tinysenpai/game/story_elder_concerned.png", true),
+    // Redesigned sensei portrait
+    loadImg("portrait_sensei_v2", "/images/tinysenpai/game/portrait_sensei_v2.png", true),
   ]);
 }
 

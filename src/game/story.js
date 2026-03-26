@@ -24,17 +24,18 @@ export const ROOM_DIALOGUE = {
 
   0: [
     { speaker: "system", textJp: "山の道場 — 夜明け前", text: "Mountain dojo — before dawn" },
-    { speaker: "sensei", textJp: "起きたか。立て。", text: "You're awake. Stand." },
-    { speaker: "player", textJp: "...まだ暗いですけど。", text: "...It's still dark out." },
-    { speaker: "sensei", textJp: "敵は暗闇を待たない。お前もだ。", text: "Your enemies won't wait for daylight. Neither will you." },
-    { speaker: "sensei", textJp: "まず動け。案山子まで走れ。そして斬れ。", text: "Move first. Run to the practice dummy. Then cut it down." },
+    { speaker: "sensei", textJp: "...また朝寝坊か。", text: "...Sleeping in again, I see.", emotion: "amused" },
+    { speaker: "player", textJp: "先生！まだ星が出てますよ！", text: "Sensei! The stars are still out!", emotion: "surprised" },
+    { speaker: "sensei", textJp: "それがどうした。茶を入れたぞ。飲んでから始めろ。", text: "So what? I made tea. Drink it before we start.", emotion: "idle" },
+    { speaker: "player", textJp: "...いつも世話になってます。", text: "...Thank you. For everything.", emotion: "idle" },
+    { speaker: "sensei", textJp: "礼は後だ。立て。案山子まで走って斬れ。", text: "Thank me later. Stand up. Run to the dummy and cut it down.", emotion: "serious" },
   ],
 
   1: [
-    { speaker: "sensei", textJp: "足元を見るな。上を見ろ。", text: "Stop looking at your feet. Look up." },
-    { speaker: "player", textJp: "高すぎませんか？", text: "Isn't that too high?" },
-    { speaker: "sensei", textJp: "高すぎるかどうかは、跳んでから決めろ。", text: "You don't get to decide it's too high until after you've jumped." },
-    { speaker: "sensei", textJp: "何度落ちてもいい。恥じるな。", text: "Fall as many times as you need to. There's no shame in it." },
+    { speaker: "sensei", textJp: "足元を見るな。上を見ろ。", text: "Stop looking at your feet. Look up.", emotion: "serious" },
+    { speaker: "player", textJp: "高すぎませんか？", text: "Isn't that too high?", emotion: "surprised" },
+    { speaker: "sensei", textJp: "高すぎるかどうかは、跳んでから決めろ。", text: "You don't get to decide it's too high until after you've jumped.", emotion: "serious" },
+    { speaker: "sensei", textJp: "何度落ちてもいい。恥じるな。", text: "Fall as many times as you need to. There's no shame in it.", emotion: "amused" },
   ],
 
   2: [
@@ -66,19 +67,22 @@ export const ROOM_DIALOGUE = {
   // The player is FORCED out — they don't choose to leave.
 
   5: [
-    { speaker: "system", textJp: "修行の後 — 道場の外", text: "After training — outside the dojo" },
-    { speaker: "sensei", textJp: "腕を見せろ。", text: "Show me your arm.", emotion: "serious" },
-    { speaker: "player", textJp: "え？何が—", text: "Huh? What's—" },
-    { speaker: "sensei", textJp: "...いつからある。この印は。", text: "...How long have you had this. This mark." },
-    { speaker: "player", textJp: "分からない。気づいたら...集中すると光るんです。", text: "I don't know. It just appeared... it glows when I focus." },
-    { speaker: "sensei", textJp: "...", text: "..." },
-    { speaker: "player", textJp: "先生？大丈夫ですか？", text: "Sensei? Are you alright?" },
-    { speaker: "sensei", textJp: "聞け。今すぐ道場を出ろ。", text: "Listen to me. Leave the dojo. Right now.", emotion: "serious" },
-    { speaker: "player", textJp: "何を言って—", text: "What are you talk—" },
-    { speaker: "sensei", textJp: "山寺の長老を探せ。あの人が全てを説明する。", text: "Find the Elder at the mountain temple. He'll explain everything." },
-    { speaker: "player", textJp: "先生！何が起きてるんですか！", text: "Sensei! What's happening?!" },
-    { speaker: "sensei", textJp: "印を持つ者は...狙われる。もう来ている。", text: "Those who bear the mark... are hunted. They're already here." },
-    { speaker: "sensei", textJp: "行け！！", text: "GO!!" },
+    { speaker: "system", textJp: "修行の後 — 夕暮れの道場", text: "After training — the dojo at dusk" },
+    { speaker: "sensei", textJp: "...今日はよくやった。成長してる。", text: "...You did well today. You're improving.", emotion: "amused" },
+    { speaker: "player", textJp: "先生、褒めてくれるなんて珍しいですね。", text: "Sensei, it's rare for you to compliment me.", emotion: "surprised" },
+    { speaker: "sensei", textJp: "ふん。図に乗るなよ。", text: "Hmph. Don't let it go to your head.", emotion: "amused" },
+    { speaker: "sensei", textJp: "...ところで。腕を見せろ。", text: "...By the way. Show me your arm.", emotion: "serious" },
+    { speaker: "player", textJp: "え？なんで—", text: "Huh? Why—", emotion: "surprised" },
+    { speaker: "sensei", textJp: "...いつからある。この印は。", text: "...How long have you had this. This mark.", emotion: "serious" },
+    { speaker: "player", textJp: "分からない。気づいたら...集中すると光るんです。", text: "I don't know. It just appeared... it glows when I focus.", emotion: "idle" },
+    { speaker: "sensei", textJp: "...", text: "...", emotion: "serious" },
+    { speaker: "player", textJp: "先生？顔色が悪いですよ。大丈夫ですか？", text: "Sensei? You've gone pale. Are you alright?", emotion: "concerned" },
+    { speaker: "sensei", textJp: "...聞け。今から言うことを全部覚えろ。", text: "...Listen. Remember everything I'm about to say.", emotion: "serious" },
+    { speaker: "sensei", textJp: "今すぐ道場を出ろ。山寺の長老を探せ。", text: "Leave the dojo. Right now. Find the Elder at the mountain temple.", emotion: "serious" },
+    { speaker: "player", textJp: "何を言って—一人で？先生は？", text: "What are you— alone? What about you?", emotion: "surprised" },
+    { speaker: "sensei", textJp: "印を持つ者は...狙われる。もう来ている。", text: "Those who bear the mark... are hunted. They're already here.", emotion: "serious" },
+    { speaker: "sensei", textJp: "お前を守るのは、もう俺の仕事じゃない。", text: "Protecting you... isn't my job anymore.", emotion: "serious" },
+    { speaker: "sensei", textJp: "自分の足で立て。行け！！", text: "Stand on your own two feet. GO!!", emotion: "serious" },
   ],
 
   // ═══ ACT 1: THE FOREST (Rooms 6-9) ═══
@@ -240,15 +244,53 @@ export const ROOM_ENCOUNTERS = {
 // Each choice has real gameplay consequences.
 // ═══════════════════════════════════════════════════════
 export const ROOM_CHOICES = {
-  // After Shadow's first encounter — do you embrace the curse for power?
+  // Training personality — how do you approach training?
+  3: {
+    after: 3, // after "A wall isn't an obstacle"
+    options: [
+      { textJp: "もっと厳しく。", text: "Push me harder.", flag: "training_push" },
+      { textJp: "...少し休みたい。", text: "...I need a moment.", flag: "training_rest" },
+    ],
+  },
+  // The turning point — how do you react to being sent away?
+  5: {
+    after: 9, // after "What's happening?!"
+    options: [
+      { textJp: "説明してください！", text: "Tell me what's happening!", flag: "departure_demand" },
+      { textJp: "...分かりました。信じます。", text: "...I understand. I trust you.", flag: "departure_trust" },
+    ],
+  },
+  // Shadow's first encounter — embrace the curse?
   10: {
-    after: 11, // after the last shadow line
-    speaker: "system",
-    textJp: "印が脈打っている。力が流れ込んでくる。",
-    text: "The mark is pulsing. Power flows through you.",
+    after: 11,
     options: [
       { textJp: "力を受け入れる。", text: "Accept the power.", flag: "curse_accept_1", effect: { slowMoBonus: 30 } },
       { textJp: "印を抑え込む。", text: "Suppress the mark.", flag: "curse_resist_1", effect: null },
+    ],
+  },
+  // Shadow's gate — prove yourself or appeal to empathy?
+  14: {
+    after: 2,
+    options: [
+      { textJp: "証明してやる。", text: "I'll prove myself.", flag: "shadow_prove" },
+      { textJp: "試す必要はない。", text: "You don't need to test me.", flag: "shadow_empathy" },
+    ],
+  },
+  // Confrontation — help Shadow or do your duty?
+  17: {
+    after: 5,
+    options: [
+      { textJp: "助けたいんだ。", text: "I want to help you.", flag: "shadow_help" },
+      { textJp: "やるべきことをやる。", text: "I'll do what I must.", flag: "shadow_duty" },
+    ],
+  },
+  // Final — three approaches to the final battle
+  19: {
+    after: 5,
+    options: [
+      { textJp: "全力で行く。", text: "I'll fight with everything.", flag: "final_aggressive" },
+      { textJp: "傷つけたくない。", text: "I don't want to hurt you.", flag: "final_compassionate" },
+      { textJp: "戦わなくていい。話そう。", text: "We don't have to fight. Let's talk.", flag: "final_talk" },
     ],
   },
 };
@@ -285,44 +327,60 @@ export const STORY_TRIGGERS = {
 // SCENE VISUAL CONFIG — environment per location
 // ═══════════════════════════════════════════════════════
 export function getSceneConfig(roomIndex) {
+  // Canvas-compatible scene configs — bgKey references loaded images
   if (roomIndex <= 4) return {
-    bg: 'linear-gradient(180deg, #1a1510 0%, #14100c 40%, #0e0a06 100%)',
+    bgKey: 'bg_dojo_story',
+    gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
     label: '道場', labelEn: 'THE DOJO',
-    filter: null, // no filter — this is happening NOW
-    particles: 'dust',
+    particleType: 'dust',
+    characters: { left: 'player', right: 'sensei' },
   };
   if (roomIndex === 5) return {
-    bg: 'linear-gradient(180deg, #1a0808 0%, #140606 40%, #0a0404 100%)',
+    bgKey: 'bg_dojo_night_story',
+    gradientColors: ['#1a0808', '#140606', '#0a0404'],
     label: '転機', labelEn: 'THE TURNING POINT',
-    filter: null,
-    particles: 'embers', // tension, fire nearby
+    particleType: 'embers',
+    characters: { left: 'player', right: 'sensei' },
   };
   if (roomIndex <= 9) return {
-    bg: 'linear-gradient(180deg, #081a12 0%, #061210 40%, #040a08 100%)',
+    bgKey: 'bg_forest_story',
+    gradientColors: ['#081a12', '#061210', '#040a08'],
     label: '森', labelEn: 'THE FOREST',
-    filter: null,
-    particles: 'leaves',
+    particleType: 'leaves',
+    characters: { left: 'player', right: null },
+  };
+  if (roomIndex === 10) return {
+    bgKey: 'bg_forest_story',
+    gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
+    label: '出会い', labelEn: 'THE ENCOUNTER',
+    particleType: 'embers',
+    characters: { left: 'player', right: 'shadow' },
   };
   if (roomIndex <= 14) return {
-    bg: 'linear-gradient(180deg, #1a0a1a 0%, #140818 40%, #0a0410 100%)',
+    bgKey: 'bg_forest_story',
+    gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
     label: '闇路', labelEn: 'THE DARK PATH',
-    filter: null,
-    particles: 'embers',
+    particleType: 'embers',
+    characters: { left: 'player', right: 'shadow' },
   };
   return {
-    bg: 'linear-gradient(180deg, #1a1508 0%, #161008 40%, #0c0a06 100%)',
+    bgKey: 'bg_temple_story',
+    gradientColors: ['#1a1508', '#161008', '#0c0a06'],
     label: '山寺', labelEn: 'THE MOUNTAIN TEMPLE',
-    filter: null,
-    particles: 'petals',
+    particleType: 'petals',
+    characters: { left: 'player', right: roomIndex >= 17 ? 'shadow' : 'elder' },
   };
 }
 
 // Default choices state
 export function getDefaultChoices() {
   return {
-    curse_accept_1: false,
-    curse_accept_2: false,
-    curse_resist_1: false,
-    curse_resist_2: false,
+    training_push: false, training_rest: false,
+    departure_demand: false, departure_trust: false,
+    curse_accept_1: false, curse_resist_1: false,
+    curse_accept_2: false, curse_resist_2: false,
+    shadow_prove: false, shadow_empathy: false,
+    shadow_help: false, shadow_duty: false,
+    final_aggressive: false, final_compassionate: false, final_talk: false,
   };
 }

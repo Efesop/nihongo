@@ -77,6 +77,13 @@ const SOUNDS = [
   ['wave_incoming', 'Ominous taiko war drum hit, deep reverberating warning drum, enemies approaching, game sfx', 1.5, 0.5],
   ['encounter',     'Soft dramatic string hit, tense moment start, subtle violin sting, game dialogue sfx', 0.8, 0.4],
   ['text_type',     'Very soft keyboard key click, subtle typing sound, minimal, game text sfx', 0.2, 0.3],
+
+  // ────── STORY / CHOICE UI ──────
+  ['sfx_choice_appear', 'Soft elegant whoosh, menu appearing, gentle slide in sound, Japanese ink brush sweep, game ui sfx', 0.5, 0.4],
+  ['sfx_choice_select', 'Satisfying click chime, selection confirmed, bright warm resonant ping, game menu selection sfx', 0.4, 0.5],
+  ['sfx_choice_tick',   'Subtle clock tick, soft tension timer, quiet countdown beat, game timer sfx', 0.3, 0.3],
+  ['sfx_text_advance',  'Very soft page turn, paper sliding sound, gentle parchment flip, minimal, game dialogue advance sfx', 0.4, 0.3],
+  ['sfx_combo4_pierce', 'Deep powerful piercing thrust impact, heavy spear-like stab through multiple targets, bass-heavy penetrating blow with metallic ring, game sfx', 0.8, 0.6],
 ];
 
 const LOOPS = [
@@ -88,6 +95,10 @@ const LOOPS = [
   ['music_forest',  'Dark intense Japanese action game music, taiko drums rhythmic beat, shamisen melody, koto accents, tense ninja combat atmosphere, fast paced, video game boss fight loop', 30, 0.5, true],
   ['music_temple',  'Serene but tense Japanese temple music, koto melody, temple bells, wind, ethereal atmosphere, underlying tension, video game loop', 30, 0.5, true],
   ['music_boss',    'Intense Japanese boss battle music, fast aggressive taiko drums, dramatic strings, shakuhachi flute, epic combat, video game boss fight loop', 30, 0.6, true],
+
+  // ────── STORY MUSIC ──────
+  ['music_story_calm',    'Calm peaceful Japanese ambient music, soft koto melody, gentle shakuhachi flute, distant wind chimes, meditative atmosphere, warm and nostalgic, video game story scene loop', 30, 0.5, true],
+  ['music_story_tension', 'Tense suspenseful Japanese ambient music, low shamisen drones, subtle taiko heartbeat rhythm, ominous atmosphere, building unease, dramatic revelation moment, video game story loop', 30, 0.5, true],
 ];
 
 async function generate(name, prompt, dur, influence, loop = false) {

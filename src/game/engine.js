@@ -8,7 +8,9 @@ import {
 } from "./constants.js";
 import { updateEnemyAI, makeEnemy, makePlayer } from "./entities.js";
 import { ROOMS } from "./levels.js";
-import { ROOM_ENCOUNTERS } from "./story.js";
+import { ROOM_ENCOUNTERS, ROOM_DIALOGUE, STORY_TRIGGERS } from "./story.js";
+import { updateStory, initStoryState } from "./storyRenderer.js";
+import { crossfadeMusic } from "./audio.js";
 import { playSound, playRandom, playRandomExclusive } from "./audio.js";
 
 // ═══ ROOM MANAGEMENT ═══
@@ -167,6 +169,23 @@ export function update(g, callbacks) {
   const now = performance.now();
   let rawDt = Math.min(now - g.time.last, 33) / 1000;
   g.time.last = now;
+
+  // ── Story mode — canvas-based dialogue scenes ──
+  if (g.gameState === "story") {
+    updateStory(g, rawDt, callbacks);
+    // Check if story just ended and we need to load a room
+    if (g._loadRoomAfterStory !== undefined && g._loadRoomAfterStory !== null) {
+      loadRoom(g, g._loadRoomAfterStory);
+      g._loadRoomAfterStory = null;
+    }
+    if (g._resumeFromStory) {
+      g._resumeFromStory = false;
+      // Crossfade to combat music
+      const theme = g.currentRoom >= 15 ? "music_temple" : g.currentRoom >= 14 ? "music_boss" : "music_forest";
+      crossfadeMusic(theme, 1.5);
+    }
+    return;
+  }
 
   // Hit-stop freeze
   if (g.hitStop > 0) { g.hitStop -= rawDt * 1000; return; }
@@ -471,41 +490,50 @@ export function update(g, callbacks) {
   if (p.comboWindow <= 0 && p.slashTimer <= 0) p.slashCombo = 0;
 
   if (g.input.slashPressed && p.slashTimer <= 0 && (p.slashCombo === 0 || p.comboWindow > 0)) {
-    // Advance combo (0→1, 1→2, 2→3, max 3)
-    p.slashCombo = Math.min(p.slashCombo + 1, 3);
+    // Advance combo (0→1, 1→2, 2→3, 3→4, max 4)
+    p.slashCombo = Math.min(p.slashCombo + 1, 4);
     const combo = p.slashCombo;
 
-    // Duration: 1st=normal, 2nd=normal, 3rd=held longer for dramatic pose
-    const dur = combo === 3 ? SLASH_DURATION * 2.5 : SLASH_DURATION;
+    // Duration: 1/2=normal, 3=held longer, 4=fast piercing thrust
+    const dur = combo === 3 ? SLASH_DURATION * 2.5 : combo === 4 ? SLASH_DURATION * 1.5 : SLASH_DURATION;
     p.slashTimer = dur;
     p.slashDuration = dur;
     p.frame = 0;
-    p.comboWindow = 350; // ms to press next slash after this one ends
+    p.comboWindow = combo === 3 ? 400 : 350; // wider window after combo 3 for the finisher
 
-    // Afterimage
-    p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
-    // Sound per combo: shing for first draw, swoosh for follow-ups, electric for finisher
+    // Afterimage — combo 4 gets 3 afterimages for trail effect
+    if (combo === 4) {
+      for (let i = 0; i < 3; i++) {
+        p.afterimages.push({ x: p.x - p.facing * i * 15, y: p.y, facing: p.facing, life: 200 + i * 60 });
+      }
+    } else {
+      p.afterimages.push({ x: p.x, y: p.y, facing: p.facing, life: combo === 3 ? 300 : 200 });
+    }
+    // Sound per combo: shing for first draw, swoosh for follow-ups, electric for 3, pierce for 4
     if (combo === 1) {
       playRandomExclusive("slash", "shing", { volume: 0.6 }); // blade draw
+    } else if (combo === 4) {
+      playSound("sfx_combo4_pierce", { volume: 0.7 });
     } else {
       playRandomExclusive("slash", "swoosh", { volume: combo === 3 ? 0.7 : 0.5 });
     }
     if (combo === 3) playSound("slash3_electric", { volume: 0.5 });
 
-    // Lunge — each hit goes further, big slide
-    const lungeSpeed = combo === 1 ? DASH_SPEED * 1.0 : combo === 2 ? DASH_SPEED * 1.2 : DASH_SPEED * 1.6;
+    // Lunge — combo 4 is a massive forward thrust (2x dash speed, pierces enemies)
+    const lungeSpeed = combo === 1 ? DASH_SPEED * 1.0 : combo === 2 ? DASH_SPEED * 1.2 : combo === 3 ? DASH_SPEED * 1.6 : DASH_SPEED * 2.0;
     p.vx = p.facing * lungeSpeed;
+    if (combo === 4) p._piercing = true; // flag for hit detection — pierces through enemies
 
-    // Slash arc — animated sweeping crescent
-    const arcDuration = combo === 3 ? 450 : 300;
+    // Slash arc — animated sweeping crescent (combo 4 = long narrow thrust)
+    const arcDuration = combo === 3 ? 450 : combo === 4 ? 350 : 300;
     g.slashEffects.push({
       x: p.x, y: p.y + TILE * SCALE * 0.4,
       facing: p.facing, timer: arcDuration, maxTimer: arcDuration,
       combo,
       // Arc sweep parameters per combo level
-      startAngle: combo === 1 ? -0.8 : combo === 2 ? -1.8 : -Math.PI,
-      endAngle: combo === 1 ? 0.8 : combo === 2 ? 0.6 : Math.PI,
-      radius: combo === 1 ? 70 : combo === 2 ? 80 : 100,
+      startAngle: combo === 1 ? -0.8 : combo === 2 ? -1.8 : combo === 4 ? -0.3 : -Math.PI,
+      endAngle: combo === 1 ? 0.8 : combo === 2 ? 0.6 : combo === 4 ? 0.3 : Math.PI,
+      radius: combo === 1 ? 70 : combo === 2 ? 80 : combo === 4 ? 130 : 100,
     });
 
     // Speed lines — more on higher combos
@@ -874,7 +902,7 @@ export function update(g, callbacks) {
 
   // Slash timer
   if (p.slashTimer > 0) p.slashTimer -= dt * 1000;
-  if (p.slashTimer <= 0) p.dashSlashing = false;
+  if (p.slashTimer <= 0) { p.dashSlashing = false; p._piercing = false; }
 
   // Parry timer (used by renderer for parry sprite display)
   if (p.parryTimer > 0) p.parryTimer -= dt * 1000;
@@ -1128,11 +1156,14 @@ export function update(g, callbacks) {
       const combo = p.slashCombo;
       const isAirSlash = !p.grounded && !p.wallSliding;
       // Vertical reach: air slash has more reach below, combo 2 reaches above
-      const hitAbove = isAirSlash ? 20 : (combo === 1 ? 30 : combo === 2 ? 70 : 60);
-      const hitBelow = isAirSlash ? 80 : (combo === 1 ? 30 : combo === 2 ? 20 : 60);
-      if (Math.abs(slashX - e.x) < (SLASH_RANGE + ew) / 2 &&
+      // Combo 4: narrow but long (piercing thrust)
+      const hitAbove = isAirSlash ? 20 : (combo === 1 ? 30 : combo === 2 ? 70 : combo === 4 ? 25 : 60);
+      const hitBelow = isAirSlash ? 80 : (combo === 1 ? 30 : combo === 2 ? 20 : combo === 4 ? 25 : 60);
+      const slashReach = combo === 4 ? SLASH_RANGE * 1.5 : SLASH_RANGE; // combo 4 has longer reach
+      if (Math.abs(slashX - e.x) < (slashReach + ew) / 2 &&
           dy > -hitAbove && dy < hitBelow) {
-        e._hitThisSlash = true;
+        // Combo 4 pierces through enemies (don't mark as hit so it can hit the next one)
+        if (!p._piercing) e._hitThisSlash = true;
 
         // Dash-slash bypasses all blocks (counts as backstab)
         const isDashSlash = p.dashSlashing;
@@ -1529,11 +1560,13 @@ export function update(g, callbacks) {
       } else {
         const nextRoom = g.currentRoom + 1;
         // Check if next room triggers a story screen
-        const storyKey = g._storyTriggers && g._storyTriggers[nextRoom];
-        if (storyKey) {
+        const storyKey = STORY_TRIGGERS[nextRoom];
+        const dialogue = storyKey !== undefined ? ROOM_DIALOGUE[storyKey] : null;
+        if (dialogue) {
           g._pendingRoom = nextRoom;
-          g._pendingStoryKey = storyKey;
-          setScreen("story");
+          // Crossfade to story music
+          crossfadeMusic("music_story_calm", 1.0);
+          initStoryState(g, nextRoom, dialogue);
         } else {
           // Start ink brush wipe transition
           g.roomTransition = { phase: "wipeIn", progress: 0, nextRoom };
@@ -1619,10 +1652,42 @@ function killEnemy(g, e, p, callbacks) {
   const isLastKill = aliveAfter === 0 && g.roomState === "playing" && g.roomTimer > 0.3;
 
   // Graduated hitstop based on combo level + last kill
-  const comboHitstop = combo === 3 ? HITSTOP_KILL_3 : combo === 2 ? HITSTOP_KILL_2 : HITSTOP_KILL_1;
+  const comboHitstop = combo === 4 ? 200 : combo === 3 ? HITSTOP_KILL_3 : combo === 2 ? HITSTOP_KILL_2 : HITSTOP_KILL_1;
   const hitStopMs = isLastKill ? HITSTOP_LAST_KILL : comboHitstop;
 
-  if (combo === 3) {
+  if (combo === 4) {
+    // ── PIERCING KILL: enemy slides backward, "through" particle burst ──
+    e.deathStyle = "knockback";
+    e.deathTimer = 2000;
+    e.vx = p.facing * rnd(400, 600);
+    e.vy = rnd(-30, -10);
+    e._onGround = false;
+    e._kbDir = p.facing;
+    e._kbPose = "kb_back";
+    g.hitStop = hitStopMs;
+    g.camera.shakeTimer = 150;
+    g.camera.shakeX = rnd(-8, 8);
+    // Particles fly out the EXIT side of enemy (through effect)
+    for (let i = 0; i < 10; i++) {
+      g.particles.push({
+        x: e.x + p.facing * 20, y: e.y + rnd(5, 30),
+        vx: p.facing * rnd(200, 500), vy: rnd(-100, 100),
+        size: rnd(3, 6), life: 0, maxLife: rnd(600, 1000),
+        color: "#ff4444", type: "blood",
+      });
+    }
+    // Speed lines behind player
+    for (let i = 0; i < 6; i++) {
+      g.particles.push({
+        x: p.x - p.facing * rnd(20, 80), y: p.y + rnd(-10, 40),
+        vx: -p.facing * rnd(300, 600), vy: rnd(-30, 30),
+        size: rnd(1, 3), life: 0, maxLife: rnd(200, 400),
+        color: "#ffffff40", type: "spark",
+      });
+    }
+    // 3x score multiplier for combo 4 kills
+    g.score += 200;
+  } else if (combo === 3) {
     // ── CINEMATIC DEATH: slash through → enemy falls to knees → face plant ──
     e.deathStyle = "cinematic";
     e.deathTimer = 1200;

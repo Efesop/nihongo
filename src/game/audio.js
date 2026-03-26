@@ -40,9 +40,15 @@ const SFX_GAMEPLAY = [
   // Keep old slash sounds as backup
   "slash1", "slash2", "slash3",
 ];
-const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY];
+const SFX_STORY = [
+  "sfx_choice_appear", "sfx_choice_select", "sfx_choice_tick",
+  "sfx_text_advance", "sfx_combo4_pierce",
+  "crate_break", "pot_break", "lantern_break", "bamboo_break",
+  "death_dramatic", "brush_wipe", "wave_incoming", "encounter", "text_type",
+];
+const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY, ...SFX_STORY];
 const AMBIENT_NAMES = ["rain_loop", "forest_night"];
-const MUSIC_NAMES = ["music_forest"];
+const MUSIC_NAMES = ["music_forest", "music_temple", "music_boss", "music_story_calm", "music_story_tension"];
 
 // Sound variant groups — playRandom picks one at random
 const VARIANTS = {
@@ -309,6 +315,27 @@ export function setMusic(key) {
     _musicSource = null;
     _startMusicNow();
   }
+}
+
+// Crossfade from current music to a new track (smooth transition for story ↔ combat)
+export function crossfadeMusic(toKey, duration = 1.0) {
+  if (!_ctx || !_musicGain) return;
+  // Fade out current music
+  try {
+    _musicGain.gain.linearRampToValueAtTime(0, _ctx.currentTime + duration);
+  } catch { /* */ }
+  // After fade out, switch track and fade in
+  setTimeout(() => {
+    try { _musicSource?.stop(); } catch { /* */ }
+    _musicSource = null;
+    _currentMusic = toKey;
+    _wantsMusic = true;
+    if (_musicGain) _musicGain.gain.setValueAtTime(0, _ctx.currentTime);
+    _startMusicNow();
+    try {
+      _musicGain.gain.linearRampToValueAtTime(_muted ? 0 : _musicVolume, _ctx.currentTime + duration);
+    } catch { /* */ }
+  }, duration * 1000);
 }
 
 // ═══ CONTROLS ═══

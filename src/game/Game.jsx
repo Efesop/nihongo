@@ -8,6 +8,8 @@ import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
 import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, startMusicFadeIn, stopMusic, isAudioReady, playVoiceBlip } from "./audio.js";
 import { CHARACTERS, ROOM_DIALOGUE, ROOM_ENCOUNTERS, STORY_TRIGGERS, getDefaultChoices, getSceneConfig } from "./story.js";
+import { initStoryState } from "./storyRenderer.js";
+import { crossfadeMusic } from "./audio.js";
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
@@ -17,11 +19,6 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const resumeFromStoryRef = useRef(false); // survives StrictMode double-mount
   const [screen, setScreen] = useState("menu");
   const [hasSave, setHasSave] = useState(() => !!loadSave());
-  const [storyLines, setStoryLines] = useState([]);
-  const [storyIndex, setStoryIndex] = useState(0);
-  const [typedChars, setTypedChars] = useState(0);
-  const [typingDone, setTypingDone] = useState(false);
-  const typingRef = useRef(null);
   const [score, setScore] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -158,48 +155,8 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     };
   }, [screen, initGame, isDesktop, SIDEBAR_W, highScore]);
 
-  // Stop combat music when story screen appears (should be quiet/ambient)
-  useEffect(() => {
-    if (screen === "story") stopMusic();
-  }, [screen]);
-
-  // Load story from engine trigger (mid-game story between acts)
-  useEffect(() => {
-    if (screen !== "story" || storyLines.length > 0) return;
-    const g = gameRef.current;
-    if (g && g._pendingStoryKey !== null && g._pendingStoryKey !== undefined) {
-      const dialogue = ROOM_DIALOGUE[g._pendingStoryKey];
-      if (dialogue) {
-        setStoryLines(dialogue);
-        setStoryIndex(0);
-        setTypedChars(0);
-        setTypingDone(false);
-      }
-      g._pendingStoryKey = null;
-    }
-  }, [screen, storyLines.length]);
-
-  // Typing animation effect
-  useEffect(() => {
-    if (screen !== "story" || storyLines.length === 0) return;
-    const line = storyLines[storyIndex];
-    if (!line) return;
-    const fullText = line.text || "";
-    if (typedChars >= fullText.length) {
-      setTypingDone(true);
-      return;
-    }
-    setTypingDone(false);
-    typingRef.current = setTimeout(() => {
-      // Play voice blip on every non-punctuation character for Undertale-style mumbling
-      const ch = fullText[typedChars];
-      if (ch && ch !== ' ' && ch !== '.' && ch !== ',' && ch !== '…' && ch !== '!' && ch !== '?') {
-        playVoiceBlip(line.speaker);
-      }
-      setTypedChars(c => c + 1);
-    }, 30);
-    return () => clearTimeout(typingRef.current);
-  }, [screen, storyLines, storyIndex, typedChars]);
+  // Story is now handled by the canvas renderer (storyRenderer.js)
+  // No React story state or effects needed.
 
   // Resume from pause
   useEffect(() => {
@@ -228,21 +185,23 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       waited += 100;
     }
     playSound("menuStart");
-    // Stop any combat music — story screens should be quiet/ambient
     stopMusic();
     setScore(0);
     setMaxCombo(0);
-    // Check if there's a story trigger for this room
-    const storyKey = STORY_TRIGGERS[fromRoom];
-    if (storyKey !== undefined && ROOM_DIALOGUE[storyKey]) {
-      setStoryLines(ROOM_DIALOGUE[storyKey]);
-      setStoryIndex(0);
-      setTypedChars(0);
-      setTypingDone(false);
-      setScreen("story");
-    } else {
-      setScreen("playing");
-    }
+    // Always go to "playing" — story scenes are now canvas-rendered within the game loop
+    setScreen("playing");
+    // After game state initializes, check for story trigger
+    setTimeout(() => {
+      const g = gameRef.current;
+      if (!g) return;
+      const storyKey = STORY_TRIGGERS[fromRoom];
+      const dialogue = storyKey !== undefined ? ROOM_DIALOGUE[storyKey] : null;
+      if (dialogue) {
+        g._pendingRoom = fromRoom;
+        crossfadeMusic("music_story_calm", 0.5);
+        initStoryState(g, fromRoom, dialogue);
+      }
+    }, 50);
   };
 
   const handleNewGame = () => {
@@ -304,8 +263,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     );
   }
 
-  // ═══ STORY — Katana Zero-style visual novel dialogue ═══
-  if (screen === "story" && storyLines.length > 0) {
+  // Story scenes are now rendered on canvas (storyRenderer.js) — no React JSX needed.
+  // When g.gameState === "story", the canvas loop renders the story scene.
+  if (false && screen === "story") {
     const line = storyLines[storyIndex] || storyLines[storyLines.length - 1];
     const isLast = storyIndex >= storyLines.length - 1;
     const char = CHARACTERS[line.speaker] || CHARACTERS.system;
@@ -685,10 +645,20 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     );
   }
 
-  // ═══ PLAYING ═══
+  // ═══ PLAYING (also handles story scenes on canvas) ═══
+  const handleCanvasClick = () => {
+    const g = gameRef.current;
+    if (g && g.gameState === "story" && g.input) {
+      g.input.storyAdvance = true;
+    }
+  };
   return (
     <div style={{ ...gameContainer, background: "#0a0a14", overflow: "hidden", touchAction: "none" }}>
-      <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />
+      <canvas
+        ref={canvasRef}
+        style={{ display: "block", width: "100%", height: "100%", cursor: gameRef.current?.gameState === "story" ? "pointer" : "default" }}
+        onClick={handleCanvasClick}
+      />
     </div>
   );
 }

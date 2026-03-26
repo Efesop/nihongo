@@ -1,5 +1,6 @@
 import { TILE, SCALE, DASH_COOLDOWN, TOTAL_ROOMS, JUMP_FORCE, hash } from "./constants.js";
 import { getSprite, getMascotImage, getImage } from "./sprites.js";
+import { renderStoryScene } from "./storyRenderer.js";
 
 const DRAW_SIZE = TILE * SCALE; // 60px — physics size (for positioning)
 const SPRITE_SCALE = 1.35; // visual scale multiplier — makes character bigger without affecting physics
@@ -7,6 +8,13 @@ const SPRITE_SCALE = 1.35; // visual scale multiplier — makes character bigger
 // ═══ MAIN RENDER ═══
 export function render(g, ctx, isDesktop, font) {
   const { W, H, camera: cam } = g;
+
+  // Story mode — render scene instead of gameplay
+  if (g.gameState === "story") {
+    renderStoryScene(ctx, g, W, H, font);
+    return;
+  }
+
   // Round camera position to prevent subpixel jitter on all world objects
   const cx = Math.round(cam.x + cam.shakeX);
   const cy = Math.round(cam.y + cam.shakeY);
@@ -98,7 +106,9 @@ export function render(g, ctx, isDesktop, font) {
   const platPal = getTheme(g);
   for (const plat of g.platforms) {
     if (plat.x + (plat.w || 0) < cx - 50 || plat.x > cx + W + 50) continue;
-    const hasBg = !!getImage("bg_forest");
+    const roomData = (g._rooms || [])[g.currentRoom];
+    const bgK = (roomData && roomData.theme === "dojo") ? "bg_dojo" : "bg_forest";
+    const hasBg = !!getImage(bgK);
     const accent = hasBg ? "#3a8a5a" : platPal.platAccent;
 
     if (plat.wall) {
@@ -1999,6 +2009,15 @@ const THEME_PALETTES = {
     star: "#aaccff", fogColor: "rgba(6,4,18,",
     farBldg: "#080818", midBldg: "#0c0c24", windowColor: "rgba(100,150,255,0.25)",
   },
+  dojo: {
+    sky: ["#0a0806", "#100c08", "#140e0a", "#0e0a06"],
+    ground: "#0a0806", groundEdge: "rgba(100,70,40,0.15)",
+    platAccent: "#8a6a3a", platBase: "#2a1e14", platDark: "#1a120c",
+    wallBase: "#1e1610", wallDark: "#12100a",
+    star: "#000000", // no stars — indoor
+    fogColor: "rgba(14,10,6,",
+    farBldg: "#0c0a06", midBldg: "#100e08", windowColor: "rgba(255,160,80,0.1)",
+  },
 };
 
 function getTheme(g) {
@@ -2013,9 +2032,12 @@ function getTheme(g) {
 // ═══ BACKGROUND ═══
 function renderBackground(ctx, W, H, cx, g) {
   const groundY = g.groundY;
-  const bgImg = getImage("bg_forest");
-  const t = g.time.elapsed;
   const pal = getTheme(g);
+  // Select background image based on room theme
+  const room = (g._rooms || [])[g.currentRoom];
+  const bgKey = (room && room.theme === "dojo") ? "bg_dojo" : (g.currentRoom >= 15 ? "bg_temple" : "bg_forest");
+  const bgImg = getImage(bgKey) || getImage("bg_forest");
+  const t = g.time.elapsed;
 
   if (bgImg) {
     // ── Image-based parallax background ──

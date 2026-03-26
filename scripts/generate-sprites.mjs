@@ -75,6 +75,30 @@ const SPRITES = [
   ['portrait_player', 'Young determined Japanese warrior face portrait, TinySenpai mascot, brown hat, red accent, 64x64 pixel art, gray background #808080'],
   ['portrait_shadow', 'Dark mysterious silhouette face portrait, glowing purple eyes, menacing aura, 64x64 pixel art, gray background #808080'],
   ['portrait_elder',  'Kind old Japanese woman face portrait, temple robes, green accent, warm smile, 64x64 pixel art, gray background #808080'],
+
+  // ═══ STORY SCENE BACKGROUNDS (wide pixel art, ~640x360) ═══
+  ['bg_dojo_story',       'Wide pixel art scene background of a traditional Japanese dojo interior. Polished wooden floor, shoji paper sliding screens on walls, wooden support pillars, weapon rack with katanas on back wall, warm amber lantern light from above, hanging scroll calligraphy on wall. Dark atmospheric mood, warm wood tones. No characters. 640x360 pixel art, detailed environment, gray background #808080'],
+  ['bg_dojo_night_story', 'Wide pixel art scene background of a Japanese dojo at night. Same wooden dojo interior but dark and dramatic, only moonlight through paper screens casting blue shadows, one red lantern glowing ominously. Tense foreboding atmosphere. No characters. 640x360 pixel art, detailed, gray background #808080'],
+  ['bg_forest_story',     'Wide pixel art scene background of a dark Japanese forest clearing at night. Moonlight filtering through tall cedar trees, a small campfire with warm glow, moss-covered stones, fireflies floating, misty atmosphere. No characters. 640x360 pixel art, detailed environment, gray background #808080'],
+  ['bg_temple_story',     'Wide pixel art scene background of a Japanese mountain temple interior. Golden Buddha statue in back, incense smoke wisping up, red pillars, hanging paper lanterns with warm glow, wooden prayer beads, stone floor. Sacred atmosphere. No characters. 640x360 pixel art, detailed, gray background #808080'],
+  ['bg_dojo',             'Wide pixel art parallax background of a Japanese dojo interior for side-scrolling game. Long wooden floor stretching left to right, repeating shoji screens, support pillars every 200px, weapons on walls, warm amber lantern glow. Tileable horizontally. No characters. 1280x360 pixel art, gray background #808080'],
+
+  // ═══ STORY SCENE CHARACTER SPRITES (64x128, full body standing) ═══
+  ['story_player_idle',        'Full body pixel art of young Japanese warrior standing casually, facing RIGHT. Brown hat, red scarf, simple dark clothing, katana at hip. Neutral relaxed pose. 64x128 pixel art, clean, centered, gray background #808080'],
+  ['story_player_surprised',   'Full body pixel art of young Japanese warrior reacting in shock, facing RIGHT. Brown hat, red scarf, eyes wide, body leaning back slightly, one hand raised. Surprised expression. 64x128 pixel art, centered, gray background #808080'],
+  ['story_player_determined',  'Full body pixel art of young Japanese warrior with determined pose, facing RIGHT. Brown hat, red scarf, clenched fist, firm stance, resolute expression. Ready for battle. 64x128 pixel art, centered, gray background #808080'],
+  ['story_player_kneeling',    'Full body pixel art of young Japanese warrior kneeling respectfully, facing RIGHT. Brown hat, red scarf, one knee down, head bowed slightly. Training position. 64x128 pixel art, centered, gray background #808080'],
+  ['story_sensei_idle',        'Full body pixel art of wise old Japanese sensei standing calmly, facing LEFT. Long white beard, traditional dark robes, wooden staff, golden ornate hat, kind but weathered face. Dignified and warm presence. 64x128 pixel art, centered, gray background #808080'],
+  ['story_sensei_serious',     'Full body pixel art of wise old Japanese sensei with grave expression, facing LEFT. White beard, dark robes, golden hat, arms crossed, brow furrowed with concern. Serious and worried. 64x128 pixel art, centered, gray background #808080'],
+  ['story_sensei_amused',      'Full body pixel art of wise old Japanese sensei with slight warm smile, facing LEFT. White beard, dark robes, golden hat, relaxed posture, gentle amusement in eyes. Kind teacher. 64x128 pixel art, centered, gray background #808080'],
+  ['story_shadow_idle',        'Full body pixel art of dark mysterious ninja figure standing with arms crossed, facing LEFT. All black clothing, glowing purple eyes visible, dark aura wisps around body. Menacing and powerful. 64x128 pixel art, centered, gray background #808080'],
+  ['story_shadow_angry',       'Full body pixel art of dark ninja figure in aggressive stance, facing LEFT. Black clothing, glowing purple eyes bright with rage, fists clenched, leaning forward threateningly. Furious. 64x128 pixel art, centered, gray background #808080'],
+  ['story_shadow_bitter',      'Full body pixel art of dark ninja figure turning away, facing partially LEFT. Black clothing, purple eyes dimmer, shoulders slumped slightly, posture suggesting regret or pain. Melancholic. 64x128 pixel art, centered, gray background #808080'],
+  ['story_elder_idle',         'Full body pixel art of old Japanese temple elder standing peacefully, facing LEFT. White and green robes, prayer beads around neck, bald head, calm serene expression. Wise and gentle. 64x128 pixel art, centered, gray background #808080'],
+  ['story_elder_concerned',    'Full body pixel art of old Japanese temple elder looking worried, facing LEFT. White and green robes, prayer beads, hands clasped together, brow furrowed with concern. Anxious. 64x128 pixel art, centered, gray background #808080'],
+
+  // ═══ REDESIGNED SENSEI PORTRAIT ═══
+  ['portrait_sensei_v2', 'Wise old Japanese sensei face portrait close-up. Long flowing white beard, deep wise eyes with warmth, golden ornate hat with kanji symbol, weathered but kind face, dark robes visible at neck. Distinguished and noble. 64x64 pixel art, detailed face, gray background #808080'],
 ];
 
 async function generateSprite(name, prompt) {

@@ -15,6 +15,17 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "KeyJ" || e.code === "KeyZ") { inp.slash = true; inp.slashPressed = true; e.preventDefault(); }
     if (e.code === "KeyK" || e.code === "KeyX" || e.code === "ShiftLeft" || e.code === "ShiftRight") { inp.slowmo = true; e.preventDefault(); }
     if (e.code === "KeyL" || e.code === "KeyC") { inp.dash = true; inp.dashPressed = true; e.preventDefault(); }
+    // Story mode inputs
+    if (gameRef.current?.gameState === "story") {
+      if (e.code === "Space" || e.code === "Enter") { inp.storyAdvance = true; e.preventDefault(); }
+      if (e.code === "Digit1" || e.code === "Numpad1") { inp.choice1 = true; e.preventDefault(); }
+      if (e.code === "Digit2" || e.code === "Numpad2") { inp.choice2 = true; e.preventDefault(); }
+      if (e.code === "Digit3" || e.code === "Numpad3") { inp.choice3 = true; e.preventDefault(); }
+      if (e.code === "ArrowUp" || e.code === "KeyW") { inp.choiceUp = true; e.preventDefault(); }
+      if (e.code === "ArrowDown" || e.code === "KeyS") { inp.choiceDown = true; e.preventDefault(); }
+      if (e.code === "Enter") { inp.choiceConfirm = true; e.preventDefault(); }
+      return; // Don't process game inputs during story
+    }
     if (e.code === "Escape" || e.code === "KeyP") setScreen("paused");
   };
 

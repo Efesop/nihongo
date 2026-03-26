@@ -20,6 +20,7 @@ export const ROOMS = [
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
   {
     title: { jp: "修行", en: "Training" },
+    theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 1200 },
     ],
@@ -28,7 +29,7 @@ export const ROOMS = [
     ],
     shadows: [],
     playerStart: 80,
-    deco: [{ type: "lantern", x: 400 }],
+    deco: [{ type: "lantern", x: 400 }, { type: "scroll", x: 200 }, { type: "weapon_rack", x: 900 }],
     tutorials: [
       { text: "← → to move    (A/D)", trigger: "start" },
       { text: "J or Z to slash!", trigger: "nearEnemy" },
@@ -38,6 +39,7 @@ export const ROOMS = [
   // ── Room 1: "跳躍 Take Flight" — learn JUMP ──
   {
     title: { jp: "跳躍", en: "Take Flight" },
+    theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 500 },
       { x: 600, y: -60, w: 250 },
@@ -59,6 +61,7 @@ export const ROOMS = [
   // ── Room 2: "閃光 Phase Through" — learn DASH + DASH-SLASH ──
   {
     title: { jp: "閃光", en: "Phase Through" },
+    theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 1400 },
     ],
@@ -77,6 +80,7 @@ export const ROOMS = [
   // ── Room 3: "壁走 Wall Runner" — learn WALL JUMP ──
   {
     title: { jp: "壁走", en: "Wall Runner" },
+    theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 500 },
       { x: 400, y: -70, w: 160 },
@@ -101,6 +105,7 @@ export const ROOMS = [
   // ── Room 4: "集中 Bullet Time" — learn SLOW-MO / FOCUS ──
   {
     title: { jp: "集中", en: "Bullet Time" },
+    theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 2000 },
       { x: 500, y: -100, w: 160 },
@@ -130,6 +135,7 @@ export const ROOMS = [
   // The player should discover: "Wait, the debris killed that guy!"
   {
     title: { jp: "逃走", en: "Flight" },
+    theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 2000 },
     ],
