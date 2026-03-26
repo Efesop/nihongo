@@ -310,6 +310,37 @@ export function isMuted() {
   return _muted;
 }
 
+// ═══ VOICE BLIPS (Undertale-style character mumble voices) ═══
+const VOICE_CONFIG = {
+  sensei:  { freq: 175, type: 'sine',     dur: 0.065, vol: 0.07 },
+  player:  { freq: 310, type: 'square',   dur: 0.04,  vol: 0.05 },
+  shadow:  { freq: 115, type: 'sawtooth', dur: 0.075, vol: 0.06 },
+  elder:   { freq: 360, type: 'sine',     dur: 0.05,  vol: 0.05 },
+  system:  { freq: 480, type: 'sine',     dur: 0.03,  vol: 0.03 },
+};
+let _lastBlipTime = 0;
+
+export function playVoiceBlip(speaker) {
+  if (_muted || !_ctx || !_masterGain) return;
+  const now = _ctx.currentTime;
+  if (now - _lastBlipTime < 0.025) return; // rate-limit
+  _lastBlipTime = now;
+  const v = VOICE_CONFIG[speaker] || VOICE_CONFIG.system;
+  try {
+    if (_ctx.state === 'suspended') _ctx.resume();
+    const osc = _ctx.createOscillator();
+    const gain = _ctx.createGain();
+    osc.type = v.type;
+    osc.frequency.value = v.freq + (Math.random() - 0.5) * 50;
+    gain.gain.value = v.vol;
+    gain.gain.exponentialRampToValueAtTime(0.001, now + v.dur);
+    osc.connect(gain);
+    gain.connect(_masterGain);
+    osc.start(now);
+    osc.stop(now + v.dur + 0.01);
+  } catch { /* */ }
+}
+
 export function setSfxVolume(v) { _sfxVolume = Math.max(0, Math.min(1, v)); }
 export function setMusicVolume(v) {
   _musicVolume = Math.max(0, Math.min(1, v));

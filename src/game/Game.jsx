@@ -6,8 +6,8 @@ import { makePlayer, makeEnemy } from "./entities.js";
 import { update, loadRoom, loadSave, deleteSave } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
-import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, stopMusic, isAudioReady } from "./audio.js";
-import { CHARACTERS, ROOM_DIALOGUE, ROOM_ENCOUNTERS, STORY_TRIGGERS, getDefaultChoices } from "./story.js";
+import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, stopMusic, isAudioReady, playVoiceBlip } from "./audio.js";
+import { CHARACTERS, ROOM_DIALOGUE, ROOM_ENCOUNTERS, STORY_TRIGGERS, getDefaultChoices, getSceneConfig } from "./story.js";
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
@@ -116,12 +116,26 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     resize();
     window.addEventListener("resize", resize);
 
-    const g = initGame();
-    if (!g) return;
-    gameRef.current = g;
+    // Reuse existing game state when returning from mid-game story
+    let g = gameRef.current;
+    if (g && g._resumeFromStory) {
+      g._resumeFromStory = false;
+      g.time.last = performance.now();
+      // Re-sync canvas size
+      g.W = canvas.parentElement?.clientWidth || canvas.clientWidth;
+      g.H = canvas.parentElement?.clientHeight || canvas.clientHeight;
+      g.groundY = g.H * GROUND_Y;
+    } else {
+      g = initGame();
+      if (!g) return;
+      gameRef.current = g;
+    }
 
     const cleanupKeys = setupKeyboard(gameRef, setScreen);
     const cleanupTouch = setupTouch(canvas, gameRef);
+
+    // Start combat music + ambient when gameplay begins
+    startMusic();
 
     const callbacks = { setScore, setMaxCombo, setScreen, isDesktop, SIDEBAR_W, highScore, setHighScore };
 
@@ -170,6 +184,11 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     }
     setTypingDone(false);
     typingRef.current = setTimeout(() => {
+      // Play voice blip on non-space characters (every other char for less noise)
+      const ch = fullText[typedChars];
+      if (ch && ch !== ' ' && ch !== '.' && ch !== ',' && ch !== '…' && typedChars % 2 === 0) {
+        playVoiceBlip(line.speaker);
+      }
       setTypedChars(c => c + 1);
     }, 30);
     return () => clearTimeout(typingRef.current);
@@ -202,7 +221,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       waited += 100;
     }
     playSound("menuStart");
-    startMusic();
+    // Don't start combat music here — start when gameplay actually begins
     setScore(0);
     setMaxCombo(0);
     // Check if there's a story trigger for this room
@@ -284,9 +303,11 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     const char = CHARACTERS[line.speaker] || CHARACTERS.system;
     const fullText = line.text || "";
     const displayText = typingDone ? fullText : fullText.slice(0, typedChars);
+    // Determine scene from pending room or current room
+    const sceneRoom = gameRef.current?._pendingRoom ?? gameRef.current?.currentRoom ?? startRoomRef.current;
+    const scene = getSceneConfig(sceneRoom);
     const advanceStory = () => {
       if (!typingDone) {
-        // Click to skip typing animation
         clearTimeout(typingRef.current);
         setTypedChars(fullText.length);
         setTypingDone(true);
@@ -295,11 +316,11 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       if (isLast) {
         setStoryLines([]);
         setStoryIndex(0);
-        // If we have a pending room from mid-game story trigger, load it
         const g = gameRef.current;
         if (g && g._pendingRoom !== null && g._pendingRoom !== undefined) {
           loadRoom(g, g._pendingRoom);
           g._pendingRoom = null;
+          g._resumeFromStory = true;
           g.time.last = performance.now();
         }
         setScreen("playing");
@@ -309,53 +330,115 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
         setTypingDone(false);
       }
     };
+    const isSystem = line.speaker === "system";
+    const portraitKanji = char.name?.[0] || "";
     return (
-      <div style={{ ...overlay, background: "#0a0a14", cursor: "pointer", justifyContent: "flex-end" }} onClick={advanceStory}>
-        <style>{cssFx}</style>
+      <div style={{ ...overlay, background: scene.bg, cursor: "pointer", justifyContent: "flex-end" }} onClick={advanceStory}>
+        <style>{cssFx}{`
+          @keyframes portraitPulse{0%{box-shadow:0 0 20px ${char.color}30}50%{box-shadow:0 0 35px ${char.color}50}100%{box-shadow:0 0 20px ${char.color}30}}
+          @keyframes dustFloat{0%{transform:translateY(0) translateX(0);opacity:0.3}50%{opacity:0.6}100%{transform:translateY(-60px) translateX(20px);opacity:0}}
+        `}</style>
         {/* Scanline overlay */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite" }} />
-        {/* Dimmed background area */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ fontSize: 10, fontFamily: font, color: c.m + "60", letterSpacing: ".1em" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite", zIndex: 3 }} />
+        {/* Vignette effect */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)", pointerEvents: "none", zIndex: 2 }} />
+        {/* Scene filter overlay (sepia for flashbacks) */}
+        {scene.filter && <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backdropFilter: scene.filter, WebkitBackdropFilter: scene.filter, pointerEvents: "none", zIndex: 1 }} />}
+
+        {/* Upper area — scene label + character portrait */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, position: "relative", zIndex: 4 }}>
+          {/* Scene label */}
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 28, color: "rgba(255,255,255,0.08)", fontFamily: uiFont, letterSpacing: ".3em" }}>
+              {scene.label}
+            </div>
+            <div style={{ fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.15)", letterSpacing: ".2em", marginTop: 2 }}>
+              {scene.labelEn}
+            </div>
+          </div>
+
+          {/* Character portrait — glowing circle with kanji */}
+          {!isSystem && portraitKanji && (
+            <div style={{
+              width: 88, height: 88, borderRadius: "50%",
+              background: `radial-gradient(circle, ${char.color}18 0%, transparent 70%)`,
+              border: `2px solid ${char.color}40`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              animation: "portraitPulse 3s ease-in-out infinite",
+              position: "relative",
+            }}>
+              {/* Try actual portrait sprite */}
+              <img
+                src={`/images/tinysenpai/game/portrait_${line.speaker}.png`}
+                alt=""
+                style={{ width: 72, height: 72, imageRendering: "pixelated", borderRadius: "50%", position: "absolute" }}
+                onError={(e) => { e.target.style.display = "none"; }}
+              />
+              {/* Fallback: large kanji */}
+              <span style={{ fontSize: 44, color: char.color, filter: `drop-shadow(0 0 12px ${char.color})`, fontFamily: uiFont }}>
+                {portraitKanji}
+              </span>
+            </div>
+          )}
+          {/* Speaker name below portrait */}
+          {!isSystem && char.name && (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 16, fontFamily: uiFont, fontWeight: 700, color: char.color, letterSpacing: ".08em" }}>
+                {char.name}
+              </div>
+              <div style={{ fontSize: 10, fontFamily: font, color: char.color + "88", letterSpacing: ".1em", marginTop: 2 }}>
+                {char.nameEn}
+              </div>
+            </div>
+          )}
+          {/* Progress indicator */}
+          <div style={{ fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.15)", letterSpacing: ".1em" }}>
             {storyIndex + 1} / {storyLines.length}
           </div>
         </div>
-        {/* Dialogue box — bottom third */}
+
+        {/* Dialogue box — bottom area */}
         <div style={{
           width: "100%", padding: "20px 24px 32px", maxWidth: 640, alignSelf: "center",
-          background: "linear-gradient(to bottom, rgba(10,10,20,0.85), rgba(10,10,20,0.95))",
-          borderTop: `2px solid ${char.color}40`,
+          background: "linear-gradient(to bottom, rgba(8,8,16,0.88), rgba(8,8,16,0.96))",
+          borderTop: `2px solid ${char.color}30`,
+          position: "relative", zIndex: 4,
         }}>
-          {/* Speaker name */}
-          {char.name && (
+          {/* System text — centered, italic */}
+          {isSystem ? (
             <div style={{
-              fontSize: 13, fontFamily: font, fontWeight: 700,
-              color: char.color, letterSpacing: ".12em", marginBottom: 8,
+              fontSize: 15, fontFamily: uiFont, color: "#888899",
+              lineHeight: 1.8, textAlign: "center", fontStyle: "italic",
             }}>
-              {char.name} <span style={{ fontSize: 10, color: char.color + "88", fontWeight: 400 }}>{char.nameEn}</span>
+              {line.textJp && <div style={{ fontSize: 14, color: "#888899aa", marginBottom: 4 }}>{typingDone ? line.textJp : line.textJp.slice(0, Math.floor(typedChars * (line.textJp.length / Math.max(1, fullText.length))))}</div>}
+              {displayText}
+              {!typingDone && <span style={{ opacity: 0.5 }}>▌</span>}
             </div>
+          ) : (
+            <>
+              {/* Japanese text */}
+              {line.textJp && (
+                <div style={{
+                  fontSize: 14, fontFamily: uiFont, color: char.color + "88",
+                  lineHeight: 1.6, marginBottom: 6, minHeight: 20,
+                }}>
+                  {typingDone ? line.textJp : line.textJp.slice(0, Math.floor(typedChars * (line.textJp.length / Math.max(1, fullText.length))))}
+                </div>
+              )}
+              {/* English text */}
+              <div style={{
+                fontSize: 18, fontFamily: uiFont, color: c.tx,
+                lineHeight: 1.7, minHeight: 40,
+              }}>
+                {displayText}
+                {!typingDone && <span style={{ opacity: 0.5, animation: "glitch 1s ease-in-out infinite" }}>▌</span>}
+              </div>
+            </>
           )}
-          {/* Japanese text (smaller, above) */}
-          {line.textJp && (
-            <div style={{
-              fontSize: 13, fontFamily: uiFont, color: c.m + "aa",
-              lineHeight: 1.6, marginBottom: 6, minHeight: 20,
-            }}>
-              {typingDone ? line.textJp : line.textJp.slice(0, Math.floor(typedChars * (line.textJp.length / Math.max(1, fullText.length))))}
-            </div>
-          )}
-          {/* English text (larger, main) */}
-          <div style={{
-            fontSize: 18, fontFamily: uiFont, color: c.tx,
-            lineHeight: 1.7, minHeight: 40,
-          }}>
-            {displayText}
-            {!typingDone && <span style={{ opacity: 0.5, animation: "glitch 1s ease-in-out infinite" }}>▌</span>}
-          </div>
           {/* Advance prompt */}
           {typingDone && (
             <div style={{
-              fontSize: 10, fontFamily: font, color: c.m + "88",
+              fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.25)",
               letterSpacing: ".08em", marginTop: 12, textAlign: "right",
             }}>
               {isLast ? "CLICK TO BEGIN ▶" : "CLICK ▶"}

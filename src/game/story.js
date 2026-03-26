@@ -124,12 +124,28 @@ export const ROOM_DIALOGUE = {
 };
 
 // In-game encounters — speech bubbles during gameplay
+// Includes converted single-line dialogues from rooms 6, 7, 9, 11, 12
 export const ROOM_ENCOUNTERS = {
   5: [
     { triggerX: 800, speaker: "player", textJp: "先生のメモ...「前に進め」", text: "Sensei's note... 'Keep moving forward'", duration: 2000 },
   ],
+  6: [
+    { triggerX: 180, speaker: "player", textJp: "高い場所に敵がいる。慎重に行こう。", text: "Enemies on the high ground. I'll be careful.", duration: 2500 },
+  ],
+  7: [
+    { triggerX: 180, speaker: "player", textJp: "この壁...登れるはず。先生が教えてくれた通りに。", text: "This wall... I should be able to climb it. Just like Sensei taught me.", duration: 2500 },
+  ],
+  9: [
+    { triggerX: 500, speaker: "player", textJp: "塔の上に何かがある...先生のメモだ！", text: "There's something at the top of the tower... Sensei's notes!", duration: 2500 },
+  ],
   10: [
     { triggerX: 400, speaker: "shadow", textJp: "見ているぞ。", text: "I'm watching.", duration: 1500 },
+  ],
+  11: [
+    { triggerX: 180, speaker: "player", textJp: "あの声...影のような存在。先生の何を知っている？", text: "That voice... a shadow-like presence. What does he know about Sensei?", duration: 3000 },
+  ],
+  12: [
+    { triggerX: 180, speaker: "player", textJp: "要塞か。正面から行くしかない。", text: "A fortress. I have no choice but to go through the front.", duration: 2500 },
   ],
   14: [
     { triggerX: 600, speaker: "shadow", textJp: "力を見せろ。", text: "Show me your strength.", duration: 1500 },
@@ -156,28 +172,58 @@ export const ROOM_CHOICES = {
 
 // Story triggers — which room number triggers story before entering
 // Key = room number, value = room number to look up in ROOM_DIALOGUE
+// Story triggers — only rooms with substantial dialogue get full story screens
+// Single-line player monologues (6, 7, 9, 11, 12) are moved to in-game encounters
 export const STORY_TRIGGERS = {
-  0: 0,    // Sensei's training
-  1: 1,    // Jump training
-  2: 2,    // Dash training
-  3: 3,    // Wall training
-  4: 4,    // Focus training
-  5: 5,    // Forest pursuit begins
-  6: 6,    // High ground
-  7: 7,    // Wall climb
-  8: 8,    // Rooftop parkour
-  9: 9,    // Tower
-  10: 10,  // Shadow appears
-  11: 11,  // After Shadow
-  12: 12,  // Fortress
-  13: 13,  // Gauntlet
-  14: 14,  // Boss room
-  15: 15,  // Act 2 — Temple
-  16: 16,  // Garden
-  17: 17,  // Bell tower — curse
-  18: 18,  // Inner sanctum — reveal
-  19: 19,  // Final boss
+  0: 0,    // Sensei's training (5 lines)
+  1: 1,    // Jump training (3 lines)
+  2: 2,    // Dash training (3 lines)
+  3: 3,    // Wall training (1 line, but part of tutorial sequence)
+  4: 4,    // Focus training (3 lines)
+  5: 5,    // Forest pursuit begins (3 lines)
+  // 6: moved to encounter
+  // 7: moved to encounter
+  8: 8,    // Rooftop parkour (2 lines)
+  // 9: moved to encounter
+  10: 10,  // Shadow appears (6 lines — major story beat)
+  // 11: moved to encounter
+  // 12: moved to encounter
+  13: 13,  // Gauntlet (3 lines)
+  14: 14,  // Boss room (4 lines)
+  15: 15,  // Act 2 — Temple (5 lines)
+  16: 16,  // Garden (3 lines)
+  17: 17,  // Bell tower — curse (3 lines)
+  18: 18,  // Inner sanctum — reveal (3 lines)
+  19: 19,  // Final boss (5 lines)
 };
+
+// Scene visual config — backgrounds, tints, labels per act/location
+export function getSceneConfig(roomIndex) {
+  if (roomIndex <= 4) return {
+    bg: 'linear-gradient(180deg, #2a1f10 0%, #1a1208 40%, #0e0a04 100%)',
+    label: '回想', labelEn: 'FLASHBACK',
+    filter: 'sepia(0.35) brightness(0.85)',
+    particles: 'dust', // warm floating dust motes
+  };
+  if (roomIndex <= 9) return {
+    bg: 'linear-gradient(180deg, #081a12 0%, #061210 40%, #040a08 100%)',
+    label: '森', labelEn: 'FOREST',
+    filter: null,
+    particles: 'leaves',
+  };
+  if (roomIndex <= 14) return {
+    bg: 'linear-gradient(180deg, #1a0a1a 0%, #140818 40%, #0a0410 100%)',
+    label: '闇', labelEn: 'CONFRONTATION',
+    filter: null,
+    particles: 'embers',
+  };
+  return {
+    bg: 'linear-gradient(180deg, #1a1508 0%, #161008 40%, #0c0a06 100%)',
+    label: '寺院', labelEn: 'TEMPLE GARDENS',
+    filter: null,
+    particles: 'petals',
+  };
+}
 
 // Default choices state
 export function getDefaultChoices() {
