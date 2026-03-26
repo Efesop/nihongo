@@ -1,6 +1,6 @@
 import {
   GRAVITY, MOVE_SPEED, JUMP_FORCE, SLASH_DURATION, SLASH_RANGE,
-  DASH_SPEED, DASH_DURATION, DASH_COOLDOWN,
+  DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, GROUND_POUND_SPEED, PARRY_WINDOW,
   TILE, SCALE, GROUND_Y, TOTAL_ROOMS, STAR_3, STAR_2,
   ENEMY_CONFIG, KILL_ZOOM, KILL_ZOOM_3RD, MILESTONE_ZOOM, LAST_KILL_FREEZE,
   lerp, clamp, rnd, rndInt,
@@ -14,10 +14,20 @@ export function loadRoom(g, roomIndex) {
   const room = ROOMS[roomIndex];
   if (!room) return;
   g.currentRoom = roomIndex;
+  g._rooms = ROOMS; // expose for renderer theme lookup
   g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
-  g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0)));
+  g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
+  // Hazards
+  g.hazards = (room.hazards || []).map(h => ({
+    ...h,
+    y: g.groundY + (h.y || 0),
+    timer: h.type === "firejet" ? (h.offset || 0) : 0,
+    active: h.type !== "firejet",
+    shaking: 0, fallen: false, respawnTimer: 0, // falling platform state
+    originalY: g.groundY + (h.y || 0),
+  }));
   g.levelW = Math.max(...room.platforms.map(p => p.x + p.w));
   g.player = makePlayer(g.groundY, room.playerStart || 100);
   g.particles = [];
@@ -38,12 +48,14 @@ export function loadRoom(g, roomIndex) {
   g.input.left = false;
   g.input.right = false;
   g.input.up = false;
+  g.input.down = false;
   g.input.slash = false;
   g.input.slowmo = false;
   g.input.dash = false;
   g.input.slashPressed = false;
   g.input.jumpPressed = false;
   g.input.dashPressed = false;
+  g.input.downPressed = false;
   g.hitStop = 0;
   g.flashTimer = 0;
   g.roomTimer = 0;
@@ -53,7 +65,13 @@ export function loadRoom(g, roomIndex) {
   g.comboTimer = 0;
   g.letterbox = 0;
   g.fadeOverlay = 1; // fade in from black
-  g.roomTitle = { text: `ROOM ${roomIndex + 1}`, timer: 1200 };
+  // Act-aware room title with Japanese name
+  const title = room.title;
+  const titleText = title ? `${title.jp}  ${title.en}` : `ROOM ${roomIndex + 1}`;
+  g.roomTitle = { text: titleText, timer: 1200 };
+  // Tutorial system
+  g.tutorials = (room.tutorials || []).map(t => ({ ...t, shown: false, dismissed: false, timer: 0 }));
+  g.activeTutorial = null;
 }
 
 function restartRoom(g) {
@@ -84,6 +102,35 @@ function clearRoom(g, callbacks) {
     text: `${time.toFixed(1)}s`, color: "#aaaacc",
     life: 1800, maxLife: 1800,
   });
+  // Auto-save progress after clearing a room
+  saveProgress(g);
+}
+
+// ═══ SAVE SYSTEM ═══
+const SAVE_KEY = "nihongo-game-save";
+
+function saveProgress(g) {
+  try {
+    const data = {
+      currentRoom: g.currentRoom + 1, // save NEXT room (resume point)
+      score: g.score, deaths: g.deaths,
+      roomStars: g.roomStars, totalTime: g.totalTime,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch {}
+}
+
+export function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+export function deleteSave() {
+  try { localStorage.removeItem(SAVE_KEY); } catch {}
 }
 
 // ═══ UPDATE ═══
@@ -253,6 +300,31 @@ export function update(g, callbacks) {
         life: 150, maxLife: 150, color: "#ffffff", size: rnd(1, 2), isLine: true,
       });
     }
+    // ── DASH-SLASH: press slash during dash ──
+    if (g.input.slashPressed) {
+      p.dashSlashing = true;
+      p.dashTimer = Math.max(p.dashTimer, 80); // extend dash slightly
+      p.slashTimer = SLASH_DURATION;
+      p.slashDuration = SLASH_DURATION;
+      p.slashCombo = 1;
+      p.invincible = 200; // extended i-frames during dash-slash
+      playSound("backstab", { volume: 0.8 });
+      playRandomExclusive("slash", "swoosh", { volume: 0.6 });
+      // Purple speed-line burst
+      for (let i = 0; i < 12; i++) {
+        g.particles.push({
+          x: p.x, y: p.y + rnd(5, TILE * SCALE - 5),
+          vx: p.facing * rnd(200, 500), vy: rnd(-30, 30),
+          life: 200, maxLife: 200, color: i % 2 === 0 ? "#aa55ff" : "#ffffff", size: rnd(1, 2), isLine: true,
+        });
+      }
+      g.slashEffects.push({
+        x: p.x, y: p.y + TILE * SCALE * 0.4,
+        facing: p.facing, timer: 300, maxTimer: 300,
+        combo: 1, startAngle: -0.8, endAngle: 0.8, radius: 80,
+      });
+      g.input.slashPressed = false;
+    }
   } else if (p.slashTimer > 0) {
     // Keep momentum — long slide through enemies (less friction = further)
     p.vx *= 0.985;
@@ -316,6 +388,54 @@ export function update(g, callbacks) {
     }
   }
   g.input.jumpPressed = false;
+
+  // ── Ground Pound — slam downward while airborne ──
+  if (g.input.downPressed && !p.grounded && !p.groundPounding && p.dashTimer <= 0) {
+    p.groundPounding = true;
+    p.vy = GROUND_POUND_SPEED;
+    p.vx = 0;
+    playSound("dash", { volume: 0.7, playbackRate: 0.7 });
+    // Downward speed lines
+    for (let i = 0; i < 6; i++) {
+      g.particles.push({
+        x: p.x + rnd(-8, 8), y: p.y,
+        vx: rnd(-30, 30), vy: -rnd(100, 250),
+        life: 150, maxLife: 150, color: "#ffffff", size: rnd(1, 2), isLine: true,
+      });
+    }
+  }
+  g.input.downPressed = false;
+
+  // Ground pound landing impact
+  if (p.groundPounding && p.grounded) {
+    p.groundPounding = false;
+    g.camera.shakeTimer = 150;
+    playSound("land", { volume: 1.0 });
+    // Shockwave particles
+    for (let i = 0; i < 10; i++) {
+      g.particles.push({
+        x: p.x + rnd(-5, 5), y: p.y + TILE * SCALE,
+        vx: rnd(-200, 200), vy: rnd(-150, -40),
+        life: 350, maxLife: 350, color: "#888888", size: rndInt(2, 4),
+      });
+    }
+    // Damage enemies within range below
+    for (const e of g.enemies) {
+      if (e.dead) continue;
+      const dx = Math.abs(e.x - p.x);
+      const dy = e.y - p.y;
+      if (dx < 80 && dy > -20 && dy < TILE * SCALE + 20) {
+        if ((e.type === "samurai" || e.type === "brute") && !e.blocking) {
+          // Ground pound dazes samurai/brute from above
+          e.dazed = 1500;
+          e.state = "dazed";
+          g.floatingTexts.push({ x: e.x, y: e.y - 20, text: "STUNNED!", color: "#ffdd44", life: 800, maxLife: 800 });
+        } else if (e.type !== "samurai" && e.type !== "brute") {
+          killEnemy(g, e, p, callbacks);
+        }
+      }
+    }
+  }
 
   // ── Slash — 3-hit combo chain ──
   // Combo window: press slash again within 300ms of previous slash ending
@@ -454,6 +574,67 @@ export function update(g, callbacks) {
     }
   }
 
+  // ── Hazard updates + collision ──
+  if (g.hazards) {
+    for (const h of g.hazards) {
+      if (h.type === "spikes") {
+        // Static — check if player is touching
+        if (!p.dead && p.x + 15 > h.x && p.x - 15 < h.x + h.w &&
+            p.y + TILE * SCALE > h.y - 4 && p.y + TILE * SCALE < h.y + 12 && p.vy >= 0) {
+          killPlayer(g, callbacks);
+        }
+      } else if (h.type === "firejet") {
+        // Timer-based toggle: cycle = onTime + offTime
+        h.timer += rawDt * 1000;
+        const cycle = (h.onTime || 1500) + (h.offTime || 2000);
+        const phase = h.timer % cycle;
+        const wasActive = h.active;
+        h.active = phase < (h.onTime || 1500);
+        // Telegraph: 500ms glow before activating
+        h.telegraph = !h.active && phase > cycle - 500;
+        if (!wasActive && h.active) playSound("dash", { volume: 0.3, playbackRate: 1.5 });
+        // Damage player if active and overlapping
+        if (h.active && !p.dead && p.invincible <= 0 &&
+            p.x + 10 > h.x && p.x - 10 < h.x + (h.w || 30) &&
+            p.y + TILE * SCALE > h.y - (h.h || 80) && p.y < h.y) {
+          killPlayer(g, callbacks);
+        }
+      } else if (h.type === "falling") {
+        // Falling platform — shake when stood on, then drop
+        if (h.fallen) {
+          h.respawnTimer -= rawDt * 1000;
+          if (h.respawnTimer <= 0) {
+            h.fallen = false;
+            h.y = h.originalY;
+            h.shaking = 0;
+          }
+          continue;
+        }
+        // Check if player is standing on it
+        const onPlat = p.grounded && p.x + 15 > h.x && p.x - 15 < h.x + h.w &&
+                        Math.abs((p.y + TILE * SCALE) - h.y) < 8;
+        if (onPlat && h.shaking === 0) h.shaking = 400; // start shake countdown
+        if (h.shaking > 0) {
+          h.shaking -= rawDt * 1000;
+          if (h.shaking <= 0) {
+            h.fallen = true;
+            h.respawnTimer = 3000;
+            h.y = g.H + 200; // move offscreen
+            playSound("land", { volume: 0.6, playbackRate: 0.5 });
+          }
+        }
+        // Act as platform (handled by renderer drawing it, engine checks collision)
+        if (!h.fallen && p.x + 15 > h.x && p.x - 15 < h.x + h.w &&
+            p.y + TILE * SCALE > h.y && p.y + TILE * SCALE < h.y + 12 + Math.abs(p.vy * dt) + 10 &&
+            p.vy >= 0) {
+          p.y = h.y - TILE * SCALE;
+          p.vy = 0;
+          p.grounded = true;
+        }
+      }
+    }
+  }
+
   p.x = Math.max(10, Math.min(g.levelW - 10, p.x));
 
   // ── Wall sliding — grab walls while airborne ──
@@ -503,6 +684,10 @@ export function update(g, callbacks) {
 
   // Slash timer
   if (p.slashTimer > 0) p.slashTimer -= dt * 1000;
+  if (p.slashTimer <= 0) p.dashSlashing = false;
+
+  // Parry timer (used by renderer for parry sprite display)
+  if (p.parryTimer > 0) p.parryTimer -= dt * 1000;
 
   // Player state machine
   if (p.dashTimer > 0) {
@@ -647,6 +832,7 @@ export function update(g, callbacks) {
 
     // Move enemy AFTER AI sets velocity, BEFORE platform clamping
     e.x += e.vx * dt;
+    if (e.type === "tengu" && e.vy) e.y += e.vy * dt; // tengu vertical movement (swoop)
 
     // Clamp to platform bounds + wall collision for enemies
     if (onPlatform) {
@@ -667,22 +853,25 @@ export function update(g, callbacks) {
 
     // ── Slash collision — vertical reach depends on combo ──
     // Combo 1 (horizontal): same level only. Combo 2 (upward arc): can reach above.
-    // Combo 3 (big swing): wide reach.
+    // Combo 3 (big swing): wide reach. Air slash: wider below.
     if (p.slashTimer > 0 && !e.dead && !e._hitThisSlash) {
       const slashX = p.x + p.facing * SLASH_RANGE / 2;
       const ew = TILE * SCALE * 0.7;
       const dy = e.y - p.y; // negative = enemy is above
       const combo = p.slashCombo;
-      // Vertical reach: combo 1 = same level (±30px), combo 2 = upward arc (can reach 60px above),
-      // combo 3 = full sweep (±60px)
-      const hitAbove = combo === 1 ? 30 : combo === 2 ? 70 : 60;
-      const hitBelow = combo === 1 ? 30 : combo === 2 ? 20 : 60;
+      const isAirSlash = !p.grounded && !p.wallSliding;
+      // Vertical reach: air slash has more reach below, combo 2 reaches above
+      const hitAbove = isAirSlash ? 20 : (combo === 1 ? 30 : combo === 2 ? 70 : 60);
+      const hitBelow = isAirSlash ? 80 : (combo === 1 ? 30 : combo === 2 ? 20 : 60);
       if (Math.abs(slashX - e.x) < (SLASH_RANGE + ew) / 2 &&
           dy > -hitAbove && dy < hitBelow) {
         e._hitThisSlash = true;
 
-        if (e.type === "samurai") {
-          // Samurai: blocks ALL frontal attacks. Must backstab (hit from behind).
+        // Dash-slash bypasses all blocks (counts as backstab)
+        const isDashSlash = p.dashSlashing;
+
+        if ((e.type === "samurai" || (e.type === "brute" && e.state !== "exhausted")) && !isDashSlash) {
+          // Samurai/Brute: blocks frontal attacks. Must backstab or dash-slash.
           const attackFromBehind = (p.x < e.x && e.facing > 0) || (p.x > e.x && e.facing < 0);
           if (attackFromBehind) {
             // Backstab — instant kill regardless of HP
@@ -692,6 +881,7 @@ export function update(g, callbacks) {
               life: 1000, maxLife: 1000,
             });
             killEnemy(g, e, p, callbacks);
+            if (isAirSlash) { p.vy = JUMP_FORCE * 0.6; p.grounded = false; } // air slash bounce
           } else {
             // Frontal block — sparks, no damage, pushes player back
             e.blocking = true;
@@ -716,23 +906,65 @@ export function update(g, callbacks) {
             });
           }
         } else {
-          playRandom("hit", { volume: 0.6 });
+          // Dash-slash special handling
+          if (isDashSlash) {
+            playSound("backstab", { volume: 0.8 });
+            g.floatingTexts.push({
+              x: e.x, y: e.y - 25, text: "斬り抜け!", color: "#aa55ff",
+              life: 1000, maxLife: 1000,
+            });
+            p.dashCooldown = 0; // reset dash cooldown — chain dash-slashes!
+          } else {
+            playRandom("hit", { volume: 0.6 });
+          }
           killEnemy(g, e, p, callbacks);
+          // Air slash: kill resets jump (chain aerial kills)
+          if (isAirSlash) { p.vy = JUMP_FORCE * 0.6; p.grounded = false; }
         }
       }
     }
     if (p.slashTimer <= 0) e._hitThisSlash = false;
 
     // Enemy attack → player. Damage only during strike phase
+    const isCharging = e.type === "brute" && e.state === "charge";
+    const isSwooping = e.type === "tengu" && e.state === "swoop" && e.attackTimer > 200;
     const strikeWindow = e.type === "samurai" ? 210 : 200;
-    if (e.state === "attack" && e.attackTimer < strikeWindow &&
+    const inStrike = (e.state === "attack" || e.state === "windup") && e.attackTimer < strikeWindow;
+    if ((inStrike || isCharging || isSwooping) &&
         !e.dead && !p.dead && p.invincible <= 0) {
       if (Math.abs(e.x - p.x) < 60 && Math.abs(e.y - p.y) < TILE * SCALE) {
-        if (e.type === "samurai") {
-          // Samurai attack is LETHAL — overpowers slash, no clash possible
-          // Must use dash i-frames to get through
+        // ── PARRY CHECK: if player just started slashing (within PARRY_WINDOW ms) ──
+        const slashElapsed = p.slashTimer > 0 ? (p.slashDuration - p.slashTimer) : Infinity;
+        if (p.slashTimer > 0 && slashElapsed < PARRY_WINDOW) {
+          // PARRY! Player deflects the attack perfectly
+          e.dazed = 1500;
+          e.state = "dazed";
+          e.vx = (e.x > p.x ? 1 : -1) * 150;
+          p.invincible = 500;
+          p.parryTimer = 300; // for parry sprite display
+          g.hitStop = 150; // dramatic freeze
+          g.camera.shakeTimer = 150;
+          g.flashTimer = 200; // white flash
+          g.score += 200;
+          callbacks.setScore(g.score);
+          playSound("deflect", { volume: 0.9 });
+          g.floatingTexts.push({
+            x: (p.x + e.x) / 2, y: Math.min(p.y, e.y) - 20,
+            text: "受流!", color: "#ffffff", life: 1000, maxLife: 1000,
+          });
+          // White radial burst particles
+          for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            g.particles.push({
+              x: (p.x + e.x) / 2, y: p.y + TILE * SCALE * 0.3,
+              vx: Math.cos(angle) * rnd(200, 400), vy: Math.sin(angle) * rnd(200, 400),
+              life: 300, maxLife: 300, color: i % 2 === 0 ? "#ffffff" : "#ddddff", size: rnd(2, 4),
+            });
+          }
+        } else if (e.type === "samurai" || e.type === "brute" || e.type === "tengu") {
+          // Samurai/Brute/Tengu attacks are LETHAL — must parry, dash-slash, or use i-frames
           killPlayer(g, callbacks);
-        } else if (p.slashTimer > 0 && (e.type === "oni" || e.type === "ninja")) {
+        } else if (p.slashTimer > 0 && (e.type === "oni" || e.type === "ninja" || e.type === "archer")) {
           // CLASH with oni — both knocked back, oni dazed, player stunned briefly
           const knockDir = p.x < e.x ? -1 : 1;
           p.vx = knockDir * -350;
@@ -740,7 +972,7 @@ export function update(g, callbacks) {
           p.slashTimer = 0;
           p.comboWindow = 0;
           p.slashCombo = 0;
-          e.dazed = 1200; // oni dazed longer after clash (exploitable)
+          e.dazed = 1200;
           e.state = "dazed";
           e.vx = knockDir * 200;
           g.hitStop = 120;
@@ -774,8 +1006,15 @@ export function update(g, callbacks) {
     if (proj.trail.length > 6) proj.trail.shift();
 
     proj.x += proj.vx * dt;
+    if (proj.gravity) {
+      proj.vy = (proj.vy || 0) + GRAVITY * 0.6 * dt; // lighter gravity for arrows
+      proj.y += proj.vy * dt;
+      // Arrow rotation follows trajectory
+      proj.rotation = Math.atan2(proj.vy, proj.vx);
+    } else {
+      proj.rotation = (proj.rotation || 0) + dt * 15;
+    }
     proj.timer -= dt * 1000;
-    proj.rotation = (proj.rotation || 0) + dt * 15;
 
     if (!p.dead && p.invincible <= 0 &&
         Math.abs(proj.x - p.x) < 22 && Math.abs(proj.y - p.y - 24) < 28) {
@@ -861,6 +1100,44 @@ export function update(g, callbacks) {
   // ── Room state machine ──
   if (g.roomState === "playing") {
     g.roomTimer += rawDt;
+
+    // ── Tutorial trigger checking ──
+    if (g.tutorials && g.tutorials.length > 0) {
+      const p = g.player;
+      const nearestEnemy = g.enemies.find(e => !e.dead && Math.abs(e.x - p.x) < 200);
+      const nearWall = g.platforms.some(pl => pl.wall && Math.abs(pl.x - p.x) < 150);
+      const nearGap = g.platforms.some((pl, i) => {
+        const next = g.platforms[i + 1];
+        return next && !pl.wall && !next.wall && next.x - (pl.x + pl.w) > 80 && Math.abs(p.x - (pl.x + pl.w)) < 150;
+      });
+      const hasShurikens = g.projectiles.length > 0;
+
+      for (const tut of g.tutorials) {
+        if (tut.shown || tut.dismissed) continue;
+        let triggered = false;
+        if (tut.trigger === "start" && g.roomTimer > 0.5) triggered = true;
+        if (tut.trigger === "nearEnemy" && nearestEnemy) triggered = true;
+        if (tut.trigger === "nearWall" && nearWall) triggered = true;
+        if (tut.trigger === "nearGap" && nearGap) triggered = true;
+        if (tut.trigger === "shurikens" && hasShurikens) triggered = true;
+        if (triggered) {
+          tut.shown = true;
+          tut.timer = 4000; // show for 4 seconds
+          g.activeTutorial = tut;
+          break; // only one at a time
+        }
+      }
+      // Decay active tutorial
+      if (g.activeTutorial) {
+        g.activeTutorial.timer -= rawDt * 1000;
+        if (g.activeTutorial.timer <= 0) {
+          g.activeTutorial.dismissed = true;
+          g.activeTutorial = null;
+          // Check if next tutorial should trigger
+        }
+      }
+    }
+
     // Last-kill freeze is triggered in killEnemy — fallback for edge cases
     if (g.enemies.filter(e => !e.dead).length === 0 && g.roomTimer > 0.5) {
       if (g.roomState === "playing") clearRoom(g, callbacks);
@@ -883,8 +1160,16 @@ export function update(g, callbacks) {
         }
         setScreen("victory");
       } else {
-        // Next room
-        loadRoom(g, g.currentRoom + 1);
+        const nextRoom = g.currentRoom + 1;
+        // Check if next room triggers a story screen
+        const storyKey = g._storyTriggers && g._storyTriggers[nextRoom];
+        if (storyKey) {
+          g._pendingRoom = nextRoom;
+          g._pendingStoryKey = storyKey;
+          setScreen("story");
+        } else {
+          loadRoom(g, nextRoom);
+        }
       }
     }
   }
@@ -971,7 +1256,15 @@ function killEnemy(g, e, p, callbacks) {
   g.combo++;
   if (g.combo > g.maxCombo) g.maxCombo = g.combo;
   const pts = (ENEMY_CONFIG[e.type] || ENEMY_CONFIG.oni).score;
-  g.score += pts * g.combo;
+  let killScore = pts * g.combo;
+  // Focus kill bonus — 1.5x score during slow-mo
+  if (g.slowMo.active) {
+    killScore = Math.floor(killScore * 1.5);
+    g.floatingTexts.push({
+      x: e.x, y: e.y - 40, text: "集中斬!", color: "#44ddff", life: 900, maxLife: 900,
+    });
+  }
+  g.score += killScore;
   callbacks.setScore(g.score);
   callbacks.setMaxCombo(g.maxCombo);
   g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 20);
@@ -1007,15 +1300,59 @@ function killEnemy(g, e, p, callbacks) {
     });
   }
 
-  // Kill text
+  // Japanese kill text — random action words
+  const jpKillTexts = [
+    { jp: "斬", en: "zan", color: "#ff4444" },
+    { jp: "斬", en: "zan", color: "#ff4444" },
+    { jp: "討伐", en: "tobatsu", color: "#ff6644" },
+    { jp: "一撃", en: "ichigeki", color: "#ffaa44" },
+  ];
+  // Special context-aware kill text
+  if (p.dashSlashing) {
+    g.floatingTexts.push({ x: e.x, y: e.y - 20, text: "閃光 senkou", color: "#cc44ff", life: 900, maxLife: 900 });
+  } else if (!p.grounded) {
+    g.floatingTexts.push({ x: e.x, y: e.y - 20, text: "空斬 kūzan", color: "#44aaff", life: 900, maxLife: 900 });
+  } else if (g.combo >= 3) {
+    g.floatingTexts.push({ x: e.x, y: e.y - 20, text: "連斬 renzan", color: "#ffa040", life: 900, maxLife: 900 });
+  } else {
+    const t = jpKillTexts[Math.floor(Math.random() * jpKillTexts.length)];
+    g.floatingTexts.push({ x: e.x, y: e.y - 20, text: `${t.jp} ${t.en}`, color: t.color, life: 800, maxLife: 800 });
+  }
+
+  // Kill combo labels
   const killTexts = ["", "", "DOUBLE", "TRIPLE", "QUAD", "PENTA", "HEXA", "ULTRA"];
   if (g.combo >= 2) {
     const label = killTexts[Math.min(g.combo, killTexts.length - 1)] || `x${g.combo}`;
     g.floatingTexts.push({
-      x: e.x, y: e.y - 20,
+      x: e.x, y: e.y - 40,
       text: `${label} KILL!`, color: "#ffa040",
       life: 1000, maxLife: 1000,
     });
+  }
+
+  // ── Kill streak milestones ──
+  g.killStreak = (g.killStreak || 0) + 1;
+  if (g.killStreak === 5) {
+    g.floatingTexts.push({ x: p.x, y: p.y - 60, text: "無双 UNSTOPPABLE", color: "#ff4444", life: 1500, maxLife: 1500 });
+    g.time.scale = Math.min(g.time.scale, 0.3);
+    playSound("comboMilestone");
+  } else if (g.killStreak === 10) {
+    g.floatingTexts.push({ x: p.x, y: p.y - 60, text: "神技 GODLIKE", color: "#ffdd00", life: 1500, maxLife: 1500 });
+    g.camera.shakeTimer = 200;
+    playSound("comboMilestone");
+    // Shockwave ring particles
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * Math.PI * 2;
+      g.particles.push({
+        x: p.x, y: p.y + 30, vx: Math.cos(angle) * 300, vy: Math.sin(angle) * 300,
+        life: 500, maxLife: 500, color: "#ffdd44", size: 3,
+      });
+    }
+  } else if (g.killStreak === 15) {
+    g.floatingTexts.push({ x: p.x, y: p.y - 60, text: "伝説 LEGENDARY", color: "#ff44ff", life: 2000, maxLife: 2000 });
+    g.camera.shakeTimer = 300;
+    g.flashTimer = 200;
+    playSound("comboMilestone");
   }
 
   // ── MASSIVE blood burst — Katana Zero style ──
@@ -1081,21 +1418,31 @@ function killEnemy(g, e, p, callbacks) {
 }
 
 function killPlayer(g, callbacks) {
-  // Brief death animation then restart
+  if (g.player.dead) return; // prevent double-kill
+  // Dramatic death — extreme slow-mo, zoom to death point, red flash
+  g.killStreak = 0;
   g.player.dead = true;
-  g.player.deathTimer = 500;
-  g.camera.shakeTimer = 200;
+  g.player.deathTimer = 600;
+  g.camera.shakeTimer = 300;
+  g.time.scale = 0.15; // extreme slow-mo
+  g.camera.zoomTarget = 1.25; // zoom into death
+  g.flashTimer = 400;
+  g.deathFlash = 600;
   playSound("death");
-  // Blood burst from player
-  for (let i = 0; i < 12; i++) {
+  // Blood burst from player (more particles, longer life for slow-mo drama)
+  for (let i = 0; i < 18; i++) {
     g.particles.push({
       x: g.player.x + rnd(-5, 5), y: g.player.y + 20,
-      vx: rnd(-250, 250), vy: rnd(-400, -80),
-      life: 500, maxLife: 500, color: "#cc1111", size: rnd(1.5, 3),
+      vx: rnd(-300, 300), vy: rnd(-500, -80),
+      life: 800, maxLife: 800, color: i < 12 ? "#cc1111" : "#880000", size: rnd(1.5, 4),
     });
   }
-  // Restart after brief delay
-  setTimeout(() => restartRoom(g), 400);
+  // Hold dramatic slow-mo, then restart
+  setTimeout(() => {
+    g.time.scale = 1;
+    g.camera.zoomTarget = 1;
+    restartRoom(g);
+  }, 600);
 }
 
 function spawnDust(g, x, y) {

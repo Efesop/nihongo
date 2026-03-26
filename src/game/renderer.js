@@ -89,10 +89,11 @@ export function render(g, ctx, isDesktop, font) {
   for (const d of g.decorations) renderDeco(ctx, d, g.groundY, g.time.elapsed);
 
   // Platforms + walls
+  const platPal = getTheme(g);
   for (const plat of g.platforms) {
     if (plat.x + (plat.w || 0) < cx - 50 || plat.x > cx + W + 50) continue;
     const hasBg = !!getImage("bg_forest");
-    const accent = hasBg ? "#3a8a5a" : "#c0282a";
+    const accent = hasBg ? "#3a8a5a" : platPal.platAccent;
 
     if (plat.wall) {
       // Solid climbable wall — stone/brick texture
@@ -181,6 +182,84 @@ export function render(g, ctx, isDesktop, font) {
       rightGrad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.fillStyle = rightGrad;
       ctx.fillRect(s.x + s.w, s.y - 50, edgeW, 64);
+    }
+  }
+
+  // ── Hazards ──
+  if (g.hazards) {
+    for (const h of g.hazards) {
+      if (h.x + (h.w || 30) < cx - 50 || h.x > cx + W + 50) continue;
+      if (h.type === "spikes") {
+        // Metallic gray spike triangles
+        const count = Math.floor(h.w / 16);
+        for (let i = 0; i < count; i++) {
+          const sx = h.x + i * 16 + 8;
+          ctx.fillStyle = "#888899";
+          ctx.beginPath();
+          ctx.moveTo(sx, h.y - 14);
+          ctx.lineTo(sx - 7, h.y);
+          ctx.lineTo(sx + 7, h.y);
+          ctx.closePath();
+          ctx.fill();
+          // Highlight
+          ctx.fillStyle = "#aabbcc";
+          ctx.beginPath();
+          ctx.moveTo(sx, h.y - 14);
+          ctx.lineTo(sx - 2, h.y - 4);
+          ctx.lineTo(sx + 2, h.y - 4);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else if (h.type === "firejet") {
+        // Base nozzle
+        ctx.fillStyle = "#444455";
+        ctx.fillRect(h.x, h.y - 8, h.w || 30, 8);
+        // Telegraph glow
+        if (h.telegraph && !h.active) {
+          ctx.fillStyle = `rgba(255,60,20,${0.3 + Math.sin(g.time.elapsed * 20) * 0.2})`;
+          ctx.fillRect(h.x, h.y - (h.h || 80), h.w || 30, h.h || 80);
+        }
+        // Active flame column
+        if (h.active) {
+          const flameH = h.h || 80;
+          const grad = ctx.createLinearGradient(h.x, h.y - flameH, h.x, h.y);
+          grad.addColorStop(0, "rgba(255,200,50,0)");
+          grad.addColorStop(0.3, "rgba(255,120,20,0.7)");
+          grad.addColorStop(0.7, "rgba(255,60,10,0.9)");
+          grad.addColorStop(1, "rgba(255,40,0,0.6)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(h.x, h.y - flameH, h.w || 30, flameH);
+          // Bright core
+          ctx.fillStyle = "rgba(255,255,200,0.4)";
+          ctx.fillRect(h.x + (h.w || 30) * 0.3, h.y - flameH * 0.7, (h.w || 30) * 0.4, flameH * 0.5);
+        }
+      } else if (h.type === "falling") {
+        if (h.fallen) continue;
+        ctx.save();
+        // Shake effect
+        if (h.shaking > 0) {
+          const shake = (Math.random() - 0.5) * 4;
+          ctx.translate(shake, 0);
+        }
+        // Draw as cracked platform
+        const grad = ctx.createLinearGradient(h.x, h.y, h.x, h.y + 14);
+        grad.addColorStop(0, "#2a1a10");
+        grad.addColorStop(1, "#1a0e08");
+        ctx.fillStyle = grad;
+        ctx.fillRect(h.x, h.y, h.w, 14);
+        ctx.fillStyle = "#cc8833";
+        ctx.fillRect(h.x, h.y, h.w, 1);
+        // Crack lines
+        ctx.strokeStyle = "#55331188";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(h.x + h.w * 0.3, h.y + 2);
+        ctx.lineTo(h.x + h.w * 0.5, h.y + 10);
+        ctx.moveTo(h.x + h.w * 0.7, h.y + 3);
+        ctx.lineTo(h.x + h.w * 0.55, h.y + 12);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
   }
 
@@ -622,11 +701,33 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillText(g.roomTitle.text, W / 2 + xOff, H * 0.35);
     ctx.font = `12px ${font}`;
     ctx.fillStyle = "#aaaacc";
-    ctx.fillText("CLEAR ALL ENEMIES", W / 2 + xOff, H * 0.35 + 24);
+    const subtitle = `ROOM ${g.currentRoom + 1}  —  CLEAR ALL ENEMIES`;
+    ctx.fillText(subtitle, W / 2 + xOff, H * 0.35 + 24);
     ctx.restore();
   }
 
   // Fog is now rendered as parallax mist layers inside renderBackground
+
+  // ── Tutorial prompt ──
+  if (g.activeTutorial && g.activeTutorial.timer > 0) {
+    const tut = g.activeTutorial;
+    const fadeIn = Math.min(1, (4000 - tut.timer) / 300);
+    const fadeOut = Math.min(1, tut.timer / 300);
+    const alpha = Math.min(fadeIn, fadeOut);
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.85;
+    // Dark banner background
+    const bannerY = H * 0.82;
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, bannerY - 18, W, 36);
+    // Tutorial text
+    ctx.globalAlpha = alpha;
+    ctx.font = `bold 14px ${font}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffdd44";
+    ctx.fillText(tut.text, W / 2, bannerY + 5);
+    ctx.restore();
+  }
 
   renderHUD(ctx, g, W, isDesktop, font);
 }
@@ -735,8 +836,22 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   }
 
   if (p.state === "dash") {
+    // Use slash-through sprite during dash-slash, regular dash otherwise
+    if (p.dashSlashing) {
+      const img = getImage("slash_through");
+      if (drawSpriteFrame(ctx, img, "slash_through", s, p.facing)) { ctx.restore(); return; }
+    }
     const img = getImage("dash");
     if (drawSpriteFrame(ctx, img, "dash", s, p.facing)) { ctx.restore(); return; }
+  }
+
+  // Parry flash — white overlay using parry sprite
+  if (p.parryTimer > 0) {
+    const img = getImage("parry");
+    if (img) {
+      ctx.globalAlpha = Math.min(1, p.parryTimer / 150);
+      if (drawSpriteFrame(ctx, img, "parry", s, p.facing)) { ctx.restore(); return; }
+    }
   }
 
   // ── Idle — use mascot with breathing ──
@@ -1207,6 +1322,227 @@ function drawEnemy(ctx, e, elapsed, font) {
       ctx.fillStyle = "#4a3020";
       ctx.fillRect(f * 16 - 1, 38, 4, 10);
     }
+  } else if (e.type === "archer") {
+    // ── ARCHER — hooded, longbow, elevated sniper ──
+    const cloakColor = "#2a4a3a";
+    const skinColor = "#e8c090";
+
+    // Body / cloak
+    ctx.fillStyle = cloakColor;
+    ctx.fillRect(-10, 22, 20, 22);
+    ctx.fillStyle = "#1e3a2a";
+    ctx.fillRect(-12, 20, 24, 4); // cloak shoulders
+
+    // Legs
+    ctx.fillStyle = "#1e3a2a";
+    ctx.fillRect(-7, 44, 5, 14 + legSwing);
+    ctx.fillRect(2, 44, 5, 14 - legSwing);
+
+    // Head
+    ctx.fillStyle = skinColor;
+    ctx.beginPath();
+    ctx.arc(0, 14, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hood
+    ctx.fillStyle = cloakColor;
+    ctx.beginPath();
+    ctx.moveTo(-14, 18);
+    ctx.lineTo(0, -2);
+    ctx.lineTo(14, 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(-14, 14, 28, 6);
+
+    // Eyes (glowing green)
+    ctx.fillStyle = "#44ff66";
+    ctx.fillRect(-4, 12, 3, 2);
+    ctx.fillRect(1, 12, 3, 2);
+
+    // Longbow
+    ctx.strokeStyle = "#8b6840";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(f * 16, 25, 22, -Math.PI * 0.45, Math.PI * 0.45);
+    ctx.stroke();
+    ctx.strokeStyle = "#ccccaa";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(f * 16, 25 - 20);
+    ctx.lineTo(f * 16, 25 + 20);
+    ctx.stroke();
+
+    // Throw animation — arm extended with arrow
+    if (e.throwAnim > 0) {
+      ctx.fillStyle = skinColor;
+      ctx.fillRect(f * 8, 22, f * 16, 3);
+      ctx.fillStyle = "#8b6840";
+      ctx.fillRect(f * 12, 23, f * 20, 1.5); // arrow
+      ctx.fillStyle = "#aabbcc";
+      ctx.beginPath();
+      ctx.moveTo(f * 32, 23); ctx.lineTo(f * 28, 21); ctx.lineTo(f * 28, 26);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+  } else if (e.type === "brute") {
+    // ── BRUTE — huge, armored ogre, 3HP, charges ──
+    const armorColor = "#3a2020";
+    const skinColor = "#cc9977";
+
+    // Large body
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(-18, 16, 36, 32);
+    // Chest plate
+    ctx.fillStyle = "#552222";
+    ctx.fillRect(-14, 18, 28, 12);
+    ctx.fillStyle = "#884422";
+    ctx.fillRect(-14, 18, 28, 2); // gold trim
+
+    // Thick legs
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(-12, 48, 10, 14 + legSwing);
+    ctx.fillRect(2, 48, 10, 14 - legSwing);
+
+    // Big head
+    ctx.fillStyle = skinColor;
+    ctx.beginPath();
+    ctx.arc(0, 8, 16, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Angry eyes (red)
+    ctx.fillStyle = "#ff2222";
+    ctx.fillRect(-7, 6, 4, 4);
+    ctx.fillRect(3, 6, 4, 4);
+    // Heavy brow
+    ctx.fillStyle = "#332211";
+    ctx.fillRect(-9, 2, 7, 3);
+    ctx.fillRect(2, 2, 7, 3);
+
+    // Horns
+    ctx.fillStyle = "#aa8844";
+    ctx.beginPath();
+    ctx.moveTo(-12, 0); ctx.lineTo(-18, -14); ctx.lineTo(-8, -2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(12, 0); ctx.lineTo(18, -14); ctx.lineTo(8, -2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Big club/kanabo
+    ctx.fillStyle = "#555555";
+    ctx.fillRect(f * 18, 4, 6, 50);
+    ctx.fillStyle = "#777777";
+    ctx.fillRect(f * 18, 4, 6, 3);
+    // Spikes on club
+    for (let i = 0; i < 4; i++) {
+      ctx.fillStyle = "#999999";
+      ctx.fillRect(f * 18 + (f > 0 ? 5 : -2), 14 + i * 10, 3, 3);
+    }
+
+    // Arms
+    ctx.fillStyle = skinColor;
+    ctx.fillRect(-20, 20, 6, 16);
+    ctx.fillRect(14, 20, 6, 16);
+
+    // Charge effect — red aura
+    if (e.state === "charge") {
+      ctx.globalAlpha = 0.3 + Math.sin(elapsed * 20) * 0.15;
+      ctx.fillStyle = "#ff2222";
+      ctx.beginPath();
+      ctx.arc(0, 28, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Exhausted — steam/sweat
+    if (e.state === "exhausted" || e.dazed > 0) {
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = "#aaccff";
+      for (let i = 0; i < 3; i++) {
+        const sx = -10 + i * 10;
+        const sy = -20 - Math.sin(elapsed * 4 + i) * 5;
+        ctx.fillRect(sx, sy, 3, 3);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+  } else if (e.type === "tengu") {
+    // ── TENGU — flying crow demon, red face, black wings ──
+    const bodyColor = "#1a1a2a";
+    const faceColor = "#cc3333";
+    const wingBob = Math.sin(elapsed * 8) * 8;
+
+    // Wings (spread, flapping)
+    ctx.fillStyle = bodyColor;
+    // Left wing
+    ctx.beginPath();
+    ctx.moveTo(-8, 22);
+    ctx.lineTo(-35, 10 + wingBob);
+    ctx.lineTo(-30, 30 + wingBob * 0.5);
+    ctx.lineTo(-8, 32);
+    ctx.closePath();
+    ctx.fill();
+    // Right wing
+    ctx.beginPath();
+    ctx.moveTo(8, 22);
+    ctx.lineTo(35, 10 + wingBob);
+    ctx.lineTo(30, 30 + wingBob * 0.5);
+    ctx.lineTo(8, 32);
+    ctx.closePath();
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = "#222238";
+    ctx.fillRect(-10, 20, 20, 22);
+
+    // Talons
+    ctx.fillStyle = "#666";
+    ctx.fillRect(-6, 42, 4, 8);
+    ctx.fillRect(2, 42, 4, 8);
+
+    // Head
+    ctx.fillStyle = faceColor;
+    ctx.beginPath();
+    ctx.arc(0, 12, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Long nose (tengu trademark)
+    ctx.fillStyle = "#dd4444";
+    ctx.beginPath();
+    ctx.moveTo(f * 6, 12);
+    ctx.lineTo(f * 22, 14);
+    ctx.lineTo(f * 6, 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eyes (yellow, menacing)
+    ctx.fillStyle = "#ffff00";
+    ctx.fillRect(-5, 9, 4, 3);
+    ctx.fillRect(1, 9, 4, 3);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(-4, 10, 2, 2);
+    ctx.fillRect(2, 10, 2, 2);
+
+    // Feathered head crest
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(-8, 4);
+    ctx.lineTo(0, -10);
+    ctx.lineTo(8, 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Swoop dive trail
+    if (e.state === "swoop") {
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = "#ff4444";
+      ctx.beginPath();
+      ctx.arc(0, 28, 18, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 
   drawEnemyOverlays(ctx, e, elapsed, font);
@@ -1228,14 +1564,19 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
     ctx.globalAlpha = 1;
   }
 
-  // Samurai HP pips
-  if (e.type === "samurai" && !e.dead) {
-    for (let i = 0; i < 2; i++) {
-      ctx.fillStyle = i < e.hp ? "#cc9933" : "#333344";
-      ctx.fillRect(-6 + i * 12, -12, 8, 4);
+  // HP pips (samurai: 2HP, brute: 3HP)
+  const maxHp = e.type === "brute" ? 3 : e.type === "samurai" ? 2 : 0;
+  if (maxHp > 0 && !e.dead) {
+    const pipW = 8, gap = maxHp === 3 ? 10 : 12;
+    const startX = -(maxHp * gap) / 2;
+    const pipColor = e.type === "brute" ? "#cc4422" : "#cc9933";
+    const pipHighlight = e.type === "brute" ? "#ff6644" : "#ffcc66";
+    for (let i = 0; i < maxHp; i++) {
+      ctx.fillStyle = i < e.hp ? pipColor : "#333344";
+      ctx.fillRect(startX + i * gap, -12, pipW, 4);
       if (i < e.hp) {
-        ctx.fillStyle = "#ffcc66";
-        ctx.fillRect(-6 + i * 12, -12, 8, 1);
+        ctx.fillStyle = pipHighlight;
+        ctx.fillRect(startX + i * gap, -12, pipW, 1);
       }
     }
   }
@@ -1247,6 +1588,24 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
     ctx.beginPath();
     ctx.arc(0, 30, 30, 0, Math.PI * 2);
     ctx.stroke();
+  }
+
+  // Windup telegraph — big "!" with red glow (oni pauses before attack)
+  if (e.state === "windup" && !e.dead) {
+    const pulse = 0.7 + Math.sin(elapsed * 25) * 0.3;
+    // Red glow circle behind "!"
+    ctx.globalAlpha = pulse * 0.3;
+    ctx.fillStyle = "#ff2222";
+    ctx.beginPath();
+    ctx.arc(0, -14, 12, 0, Math.PI * 2);
+    ctx.fill();
+    // Big bold "!"
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = "#ff3333";
+    ctx.font = `bold 20px ${font}`;
+    ctx.textAlign = "center";
+    ctx.fillText("!", 0, -6);
+    ctx.globalAlpha = 1;
   }
 
   // Attack telegraph — subtle red glow, no ugly box
@@ -1291,11 +1650,49 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
   ctx.restore();
 }
 
+// ═══ THEME PALETTES ═══
+const THEME_PALETTES = {
+  forest: {
+    sky: ["#05050e", "#0a0a1e", "#0e0a20", "#0d0a18"],
+    ground: "#08080f", groundEdge: "rgba(40,80,60,0.12)",
+    platAccent: "#3a8a5a", platBase: "#1a2a20", platDark: "#0e1a14",
+    wallBase: "#141e18", wallDark: "#0a120e",
+    star: "#ffffff", fogColor: "rgba(8,12,18,",
+    farBldg: "#0c0c1a", midBldg: "#10101e", windowColor: "rgba(255,200,100,0.2)",
+  },
+  temple: {
+    sky: ["#0a0508", "#1a0a14", "#200e18", "#180a10"],
+    ground: "#0a0608", groundEdge: "rgba(120,40,60,0.15)",
+    platAccent: "#aa4455", platBase: "#2a1a1e", platDark: "#1a0e12",
+    wallBase: "#1e1418", wallDark: "#120a0e",
+    star: "#ffddcc", fogColor: "rgba(18,8,12,",
+    farBldg: "#120810", midBldg: "#1a0e16", windowColor: "rgba(255,160,80,0.15)",
+  },
+  neon: {
+    sky: ["#020208", "#040418", "#080828", "#0a0820"],
+    ground: "#040410", groundEdge: "rgba(60,40,160,0.2)",
+    platAccent: "#6644cc", platBase: "#161630", platDark: "#0c0c1e",
+    wallBase: "#14142a", wallDark: "#0a0a1a",
+    star: "#aaccff", fogColor: "rgba(6,4,18,",
+    farBldg: "#080818", midBldg: "#0c0c24", windowColor: "rgba(100,150,255,0.25)",
+  },
+};
+
+function getTheme(g) {
+  // Check room-level theme first, then act theme
+  const room = (g._rooms || [])[g.currentRoom];
+  if (room && room.theme) return THEME_PALETTES[room.theme] || THEME_PALETTES.forest;
+  // Derive from act
+  if (g.currentRoom >= 15) return THEME_PALETTES.temple;
+  return THEME_PALETTES.forest;
+}
+
 // ═══ BACKGROUND ═══
 function renderBackground(ctx, W, H, cx, g) {
   const groundY = g.groundY;
   const bgImg = getImage("bg_forest");
   const t = g.time.elapsed;
+  const pal = getTheme(g);
 
   if (bgImg) {
     // ── Image-based parallax background ──
@@ -1386,17 +1783,17 @@ function renderBackground(ctx, W, H, cx, g) {
     ctx.fillRect(0, groundY - 40, W, 54);
 
   } else {
-    // ── Fallback: procedural background ──
+    // ── Fallback: procedural background (theme-aware) ──
     const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, "#05050e");
-    sky.addColorStop(0.4, "#0a0a1e");
-    sky.addColorStop(0.8, "#0e0a20");
-    sky.addColorStop(1, "#0d0a18");
+    sky.addColorStop(0, pal.sky[0]);
+    sky.addColorStop(0.4, pal.sky[1]);
+    sky.addColorStop(0.8, pal.sky[2]);
+    sky.addColorStop(1, pal.sky[3]);
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
     // Stars
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = pal.star;
     for (let i = 0; i < 60; i++) {
       const sx = ((i * 137.5 + 50) % (W + 200)) - (cx * 0.02) % (W + 200);
       const sy = (i * 73.7 + 20) % (H * 0.4);
@@ -1413,7 +1810,7 @@ function renderBackground(ctx, W, H, cx, g) {
       const bw = 35 + ((i * 31) % 65);
       const bh = 50 + ((i * 47) % 130);
       const x = ((i * 97 + bx1) % (W + 300) + W + 300) % (W + 300) - 50;
-      ctx.fillStyle = "#0c0c1a";
+      ctx.fillStyle = pal.farBldg;
       ctx.fillRect(x, groundY - bh, bw, bh);
     }
 
@@ -1423,9 +1820,9 @@ function renderBackground(ctx, W, H, cx, g) {
       const bw = 28 + ((i * 43) % 55);
       const bh = 35 + ((i * 67) % 110);
       const x = ((i * 130 + 20 + bx2) % (W + 400) + W + 400) % (W + 400) - 100;
-      ctx.fillStyle = "#10101e";
+      ctx.fillStyle = pal.midBldg;
       ctx.fillRect(x, groundY - bh, bw, bh);
-      ctx.fillStyle = "rgba(255,200,100,0.2)";
+      ctx.fillStyle = pal.windowColor;
       for (let wy = groundY - bh + 22; wy < groundY - 8; wy += 14) {
         for (let wx = x + 5; wx < x + bw - 5; wx += 9) {
           if (hash(i * 100 + Math.floor(wx), Math.floor(wy)) > 0.4) ctx.fillRect(wx, wy, 4, 5);
@@ -1434,11 +1831,10 @@ function renderBackground(ctx, W, H, cx, g) {
     }
   }
 
-  // Ground (shared by both)
-  ctx.fillStyle = "#08080f";
+  // Ground (shared by both, theme-aware)
+  ctx.fillStyle = pal.ground;
   ctx.fillRect(0, groundY + 14, W, H - groundY);
-  // Subtle ground-edge glow
-  ctx.fillStyle = "rgba(40,80,60,0.12)";
+  ctx.fillStyle = pal.groundEdge;
   ctx.fillRect(0, groundY + 14, W, 2);
 }
 

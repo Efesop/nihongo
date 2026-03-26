@@ -7,12 +7,19 @@ export const SLASH_RANGE = 75;
 export const DASH_SPEED = 600;
 export const DASH_DURATION = 110;
 export const DASH_COOLDOWN = 400;
+export const GROUND_POUND_SPEED = 900;
+export const PARRY_WINDOW = 100; // ms from start of slash that counts as parry
 
 // ═══ RENDERING ═══
 export const SCALE = 3;
 export const TILE = 20;
 export const GROUND_Y = 0.78;
-export const TOTAL_ROOMS = 10;
+// ═══ ACT / CHAPTER STRUCTURE ═══
+export const ACTS = [
+  { name: "第一幕", nameEn: "Forest Battle", theme: "forest", startRoom: 0, endRoom: 14 },
+  { name: "第二幕", nameEn: "Temple Gardens", theme: "temple", startRoom: 15, endRoom: 19 },
+];
+export const TOTAL_ROOMS = 20; // 5 tutorial + 10 forest + 5 temple
 
 // ═══ ROOM STAR RATINGS (seconds) ═══
 export const STAR_3 = 6;   // clear room under 6s = ★★★
@@ -80,6 +87,9 @@ export const ENEMY_CONFIG = {
   oni:     { hp: 1, speed: 0.7, alertRange: 200, attackRange: 65, cooldown: 800, score: 100 },
   ninja:   { hp: 1, speed: 0,   alertRange: 350, fireRate: 900,  retreatSpeed: 150, score: 150 },
   samurai: { hp: 2, speed: 0.5, alertRange: 200, attackRange: 60, cooldown: 700, score: 300 },
+  archer:  { hp: 1, speed: 0,   alertRange: 400, fireRate: 1200, retreatSpeed: 120, score: 200 },
+  brute:   { hp: 3, speed: 0.4, alertRange: 250, attackRange: 80, cooldown: 1200, chargeSpeed: 2.0, score: 500 },
+  tengu:   { hp: 1, speed: 0,   alertRange: 300, swoopInterval: 2000, score: 250 },
 };
 
 // ═══ CAMERA ═══

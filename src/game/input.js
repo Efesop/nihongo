@@ -11,6 +11,7 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "ArrowLeft" || e.code === "KeyA") { inp.left = true; e.preventDefault(); }
     if (e.code === "ArrowRight" || e.code === "KeyD") { inp.right = true; e.preventDefault(); }
     if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") { inp.up = true; inp.jumpPressed = true; e.preventDefault(); }
+    if (e.code === "ArrowDown" || e.code === "KeyS") { inp.down = true; inp.downPressed = true; e.preventDefault(); }
     if (e.code === "KeyJ" || e.code === "KeyZ") { inp.slash = true; inp.slashPressed = true; e.preventDefault(); }
     if (e.code === "KeyK" || e.code === "KeyX" || e.code === "ShiftLeft" || e.code === "ShiftRight") { inp.slowmo = true; e.preventDefault(); }
     if (e.code === "KeyL" || e.code === "KeyC") { inp.dash = true; inp.dashPressed = true; e.preventDefault(); }
@@ -24,6 +25,7 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "ArrowLeft" || e.code === "KeyA") inp.left = false;
     if (e.code === "ArrowRight" || e.code === "KeyD") inp.right = false;
     if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "Space") inp.up = false;
+    if (e.code === "ArrowDown" || e.code === "KeyS") inp.down = false;
     if (e.code === "KeyJ" || e.code === "KeyZ") inp.slash = false;
     if (e.code === "KeyK" || e.code === "KeyX" || e.code === "ShiftLeft" || e.code === "ShiftRight") inp.slowmo = false;
     if (e.code === "KeyL" || e.code === "KeyC") inp.dash = false;
@@ -48,8 +50,9 @@ export function setupTouch(canvas, gameRef) {
     const w = rect.width;
     const h = rect.height;
     if (x > w * 0.75) {
-      if (y > h * 0.6) return "slash";
-      if (y > h * 0.3) return "dash";
+      if (y > h * 0.7) return "slash";
+      if (y > h * 0.45) return "dash";
+      if (y > h * 0.2) return "down"; // ground pound
       return "slowmo";
     }
     if (x < w * 0.2) return "left";
@@ -67,6 +70,7 @@ export function setupTouch(canvas, gameRef) {
       if (zone === "left") inp.left = true;
       if (zone === "right") inp.right = true;
       if (zone === "jump") { inp.up = true; inp.jumpPressed = true; }
+      if (zone === "down") { inp.down = true; inp.downPressed = true; }
       if (zone === "slash") { inp.slash = true; inp.slashPressed = true; }
       if (zone === "slowmo") inp.slowmo = true;
       if (zone === "dash") { inp.dash = true; inp.dashPressed = true; }
@@ -83,6 +87,7 @@ export function setupTouch(canvas, gameRef) {
       if (zone === "left") inp.left = false;
       if (zone === "right") inp.right = false;
       if (zone === "jump") inp.up = false;
+      if (zone === "down") inp.down = false;
       if (zone === "slash") inp.slash = false;
       if (zone === "slowmo") inp.slowmo = false;
       if (zone === "dash") inp.dash = false;

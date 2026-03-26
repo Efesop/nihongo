@@ -3,16 +3,45 @@ import { TILE, SCALE, GROUND_Y, TOTAL_ROOMS } from "./constants.js";
 import { getSprite, loadMascotImage } from "./sprites.js";
 import { ROOMS } from "./levels.js";
 import { makePlayer, makeEnemy } from "./entities.js";
-import { update } from "./engine.js";
+import { update, loadRoom, loadSave, deleteSave } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
 import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, stopMusic, isAudioReady } from "./audio.js";
+
+// ═══ STORY BEATS ═══
+const STORY = {
+  intro: [
+    { speaker: "???", text: "The village burns. The oni have returned." },
+    { speaker: "先生", text: "You are the last blade standing. Take this katana." },
+    { speaker: "先生", text: "Cut through the forest. Find the temple. End this." },
+  ],
+  act1End: [
+    { speaker: "主人公", text: "The forest is clear... but the corruption runs deeper." },
+    { speaker: "先生", text: "The temple gardens ahead were once sacred ground." },
+    { speaker: "先生", text: "Now the tengu have claimed them. Be ready." },
+  ],
+  act2End: [
+    { speaker: "主人公", text: "The Great Tengu falls... but I feel a darker presence." },
+    { speaker: "先生", text: "You have proven yourself worthy, warrior." },
+    { speaker: "先生", text: "The path ahead leads to the neon city. Rest now..." },
+  ],
+};
+
+// Map: which story plays before which room
+const STORY_TRIGGERS = {
+  0: "intro",       // before first room
+  15: "act1End",    // before Act 2
+};
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const rafRef = useRef(null);
+  const startRoomRef = useRef(0); // which room to start from (for continue)
   const [screen, setScreen] = useState("menu");
+  const [hasSave, setHasSave] = useState(() => !!loadSave());
+  const [storyLines, setStoryLines] = useState([]);
+  const [storyIndex, setStoryIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -31,24 +60,17 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     const H = container ? container.clientHeight : canvas.clientHeight;
     const groundY = H * GROUND_Y;
 
-    // Load room 0
-    const room = ROOMS[0];
-    const platforms = room.platforms.map(p => ({ x: p.x, y: groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
-    const enemies = room.enemies.map(e => makeEnemy(e.type, e.x, groundY + (e.y || 0)));
-    const decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: groundY }));
-    const shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: groundY }));
-    const levelW = Math.max(...room.platforms.map(p => p.x + p.w));
-
-    return {
-      W, H, groundY, levelW,
-      player: makePlayer(groundY, room.playerStart || 100),
+    // Create game state shell — loadRoom will populate room-specific fields
+    const g = {
+      W, H, groundY, levelW: 0,
+      player: null,
       camera: { x: 0, y: 0, shakeX: 0, shakeY: 0, shakeTimer: 0, zoom: 1, zoomTarget: 1, lookAhead: 0 },
-      platforms, enemies, decorations, shadows,
+      platforms: [], enemies: [], decorations: [], shadows: [],
       particles: [], slashEffects: [], projectiles: [],
       embers: [], floatingTexts: [],
       slowMo: { active: false, meter: 100, max: 100 },
-      input: { left: false, right: false, up: false, slash: false, slowmo: false, dash: false,
-               slashPressed: false, jumpPressed: false, dashPressed: false },
+      input: { left: false, right: false, up: false, down: false, slash: false, slowmo: false, dash: false,
+               slashPressed: false, jumpPressed: false, dashPressed: false, downPressed: false },
       time: { last: performance.now(), dt: 0, scale: 1, elapsed: 0 },
       score: 0, combo: 0, comboTimer: 0, maxCombo: 0,
       hitStop: 0, flashTimer: 0, cleared: false,
@@ -59,10 +81,27 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       roomClearTimer: 0,
       deathFlash: 0,
       // Transitions
-      letterbox: 0, // 0-1 progress of letterbox bars
-      fadeOverlay: 0, // 0-1 opacity of black fade
-      roomTitle: null, // { text, timer } for "ROOM X" display
+      letterbox: 0,
+      fadeOverlay: 0,
+      roomTitle: null,
+      // Tutorials
+      tutorials: [], activeTutorial: null,
+      // Story system
+      _storyTriggers: STORY_TRIGGERS,
+      _pendingRoom: null,
     };
+
+    // Load saved progress if continuing
+    const startRoom = startRoomRef.current;
+    const save = startRoom > 0 ? loadSave() : null;
+    if (save) {
+      g.score = save.score || 0;
+      g.deaths = save.deaths || 0;
+      g.roomStars = save.roomStars || [];
+      g.totalTime = save.totalTime || 0;
+    }
+    loadRoom(g, startRoom);
+    return g;
   }, []);
 
   // ═══ GAME LOOP ═══
@@ -118,6 +157,17 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     };
   }, [screen, initGame, isDesktop, SIDEBAR_W, highScore]);
 
+  // Load story from engine trigger (mid-game story between acts)
+  useEffect(() => {
+    if (screen !== "story" || storyLines.length > 0) return;
+    const g = gameRef.current;
+    if (g && g._pendingStoryKey && STORY[g._pendingStoryKey]) {
+      setStoryLines(STORY[g._pendingStoryKey]);
+      setStoryIndex(0);
+      g._pendingStoryKey = null;
+    }
+  }, [screen, storyLines.length]);
+
   // Resume from pause
   useEffect(() => {
     if (screen !== "paused") return;
@@ -133,13 +183,12 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
 
   const [muted, setMutedState] = useState(() => isMuted());
 
-  const startGame = async () => {
+  const startGame = async (fromRoom = 0) => {
+    startRoomRef.current = fromRoom;
     setScreen("loading");
-    // Start loading audio + sprites in parallel
     const audioPromise = initAudio();
     await loadMascotImage();
     await audioPromise;
-    // Wait a tiny bit for buffers to be ready, then poll
     let waited = 0;
     while (!isAudioReady() && waited < 3000) {
       await new Promise(r => setTimeout(r, 100));
@@ -149,7 +198,27 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     startMusic();
     setScore(0);
     setMaxCombo(0);
-    setScreen("playing");
+    // Check if there's a story trigger for this room
+    const storyKey = STORY_TRIGGERS[fromRoom];
+    if (storyKey && STORY[storyKey]) {
+      setStoryLines(STORY[storyKey]);
+      setStoryIndex(0);
+      setScreen("story");
+    } else {
+      setScreen("playing");
+    }
+  };
+
+  const handleNewGame = () => {
+    deleteSave();
+    setHasSave(false);
+    startGame(0);
+  };
+
+  const handleContinue = () => {
+    const save = loadSave();
+    if (save) startGame(save.currentRoom || 0);
+    else startGame(0);
   };
 
   const handleToggleMute = () => {
@@ -199,6 +268,48 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     );
   }
 
+  // ═══ STORY ═══
+  if (screen === "story" && storyLines.length > 0) {
+    const line = storyLines[storyIndex] || storyLines[storyLines.length - 1];
+    const isLast = storyIndex >= storyLines.length - 1;
+    const advanceStory = () => {
+      if (isLast) {
+        setStoryLines([]);
+        setStoryIndex(0);
+        // If we have a pending room from mid-game story trigger, load it
+        const g = gameRef.current;
+        if (g && g._pendingRoom !== null && g._pendingRoom !== undefined) {
+          loadRoom(g, g._pendingRoom);
+          g._pendingRoom = null;
+          g.time.last = performance.now();
+        }
+        setScreen("playing");
+      } else {
+        setStoryIndex(i => i + 1);
+      }
+    };
+    return (
+      <div style={{ ...overlay, background: "#0a0a14", cursor: "pointer" }} onClick={advanceStory}>
+        <style>{cssFx}</style>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite" }} />
+        <div style={{ maxWidth: 500, padding: "0 24px", textAlign: "center" }}>
+          <div style={{ fontSize: 13, fontFamily: font, color: c.a, letterSpacing: ".15em", marginBottom: 16 }}>
+            {line.speaker}
+          </div>
+          <div style={{ fontSize: 18, fontFamily: uiFont, color: c.tx, lineHeight: 1.7, minHeight: 60 }}>
+            {line.text}
+          </div>
+          <div style={{ fontSize: 11, fontFamily: font, color: c.m, marginTop: 32, letterSpacing: ".08em", animation: "glitch 4s ease-in-out infinite" }}>
+            {isLast ? "CLICK TO BEGIN" : "CLICK TO CONTINUE"}
+          </div>
+          <div style={{ fontSize: 10, fontFamily: font, color: c.m + "80", marginTop: 8 }}>
+            {storyIndex + 1} / {storyLines.length}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ═══ MENU ═══
   if (screen === "menu") {
     return (
@@ -213,14 +324,21 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
           <div style={{ fontSize: 48, color: c.tx, marginTop: 4, filter: `drop-shadow(0 0 10px ${c.a}40)` }}>斬</div>
           <div style={{ fontSize: 11, color: c.m, fontFamily: font, letterSpacing: ".1em", marginTop: 4 }}>スラッシュ・アクション</div>
         </div>
-        <button onClick={startGame} style={{ ...btn, background: c.a, color: "#fff", marginTop: 16, fontSize: 18, padding: "14px 48px" }}>
-          START
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16, alignItems: "center" }}>
+          {hasSave && (
+            <button onClick={handleContinue} style={{ ...btn, background: c.a, color: "#fff", fontSize: 18, padding: "14px 48px", minWidth: 200 }}>
+              CONTINUE
+            </button>
+          )}
+          <button onClick={handleNewGame} style={{ ...btn, background: hasSave ? c.s2 : c.a, color: hasSave ? c.tx : "#fff", fontSize: hasSave ? 14 : 18, padding: hasSave ? "10px 32px" : "14px 48px", minWidth: 200, border: hasSave ? `1px solid ${c.b}` : "none" }}>
+            NEW GAME
+          </button>
+        </div>
         <div style={{ fontSize: 11, color: c.m, fontFamily: font, textAlign: "center", lineHeight: 1.8, marginTop: 8 }}>
           {isDesktop ? (
-            <>WASD / Arrows — Move &amp; Jump<br/>J / Z — Slash &nbsp;&nbsp; L / C — Dash<br/>K / X / Shift — Focus &nbsp;&nbsp; ESC — Pause</>
+            <>WASD / Arrows — Move &amp; Jump<br/>J / Z — Slash &nbsp;&nbsp; L / C — Dash<br/>K / X / Shift — Focus &nbsp;&nbsp; S / ↓ — Ground Pound<br/>Slash during dash = Phase Through &nbsp;&nbsp; ESC — Pause</>
           ) : (
-            <>Touch left/right to move<br/>Touch to jump, slash, dash &amp; focus</>
+            <>Touch left/right to move<br/>Tap zones: Jump, Slash, Dash, Focus, Ground Pound</>
           )}
         </div>
         {highScore > 0 && (
@@ -228,8 +346,66 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
             HIGH SCORE: {String(highScore).padStart(5, "0")}
           </div>
         )}
-        <button onClick={handleToggleMute} style={{ ...btn, background: "transparent", color: c.m, fontSize: 12, padding: "8px 16px", marginTop: 12, border: `1px solid ${c.b}` }}>
-          {muted ? "UNMUTE" : "MUTE"} SFX
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          {hasSave && (
+            <button onClick={() => setScreen("stageSelect")} style={{ ...btn, background: "transparent", color: c.m, fontSize: 12, padding: "8px 16px", border: `1px solid ${c.b}` }}>
+              STAGE SELECT
+            </button>
+          )}
+          <button onClick={handleToggleMute} style={{ ...btn, background: "transparent", color: c.m, fontSize: 12, padding: "8px 16px", border: `1px solid ${c.b}` }}>
+            {muted ? "UNMUTE" : "MUTE"} SFX
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══ STAGE SELECT ═══
+  if (screen === "stageSelect") {
+    const save = loadSave();
+    const maxRoom = save ? save.currentRoom : 0;
+    const stars = save ? (save.roomStars || []) : [];
+    return (
+      <div style={{ ...overlay, background: c.bg, gap: 12, padding: 20 }}>
+        <style>{cssFx}</style>
+        <div style={{ fontSize: 22, fontWeight: 900, fontFamily: font, color: c.a, letterSpacing: ".08em" }}>
+          STAGE SELECT
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, maxWidth: 400, width: "100%", marginTop: 12, maxHeight: isDesktop ? 400 : 280, overflowY: "auto" }}>
+          {ROOMS.slice(0, maxRoom + 1).map((room, i) => {
+            const starCount = stars[i] || 0;
+            const title = room.title ? room.title.jp : `${i + 1}`;
+            return (
+              <button
+                key={i}
+                onClick={() => startGame(i)}
+                style={{
+                  ...btn,
+                  background: i === maxRoom ? c.a + "30" : c.s2,
+                  color: c.tx,
+                  padding: "8px 4px",
+                  fontSize: 11,
+                  border: `1px solid ${i < maxRoom ? c.b : c.a}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                  minHeight: 50,
+                }}
+              >
+                <div style={{ fontSize: 14 }}>{title}</div>
+                <div style={{ fontSize: 9, color: c.m }}>{i + 1}</div>
+                {starCount > 0 && (
+                  <div style={{ fontSize: 10, color: "#ffdd44" }}>
+                    {"★".repeat(starCount)}{"☆".repeat(3 - starCount)}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <button onClick={() => setScreen("menu")} style={{ ...btn, background: c.s2, color: c.tx, border: `1px solid ${c.b}`, marginTop: 12 }}>
+          BACK
         </button>
       </div>
     );
@@ -269,7 +445,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
           )}
         </div>
         <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-          <button onClick={startGame} style={{ ...btn, background: c.a, color: "#fff" }}>PLAY AGAIN</button>
+          <button onClick={handleNewGame} style={{ ...btn, background: c.a, color: "#fff" }}>PLAY AGAIN</button>
           <button onClick={() => setScreen("menu")} style={{ ...btn, background: c.s2, color: c.tx, border: `1px solid ${c.b}` }}>BACK</button>
         </div>
       </div>
