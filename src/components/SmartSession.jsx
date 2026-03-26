@@ -329,8 +329,18 @@ export default function SmartSession({
 
         {/* Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-          <button onClick={() => { setCards([]); setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null); setLoading(true); }}
-            style={{ ...btn, padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Continue (10 more)</button>
+          <button onClick={() => {
+            // Build new session immediately
+            setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null);
+            setConvoAnswers({}); setConvoSubmitted(false); setStoryData(null); setBranchData(null);
+            try {
+              const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
+              setCards(session.length > 0 ? session : []);
+              if (session.length === 0) setDone(true);
+            } catch (e) { console.error("Session build failed:", e); setDone(true); }
+            setLoading(false);
+          }}
+            style={{ ...btn, padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Continue →</button>
           <button onClick={() => { stopAudio(); setTab("home"); }}
             style={{ ...btn, padding: 14, borderRadius: 10, border: "1px solid " + c.b, background: "transparent", color: c.m, fontSize: 14 }}>Done for now</button>
         </div>
