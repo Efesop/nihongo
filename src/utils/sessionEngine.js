@@ -77,10 +77,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // ═══ GATHER ITEMS BY PRIORITY ═══
 
-  // Error patterns — items the user frequently gets wrong (3+ errors)
+  // Error patterns — items the user frequently gets wrong (5+ errors, not 3)
+  // 3 was too low — normal learning involves a few errors before mastery
   const errors = data.errors || {};
-  const frequentErrorKana = ALL_KANA.filter(ch => (errors[ch] || 0) >= 3 && kanaData[ch]);
-  const frequentErrorPhrases = PHRASES.filter(p => (errors[p[0]] || 0) >= 3 && phrData[p[0]]);
+  const frequentErrorKana = ALL_KANA.filter(ch => (errors[ch] || 0) >= 5 && kanaData[ch]);
+  const frequentErrorPhrases = PHRASES.filter(p => (errors[p[0]] || 0) >= 5 && phrData[p[0]]);
 
   // 1. Due for review — include ALL items past their due date (even box 0)
   // Box 0 items were getting stuck invisible — they exist in data but the old
@@ -131,12 +132,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // ═══ PICK EXERCISE TYPE BASED ON MASTERY ═══
 
   // Multi-dimensional skill tracking: check weakest skill per item
-  // data.skills = { [itemId]: { visual: 0-5, listen: 0-5, production: 0-5 } }
+  // Only route to weak skill if item has been tested 3+ times total
+  // (otherwise the skill data is too sparse to be meaningful)
   const skills = data.skills || {};
   function getWeakestSkill(id) {
     const s = skills[id];
-    if (!s) return "visual"; // default for new items
+    if (!s) return null; // not enough data — use default progression
     const v = s.visual || 0, l = s.listen || 0, p = s.production || 0;
+    const total = v + l + p;
+    if (total < 3) return null; // too few data points — use default
     if (l <= v && l <= p) return "listen";
     if (p <= v && p <= l) return "production";
     return "visual";
@@ -270,9 +274,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   shuffle(dueKana).slice(0, 4).forEach(ch => addKana(ch));
   shuffle(duePhrases).slice(0, 3).forEach(p => addPhrase(p));
 
-  // Add struggling items (only ones not already added)
-  shuffle(strugglingKana).slice(0, 3).forEach(ch => addKana(ch));
-  shuffle(strugglingPhrases).slice(0, 2).forEach(p => addPhrase(p));
+  // Struggling items already included in due items (dedup handles overlap)
+  // No separate section needed — they're just due items with low box
 
   // Recently learned — max 1 each to avoid repetition across sessions
   shuffle(recentKana).slice(0, 1).forEach(ch => addKana(ch));
