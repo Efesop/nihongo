@@ -14,6 +14,12 @@ export function render(g, ctx, isDesktop, font) {
   ctx.fillStyle = "#0a0a14";
   ctx.fillRect(0, 0, W, H);
 
+  // Slow-mo desaturation — applied before world render
+  const isSlowMo = g.slowMo && g.slowMo.active;
+  if (isSlowMo) {
+    ctx.filter = "saturate(0.4)";
+  }
+
   // Apply camera zoom (centered on viewport)
   const zoom = cam.zoom || 1;
   if (zoom !== 1) {
@@ -137,16 +143,40 @@ export function render(g, ctx, isDesktop, font) {
         }
       }
 
-      // Edge highlights — mossy green accent on edges
-      ctx.fillStyle = accent + "55";
+      // Edge highlights — warm amber accent (distinct from green platforms)
+      ctx.fillStyle = "#cc883388";
       ctx.fillRect(wx, wy, 2, h);           // left edge
       ctx.fillRect(wx + w - 2, wy, 2, h);   // right edge
-      ctx.fillStyle = accent + "88";
-      ctx.fillRect(wx, wy, w, 2);           // top cap
+      ctx.fillStyle = "#cc8833";
+      ctx.fillRect(wx, wy, w, 2);           // top cap — amber (platforms are green)
       // Inner edge shadow
       ctx.fillStyle = "rgba(0,0,0,0.3)";
       ctx.fillRect(wx + 2, wy + 2, 1, h - 2);
       ctx.fillRect(wx + w - 3, wy + 2, 1, h - 2);
+      // Diagonal scratch marks — indicate wall is climbable
+      ctx.strokeStyle = "#cc883330";
+      ctx.lineWidth = 1;
+      const scratchSpacing = 28;
+      for (let sy = wy + 12; sy < wy + h - 12; sy += scratchSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(wx + 3, sy);
+        ctx.lineTo(wx + w * 0.4, sy + 12);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(wx + w - 3, sy + 6);
+        ctx.lineTo(wx + w * 0.6, sy + 18);
+        ctx.stroke();
+      }
+      // Small upward arrow at bottom of wall
+      const arrowY = wy + h - 16;
+      const arrowX = wx + w / 2;
+      ctx.fillStyle = "#cc883344";
+      ctx.beginPath();
+      ctx.moveTo(arrowX, arrowY - 6);
+      ctx.lineTo(arrowX - 5, arrowY + 2);
+      ctx.lineTo(arrowX + 5, arrowY + 2);
+      ctx.closePath();
+      ctx.fill();
     } else {
       // Standard thin platform
       const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
@@ -259,6 +289,110 @@ export function render(g, ctx, isDesktop, font) {
         ctx.lineTo(h.x + h.w * 0.55, h.y + 12);
         ctx.stroke();
         ctx.restore();
+      }
+    }
+  }
+
+  // ── Breakable objects ──
+  if (g.breakables) {
+    for (const br of g.breakables) {
+      if (br.broken) continue;
+      const bw = br.w || 40;
+      const bh = br.h || 40;
+      const bx = br.x;
+      const by = br.y - bh;
+      if (bx + bw < cx - 50 || bx > cx + W + 50) continue;
+
+      if (br.type === "crate") {
+        // Brown wooden crate with cross-hatch
+        ctx.fillStyle = "#6b4830";
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.fillStyle = "#8b6840";
+        ctx.fillRect(bx + 2, by + 2, bw - 4, bh - 4);
+        // Cross-hatch planks
+        ctx.strokeStyle = "#5a3820";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bx + 3, by + 3);
+        ctx.lineTo(bx + bw - 3, by + bh - 3);
+        ctx.moveTo(bx + bw - 3, by + 3);
+        ctx.lineTo(bx + 3, by + bh - 3);
+        ctx.stroke();
+        // Horizontal plank line
+        ctx.beginPath();
+        ctx.moveTo(bx, by + bh / 2);
+        ctx.lineTo(bx + bw, by + bh / 2);
+        ctx.stroke();
+        // Highlight edge
+        ctx.fillStyle = "#c4a06044";
+        ctx.fillRect(bx, by, bw, 2);
+      } else if (br.type === "lantern") {
+        // Paper lantern with warm glow
+        const lcx = bx + bw / 2;
+        const lcy = by + bh / 2;
+        // Glow aura
+        const glowR = bw * 1.5;
+        const glow = ctx.createRadialGradient(lcx, lcy, 0, lcx, lcy, glowR);
+        glow.addColorStop(0, "rgba(255,180,60,0.15)");
+        glow.addColorStop(1, "rgba(255,180,60,0)");
+        ctx.fillStyle = glow;
+        ctx.fillRect(lcx - glowR, lcy - glowR, glowR * 2, glowR * 2);
+        // Lantern body (rounded rect via arcs)
+        ctx.fillStyle = "#cc4422";
+        ctx.beginPath();
+        ctx.ellipse(lcx, lcy, bw / 2 - 2, bh / 2 - 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ee6644";
+        ctx.beginPath();
+        ctx.ellipse(lcx, lcy, bw / 2 - 5, bh / 2 - 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Top/bottom cap
+        ctx.fillStyle = "#444444";
+        ctx.fillRect(lcx - 6, by, 12, 4);
+        ctx.fillRect(lcx - 6, by + bh - 4, 12, 4);
+        // Kanji character
+        ctx.fillStyle = "#ffcc88";
+        ctx.font = `${Math.floor(bh * 0.35)}px serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("灯", lcx, lcy + bh * 0.12);
+      } else if (br.type === "pot") {
+        // Small ceramic pot
+        const pcx = bx + bw / 2;
+        ctx.fillStyle = "#887766";
+        ctx.beginPath();
+        ctx.ellipse(pcx, by + bh * 0.6, bw / 2, bh * 0.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#aa9988";
+        ctx.beginPath();
+        ctx.ellipse(pcx, by + bh * 0.6, bw / 2 - 3, bh * 0.4 - 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Rim
+        ctx.fillStyle = "#776655";
+        ctx.beginPath();
+        ctx.ellipse(pcx, by + bh * 0.25, bw * 0.35, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight
+        ctx.fillStyle = "#ccbb9944";
+        ctx.beginPath();
+        ctx.ellipse(pcx - 4, by + bh * 0.45, 3, bh * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (br.type === "bamboo") {
+        // Bamboo screen — thin vertical slats
+        ctx.fillStyle = "#3a5a2a";
+        ctx.fillRect(bx, by, bw, bh);
+        const slatW = 6;
+        for (let sx = bx; sx < bx + bw; sx += slatW + 2) {
+          ctx.fillStyle = "#4a6a3a";
+          ctx.fillRect(sx, by, slatW, bh);
+          // Node marks
+          ctx.fillStyle = "#2a4a1a";
+          ctx.fillRect(sx, by + bh * 0.3, slatW, 2);
+          ctx.fillRect(sx, by + bh * 0.7, slatW, 2);
+        }
+        // Top/bottom frame
+        ctx.fillStyle = "#5a3820";
+        ctx.fillRect(bx, by, bw, 3);
+        ctx.fillRect(bx, by + bh - 3, bw, 3);
       }
     }
   }
@@ -625,10 +759,63 @@ export function render(g, ctx, isDesktop, font) {
   }
   ctx.globalAlpha = 1;
 
+  // ── Parkour exit zone — glowing vertical beam of light ──
+  if (g.objective && g.objective.type === "parkour" && g.objective.exitZone) {
+    const ez = g.objective.exitZone;
+    const pulse = 0.6 + Math.sin(g.time.elapsed * 4) * 0.2;
+    // Vertical beam
+    const beamGrad = ctx.createLinearGradient(ez.x, 0, ez.x, g.groundY);
+    beamGrad.addColorStop(0, `rgba(100,220,255,0)`);
+    beamGrad.addColorStop(0.3, `rgba(100,220,255,${0.15 * pulse})`);
+    beamGrad.addColorStop(0.7, `rgba(100,220,255,${0.25 * pulse})`);
+    beamGrad.addColorStop(1, `rgba(100,220,255,${0.1 * pulse})`);
+    ctx.fillStyle = beamGrad;
+    ctx.fillRect(ez.x, 0, ez.w, g.groundY + 20);
+    // Ground glow
+    ctx.fillStyle = `rgba(100,220,255,${0.3 * pulse})`;
+    ctx.fillRect(ez.x - 5, g.groundY - 2, ez.w + 10, 4);
+    // "EXIT" text
+    ctx.font = `bold 14px monospace`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = `rgba(100,220,255,${0.7 * pulse})`;
+    ctx.fillText("EXIT", ez.x + ez.w / 2, g.groundY - 10);
+  }
+
+  // ── In-game encounter speech bubble ──
+  if (g.encounterActive && g.encounterText) {
+    const et = g.encounterText;
+    const bubbleX = et.x;
+    const bubbleY = et.y - 30;
+    const maxW = 280;
+    // Speech bubble background
+    ctx.fillStyle = "rgba(10,10,20,0.9)";
+    const bw = maxW;
+    const bh = et.textJp ? 50 : 32;
+    ctx.fillRect(bubbleX - bw / 2, bubbleY - bh / 2, bw, bh);
+    ctx.strokeStyle = "#cc993366";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bubbleX - bw / 2, bubbleY - bh / 2, bw, bh);
+    // Japanese text (smaller, above)
+    if (et.textJp) {
+      ctx.font = "11px 'Noto Sans JP',sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#aaaacc";
+      ctx.fillText(et.textJp, bubbleX, bubbleY - 6);
+    }
+    // English text
+    ctx.font = "bold 14px monospace";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(et.text, bubbleX, bubbleY + (et.textJp ? 14 : 4));
+  }
+
   ctx.restore(); // end camera
 
   // End zoom transform (before HUD — HUD stays unzoomed)
   if (zoom !== 1) ctx.restore();
+
+  // Reset slow-mo desaturation filter before post-processing/HUD
+  if (isSlowMo) ctx.filter = "none";
 
   // Post-processing
   if (g.flashTimer > 0) {
@@ -636,12 +823,27 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillRect(0, 0, W, H);
   }
   if (g.slowMo.active) {
-    ctx.fillStyle = "rgba(80,60,180,0.12)";
+    // Strong purple overlay (was 0.12 — now 0.25, clearly visible)
+    ctx.fillStyle = "rgba(60,40,160,0.25)";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "rgba(255,50,50,0.04)";
-    ctx.fillRect(0, 0, 3, H);
-    ctx.fillStyle = "rgba(50,50,255,0.04)";
-    ctx.fillRect(W - 3, 0, 3, H);
+    // Wider chromatic aberration (8px edges)
+    ctx.fillStyle = "rgba(255,50,50,0.08)";
+    ctx.fillRect(0, 0, 8, H);
+    ctx.fillStyle = "rgba(50,50,255,0.08)";
+    ctx.fillRect(W - 8, 0, 8, H);
+    // Radial zoom lines from center (subtle speed effect)
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.strokeStyle = "#8060cc";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(W / 2 + Math.cos(angle) * W * 0.15, H / 2 + Math.sin(angle) * H * 0.15);
+      ctx.lineTo(W / 2 + Math.cos(angle) * W * 0.5, H / 2 + Math.sin(angle) * H * 0.5);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // Scanlines
@@ -669,10 +871,96 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // ── Death flash (red tint) ──
-  if (g.deathFlash > 0) {
-    ctx.fillStyle = `rgba(200,20,20,${(g.deathFlash / 300) * 0.3})`;
-    ctx.fillRect(0, 0, W, H);
+  // ── Monochrome freeze death effect ──
+  if (g.player && g.player.dead && g.deathPhase !== undefined) {
+    if (g.deathPhase === 0) {
+      // Phase 0: white flash (fading out)
+      const flashAlpha = Math.max(0, (g.deathPhaseTimer - 1700) / 300);
+      ctx.fillStyle = `rgba(255,255,255,${flashAlpha * 0.5})`;
+      ctx.fillRect(0, 0, W, H);
+    } else if (g.deathPhase === 1) {
+      // Phase 1: full grayscale — desaturate the scene
+      ctx.fillStyle = "rgba(0,0,20,0.15)";
+      ctx.fillRect(0, 0, W, H);
+      // Draw grayscale overlay by compositing
+      ctx.save();
+      ctx.globalCompositeOperation = "saturation";
+      ctx.fillStyle = "hsl(0,0%,50%)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    } else if (g.deathPhase === 2) {
+      // Phase 2: grayscale + fade to black
+      ctx.save();
+      ctx.globalCompositeOperation = "saturation";
+      ctx.fillStyle = "hsl(0,0%,50%)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+      const fadeAlpha = 1 - Math.max(0, g.deathPhaseTimer / 400);
+      ctx.fillStyle = `rgba(0,0,0,${fadeAlpha})`;
+      ctx.fillRect(0, 0, W, H);
+    } else if (g.deathPhase === 3) {
+      // Phase 3: ink brush wipe — calligraphy stroke sweeps across screen
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, W, H); // black background behind wipe
+      const wipeX = (g.brushWipe || 0);
+      // Draw brush stroke sweeping left to right
+      ctx.save();
+      ctx.fillStyle = "#000000";
+      ctx.beginPath();
+      const sweepW = W * wipeX;
+      // Wavy brush stroke edge using quadratic curves
+      ctx.moveTo(0, 0);
+      ctx.lineTo(sweepW, 0);
+      const edgeX = sweepW;
+      for (let y = 0; y <= H; y += H / 4) {
+        const wave = Math.sin(y * 0.02 + wipeX * 8) * 20;
+        ctx.lineTo(edgeX + wave, y);
+      }
+      ctx.lineTo(edgeX, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  // ── Room transition — ink brush wipe between rooms ──
+  if (g.roomTransition) {
+    const t = g.roomTransition;
+    if (t.phase === "wipeIn") {
+      // Brush stroke sweeps left to right, covering screen
+      ctx.fillStyle = "#000000";
+      const sweepW = W * t.progress;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(sweepW, 0);
+      for (let y = 0; y <= H; y += H / 5) {
+        const wave = Math.sin(y * 0.025 + t.progress * 10) * 25;
+        ctx.lineTo(sweepW + wave, y);
+      }
+      ctx.lineTo(sweepW, H);
+      ctx.lineTo(0, H);
+      ctx.closePath();
+      ctx.fill();
+    } else if (t.phase === "hold") {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, W, H);
+    } else if (t.phase === "wipeOut") {
+      // Brush clears right to left, revealing new room
+      ctx.fillStyle = "#000000";
+      const clearW = W * (1 - t.progress);
+      ctx.beginPath();
+      ctx.moveTo(W, 0);
+      ctx.lineTo(clearW, 0);
+      for (let y = 0; y <= H; y += H / 5) {
+        const wave = Math.sin(y * 0.025 + t.progress * 10) * 25;
+        ctx.lineTo(clearW + wave, y);
+      }
+      ctx.lineTo(clearW, H);
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   // ── Room title ("ROOM X") ──
@@ -701,7 +989,9 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillText(g.roomTitle.text, W / 2 + xOff, H * 0.35);
     ctx.font = `12px ${font}`;
     ctx.fillStyle = "#aaaacc";
-    const subtitle = `ROOM ${g.currentRoom + 1}  —  CLEAR ALL ENEMIES`;
+    const objType = g.objective ? g.objective.type : "killAll";
+    const objLabel = objType === "parkour" ? "REACH THE EXIT" : objType === "survive" ? "SURVIVE ALL WAVES" : "CLEAR ALL ENEMIES";
+    const subtitle = `ROOM ${g.currentRoom + 1}  —  ${objLabel}`;
     ctx.fillText(subtitle, W / 2 + xOff, H * 0.35 + 24);
     ctx.restore();
   }
@@ -1126,8 +1416,16 @@ function drawEnemyFromImage(ctx, e, elapsed) {
 function drawEnemy(ctx, e, elapsed, font) {
   // Try image-based rendering first
   if (drawEnemyFromImage(ctx, e, elapsed)) {
-    // Draw overlays (alert, HP pips, etc.) after image
     drawEnemyOverlays(ctx, e, elapsed, font);
+    // Hit flash — white overlay blink when wounded (non-lethal hit)
+    if (e._hitFlash > 0) {
+      const flashAlpha = Math.min(1, e._hitFlash / 150) * 0.6;
+      ctx.save();
+      ctx.globalAlpha = flashAlpha;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(e.x - DRAW_SIZE / 2, e.y, DRAW_SIZE, DRAW_SIZE);
+      ctx.restore();
+    }
     return;
   }
 
@@ -1903,12 +2201,6 @@ function renderDeco(ctx, d, groundY, elapsed) {
 
 // ═══ HUD ═══
 function renderHUD(ctx, g, W, isDesktop, font) {
-  // Death flash — red overlay
-  if (g.deathFlash > 0) {
-    ctx.fillStyle = `rgba(200,30,30,${g.deathFlash / 300 * 0.5})`;
-    ctx.fillRect(0, 0, W, g.H);
-  }
-
   // Room number + timer (top center)
   ctx.font = `bold 13px ${font}`;
   ctx.textAlign = "center";
@@ -1920,6 +2212,31 @@ function renderHUD(ctx, g, W, isDesktop, font) {
     ctx.fillStyle = "#666677";
     ctx.fillText(`${g.roomTimer.toFixed(1)}s`, W / 2, 36);
   }
+  // Objective-specific HUD
+  const objType = g.objective ? g.objective.type : "killAll";
+  if (objType === "parkour" && g.roomState === "playing") {
+    // Big countdown timer
+    const cd = Math.max(0, g.objective.countdown);
+    const urgent = cd < 5;
+    ctx.font = `bold ${urgent ? 32 : 24}px ${font}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = urgent ? "#ff4444" : "#44ddff";
+    if (urgent) {
+      ctx.shadowColor = "#ff4444";
+      ctx.shadowBlur = 15;
+    }
+    ctx.fillText(`${cd.toFixed(1)}s`, W / 2, 60);
+    ctx.shadowBlur = 0;
+  } else if (objType === "survive") {
+    const obj = g.objective;
+    const waveText = obj.currentWave >= obj.totalWaves
+      ? `FINAL WAVE` : `WAVE ${Math.min(obj.currentWave + 1, obj.totalWaves)}/${obj.totalWaves}`;
+    ctx.font = `bold 14px ${font}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ff6644";
+    ctx.fillText(waveText, W / 2, 54);
+  }
+
   // Deaths counter (small, top center-right)
   if (g.deaths > 0) {
     ctx.font = `10px ${font}`;
@@ -1935,14 +2252,64 @@ function renderHUD(ctx, g, W, isDesktop, font) {
   ctx.fillText(`SCORE: ${String(g.score).padStart(5, "0")}`, 16, 30);
 
   if (g.combo > 1) {
-    const comboScale = Math.min(1.4, 1 + (g.comboTimer / 2000) * 0.4);
+    // ── Prominent combo display — center-right with glow + pulse ──
+    const comboScale = Math.min(1.5, 1 + (g.comboTimer / 1500) * 0.5);
+    const comboX = W - 80;
+    const comboY = isDesktop ? 100 : 80;
+    // Color progression: white → yellow → orange → red
+    const comboColors = ["#ffffff", "#ffee44", "#ffaa30", "#ff6622", "#ff3311"];
+    const colorIdx = Math.min(comboColors.length - 1, Math.floor((g.combo - 1) / 2));
+    const comboColor = comboColors[colorIdx];
+    // Glow
     ctx.save();
-    ctx.translate(16, 56);
+    ctx.translate(comboX, comboY);
     ctx.scale(comboScale, comboScale);
-    ctx.font = `bold 20px ${font}`;
-    ctx.fillStyle = "#ffa040";
-    ctx.fillText(`x${g.combo} COMBO`, 0, 0);
+    ctx.shadowColor = comboColor;
+    ctx.shadowBlur = 15 + g.combo * 2;
+    ctx.font = `bold 48px ${font}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = comboColor;
+    ctx.fillText(`${g.combo}`, 0, 0);
+    ctx.shadowBlur = 0;
+    // Japanese milestone names
+    const milestones = { 2: "二連", 3: "三連", 5: "五連", 10: "十連", 15: "十五連", 20: "二十連" };
+    const mName = milestones[g.combo];
+    if (mName) {
+      ctx.font = `bold 16px ${font}`;
+      ctx.fillStyle = comboColor + "cc";
+      ctx.fillText(mName, 0, 22);
+    } else {
+      ctx.font = `bold 12px ${font}`;
+      ctx.fillStyle = comboColor + "88";
+      ctx.fillText("COMBO", 0, 18);
+    }
+    // Decay bar
+    const decayW = 60;
+    const decayH = 3;
+    const decayFill = Math.max(0, g.comboTimer / 2000);
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = "#333344";
+    ctx.fillRect(-decayW / 2, 26, decayW, decayH);
+    ctx.fillStyle = comboColor;
+    ctx.fillRect(-decayW / 2, 26, decayW * decayFill, decayH);
+    ctx.globalAlpha = 1;
     ctx.restore();
+  }
+
+  // Score multiplier indicator
+  if (g.slowMo && g.slowMo.active) {
+    ctx.font = `bold 18px ${font}`;
+    ctx.textAlign = "left";
+    ctx.shadowColor = "#b8a0ff";
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = "#b8a0ff";
+    ctx.fillText("1.5x", 16, 74);
+    ctx.shadowBlur = 0;
+  } else if (g.combo > 2) {
+    ctx.font = `bold 14px ${font}`;
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#ffa04088";
+    ctx.fillText(`x${g.combo} CHAIN`, 16, 74);
   }
 
   const mW = 100, mH = 8, mX = W - mW - 16, mY = 20;

@@ -7,31 +7,7 @@ import { update, loadRoom, loadSave, deleteSave } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
 import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, stopMusic, isAudioReady } from "./audio.js";
-
-// ═══ STORY BEATS ═══
-const STORY = {
-  intro: [
-    { speaker: "???", text: "The village burns. The oni have returned." },
-    { speaker: "先生", text: "You are the last blade standing. Take this katana." },
-    { speaker: "先生", text: "Cut through the forest. Find the temple. End this." },
-  ],
-  act1End: [
-    { speaker: "主人公", text: "The forest is clear... but the corruption runs deeper." },
-    { speaker: "先生", text: "The temple gardens ahead were once sacred ground." },
-    { speaker: "先生", text: "Now the tengu have claimed them. Be ready." },
-  ],
-  act2End: [
-    { speaker: "主人公", text: "The Great Tengu falls... but I feel a darker presence." },
-    { speaker: "先生", text: "You have proven yourself worthy, warrior." },
-    { speaker: "先生", text: "The path ahead leads to the neon city. Rest now..." },
-  ],
-};
-
-// Map: which story plays before which room
-const STORY_TRIGGERS = {
-  0: "intro",       // before first room
-  15: "act1End",    // before Act 2
-};
+import { CHARACTERS, ROOM_DIALOGUE, ROOM_ENCOUNTERS, STORY_TRIGGERS, getDefaultChoices } from "./story.js";
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
@@ -42,6 +18,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const [hasSave, setHasSave] = useState(() => !!loadSave());
   const [storyLines, setStoryLines] = useState([]);
   const [storyIndex, setStoryIndex] = useState(0);
+  const [typedChars, setTypedChars] = useState(0);
+  const [typingDone, setTypingDone] = useState(false);
+  const typingRef = useRef(null);
   const [score, setScore] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -89,6 +68,12 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       // Story system
       _storyTriggers: STORY_TRIGGERS,
       _pendingRoom: null,
+      // Choice system
+      choices: getDefaultChoices(),
+      // Encounter system
+      _encounters: [],
+      encounterActive: false,
+      encounterText: null,
     };
 
     // Load saved progress if continuing
@@ -161,12 +146,34 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   useEffect(() => {
     if (screen !== "story" || storyLines.length > 0) return;
     const g = gameRef.current;
-    if (g && g._pendingStoryKey && STORY[g._pendingStoryKey]) {
-      setStoryLines(STORY[g._pendingStoryKey]);
-      setStoryIndex(0);
+    if (g && g._pendingStoryKey !== null && g._pendingStoryKey !== undefined) {
+      const dialogue = ROOM_DIALOGUE[g._pendingStoryKey];
+      if (dialogue) {
+        setStoryLines(dialogue);
+        setStoryIndex(0);
+        setTypedChars(0);
+        setTypingDone(false);
+      }
       g._pendingStoryKey = null;
     }
   }, [screen, storyLines.length]);
+
+  // Typing animation effect
+  useEffect(() => {
+    if (screen !== "story" || storyLines.length === 0) return;
+    const line = storyLines[storyIndex];
+    if (!line) return;
+    const fullText = line.text || "";
+    if (typedChars >= fullText.length) {
+      setTypingDone(true);
+      return;
+    }
+    setTypingDone(false);
+    typingRef.current = setTimeout(() => {
+      setTypedChars(c => c + 1);
+    }, 30);
+    return () => clearTimeout(typingRef.current);
+  }, [screen, storyLines, storyIndex, typedChars]);
 
   // Resume from pause
   useEffect(() => {
@@ -200,9 +207,11 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     setMaxCombo(0);
     // Check if there's a story trigger for this room
     const storyKey = STORY_TRIGGERS[fromRoom];
-    if (storyKey && STORY[storyKey]) {
-      setStoryLines(STORY[storyKey]);
+    if (storyKey !== undefined && ROOM_DIALOGUE[storyKey]) {
+      setStoryLines(ROOM_DIALOGUE[storyKey]);
       setStoryIndex(0);
+      setTypedChars(0);
+      setTypingDone(false);
       setScreen("story");
     } else {
       setScreen("playing");
@@ -268,11 +277,21 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     );
   }
 
-  // ═══ STORY ═══
+  // ═══ STORY — Katana Zero-style visual novel dialogue ═══
   if (screen === "story" && storyLines.length > 0) {
     const line = storyLines[storyIndex] || storyLines[storyLines.length - 1];
     const isLast = storyIndex >= storyLines.length - 1;
+    const char = CHARACTERS[line.speaker] || CHARACTERS.system;
+    const fullText = line.text || "";
+    const displayText = typingDone ? fullText : fullText.slice(0, typedChars);
     const advanceStory = () => {
+      if (!typingDone) {
+        // Click to skip typing animation
+        clearTimeout(typingRef.current);
+        setTypedChars(fullText.length);
+        setTypingDone(true);
+        return;
+      }
       if (isLast) {
         setStoryLines([]);
         setStoryIndex(0);
@@ -286,25 +305,62 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
         setScreen("playing");
       } else {
         setStoryIndex(i => i + 1);
+        setTypedChars(0);
+        setTypingDone(false);
       }
     };
     return (
-      <div style={{ ...overlay, background: "#0a0a14", cursor: "pointer" }} onClick={advanceStory}>
+      <div style={{ ...overlay, background: "#0a0a14", cursor: "pointer", justifyContent: "flex-end" }} onClick={advanceStory}>
         <style>{cssFx}</style>
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite" }} />
-        <div style={{ maxWidth: 500, padding: "0 24px", textAlign: "center" }}>
-          <div style={{ fontSize: 13, fontFamily: font, color: c.a, letterSpacing: ".15em", marginBottom: 16 }}>
-            {line.speaker}
-          </div>
-          <div style={{ fontSize: 18, fontFamily: uiFont, color: c.tx, lineHeight: 1.7, minHeight: 60 }}>
-            {line.text}
-          </div>
-          <div style={{ fontSize: 11, fontFamily: font, color: c.m, marginTop: 32, letterSpacing: ".08em", animation: "glitch 4s ease-in-out infinite" }}>
-            {isLast ? "CLICK TO BEGIN" : "CLICK TO CONTINUE"}
-          </div>
-          <div style={{ fontSize: 10, fontFamily: font, color: c.m + "80", marginTop: 8 }}>
+        {/* Scanline overlay */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite" }} />
+        {/* Dimmed background area */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ fontSize: 10, fontFamily: font, color: c.m + "60", letterSpacing: ".1em" }}>
             {storyIndex + 1} / {storyLines.length}
           </div>
+        </div>
+        {/* Dialogue box — bottom third */}
+        <div style={{
+          width: "100%", padding: "20px 24px 32px", maxWidth: 640, alignSelf: "center",
+          background: "linear-gradient(to bottom, rgba(10,10,20,0.85), rgba(10,10,20,0.95))",
+          borderTop: `2px solid ${char.color}40`,
+        }}>
+          {/* Speaker name */}
+          {char.name && (
+            <div style={{
+              fontSize: 13, fontFamily: font, fontWeight: 700,
+              color: char.color, letterSpacing: ".12em", marginBottom: 8,
+            }}>
+              {char.name} <span style={{ fontSize: 10, color: char.color + "88", fontWeight: 400 }}>{char.nameEn}</span>
+            </div>
+          )}
+          {/* Japanese text (smaller, above) */}
+          {line.textJp && (
+            <div style={{
+              fontSize: 13, fontFamily: uiFont, color: c.m + "aa",
+              lineHeight: 1.6, marginBottom: 6, minHeight: 20,
+            }}>
+              {typingDone ? line.textJp : line.textJp.slice(0, Math.floor(typedChars * (line.textJp.length / Math.max(1, fullText.length))))}
+            </div>
+          )}
+          {/* English text (larger, main) */}
+          <div style={{
+            fontSize: 18, fontFamily: uiFont, color: c.tx,
+            lineHeight: 1.7, minHeight: 40,
+          }}>
+            {displayText}
+            {!typingDone && <span style={{ opacity: 0.5, animation: "glitch 1s ease-in-out infinite" }}>▌</span>}
+          </div>
+          {/* Advance prompt */}
+          {typingDone && (
+            <div style={{
+              fontSize: 10, fontFamily: font, color: c.m + "88",
+              letterSpacing: ".08em", marginTop: 12, textAlign: "right",
+            }}>
+              {isLast ? "CLICK TO BEGIN ▶" : "CLICK ▶"}
+            </div>
+          )}
         </div>
       </div>
     );

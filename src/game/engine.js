@@ -2,11 +2,13 @@ import {
   GRAVITY, MOVE_SPEED, JUMP_FORCE, SLASH_DURATION, SLASH_RANGE,
   DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, GROUND_POUND_SPEED, PARRY_WINDOW,
   TILE, SCALE, GROUND_Y, TOTAL_ROOMS, STAR_3, STAR_2,
-  ENEMY_CONFIG, KILL_ZOOM, KILL_ZOOM_3RD, MILESTONE_ZOOM, LAST_KILL_FREEZE,
+  ENEMY_CONFIG, KILL_ZOOM, KILL_ZOOM_3RD, MILESTONE_ZOOM, LAST_KILL_ZOOM, LAST_KILL_FREEZE,
+  HITSTOP_HIT, HITSTOP_KILL_1, HITSTOP_KILL_2, HITSTOP_KILL_3, HITSTOP_LAST_KILL,
   lerp, clamp, rnd, rndInt,
 } from "./constants.js";
 import { updateEnemyAI, makeEnemy, makePlayer } from "./entities.js";
 import { ROOMS } from "./levels.js";
+import { ROOM_ENCOUNTERS } from "./story.js";
 import { playSound, playRandom, playRandomExclusive } from "./audio.js";
 
 // ═══ ROOM MANAGEMENT ═══
@@ -19,6 +21,13 @@ export function loadRoom(g, roomIndex) {
   g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
+  // Breakable objects
+  g.breakables = (room.breakables || []).map(b => ({
+    ...b,
+    y: g.groundY + (b.y || 0),
+    hp: b.hp || 1,
+    broken: false,
+  }));
   // Hazards
   g.hazards = (room.hazards || []).map(h => ({
     ...h,
@@ -69,6 +78,25 @@ export function loadRoom(g, roomIndex) {
   const title = room.title;
   const titleText = title ? `${title.jp}  ${title.en}` : `ROOM ${roomIndex + 1}`;
   g.roomTitle = { text: titleText, timer: 1200 };
+  // In-game encounters
+  g._encounters = (ROOM_ENCOUNTERS[roomIndex] || []).map(e => ({ ...e, triggered: false }));
+  g.encounterActive = false;
+  g.encounterText = null;
+  g.encounterTimer = 0;
+  // Room objective system
+  const obj = room.objective || { type: "killAll" };
+  g.objective = { ...obj };
+  if (obj.type === "parkour") {
+    g.objective.countdown = obj.time || 15;
+    g.objective.exitZone = { x: obj.exitX || g.levelW - 60, w: 60 };
+  } else if (obj.type === "survive") {
+    g.objective.currentWave = 0;
+    g.objective.totalWaves = obj.waves ? obj.waves.length : 3;
+    g.objective.waveTimer = 1500; // 1.5s before first wave
+    g.objective.waveDef = obj.waves || [];
+    g.objective.waveActive = false;
+    g.objective.waveAnnounce = 0;
+  }
   // Tutorial system
   g.tutorials = (room.tutorials || []).map(t => ({ ...t, shown: false, dismissed: false, timer: 0 }));
   g.activeTutorial = null;
@@ -76,7 +104,6 @@ export function loadRoom(g, roomIndex) {
 
 function restartRoom(g) {
   g.deaths++;
-  g.deathFlash = 300;
   loadRoom(g, g.currentRoom);
 }
 
@@ -518,6 +545,21 @@ export function update(g, callbacks) {
           life: 150, maxLife: 150, color: "#60ccff", size: rnd(0.8, 1.5), isLine: true,
         });
       }
+      // ── COMBO 3 SHOCKWAVE AOE — damages all enemies within 120px radius ──
+      for (const e of g.enemies) {
+        if (e.dead || e._hitThisSlash) continue;
+        const dist = Math.hypot(e.x - p.x, e.y - p.y);
+        if (dist < 120) {
+          e._hitThisSlash = true;
+          killEnemy(g, e, p, callbacks);
+          if (!p.grounded) { p.vy = JUMP_FORCE * 0.6; p.grounded = false; }
+        }
+      }
+      // Shockwave ring particle (150px expanding ring)
+      g.particles.push({
+        x: p.x, y: p.y + TILE * SCALE * 0.4, vx: 0, vy: 0,
+        life: 400, maxLife: 400, color: "#60ccff", size: 3, isRipple: true,
+      });
     }
   }
   g.input.slashPressed = false;
@@ -635,6 +677,102 @@ export function update(g, callbacks) {
     }
   }
 
+  // ── Breakable objects — slash, dash, or ground-pound to destroy ──
+  if (g.breakables) {
+    for (const br of g.breakables) {
+      if (br.broken) continue;
+      const bw = br.w || 40;
+      const bh = br.h || 40;
+      const bx = br.x;
+      const by = br.y - bh;
+      // Check slash hit
+      const slashHit = p.slashTimer > 0 &&
+        Math.abs((p.x + p.facing * SLASH_RANGE / 2) - (bx + bw / 2)) < (SLASH_RANGE + bw) / 2 &&
+        p.y + TILE * SCALE > by && p.y < by + bh;
+      // Check dash hit
+      const dashHit = p.dashTimer > 0 &&
+        p.x + pw > bx && p.x - pw < bx + bw &&
+        p.y + TILE * SCALE > by && p.y < by + bh;
+      // Check ground pound hit
+      const gpHit = p.groundPounding &&
+        p.x + pw > bx && p.x - pw < bx + bw &&
+        p.y + TILE * SCALE > by && p.y + TILE * SCALE < by + bh + 20;
+
+      if (slashHit || dashHit || gpHit) {
+        br.hp--;
+        if (br.hp <= 0) {
+          br.broken = true;
+          g.camera.shakeTimer = 60;
+          g.score = (g.score || 0) + (br.type === "lantern" ? 50 : 25);
+          g.floatingTexts.push({
+            x: bx + bw / 2, y: by, text: br.type === "lantern" ? "+50" : "+25",
+            color: "#ffcc44", life: 600, maxLife: 600,
+          });
+
+          // Type-specific destruction effects
+          if (br.type === "crate") {
+            playSound("land", { volume: 0.5, playbackRate: 1.8 });
+            for (let i = 0; i < 10; i++) {
+              g.particles.push({
+                x: bx + rnd(0, bw), y: by + rnd(0, bh),
+                vx: rnd(-200, 200), vy: rnd(-300, -50),
+                life: 600, maxLife: 600,
+                color: ["#8b6840", "#6b4830", "#c4a060", "#a08040"][i % 4],
+                size: rnd(2, 5),
+              });
+            }
+          } else if (br.type === "lantern") {
+            playSound("dash", { volume: 0.4, playbackRate: 0.8 });
+            // Fire burst — damages nearby enemies!
+            for (const e of g.enemies) {
+              if (e.dead) continue;
+              const dist = Math.hypot(e.x - (bx + bw / 2), e.y - by);
+              if (dist < 100) {
+                killEnemy(g, e, p, callbacks);
+                g.floatingTexts.push({
+                  x: e.x, y: e.y - 25, text: "INCINERATED!",
+                  color: "#ff6644", life: 1000, maxLife: 1000,
+                });
+              }
+            }
+            // Fire particles
+            for (let i = 0; i < 16; i++) {
+              g.particles.push({
+                x: bx + bw / 2 + rnd(-15, 15), y: by + bh / 2,
+                vx: rnd(-180, 180), vy: rnd(-350, -80),
+                life: 500, maxLife: 500,
+                color: ["#ff4422", "#ffaa30", "#ffdd40", "#ff6633"][i % 4],
+                size: rnd(2, 5),
+              });
+            }
+          } else if (br.type === "pot") {
+            playSound("land", { volume: 0.4, playbackRate: 2.2 });
+            for (let i = 0; i < 8; i++) {
+              g.particles.push({
+                x: bx + rnd(0, bw), y: by + rnd(0, bh),
+                vx: rnd(-250, 250), vy: rnd(-280, -40),
+                life: 500, maxLife: 500,
+                color: ["#aa8866", "#887766", "#ccaa88"][i % 3],
+                size: rnd(1.5, 4),
+              });
+            }
+          } else if (br.type === "bamboo") {
+            playSound("wall_grab", { volume: 0.3 });
+            for (let i = 0; i < 6; i++) {
+              g.particles.push({
+                x: bx + rnd(0, bw), y: by + rnd(0, bh),
+                vx: rnd(-120, 120), vy: rnd(-200, -30),
+                life: 400, maxLife: 400,
+                color: ["#4a6a3a", "#3a5a2a", "#6a8a5a"][i % 3],
+                size: rnd(2, 4),
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
   p.x = Math.max(10, Math.min(g.levelW - 10, p.x));
 
   // ── Wall sliding — grab walls while airborne ──
@@ -728,6 +866,8 @@ export function update(g, callbacks) {
 
   // ── Enemies ──
   for (const e of g.enemies) {
+    // Decay hit flash timer (non-lethal hit white flash)
+    if (e._hitFlash > 0) e._hitFlash -= rawDt * 1000;
     if (e.dead) {
       e.deathTimer -= dt * 1000;
       // Knockback death physics — fly back and slide along ground with blood trail
@@ -851,6 +991,81 @@ export function update(g, callbacks) {
       }
     }
 
+    // ── Environmental hazard kills — enemies touching hazards die ──
+    if (g.hazards && !e.dead) {
+      for (const h of g.hazards) {
+        if (h.type === "spikes") {
+          if (e.x + 15 > h.x && e.x - 15 < h.x + h.w &&
+              e.y + TILE * SCALE > h.y - 4 && e.y + TILE * SCALE < h.y + 16) {
+            killEnemy(g, e, p, callbacks);
+            g.score = (g.score || 0) + 200;
+            g.floatingTexts.push({
+              x: e.x, y: e.y - 25, text: "IMPALED!", color: "#ff4444",
+              life: 1000, maxLife: 1000,
+            });
+          }
+        } else if (h.type === "firejet" && h.active) {
+          if (e.x + 10 > h.x && e.x - 10 < h.x + (h.w || 30) &&
+              e.y + TILE * SCALE > h.y - (h.h || 80) && e.y < h.y) {
+            killEnemy(g, e, p, callbacks);
+            g.score = (g.score || 0) + 200;
+            g.floatingTexts.push({
+              x: e.x, y: e.y - 25, text: "INCINERATED!", color: "#ff6644",
+              life: 1000, maxLife: 1000,
+            });
+          }
+        }
+      }
+    }
+    // ── Enemy knockback into breakables ──
+    if (g.breakables && !e.dead && Math.abs(e.vx) > 50) {
+      for (const br of g.breakables) {
+        if (br.broken) continue;
+        const bw = br.w || 40;
+        const bh = br.h || 40;
+        if (e.x + 15 > br.x && e.x - 15 < br.x + bw &&
+            e.y + TILE * SCALE > br.y - bh && e.y < br.y) {
+          br.broken = true;
+          br.hp = 0;
+          g.camera.shakeTimer = 60;
+          // If it's a lantern, fire burst kills the enemy too
+          if (br.type === "lantern") {
+            killEnemy(g, e, p, callbacks);
+            g.floatingTexts.push({
+              x: e.x, y: e.y - 25, text: "INCINERATED!", color: "#ff6644",
+              life: 1000, maxLife: 1000,
+            });
+            for (let i = 0; i < 12; i++) {
+              g.particles.push({
+                x: br.x + bw / 2 + rnd(-10, 10), y: br.y - bh / 2,
+                vx: rnd(-180, 180), vy: rnd(-300, -60),
+                life: 500, maxLife: 500,
+                color: ["#ff4422", "#ffaa30", "#ffdd40"][i % 3], size: rnd(2, 5),
+              });
+            }
+          } else {
+            // Generic breakable destruction particles
+            for (let i = 0; i < 6; i++) {
+              g.particles.push({
+                x: br.x + rnd(0, bw), y: br.y - rnd(0, bh),
+                vx: rnd(-200, 200), vy: rnd(-250, -50),
+                life: 500, maxLife: 500,
+                color: br.type === "crate" ? "#8b6840" : "#aa8866", size: rnd(2, 4),
+              });
+            }
+          }
+        }
+      }
+    }
+    // Fell off screen
+    if (!e.dead && e.y > g.H + 100) {
+      killEnemy(g, e, p, callbacks);
+      g.floatingTexts.push({
+        x: e.x, y: g.H - 30, text: "PUSHED!", color: "#88bbff",
+        life: 1000, maxLife: 1000,
+      });
+    }
+
     // ── Slash collision — vertical reach depends on combo ──
     // Combo 1 (horizontal): same level only. Combo 2 (upward arc): can reach above.
     // Combo 3 (big swing): wide reach. Air slash: wider below.
@@ -917,9 +1132,34 @@ export function update(g, callbacks) {
           } else {
             playRandom("hit", { volume: 0.6 });
           }
-          killEnemy(g, e, p, callbacks);
-          // Air slash: kill resets jump (chain aerial kills)
-          if (isAirSlash) { p.vy = JUMP_FORCE * 0.6; p.grounded = false; }
+          // Multi-HP enemies: decrement HP, only kill at 0
+          const cfg = ENEMY_CONFIG[e.type] || ENEMY_CONFIG.oni;
+          if (cfg.hp > 1 && e.hp > 1 && !isDashSlash) {
+            // Non-lethal hit — wound but don't kill
+            e.hp--;
+            e._hitFlash = 200; // white flash for 200ms
+            e.dazed = 400; // brief stun
+            e.state = "dazed";
+            e.vx = p.facing * 120; // small knockback
+            g.hitStop = HITSTOP_HIT;
+            g.camera.shakeTimer = 80;
+            g.floatingTexts.push({
+              x: e.x, y: e.y - 15, text: `${e.hp}HP`, color: "#ff8844",
+              life: 600, maxLife: 600,
+            });
+            // Hit sparks
+            for (let i = 0; i < 8; i++) {
+              g.particles.push({
+                x: (p.x + e.x) / 2, y: e.y + 15,
+                vx: p.facing * rnd(100, 400), vy: rnd(-300, -50),
+                life: 300, maxLife: 300, color: i < 3 ? "#ffffff" : "#ffaa44", size: rnd(1.5, 3),
+              });
+            }
+          } else {
+            killEnemy(g, e, p, callbacks);
+            // Air slash: kill resets jump (chain aerial kills)
+            if (isAirSlash) { p.vy = JUMP_FORCE * 0.6; p.grounded = false; }
+          }
         }
       }
     }
@@ -1138,9 +1378,84 @@ export function update(g, callbacks) {
       }
     }
 
-    // Last-kill freeze is triggered in killEnemy — fallback for edge cases
-    if (g.enemies.filter(e => !e.dead).length === 0 && g.roomTimer > 0.5) {
-      if (g.roomState === "playing") clearRoom(g, callbacks);
+    // ── In-game encounter trigger ──
+    if (g._encounters && !g.encounterActive) {
+      for (const enc of g._encounters) {
+        if (enc.triggered) continue;
+        if (p.x >= enc.triggerX) {
+          enc.triggered = true;
+          g.encounterActive = true;
+          g.encounterTimer = enc.duration || 2000;
+          g.encounterText = { speaker: enc.speaker, text: enc.text, textJp: enc.textJp, x: p.x, y: p.y - 40 };
+          g.time.scale = 0.01; // near-pause
+          g.letterbox = 0.5; // partial letterbox
+          break;
+        }
+      }
+    }
+    // Process active encounter timer
+    if (g.encounterActive) {
+      g.encounterTimer -= rawDt * 1000;
+      if (g.encounterTimer <= 0 || g.input.slashPressed) {
+        g.encounterActive = false;
+        g.encounterText = null;
+        g.time.scale = 1;
+        g.letterbox = 0;
+        g.input.slashPressed = false;
+      }
+    }
+
+    // ── Objective-based room clear check ──
+    const objType = g.objective ? g.objective.type : "killAll";
+    if (objType === "killAll") {
+      // Last-kill freeze is triggered in killEnemy — fallback for edge cases
+      if (g.enemies.filter(e => !e.dead).length === 0 && g.roomTimer > 0.5) {
+        if (g.roomState === "playing") clearRoom(g, callbacks);
+      }
+    } else if (objType === "parkour") {
+      // Countdown timer — reach exit zone before time runs out
+      g.objective.countdown -= rawDt;
+      if (g.objective.countdown <= 0 && g.roomState === "playing") {
+        killPlayer(g, callbacks); // time's up = death
+      }
+      // Check if player reached exit zone
+      const ez = g.objective.exitZone;
+      if (ez && p.x > ez.x && p.x < ez.x + ez.w && g.roomState === "playing") {
+        clearRoom(g, callbacks);
+      }
+    } else if (objType === "survive") {
+      const obj = g.objective;
+      // Wave spawning logic
+      if (obj.currentWave < obj.totalWaves) {
+        obj.waveTimer -= rawDt * 1000;
+        // Announce next wave
+        if (obj.waveTimer < 500 && !obj.waveAnnounce) {
+          obj.waveAnnounce = true;
+          const waveNum = obj.currentWave + 1;
+          g.floatingTexts.push({
+            x: g.W / 2 + g.camera.x, y: g.groundY - 100,
+            text: `WAVE ${waveNum}`, color: "#ff4444",
+            life: 1200, maxLife: 1200,
+          });
+        }
+        if (obj.waveTimer <= 0) {
+          // Spawn this wave's enemies
+          const wave = obj.waveDef[obj.currentWave];
+          if (wave) {
+            for (const eDef of wave) {
+              g.enemies.push(makeEnemy(eDef.type, eDef.x, g.groundY + (eDef.y || 0), { passive: false }));
+            }
+          }
+          obj.currentWave++;
+          obj.waveAnnounce = false;
+          obj.waveTimer = 2500; // 2.5s between waves
+        }
+      }
+      // All waves spawned + all enemies dead = clear
+      if (obj.currentWave >= obj.totalWaves &&
+          g.enemies.filter(e => !e.dead).length === 0 && g.roomTimer > 0.5) {
+        if (g.roomState === "playing") clearRoom(g, callbacks);
+      }
     }
   } else if (g.roomState === "lastKillFreeze") {
     // Dramatic pause on last kill before room clear
@@ -1168,14 +1483,56 @@ export function update(g, callbacks) {
           g._pendingStoryKey = storyKey;
           setScreen("story");
         } else {
-          loadRoom(g, nextRoom);
+          // Start ink brush wipe transition
+          g.roomTransition = { phase: "wipeIn", progress: 0, nextRoom };
+          g.roomState = "transitioning";
         }
       }
     }
   }
 
-  // Death flash countdown
-  if (g.deathFlash > 0) g.deathFlash -= rawDt * 1000;
+  // Room transition — ink brush wipe between rooms
+  if (g.roomTransition) {
+    const t = g.roomTransition;
+    t.progress += rawDt * 4; // ~250ms per phase
+    if (t.phase === "wipeIn" && t.progress >= 1) {
+      // Wipe complete — load next room behind the black
+      t.phase = "hold";
+      t.progress = 0;
+      loadRoom(g, t.nextRoom);
+    } else if (t.phase === "hold") {
+      t.progress += rawDt * 5; // 200ms hold
+      if (t.progress >= 1) { t.phase = "wipeOut"; t.progress = 0; }
+    } else if (t.phase === "wipeOut" && t.progress >= 1) {
+      g.roomTransition = null;
+    }
+  }
+
+  // Death phase processing (monochrome freeze → ink brush wipe → restart)
+  if (g.player && g.player.dead && g.deathPhaseTimer !== undefined) {
+    g.deathPhaseTimer -= rawDt * 1000;
+    if (g.deathPhaseTimer > 1700) {
+      g.deathPhase = 0; // white flash (0-300ms)
+    } else if (g.deathPhaseTimer > 400) {
+      g.deathPhase = 1; // grayscale freeze (300-1600ms)
+      g.time.scale = 0.05;
+    } else if (g.deathPhaseTimer > 0) {
+      g.deathPhase = 2; // fade to black (1600-2000ms)
+      g.time.scale = 0.02;
+    } else if (g.brushWipe < 1) {
+      g.deathPhase = 3; // ink brush wipe
+      g.brushWipe = Math.min(1, (g.brushWipe || 0) + rawDt * 4); // 250ms sweep
+      g.time.scale = 1;
+    } else {
+      // Wipe complete — restart room
+      g.deathPhaseTimer = undefined;
+      g.deathPhase = undefined;
+      g.brushWipe = 0;
+      g.camera.zoomTarget = 1;
+      g.camera.zoom = 1;
+      restartRoom(g);
+    }
+  }
 
   // ── Transition animations ──
   // Letterbox: ease in during cleared, ease out otherwise
@@ -1205,24 +1562,32 @@ function killEnemy(g, e, p, callbacks) {
   e.dead = true;
   const combo = p.slashCombo;
 
+  // Check if this is the last enemy (for hitstop/zoom escalation)
+  const aliveAfter = g.enemies.filter(en => !en.dead && en !== e).length;
+  const isLastKill = aliveAfter === 0 && g.roomState === "playing" && g.roomTimer > 0.3;
+
+  // Graduated hitstop based on combo level + last kill
+  const comboHitstop = combo === 3 ? HITSTOP_KILL_3 : combo === 2 ? HITSTOP_KILL_2 : HITSTOP_KILL_1;
+  const hitStopMs = isLastKill ? HITSTOP_LAST_KILL : comboHitstop;
+
   if (combo === 3) {
     // ── CINEMATIC DEATH: slash through → enemy falls to knees → face plant ──
     e.deathStyle = "cinematic";
-    e.deathTimer = 1200; // longer for the full animation
-    e.deathPhase = 0;    // 0=standing shock, 1=kneeling, 2=face plant
+    e.deathTimer = 1200;
+    e.deathPhase = 0;
     e.vx = 0;
-    g.hitStop = 120;     // longer freeze for dramatic effect
+    g.hitStop = hitStopMs;
   } else {
     // ── KNOCKBACK DEATH: enemy sent FLYING back, slides along ground ──
     e.deathStyle = "knockback";
     e.deathTimer = 2500;
-    e.vx = p.facing * rnd(600, 900); // faster launch
+    e.vx = p.facing * rnd(600, 900);
     e.vy = rnd(-80, -20);
     e._onGround = false;
     e._kbDir = p.facing;
     const kbPoses = ["kb_back", "kb_tumble", "kb_seated"];
     e._kbPose = kbPoses[Math.floor(Math.random() * kbPoses.length)];
-    g.hitStop = 80;
+    g.hitStop = hitStopMs;
 
     // ── IMPACT VFX at point of contact ──
     const impactX = (p.x + e.x) / 2;
@@ -1267,7 +1632,9 @@ function killEnemy(g, e, p, callbacks) {
   g.score += killScore;
   callbacks.setScore(g.score);
   callbacks.setMaxCombo(g.maxCombo);
-  g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 20);
+  // Combo 3 gets double slow-mo refill
+  const meterRefill = combo === 3 ? 40 : 20;
+  g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + meterRefill);
   playSound("kill", { playbackRate: e.type === "oni" ? 0.8 : e.type === "ninja" ? 1.2 : 1.0 });
   playSound("blood_splatter", { volume: 0.5 });
   // Per-type death sound (random variant)
@@ -1277,16 +1644,18 @@ function killEnemy(g, e, p, callbacks) {
     playSound("comboMilestone");
     g.camera.zoom = MILESTONE_ZOOM;
   }
-  // Kill zoom — 3rd combo kill gets extra zoom
-  g.camera.zoom = Math.max(g.camera.zoom, p.slashCombo === 3 ? KILL_ZOOM_3RD : KILL_ZOOM);
+  // Kill zoom — escalates with combo and last kill
+  if (isLastKill) {
+    g.camera.zoom = LAST_KILL_ZOOM;
+  } else {
+    g.camera.zoom = Math.max(g.camera.zoom, combo === 3 ? KILL_ZOOM_3RD : KILL_ZOOM);
+  }
   g.camera.zoomTarget = 1;
 
-  // Last kill freeze — check if this was the final enemy
-  const aliveEnemies = g.enemies.filter(en => !en.dead && en !== e).length;
-  if (aliveEnemies === 0 && g.roomState === "playing" && g.roomTimer > 0.3) {
+  // Last kill freeze
+  if (isLastKill) {
     g.roomState = "lastKillFreeze";
     g.roomClearTimer = LAST_KILL_FREEZE;
-    g.camera.zoom = MILESTONE_ZOOM;
   }
 
   // Brief auto-slow on kill for flow (aim next target)
@@ -1418,31 +1787,27 @@ function killEnemy(g, e, p, callbacks) {
 }
 
 function killPlayer(g, callbacks) {
-  if (g.player.dead) return; // prevent double-kill
-  // Dramatic death — extreme slow-mo, zoom to death point, red flash
+  if (g.player.dead) return;
+  // Monochrome freeze death — 2s extreme slow-mo in grayscale
   g.killStreak = 0;
   g.player.dead = true;
-  g.player.deathTimer = 600;
-  g.camera.shakeTimer = 300;
-  g.time.scale = 0.15; // extreme slow-mo
-  g.camera.zoomTarget = 1.25; // zoom into death
-  g.flashTimer = 400;
-  g.deathFlash = 600;
+  g.player.deathTimer = 2000;
+  g.camera.shakeTimer = 400;
+  g.time.scale = 0.05; // extreme slow-mo — player sees everything
+  g.camera.zoomTarget = 1.4; // dramatic zoom to death point
+  g.flashTimer = 300; // brief white flash
+  g.deathPhase = 0; // 0=whiteFlash, 1=grayscaleFreeze, 2=fadeOut, 3=brushWipe
+  g.deathPhaseTimer = 2000;
+  g.brushWipe = 0; // ink brush wipe progress (0-1)
   playSound("death");
-  // Blood burst from player (more particles, longer life for slow-mo drama)
-  for (let i = 0; i < 18; i++) {
+  // Blood burst with longer life so particles settle cinematically in slow-mo
+  for (let i = 0; i < 24; i++) {
     g.particles.push({
       x: g.player.x + rnd(-5, 5), y: g.player.y + 20,
-      vx: rnd(-300, 300), vy: rnd(-500, -80),
-      life: 800, maxLife: 800, color: i < 12 ? "#cc1111" : "#880000", size: rnd(1.5, 4),
+      vx: rnd(-400, 400), vy: rnd(-600, -100),
+      life: 2000, maxLife: 2000, color: i < 16 ? "#cc1111" : "#880000", size: rnd(2, 5),
     });
   }
-  // Hold dramatic slow-mo, then restart
-  setTimeout(() => {
-    g.time.scale = 1;
-    g.camera.zoomTarget = 1;
-    restartRoom(g);
-  }, 600);
 }
 
 function spawnDust(g, x, y) {

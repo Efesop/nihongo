@@ -62,6 +62,21 @@ const SOUNDS = [
   ['comboMilestone','Satisfying combo achievement chime, bright rewarding ping with resonance, game sfx', 0.5, 0.4],
   ['menuStart',     'Dramatic katana unsheathing from scabbard, steel sliding on wood, game start, intense, game sfx', 1.5, 0.6],
   ['death',         'Player death impact, painful hit with dark descending tone, defeat, game sfx', 1.0, 0.5],
+
+  // ────── BREAKABLE OBJECTS ──────
+  ['crate_break',   'Wooden crate smashing apart, wood splintering crack, boards breaking, game sfx', 0.6, 0.5],
+  ['pot_break',     'Ceramic pot shattering on stone, clay pieces scattering, pottery breaking, game sfx', 0.5, 0.5],
+  ['lantern_break', 'Paper lantern tearing and catching fire, fire whoosh burst, Japanese lantern destruction, game sfx', 0.7, 0.5],
+  ['bamboo_break',  'Bamboo screen cracking and splitting apart, thin wood snapping, game sfx', 0.5, 0.4],
+
+  // ────── DEATH & TRANSITIONS ──────
+  ['death_dramatic', 'Deep dramatic bass impact with reverb, cinematic death hit, world stopping heavy blow, dark, game sfx', 1.5, 0.6],
+  ['brush_wipe',    'Ink brush swooshing across paper, wet calligraphy stroke sound, Japanese brush painting, game transition sfx', 0.8, 0.5],
+
+  // ────── WAVE / ENCOUNTER ──────
+  ['wave_incoming', 'Ominous taiko war drum hit, deep reverberating warning drum, enemies approaching, game sfx', 1.5, 0.5],
+  ['encounter',     'Soft dramatic string hit, tense moment start, subtle violin sting, game dialogue sfx', 0.8, 0.4],
+  ['text_type',     'Very soft keyboard key click, subtle typing sound, minimal, game text sfx', 0.2, 0.3],
 ];
 
 const LOOPS = [
@@ -71,6 +86,8 @@ const LOOPS = [
 
   // ────── MUSIC (per-environment) ──────
   ['music_forest',  'Dark intense Japanese action game music, taiko drums rhythmic beat, shamisen melody, koto accents, tense ninja combat atmosphere, fast paced, video game boss fight loop', 30, 0.5, true],
+  ['music_temple',  'Serene but tense Japanese temple music, koto melody, temple bells, wind, ethereal atmosphere, underlying tension, video game loop', 30, 0.5, true],
+  ['music_boss',    'Intense Japanese boss battle music, fast aggressive taiko drums, dramatic strings, shakuhachi flute, epic combat, video game boss fight loop', 30, 0.6, true],
 ];
 
 async function generate(name, prompt, dur, influence, loop = false) {

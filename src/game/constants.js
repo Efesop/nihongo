@@ -4,9 +4,9 @@ export const MOVE_SPEED = 280;
 export const JUMP_FORCE = -560;
 export const SLASH_DURATION = 150;
 export const SLASH_RANGE = 75;
-export const DASH_SPEED = 600;
-export const DASH_DURATION = 110;
-export const DASH_COOLDOWN = 400;
+export const DASH_SPEED = 700;
+export const DASH_DURATION = 180;
+export const DASH_COOLDOWN = 500;
 export const GROUND_POUND_SPEED = 900;
 export const PARRY_WINDOW = 100; // ms from start of slash that counts as parry
 
@@ -94,16 +94,24 @@ export const ENEMY_CONFIG = {
 
 // ═══ CAMERA ═══
 export const LOOK_AHEAD_DIST = 80;
-export const KILL_ZOOM = 1.08;
-export const KILL_ZOOM_3RD = 1.12;
-export const MILESTONE_ZOOM = 1.15;
+export const KILL_ZOOM = 1.15;
+export const KILL_ZOOM_3RD = 1.25;
+export const MILESTONE_ZOOM = 1.3;
+export const LAST_KILL_ZOOM = 1.4;
 export const SLOWMO_ZOOM = 0.97;
+
+// ═══ HITSTOP (ms) ═══
+export const HITSTOP_HIT = 40;       // non-lethal hit on multi-HP enemy
+export const HITSTOP_KILL_1 = 60;    // combo 1 kill
+export const HITSTOP_KILL_2 = 100;   // combo 2 kill
+export const HITSTOP_KILL_3 = 160;   // combo 3 finisher kill
+export const HITSTOP_LAST_KILL = 250; // final enemy in room
 
 // ═══ COMBAT TIMING ═══
 export const COMBO_WINDOW = 350;
 export const DEATH_TIMER = 500;
 export const ROOM_CLEAR_PAUSE = 2200;
-export const LAST_KILL_FREEZE = 400;
+export const LAST_KILL_FREEZE = 600;
 
 // ═══ HELPERS ═══
 export function lerp(a, b, t) { return a + (b - a) * t; }

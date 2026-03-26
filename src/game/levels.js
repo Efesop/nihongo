@@ -138,6 +138,11 @@ export const ROOMS = [
     shadows: [],
     playerStart: 80,
     deco: [{ type: "torii", x: 400 }, { type: "lantern", x: 800 }, { type: "lantern", x: 1300 }],
+    breakables: [
+      { type: "crate", x: 600, y: 0, w: 40, h: 40 },
+      { type: "pot", x: 1100, y: 0, w: 25, h: 30 },
+      { type: "crate", x: 1550, y: 0, w: 40, h: 40 },
+    ],
   },
 
   // ── Room 6: Vertical intro — platforms at different heights ──
@@ -161,6 +166,11 @@ export const ROOMS = [
     shadows: [],
     playerStart: 60,
     deco: [{ type: "lantern", x: 200 }, { type: "torii", x: 1400 }],
+    breakables: [
+      { type: "lantern", x: 440, y: -70, w: 28, h: 36 },
+      { type: "pot", x: 760, y: -140, w: 25, h: 30 },
+      { type: "crate", x: 1350, y: 0, w: 40, h: 40 },
+    ],
   },
 
   // ── Room 7: Wall jump intro — shaft climb ──
@@ -187,11 +197,17 @@ export const ROOMS = [
     shadows: [],
     playerStart: 60,
     deco: [{ type: "lantern", x: 620 }],
+    breakables: [
+      { type: "bamboo", x: 200, y: 0, w: 50, h: 60 },
+      { type: "crate", x: 850, y: -390, w: 40, h: 40 },
+      { type: "pot", x: 1150, y: -390, w: 25, h: 30 },
+    ],
   },
 
-  // ── Room 8: Rooftop run ──
+  // ── Room 8: Rooftop run — PARKOUR (timed speed run, reach the exit!) ──
   {
     title: { jp: "屋根走", en: "Rooftop Run" },
+    objective: { type: "parkour", time: 18, exitX: 2540 },
     platforms: [
       { x: 0, y: 0, w: 300 },
       { x: 380, y: -30, w: 200 },
@@ -204,14 +220,9 @@ export const ROOMS = [
       { x: 2320, y: 0, w: 300 },
     ],
     enemies: [
-      { type: "oni", x: 200, y: 0 },
-      { type: "ninja", x: 480, y: -30 },
-      { type: "oni", x: 760, y: -60 },
+      { type: "oni", x: 480, y: -30 },
       { type: "oni", x: 1040, y: -30 },
-      { type: "ninja", x: 1300, y: 0 },
-      { type: "oni", x: 1600, y: -50 },
       { type: "oni", x: 1880, y: -100 },
-      { type: "samurai", x: 2450, y: 0 },
     ],
     shadows: [],
     playerStart: 50,
@@ -219,6 +230,11 @@ export const ROOMS = [
     hazards: [
       { type: "spikes", x: 280, y: 0, w: 80 },
       { type: "spikes", x: 1100, y: 0, w: 80 },
+    ],
+    breakables: [
+      { type: "pot", x: 460, y: -30, w: 25, h: 30 },
+      { type: "lantern", x: 1000, y: -30, w: 28, h: 36 },
+      { type: "crate", x: 2380, y: 0, w: 40, h: 40 },
     ],
   },
 
@@ -250,11 +266,26 @@ export const ROOMS = [
       { type: "falling", x: 700, y: -380, w: 100 },
       { type: "falling", x: 900, y: -380, w: 100 },
     ],
+    breakables: [
+      { type: "crate", x: 470, y: -250, w: 35, h: 35 },
+      { type: "lantern", x: 750, y: -380, w: 28, h: 36 },
+    ],
   },
 
-  // ── Room 10: Ninja gauntlet ──
+  // ── Room 10: Ninja gauntlet — SURVIVE (3 waves of ninjas!) ──
   {
     title: { jp: "忍道", en: "Ninja Gauntlet" },
+    objective: {
+      type: "survive",
+      waves: [
+        // Wave 1: basic ninjas
+        [{ type: "ninja", x: 400, y: -120 }, { type: "oni", x: 700, y: 0 }, { type: "ninja", x: 1000, y: -130 }],
+        // Wave 2: more ninjas + oni
+        [{ type: "ninja", x: 500, y: -100 }, { type: "ninja", x: 900, y: -120 }, { type: "oni", x: 1200, y: 0 }, { type: "oni", x: 1500, y: 0 }],
+        // Wave 3: elite
+        [{ type: "ninja", x: 600, y: -130 }, { type: "ninja", x: 1100, y: -110 }, { type: "samurai", x: 800, y: 0 }, { type: "ninja", x: 1400, y: -120 }],
+      ],
+    },
     platforms: [
       { x: 0, y: 0, w: 2500 },
       { x: 300, y: -120, w: 160 },
@@ -264,16 +295,7 @@ export const ROOMS = [
       { x: 1900, y: -120, w: 160 },
     ],
     enemies: [
-      { type: "ninja", x: 380, y: -120 },
-      { type: "oni", x: 500, y: 0 },
-      { type: "ninja", x: 780, y: -100 },
-      { type: "oni", x: 900, y: 0 },
-      { type: "ninja", x: 1180, y: -130 },
-      { type: "oni", x: 1300, y: 0 },
-      { type: "ninja", x: 1580, y: -110 },
-      { type: "oni", x: 1700, y: 0 },
-      { type: "ninja", x: 1980, y: -120 },
-      { type: "samurai", x: 2200, y: 0 },
+      { type: "oni", x: 300, y: 0 },
     ],
     shadows: [],
     playerStart: 50,
@@ -282,6 +304,12 @@ export const ROOMS = [
       { type: "firejet", x: 600, y: 0, w: 30, h: 80, onTime: 1200, offTime: 2000, offset: 0 },
       { type: "firejet", x: 1200, y: 0, w: 30, h: 80, onTime: 1200, offTime: 2000, offset: 1000 },
       { type: "spikes", x: 1850, y: 0, w: 96 },
+    ],
+    breakables: [
+      { type: "lantern", x: 550, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1050, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1750, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 2100, y: 0, w: 25, h: 30 },
     ],
   },
 
@@ -316,6 +344,11 @@ export const ROOMS = [
     shadows: [],
     playerStart: 50,
     deco: [{ type: "lantern", x: 460 }, { type: "lantern", x: 960 }],
+    breakables: [
+      { type: "bamboo", x: 150, y: 0, w: 50, h: 60 },
+      { type: "crate", x: 650, y: -200, w: 40, h: 40 },
+      { type: "pot", x: 1700, y: 0, w: 25, h: 30 },
+    ],
   },
 
   // ── Room 12: Fortress ──
@@ -353,11 +386,30 @@ export const ROOMS = [
       { type: "spikes", x: 1500, y: 0, w: 128 },
       { type: "falling", x: 1400, y: -140, w: 120 },
     ],
+    breakables: [
+      { type: "crate", x: 350, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1350, y: 0, w: 28, h: 36 },
+      { type: "bamboo", x: 1900, y: 0, w: 50, h: 60 },
+      { type: "pot", x: 2150, y: -150, w: 25, h: 30 },
+    ],
   },
 
-  // ── Room 13: The gauntlet ──
+  // ── Room 13: The gauntlet — SURVIVE (mixed enemy waves with hazards) ──
   {
     title: { jp: "試練", en: "The Gauntlet" },
+    objective: {
+      type: "survive",
+      waves: [
+        // Wave 1: ground fighters
+        [{ type: "oni", x: 400, y: 0 }, { type: "oni", x: 800, y: 0 }, { type: "samurai", x: 1200, y: 0 }],
+        // Wave 2: mixed — ranged + melee
+        [{ type: "archer", x: 700, y: -80 }, { type: "brute", x: 500, y: 0 }, { type: "oni", x: 1000, y: 0 }, { type: "ninja", x: 1800, y: -260 }],
+        // Wave 3: heavy assault
+        [{ type: "samurai", x: 600, y: 0 }, { type: "tengu", x: 900, y: -370 }, { type: "samurai", x: 1100, y: 0 }, { type: "brute", x: 1500, y: 0 }],
+        // Wave 4: final push
+        [{ type: "oni", x: 2500, y: 0 }, { type: "samurai", x: 2700, y: 0 }, { type: "samurai", x: 2900, y: 0 }, { type: "archer", x: 2650, y: -100 }],
+      ],
+    },
     platforms: [
       { x: 0, y: 0, w: 800 },
       { x: 600, y: -80, w: 250 },
@@ -374,20 +426,7 @@ export const ROOMS = [
       { x: 2590, y: -100, w: 200 },
     ],
     enemies: [
-      { type: "oni", x: 300, y: 0 },
-      { type: "brute", x: 500, y: 0 },
-      { type: "archer", x: 725, y: -80 },
-      { type: "oni", x: 1000, y: 0 },
-      { type: "samurai", x: 1200, y: 0 },
-      { type: "tengu", x: 1400, y: -370 },
-      { type: "oni", x: 1700, y: -260 },
-      { type: "archer", x: 1850, y: -260 },
-      { type: "samurai", x: 2100, y: -180 },
-      { type: "oni", x: 1700, y: 0 },
-      { type: "ninja", x: 2150, y: 0 },
-      { type: "oni", x: 2600, y: 0 },
-      { type: "samurai", x: 2750, y: 0 },
-      { type: "samurai", x: 2900, y: 0 },
+      { type: "oni", x: 200, y: 0 },
     ],
     shadows: [],
     playerStart: 50,
@@ -398,6 +437,13 @@ export const ROOMS = [
       { type: "firejet", x: 2300, y: 0, w: 30, h: 90, onTime: 1000, offTime: 2500, offset: 1200 },
       { type: "falling", x: 1600, y: -260, w: 100 },
       { type: "falling", x: 1800, y: -260, w: 100 },
+    ],
+    breakables: [
+      { type: "lantern", x: 400, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 680, y: -80, w: 40, h: 40 },
+      { type: "crate", x: 1080, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1950, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 2650, y: -100, w: 25, h: 30 },
     ],
   },
 
@@ -429,6 +475,11 @@ export const ROOMS = [
     shadows: [],
     playerStart: 60,
     deco: [{ type: "torii", x: 200 }, { type: "torii", x: 1000 }, { type: "torii", x: 1800 }],
+    breakables: [
+      { type: "crate", x: 200, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 700, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1500, y: 0, w: 40, h: 40 },
+    ],
   },
 
   // ════════════════════════════════════════════════════
@@ -459,6 +510,12 @@ export const ROOMS = [
     hazards: [
       { type: "spikes", x: 820, y: 0, w: 64 },
     ],
+    breakables: [
+      { type: "pot", x: 500, y: 0, w: 25, h: 30 },
+      { type: "lantern", x: 780, y: 0, w: 28, h: 36 },
+      { type: "bamboo", x: 1500, y: -80, w: 50, h: 60 },
+      { type: "crate", x: 2300, y: 0, w: 40, h: 40 },
+    ],
   },
 
   // ── Room 16: Garden walkway ──
@@ -488,6 +545,12 @@ export const ROOMS = [
     hazards: [
       { type: "firejet", x: 420, y: 0, w: 25, h: 70, onTime: 1200, offTime: 2000, offset: 0 },
       { type: "falling", x: 1050, y: -30, w: 100 },
+    ],
+    breakables: [
+      { type: "lantern", x: 380, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 860, y: -60, w: 25, h: 30 },
+      { type: "crate", x: 1500, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 2050, y: -50, w: 28, h: 36 },
     ],
   },
 
@@ -525,6 +588,12 @@ export const ROOMS = [
       { type: "falling", x: 750, y: -360, w: 100 },
       { type: "spikes", x: 1500, y: -280, w: 64 },
     ],
+    breakables: [
+      { type: "bamboo", x: 350, y: 0, w: 50, h: 60 },
+      { type: "pot", x: 530, y: -230, w: 25, h: 30 },
+      { type: "crate", x: 900, y: -360, w: 40, h: 40 },
+      { type: "lantern", x: 1400, y: -280, w: 28, h: 36 },
+    ],
   },
 
   // ── Room 18: Inner sanctum ──
@@ -559,6 +628,13 @@ export const ROOMS = [
       { type: "firejet", x: 1100, y: 0, w: 30, h: 90, onTime: 1000, offTime: 1800, offset: 900 },
       { type: "spikes", x: 1700, y: 0, w: 80 },
       { type: "spikes", x: 2100, y: 0, w: 80 },
+    ],
+    breakables: [
+      { type: "lantern", x: 650, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1000, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1600, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 880, y: -140, w: 25, h: 30 },
+      { type: "bamboo", x: 2400, y: 0, w: 50, h: 60 },
     ],
   },
 
@@ -597,6 +673,11 @@ export const ROOMS = [
       { type: "spikes", x: 850, y: 0, w: 96 },
       { type: "firejet", x: 1300, y: 0, w: 30, h: 100, onTime: 1200, offTime: 2000, offset: 0 },
       { type: "falling", x: 1150, y: -200, w: 100 },
+    ],
+    breakables: [
+      { type: "lantern", x: 500, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1100, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1700, y: 0, w: 28, h: 36 },
     ],
   },
 ];
