@@ -743,6 +743,31 @@ export function render(g, ctx, isDesktop, font) {
   }
   ctx.globalAlpha = 1;
 
+  // ── Debris chunks (physics-based, spinning, can kill enemies) ──
+  if (g.debris) {
+    for (const d of g.debris) {
+      const alpha = Math.min(1, d.life / d.maxLife);
+      ctx.globalAlpha = alpha;
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.rotate(d.rotation || 0);
+      ctx.fillStyle = d.color;
+      // Draw as rotated rectangle for chunky debris feel
+      const s = d.size;
+      ctx.fillRect(-s / 2, -s / 2, s, s * 0.7);
+      // Fire debris gets a glow trail
+      if (d.fire) {
+        ctx.globalAlpha = alpha * 0.4;
+        ctx.fillStyle = "#ff6622";
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   // Floating texts
   for (const ft of g.floatingTexts) {
     const alpha = ft.life / ft.maxLife;

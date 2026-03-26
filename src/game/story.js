@@ -1,5 +1,7 @@
-// ═══ STORY DATA — "The Last Stroke" ═══
-// Full Katana Zero-style dialogue for every room + character definitions + choices
+// ═══ STORY DATA — "The Ink Curse" ═══
+// Katana Zero-inspired narrative: every line earns its place.
+// The tutorial IS the story. Training in the dojo IS character development.
+// Show-don't-tell: the inciting incident is earned, not explained.
 
 export const CHARACTERS = {
   sensei:  { name: "先生", nameEn: "Sensei", color: "#cc9933" },
@@ -9,217 +11,307 @@ export const CHARACTERS = {
   system:  { name: "", nameEn: "", color: "#888899" },
 };
 
-// Story dialogue keyed by room number — plays BEFORE entering that room
+// ═══════════════════════════════════════════════════════
+// ROOM DIALOGUE — plays BEFORE entering each room
+// The story unfolds through gameplay, not despite it.
+// ═══════════════════════════════════════════════════════
 export const ROOM_DIALOGUE = {
-  // ═══ ACT 1: FOREST — Rooms 0-14 ═══
 
-  // Rooms 0-4: Flashback — Sensei's final training
+  // ═══ PROLOGUE — THE DOJO (Rooms 0-4) ═══
+  // This is happening NOW. Morning. Training day.
+  // The dialogue IS the tutorial. The player bonds with Sensei
+  // through the act of learning — not through exposition.
+
   0: [
-    { speaker: "system", textJp: "記憶の中で...", text: "In the memory..." },
-    { speaker: "sensei", textJp: "構えを見せろ。", text: "Show me your stance.", emotion: "serious" },
-    { speaker: "player", textJp: "はい、先生。", text: "Yes, Sensei." },
-    { speaker: "sensei", textJp: "刀は体の延長だ。力ではなく、流れを感じろ。", text: "The blade is an extension of your body. Feel the flow, not the force." },
-    { speaker: "sensei", textJp: "行け。", text: "Go." },
-  ],
-  1: [
-    { speaker: "sensei", textJp: "跳べ。高く。恐れるな。", text: "Jump. Higher. Don't be afraid." },
-    { speaker: "player", textJp: "落ちたら...？", text: "What if I fall...?" },
-    { speaker: "sensei", textJp: "何度でも立ち上がれ。", text: "Get up. Every time." },
-  ],
-  2: [
-    { speaker: "sensei", textJp: "速さは力だ。一瞬で抜けろ。", text: "Speed is power. Phase through in an instant." },
-    { speaker: "player", textJp: "先生、これは...速すぎて見えない。", text: "Sensei, this is... too fast to see." },
-    { speaker: "sensei", textJp: "見るな。感じろ。", text: "Don't look. Feel." },
-  ],
-  3: [
-    { speaker: "sensei", textJp: "壁を恐れるな。壁は味方だ。", text: "Don't fear walls. Walls are allies." },
-  ],
-  4: [
-    { speaker: "sensei", textJp: "集中しろ。時が遅くなる。", text: "Focus. Time will slow." },
-    { speaker: "player", textJp: "先生、この力は何ですか？", text: "Sensei, what is this power?" },
-    { speaker: "sensei", textJp: "...いつか分かる。今はただ使え。", text: "...You'll understand someday. For now, just use it." },
+    { speaker: "system", textJp: "山の道場 — 夜明け前", text: "Mountain dojo — before dawn" },
+    { speaker: "sensei", textJp: "起きたか。立て。", text: "You're awake. Stand." },
+    { speaker: "player", textJp: "...まだ暗いですけど。", text: "...It's still dark out." },
+    { speaker: "sensei", textJp: "敵は暗闇を待たない。お前もだ。", text: "Your enemies won't wait for daylight. Neither will you." },
+    { speaker: "sensei", textJp: "まず動け。案山子まで走れ。そして斬れ。", text: "Move first. Run to the practice dummy. Then cut it down." },
   ],
 
-  // Rooms 5-9: Forest pursuit — TinySenpai alone
-  5: [
-    { speaker: "system", textJp: "現在 — 森の中", text: "Present day — in the forest" },
-    { speaker: "player", textJp: "先生...約束は守る。", text: "Sensei... I'll keep my promise." },
-    { speaker: "player", textJp: "山城の巻物を見つける。何があっても。", text: "I'll find the scroll at the mountain castle. No matter what." },
+  1: [
+    { speaker: "sensei", textJp: "足元を見るな。上を見ろ。", text: "Stop looking at your feet. Look up." },
+    { speaker: "player", textJp: "高すぎませんか？", text: "Isn't that too high?" },
+    { speaker: "sensei", textJp: "高すぎるかどうかは、跳んでから決めろ。", text: "You don't get to decide it's too high until after you've jumped." },
+    { speaker: "sensei", textJp: "何度落ちてもいい。恥じるな。", text: "Fall as many times as you need to. There's no shame in it." },
   ],
+
+  2: [
+    { speaker: "sensei", textJp: "今日は速さを教える。", text: "Today, I'll teach you speed." },
+    { speaker: "sensei", textJp: "気を足に集中しろ。一瞬で距離を詰める。", text: "Focus your ki into your legs. Close the distance in an instant." },
+    { speaker: "player", textJp: "あの...斬りながら突っ込んだらどうなります？", text: "Uh... what happens if I slash while dashing?" },
+    { speaker: "sensei", textJp: "...やってみろ。", text: "...Try it and find out.", emotion: "amused" },
+  ],
+
+  3: [
+    { speaker: "sensei", textJp: "壁に追い込まれたとする。どうする？", text: "Say you're backed against a wall. What do you do?" },
+    { speaker: "player", textJp: "...斬り返す？", text: "...Cut my way out?" },
+    { speaker: "sensei", textJp: "壁を登れ。", text: "Climb the wall.", emotion: "serious" },
+    { speaker: "player", textJp: "え？", text: "Huh?" },
+    { speaker: "sensei", textJp: "壁は障害じゃない。道だ。飛び移れ。", text: "A wall isn't an obstacle. It's a path. Jump between them." },
+  ],
+
+  4: [
+    { speaker: "sensei", textJp: "最後の技だ。目を閉じろ。", text: "One last technique. Close your eyes." },
+    { speaker: "sensei", textJp: "呼吸を...止めるな。遅くしろ。", text: "Your breathing... don't stop it. Slow it down." },
+    { speaker: "player", textJp: "...先生、何ですか、これ。全部が遅く見える。", text: "...Sensei, what is this? Everything looks... slow." },
+    { speaker: "sensei", textJp: "集中の極み。時の隙間に入る力だ。", text: "The peak of focus. The power to step between moments." },
+    { speaker: "player", textJp: "すごい...！", text: "That's incredible...!" },
+    { speaker: "sensei", textJp: "...使いすぎるな。", text: "...Don't overuse it.", emotion: "serious" },
+  ],
+
+  // ═══ THE INCITING INCIDENT (Room 5) ═══
+  // After training, Sensei notices the mark. Everything changes.
+  // The player is FORCED out — they don't choose to leave.
+
+  5: [
+    { speaker: "system", textJp: "修行の後 — 道場の外", text: "After training — outside the dojo" },
+    { speaker: "sensei", textJp: "腕を見せろ。", text: "Show me your arm.", emotion: "serious" },
+    { speaker: "player", textJp: "え？何が—", text: "Huh? What's—" },
+    { speaker: "sensei", textJp: "...いつからある。この印は。", text: "...How long have you had this. This mark." },
+    { speaker: "player", textJp: "分からない。気づいたら...集中すると光るんです。", text: "I don't know. It just appeared... it glows when I focus." },
+    { speaker: "sensei", textJp: "...", text: "..." },
+    { speaker: "player", textJp: "先生？大丈夫ですか？", text: "Sensei? Are you alright?" },
+    { speaker: "sensei", textJp: "聞け。今すぐ道場を出ろ。", text: "Listen to me. Leave the dojo. Right now.", emotion: "serious" },
+    { speaker: "player", textJp: "何を言って—", text: "What are you talk—" },
+    { speaker: "sensei", textJp: "山寺の長老を探せ。あの人が全てを説明する。", text: "Find the Elder at the mountain temple. He'll explain everything." },
+    { speaker: "player", textJp: "先生！何が起きてるんですか！", text: "Sensei! What's happening?!" },
+    { speaker: "sensei", textJp: "印を持つ者は...狙われる。もう来ている。", text: "Those who bear the mark... are hunted. They're already here." },
+    { speaker: "sensei", textJp: "行け！！", text: "GO!!" },
+  ],
+
+  // ═══ ACT 1: THE FOREST (Rooms 6-9) ═══
+  // The player is fleeing. They're hunted, scared, alone.
+  // The enemies aren't random — they're pursuers.
+
+  // Room 6: no pre-dialogue (in-game encounter instead — keeps pace)
+  // Room 7: no pre-dialogue (in-game encounter)
+
+  8: [
+    { speaker: "system", textJp: "森の奥 — 屋根伝い", text: "Deep forest — across the rooftops" },
+    { speaker: "player", textJp: "止まるな。止まったら追いつかれる。", text: "Don't stop. If I stop, they'll catch me." },
+    { speaker: "player", textJp: "先生が教えてくれた。速さが武器だって。", text: "Sensei taught me. Speed is the weapon." },
+  ],
+
+  // ═══ SHADOW'S ENTRANCE (Room 10) ═══
+  // The antagonist is NOT a villain — he's someone who went through
+  // the same thing the player is going through. He's bitter, not evil.
+
+  10: [
+    { speaker: "system", textJp: "森の奥地 — 月が昇る", text: "Deep in the forest — the moon rises" },
+    { speaker: "shadow", textJp: "走るのをやめろ。無駄だ。", text: "Stop running. It's pointless." },
+    { speaker: "player", textJp: "...誰だ。", text: "...Who's there." },
+    { speaker: "shadow", textJp: "その腕の印。俺にも見覚えがある。", text: "That mark on your arm. I've seen it before." },
+    { speaker: "player", textJp: "お前も先生の—", text: "Are you also Sensei's—" },
+    { speaker: "shadow", textJp: "弟子？...昔はな。", text: "Student? ...Once upon a time.", emotion: "bitter" },
+    { speaker: "shadow", textJp: "あの老人は何も教えなかっただろう。印のことも。", text: "The old man didn't tell you anything, did he. Not about the mark." },
+    { speaker: "player", textJp: "印って何なんだ？！", text: "What IS the mark?!" },
+    { speaker: "shadow", textJp: "力だ。そして代償だ。", text: "Power. And a price." },
+    { speaker: "shadow", textJp: "時を遅くする力...お前も使っているだろう？", text: "The power to slow time... you've been using it too, right?" },
+    { speaker: "shadow", textJp: "使うたびに印は広がる。やがて—", text: "Every time you use it, the mark spreads. Eventually—" },
+    { speaker: "shadow", textJp: "...まあいい。生き延びろ。", text: "...Never mind. Just survive this." },
+    { speaker: "shadow", textJp: "長老に辿り着けたら...続きを教えてやる。", text: "If you reach the Elder... I'll tell you the rest." },
+  ],
+
+  // ═══ ACT 1 CONTINUED (Rooms 11-14) ═══
+  // The player now has a mystery: what is the mark? Why does
+  // slow-mo have a cost? Shadow isn't blocking the path — he's testing.
+
+  13: [
+    { speaker: "shadow", textJp: "まだ生きてるか。", text: "Still alive, huh." },
+    { speaker: "player", textJp: "お前が追手を送ってるのか？", text: "Are you the one sending these pursuers?" },
+    { speaker: "shadow", textJp: "俺じゃない。印が呼んでいる。", text: "It's not me. The mark calls to them." },
+    { speaker: "shadow", textJp: "強く使うほど、匂いが濃くなる。", text: "The more you use it, the stronger the scent." },
+  ],
+
+  14: [
+    { speaker: "shadow", textJp: "ここから先は山道だ。", text: "The mountain path starts here." },
+    { speaker: "player", textJp: "退くつもりはない。", text: "I'm not backing down." },
+    { speaker: "shadow", textJp: "...いいだろう。最後の試験だ。", text: "...Fine. One last test." },
+    { speaker: "shadow", textJp: "ここを越えられなければ、山は越えられない。", text: "If you can't get past this, you won't survive the mountain." },
+  ],
+
+  // ═══ ACT 2: THE TEMPLE (Rooms 15-19) ═══
+  // The Elder reveals the truth. The mark is "the Ink Curse."
+  // Shadow is Sensei's first student who was consumed by it.
+  // The gameplay mechanic (slow-mo) IS the curse.
+
+  15: [
+    { speaker: "system", textJp: "第二幕 — 山寺", text: "Act 2 — The Mountain Temple" },
+    { speaker: "elder", textJp: "来たか。先生から連絡があった。", text: "You made it. Sensei sent word ahead." },
+    { speaker: "player", textJp: "先生は無事ですか！？", text: "Is Sensei alright?!" },
+    { speaker: "elder", textJp: "...その話は後だ。まず聞け。", text: "...We'll discuss that later. First, listen." },
+    { speaker: "elder", textJp: "お前の腕の印。『墨の呪い』と呼ばれている。", text: "The mark on your arm. It's called the Ink Curse." },
+    { speaker: "player", textJp: "呪い...？", text: "A curse...?" },
+    { speaker: "elder", textJp: "時を遅くする力。お前はもう使っているだろう。", text: "The power to slow time. You've been using it already." },
+    { speaker: "elder", textJp: "だが使うたびに、呪いは体に広がる。", text: "But every time you use it, the curse spreads through your body." },
+    { speaker: "player", textJp: "...それを知っていて、先生は教えたんですか？", text: "...And Sensei taught me this knowing that?" },
+    { speaker: "elder", textJp: "お前を守るためだ。力がなければ、追手に殺される。", text: "To protect you. Without it, the hunters would have killed you." },
+  ],
+
+  16: [
+    { speaker: "elder", textJp: "先生にはかつて二人の弟子がいた。", text: "Sensei once had two students." },
+    { speaker: "player", textJp: "...影。あいつのことですか。", text: "...Shadow. You mean him." },
+    { speaker: "elder", textJp: "そうだ。最初の弟子。お前と同じ印を持っていた。", text: "Yes. The first student. He bore the same mark as you." },
+    { speaker: "elder", textJp: "力に溺れた。使いすぎた。呪いに飲まれた。", text: "He drowned in the power. Used it too much. The curse consumed him." },
+    { speaker: "elder", textJp: "あの姿は...もう人間とは言えない。", text: "What he's become... can hardly be called human anymore." },
+    { speaker: "player", textJp: "...俺もそうなるんですか。", text: "...Will that happen to me too?" },
+    { speaker: "elder", textJp: "まだ間に合う。だが—", text: "There's still time. But—" },
+  ],
+
+  17: [
+    { speaker: "shadow", textJp: "長老に何を聞いた？", text: "What did the Elder tell you?" },
+    { speaker: "player", textJp: "全部だ。お前のことも。印のことも。", text: "Everything. About you. About the mark." },
+    { speaker: "shadow", textJp: "...そうか。", text: "...I see." },
+    { speaker: "shadow", textJp: "なら分かるだろう。この力は手放せない。", text: "Then you understand. This power can't be given up." },
+    { speaker: "player", textJp: "長老は消せると言った。", text: "The Elder said it can be removed." },
+    { speaker: "shadow", textJp: "消す？俺からこれを奪うのか？", text: "Remove it? You'd take this from me?", emotion: "angry" },
+    { speaker: "shadow", textJp: "この力は...先生がくれた唯一のものだ。", text: "This power is... the only thing Sensei ever gave me." },
+  ],
+
+  18: [
+    { speaker: "elder", textJp: "奥の間に封印の術がある。呪いを消せる。", text: "In the inner chamber, there's a sealing technique. It can remove the curse." },
+    { speaker: "elder", textJp: "だが影は許さないだろう。", text: "But Shadow won't allow it." },
+    { speaker: "player", textJp: "影は...先生を恨んでいるんですか？", text: "Does Shadow... resent Sensei?" },
+    { speaker: "elder", textJp: "恨んでなどいない。", text: "He doesn't resent him." },
+    { speaker: "elder", textJp: "愛しているからこそ、手放せないのだ。", text: "He can't let go precisely because he loved him." },
+    { speaker: "elder", textJp: "呪いは先生との絆だと思っている。", text: "He sees the curse as his bond with Sensei." },
+  ],
+
+  19: [
+    { speaker: "shadow", textJp: "ここまで来たか。", text: "So you made it this far." },
+    { speaker: "player", textJp: "影。もう戦わなくていい。", text: "Shadow. You don't have to fight anymore." },
+    { speaker: "shadow", textJp: "...お前に何が分かる。", text: "...What would you know about it." },
+    { speaker: "shadow", textJp: "先生が俺を捨てた。新しい弟子を取った。", text: "Sensei abandoned me. Took a new student." },
+    { speaker: "player", textJp: "捨てたんじゃない。助けられなかったんだ。", text: "He didn't abandon you. He couldn't save you." },
+    { speaker: "shadow", textJp: "...黙れ。", text: "...Shut up.", emotion: "angry" },
+    { speaker: "shadow", textJp: "この印を消すというなら、俺を倒してからにしろ。", text: "If you want to break this curse, you'll have to go through me first." },
+    { speaker: "shadow", textJp: "先生の最初の弟子と、最後の弟子。決着をつけよう。", text: "Sensei's first student versus his last. Let's end this." },
+  ],
+};
+
+// ═══════════════════════════════════════════════════════
+// IN-GAME ENCOUNTERS — speech bubbles during gameplay
+// These don't pause the game, just slow it slightly.
+// Used for short thoughts, reactions, and environmental storytelling.
+// ═══════════════════════════════════════════════════════
+export const ROOM_ENCOUNTERS = {
+  // Rooms 6-7: Player fleeing, processing what happened
   6: [
-    { speaker: "player", textJp: "高い場所に敵がいる。慎重に行こう。", text: "Enemies on the high ground. I'll be careful." },
+    { triggerX: 200, speaker: "player", textJp: "道場が...先生が...", text: "The dojo... Sensei...", duration: 2000 },
+    { triggerX: 1000, speaker: "player", textJp: "追手だ。先生の言う通りだった。", text: "Pursuers. Sensei was right.", duration: 2000 },
   ],
   7: [
-    { speaker: "player", textJp: "この壁...登れるはず。先生が教えてくれた通りに。", text: "This wall... I should be able to climb it. Just like Sensei taught me." },
+    { triggerX: 200, speaker: "player", textJp: "壁を登れ。先生がそう教えた。", text: "Climb the walls. That's what Sensei taught me.", duration: 2500 },
   ],
   8: [
-    { speaker: "player", textJp: "屋根を走れ。止まるな。", text: "Run across the rooftops. Don't stop." },
-    { speaker: "player", textJp: "速さだけが武器だ。", text: "Speed is my only weapon." },
+    { triggerX: 1500, speaker: "player", textJp: "腕の印が...熱い。", text: "The mark on my arm... it's burning.", duration: 2000 },
   ],
   9: [
-    { speaker: "player", textJp: "塔の上に何かがある...先生のメモだ！", text: "There's something at the top of the tower... Sensei's notes!" },
+    { triggerX: 300, speaker: "player", textJp: "山寺はもうすぐのはず...", text: "The mountain temple should be close...", duration: 2000 },
   ],
-
-  // Room 10: Shadow appears
-  10: [
-    { speaker: "shadow", textJp: "見事な刀さばきだ。", text: "Impressive swordwork.", emotion: "amused" },
-    { speaker: "player", textJp: "誰だ！", text: "Who's there?!" },
-    { speaker: "shadow", textJp: "お前の腕の印...見覚えがある。", text: "That mark on your arm... I recognize it." },
-    { speaker: "shadow", textJp: "あの老人がまた弟子を取ったか。", text: "So the old man took another student." },
-    { speaker: "player", textJp: "先生を知っているのか？", text: "You know Sensei?" },
-    { speaker: "shadow", textJp: "...生き延びろ。また会おう。", text: "...Survive. We'll meet again." },
-  ],
-
-  // Rooms 11-13: Shadow grows bolder
+  // Shadow watches from afar after his appearance
   11: [
-    { speaker: "player", textJp: "あの声...影のような存在。先生の何を知っている？", text: "That voice... a shadow-like presence. What does he know about Sensei?" },
+    { triggerX: 200, speaker: "player", textJp: "影の言ったこと...「力と代償」...", text: "What Shadow said... 'power and a price'...", duration: 2500 },
+    { triggerX: 1200, speaker: "shadow", textJp: "印を使え。でなければ死ぬぞ。", text: "Use the mark. Or you'll die here.", duration: 2000 },
   ],
   12: [
-    { speaker: "player", textJp: "要塞か。正面から行くしかない。", text: "A fortress. I have no choice but to go through the front." },
+    { triggerX: 200, speaker: "player", textJp: "集中すると...印が脈打つ。", text: "When I focus... the mark pulses.", duration: 2000 },
   ],
-  13: [
-    { speaker: "shadow", textJp: "まだ諦めないのか。", text: "Still not giving up?", emotion: "impressed" },
-    { speaker: "player", textJp: "先生との約束だ。", text: "It's my promise to Sensei." },
-    { speaker: "shadow", textJp: "約束...か。面白い。", text: "A promise... Interesting." },
-  ],
-
-  // Room 14: Boss room
   14: [
-    { speaker: "shadow", textJp: "ここからは本当の試練だ。", text: "From here, the real trial begins." },
-    { speaker: "player", textJp: "退かない。", text: "I won't back down." },
-    { speaker: "shadow", textJp: "お前は先生じゃない。", text: "You're not your Sensei." },
-    { speaker: "player", textJp: "...知ってる。", text: "...I know." },
+    { triggerX: 500, speaker: "shadow", textJp: "全力で来い。", text: "Come at me with everything.", duration: 1500 },
   ],
-
-  // ═══ ACT 2: TEMPLE GARDENS — Rooms 15-19 ═══
-  15: [
-    { speaker: "system", textJp: "第二幕 — 寺院庭園", text: "Act 2 — Temple Gardens" },
-    { speaker: "elder", textJp: "若い剣士よ。ここは聖なる場所だった。", text: "Young swordsman. This was once sacred ground." },
-    { speaker: "player", textJp: "長老...ここに来た理由を知っていますか？", text: "Elder... do you know why I'm here?" },
-    { speaker: "elder", textJp: "巻物を探しているのだろう。先生の最後の弟子。", text: "You seek the scroll. Sensei's last student." },
-    { speaker: "elder", textJp: "先に進むがいい。だが気をつけろ。", text: "Go ahead. But be careful." },
-  ],
+  // Temple — the truth weighs heavy
   16: [
-    { speaker: "elder", textJp: "この庭は先生が若い頃に作った。", text: "Sensei built this garden when he was young." },
-    { speaker: "player", textJp: "先生が...？", text: "Sensei did...?" },
-    { speaker: "elder", textJp: "強い剣士は、花も育てる。覚えておけ。", text: "A strong swordsman also grows flowers. Remember that." },
+    { triggerX: 400, speaker: "player", textJp: "影も...先生の弟子だった。", text: "Shadow was... Sensei's student too.", duration: 2500 },
   ],
   17: [
-    { speaker: "shadow", textJp: "印が広がっている。感じるだろう？", text: "The mark is spreading. You can feel it, can't you?" },
-    { speaker: "player", textJp: "...関係ない。止まらない。", text: "...It doesn't matter. I won't stop." },
-    { speaker: "shadow", textJp: "その力を使うたびに、印は深くなる。", text: "Every time you use that power, the mark deepens." },
-  ],
-  18: [
-    { speaker: "elder", textJp: "先生はかつて二人の弟子を持っていた。", text: "Sensei once had two students." },
-    { speaker: "player", textJp: "二人...？もう一人は誰ですか？", text: "Two...? Who was the other?" },
-    { speaker: "elder", textJp: "...先に進めば分かる。", text: "...You'll understand if you go further." },
+    { triggerX: 600, speaker: "player", textJp: "集中の力を使うたびに呪いが広がる...でも使わないと死ぬ。", text: "The curse spreads every time I use focus... but I'll die without it.", duration: 3000 },
   ],
   19: [
-    { speaker: "shadow", textJp: "ここが終わりだ。お前にとっても、私にとっても。", text: "This is the end. For you, and for me." },
-    { speaker: "player", textJp: "お前は何者だ。", text: "Who are you." },
-    { speaker: "shadow", textJp: "...先生の最初の弟子だ。", text: "...Sensei's first student." },
-    { speaker: "player", textJp: "！！！", text: "!!!" },
-    { speaker: "shadow", textJp: "同じ印を持つ者同士...決着をつけよう。", text: "Two who bear the same mark... let's settle this." },
+    { triggerX: 500, speaker: "shadow", textJp: "手加減はしない。", text: "I won't hold back.", duration: 1500 },
+    { triggerX: 1200, speaker: "shadow", textJp: "...先生、見ているか。", text: "...Sensei, are you watching?", duration: 2000 },
   ],
 };
 
-// In-game encounters — speech bubbles during gameplay
-// Includes converted single-line dialogues from rooms 6, 7, 9, 11, 12
-export const ROOM_ENCOUNTERS = {
-  5: [
-    { triggerX: 800, speaker: "player", textJp: "先生のメモ...「前に進め」", text: "Sensei's note... 'Keep moving forward'", duration: 2000 },
-  ],
-  6: [
-    { triggerX: 180, speaker: "player", textJp: "高い場所に敵がいる。慎重に行こう。", text: "Enemies on the high ground. I'll be careful.", duration: 2500 },
-  ],
-  7: [
-    { triggerX: 180, speaker: "player", textJp: "この壁...登れるはず。先生が教えてくれた通りに。", text: "This wall... I should be able to climb it. Just like Sensei taught me.", duration: 2500 },
-  ],
-  9: [
-    { triggerX: 500, speaker: "player", textJp: "塔の上に何かがある...先生のメモだ！", text: "There's something at the top of the tower... Sensei's notes!", duration: 2500 },
-  ],
-  10: [
-    { triggerX: 400, speaker: "shadow", textJp: "見ているぞ。", text: "I'm watching.", duration: 1500 },
-  ],
-  11: [
-    { triggerX: 180, speaker: "player", textJp: "あの声...影のような存在。先生の何を知っている？", text: "That voice... a shadow-like presence. What does he know about Sensei?", duration: 3000 },
-  ],
-  12: [
-    { triggerX: 180, speaker: "player", textJp: "要塞か。正面から行くしかない。", text: "A fortress. I have no choice but to go through the front.", duration: 2500 },
-  ],
-  14: [
-    { triggerX: 600, speaker: "shadow", textJp: "力を見せろ。", text: "Show me your strength.", duration: 1500 },
-  ],
-  19: [
-    { triggerX: 800, speaker: "shadow", textJp: "もっと速く。", text: "Faster.", duration: 1500 },
-  ],
-};
-
-// Choice definitions — keyed by room number
+// ═══════════════════════════════════════════════════════
+// CHOICE DEFINITIONS — keyed by room number
+// Each choice has real gameplay consequences.
+// ═══════════════════════════════════════════════════════
 export const ROOM_CHOICES = {
-  // Room 5: First curse choice
-  5: {
-    after: 2, // appears after dialogue line index 2
-    speaker: "shadow",
-    textJp: "印の力を感じるだろう。受け入れるか？",
-    text: "You feel the mark's power. Will you accept it?",
+  // After Shadow's first encounter — do you embrace the curse for power?
+  10: {
+    after: 11, // after the last shadow line
+    speaker: "system",
+    textJp: "印が脈打っている。力が流れ込んでくる。",
+    text: "The mark is pulsing. Power flows through you.",
     options: [
-      { textJp: "力をくれ。", text: "Give me the power.", flag: "curse_accept_1", effect: { slowMoBonus: 30 } },
-      { textJp: "呪いはいらない。", text: "I don't need your curse.", flag: "curse_resist_1", effect: null },
+      { textJp: "力を受け入れる。", text: "Accept the power.", flag: "curse_accept_1", effect: { slowMoBonus: 30 } },
+      { textJp: "印を抑え込む。", text: "Suppress the mark.", flag: "curse_resist_1", effect: null },
     ],
   },
 };
 
-// Story triggers — which room number triggers story before entering
-// Key = room number, value = room number to look up in ROOM_DIALOGUE
-// Story triggers — only rooms with substantial dialogue get full story screens
-// Single-line player monologues (6, 7, 9, 11, 12) are moved to in-game encounters
+// ═══════════════════════════════════════════════════════
+// STORY TRIGGERS — which rooms get pre-room story screens
+// Only substantial multi-character dialogue gets a story screen.
+// Single thoughts/reactions → in-game encounters (no interruption).
+// ═══════════════════════════════════════════════════════
 export const STORY_TRIGGERS = {
-  0: 0,    // Sensei's training (5 lines)
-  1: 1,    // Jump training (3 lines)
-  2: 2,    // Dash training (3 lines)
-  3: 3,    // Wall training (1 line, but part of tutorial sequence)
-  4: 4,    // Focus training (3 lines)
-  5: 5,    // Forest pursuit begins (3 lines)
-  // 6: moved to encounter
-  // 7: moved to encounter
-  8: 8,    // Rooftop parkour (2 lines)
-  // 9: moved to encounter
-  10: 10,  // Shadow appears (6 lines — major story beat)
-  // 11: moved to encounter
-  // 12: moved to encounter
-  13: 13,  // Gauntlet (3 lines)
-  14: 14,  // Boss room (4 lines)
-  15: 15,  // Act 2 — Temple (5 lines)
-  16: 16,  // Garden (3 lines)
-  17: 17,  // Bell tower — curse (3 lines)
-  18: 18,  // Inner sanctum — reveal (3 lines)
-  19: 19,  // Final boss (5 lines)
+  0: 0,    // Dojo — wake up, first training (5 lines)
+  1: 1,    // Dojo — jump training (4 lines)
+  2: 2,    // Dojo — dash training (4 lines)
+  3: 3,    // Dojo — wall training (5 lines)
+  4: 4,    // Dojo — focus/slow-mo, "don't overuse it" (6 lines)
+  5: 5,    // THE TURN — Sensei sees the mark, forces player to flee (13 lines)
+  // 6: encounter only (fleeing, no time to stop)
+  // 7: encounter only
+  8: 8,    // Brief — player running, scared (2 lines)
+  // 9: encounter only
+  10: 10,  // MAJOR — Shadow's entrance + exposition (13 lines)
+  // 11: encounter only
+  // 12: encounter only
+  13: 13,  // Shadow dialogue — the mark calls pursuers (4 lines)
+  14: 14,  // Shadow's test — gate to the mountain (4 lines)
+  15: 15,  // MAJOR — Elder reveals the Ink Curse (10 lines)
+  16: 16,  // Elder reveals Shadow's identity (7 lines)
+  17: 17,  // Shadow confronts player about removing curse (7 lines)
+  18: 18,  // Elder — the sealing technique + Shadow's love (6 lines)
+  19: 19,  // FINAL — Shadow vs Player, earned confrontation (8 lines)
 };
 
-// Scene visual config — backgrounds, tints, labels per act/location
+// ═══════════════════════════════════════════════════════
+// SCENE VISUAL CONFIG — environment per location
+// ═══════════════════════════════════════════════════════
 export function getSceneConfig(roomIndex) {
   if (roomIndex <= 4) return {
-    bg: 'linear-gradient(180deg, #2a1f10 0%, #1a1208 40%, #0e0a04 100%)',
-    label: '回想', labelEn: 'FLASHBACK',
-    filter: 'sepia(0.35) brightness(0.85)',
-    particles: 'dust', // warm floating dust motes
+    bg: 'linear-gradient(180deg, #1a1510 0%, #14100c 40%, #0e0a06 100%)',
+    label: '道場', labelEn: 'THE DOJO',
+    filter: null, // no filter — this is happening NOW
+    particles: 'dust',
+  };
+  if (roomIndex === 5) return {
+    bg: 'linear-gradient(180deg, #1a0808 0%, #140606 40%, #0a0404 100%)',
+    label: '転機', labelEn: 'THE TURNING POINT',
+    filter: null,
+    particles: 'embers', // tension, fire nearby
   };
   if (roomIndex <= 9) return {
     bg: 'linear-gradient(180deg, #081a12 0%, #061210 40%, #040a08 100%)',
-    label: '森', labelEn: 'FOREST',
+    label: '森', labelEn: 'THE FOREST',
     filter: null,
     particles: 'leaves',
   };
   if (roomIndex <= 14) return {
     bg: 'linear-gradient(180deg, #1a0a1a 0%, #140818 40%, #0a0410 100%)',
-    label: '闇', labelEn: 'CONFRONTATION',
+    label: '闇路', labelEn: 'THE DARK PATH',
     filter: null,
     particles: 'embers',
   };
   return {
     bg: 'linear-gradient(180deg, #1a1508 0%, #161008 40%, #0c0a06 100%)',
-    label: '寺院', labelEn: 'TEMPLE GARDENS',
+    label: '山寺', labelEn: 'THE MOUNTAIN TEMPLE',
     filter: null,
     particles: 'petals',
   };
@@ -230,10 +322,7 @@ export function getDefaultChoices() {
   return {
     curse_accept_1: false,
     curse_accept_2: false,
-    curse_accept_3: false,
-    spare_warlord: false,
-    spare_tengu: false,
-    helped_villager: false,
-    helped_elder: false,
+    curse_resist_1: false,
+    curse_resist_2: false,
   };
 }

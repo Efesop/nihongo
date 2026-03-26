@@ -13,12 +13,13 @@
 
 export const ROOMS = [
   // ════════════════════════════════════════════════════
-  // ACT 1: FOREST — Tutorial Rooms (0-4)
+  // PROLOGUE: THE DOJO — Tutorial Rooms (0-4)
+  // Training with Sensei. The tutorial IS the story.
   // ════════════════════════════════════════════════════
 
-  // ── Room 0: "初陣 First Battle" — learn MOVE + SLASH ──
+  // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
   {
-    title: { jp: "初陣", en: "First Battle" },
+    title: { jp: "修行", en: "Training" },
     platforms: [
       { x: 0, y: 0, w: 1200 },
     ],
@@ -121,12 +122,14 @@ export const ROOMS = [
   },
 
   // ════════════════════════════════════════════════════
-  // ACT 1: FOREST — Combat Rooms (5-14)
+  // ACT 1: THE FOREST — Fleeing from the dojo (5-14)
+  // The player has been forced out. They're being hunted.
   // ════════════════════════════════════════════════════
 
-  // ── Room 5: Run and slash — first real combat room ──
+  // ── Room 5: The flight begins — breakables placed NEXT TO enemies ──
+  // The player should discover: "Wait, the debris killed that guy!"
   {
-    title: { jp: "疾風", en: "Swift Wind" },
+    title: { jp: "逃走", en: "Flight" },
     platforms: [
       { x: 0, y: 0, w: 2000 },
     ],
@@ -139,9 +142,14 @@ export const ROOMS = [
     playerStart: 80,
     deco: [{ type: "torii", x: 400 }, { type: "lantern", x: 800 }, { type: "lantern", x: 1300 }],
     breakables: [
-      { type: "crate", x: 600, y: 0, w: 40, h: 40 },
-      { type: "pot", x: 1100, y: 0, w: 25, h: 30 },
-      { type: "crate", x: 1550, y: 0, w: 40, h: 40 },
+      // Crate RIGHT BEFORE first oni — slash sends debris into him
+      { type: "crate", x: 460, y: 0, w: 40, h: 40 },
+      // Lantern near second oni — fire burst incinerates him
+      { type: "lantern", x: 870, y: 0, w: 28, h: 36 },
+      // Crate right before third oni
+      { type: "crate", x: 1360, y: 0, w: 40, h: 40 },
+      // Pot further back for bonus points
+      { type: "pot", x: 1650, y: 0, w: 25, h: 30 },
     ],
   },
 
@@ -167,9 +175,13 @@ export const ROOMS = [
     playerStart: 60,
     deco: [{ type: "lantern", x: 200 }, { type: "torii", x: 1400 }],
     breakables: [
-      { type: "lantern", x: 440, y: -70, w: 28, h: 36 },
-      { type: "pot", x: 760, y: -140, w: 25, h: 30 },
-      { type: "crate", x: 1350, y: 0, w: 40, h: 40 },
+      // Lantern next to oni on first platform — fire burst kills him
+      { type: "lantern", x: 465, y: -70, w: 28, h: 36 },
+      // Crate next to ninja up high — slash sends debris down
+      { type: "crate", x: 770, y: -140, w: 35, h: 35 },
+      // Lantern between two ground onis
+      { type: "lantern", x: 1420, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 1010, y: -70, w: 25, h: 30 },
     ],
   },
 

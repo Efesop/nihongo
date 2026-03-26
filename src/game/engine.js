@@ -44,6 +44,7 @@ export function loadRoom(g, roomIndex) {
   g.projectiles = [];
   g.floatingTexts = [];
   g.embers = [];
+  g.debris = [];
   g.camera.x = 0;
   g.camera.shakeTimer = 0;
   g.camera.shakeX = 0;
@@ -678,6 +679,7 @@ export function update(g, callbacks) {
   }
 
   // ── Breakable objects — slash, dash, or ground-pound to destroy ──
+  // When broken, spawn DEBRIS with physics that can kill enemies on impact.
   if (g.breakables) {
     for (const br of g.breakables) {
       if (br.broken) continue;
@@ -702,28 +704,58 @@ export function update(g, callbacks) {
         br.hp--;
         if (br.hp <= 0) {
           br.broken = true;
-          g.camera.shakeTimer = 60;
+          g.camera.shakeTimer = 80;
+          g.hitStop = Math.max(g.hitStop, 30); // brief hitstop for impact feel
+          const hitDir = dashHit ? p.facing : (p.x < bx + bw / 2 ? 1 : -1);
           g.score = (g.score || 0) + (br.type === "lantern" ? 50 : 25);
           g.floatingTexts.push({
             x: bx + bw / 2, y: by, text: br.type === "lantern" ? "+50" : "+25",
             color: "#ffcc44", life: 600, maxLife: 600,
           });
 
-          // Type-specific destruction effects
-          if (br.type === "crate") {
-            playSound("land", { volume: 0.5, playbackRate: 1.8 });
-            for (let i = 0; i < 10; i++) {
-              g.particles.push({
-                x: bx + rnd(0, bw), y: by + rnd(0, bh),
-                vx: rnd(-200, 200), vy: rnd(-300, -50),
-                life: 600, maxLife: 600,
-                color: ["#8b6840", "#6b4830", "#c4a060", "#a08040"][i % 4],
-                size: rnd(2, 5),
-              });
-            }
-          } else if (br.type === "lantern") {
+          // ── DEBRIS PHYSICS: spawn debris chunks that fly, have gravity, and kill enemies ──
+          if (!g.debris) g.debris = [];
+          const debrisConfig = {
+            crate:  { count: 5, colors: ["#8b6840", "#6b4830", "#c4a060", "#a08040"], size: [4, 8], speed: 350, killText: "CRUSHED!" },
+            lantern: { count: 4, colors: ["#ff4422", "#ffaa30", "#ffdd40", "#ff6633"], size: [3, 6], speed: 280, killText: "INCINERATED!", fire: true },
+            pot:    { count: 4, colors: ["#aa8866", "#887766", "#ccaa88"], size: [3, 7], speed: 320, killText: "SHATTERED!" },
+            bamboo: { count: 3, colors: ["#4a6a3a", "#3a5a2a", "#6a8a5a"], size: [3, 6], speed: 250, killText: "IMPALED!" },
+          };
+          const dc = debrisConfig[br.type] || debrisConfig.crate;
+
+          // Spawn debris chunks — these have physics and can hit enemies
+          for (let i = 0; i < dc.count; i++) {
+            const spread = gpHit ? rnd(-1, 1) : (hitDir + rnd(-0.3, 0.3));
+            g.debris.push({
+              x: bx + rnd(0, bw), y: by + rnd(0, bh),
+              vx: spread * rnd(dc.speed * 0.5, dc.speed),
+              vy: rnd(-dc.speed, -dc.speed * 0.3),
+              size: rnd(dc.size[0], dc.size[1]),
+              color: dc.colors[i % dc.colors.length],
+              life: 800, maxLife: 800,
+              damage: true, // can kill enemies
+              killText: dc.killText,
+              fire: dc.fire || false,
+              rotation: rnd(0, Math.PI * 2),
+              rotSpeed: rnd(-12, 12),
+            });
+          }
+
+          // Also spawn small visual-only particles (sparks, dust)
+          for (let i = 0; i < 8; i++) {
+            g.particles.push({
+              x: bx + rnd(0, bw), y: by + rnd(0, bh),
+              vx: hitDir * rnd(50, 200) + rnd(-100, 100), vy: rnd(-250, -30),
+              life: 400, maxLife: 400,
+              color: dc.colors[i % dc.colors.length],
+              size: rnd(1, 3),
+            });
+          }
+
+          // Type-specific sounds
+          if (br.type === "lantern") {
             playSound("dash", { volume: 0.4, playbackRate: 0.8 });
-            // Fire burst — damages nearby enemies!
+            // Lantern fire burst — immediate area damage (100px radius)
             for (const e of g.enemies) {
               if (e.dead) continue;
               const dist = Math.hypot(e.x - (bx + bw / 2), e.y - by);
@@ -735,38 +767,58 @@ export function update(g, callbacks) {
                 });
               }
             }
-            // Fire particles
-            for (let i = 0; i < 16; i++) {
+          } else {
+            playSound("land", { volume: 0.5, playbackRate: br.type === "pot" ? 2.2 : 1.8 });
+          }
+        }
+      }
+    }
+  }
+
+  // ── DEBRIS PHYSICS UPDATE — flying chunks with gravity + enemy collision ──
+  if (g.debris) {
+    for (let i = g.debris.length - 1; i >= 0; i--) {
+      const d = g.debris[i];
+      d.x += d.vx * dt;
+      d.y += d.vy * dt;
+      d.vy += 800 * dt; // gravity
+      d.life -= rawDt * 1000;
+      d.rotation += d.rotSpeed * dt;
+      d.vx *= 0.98; // air resistance
+
+      // Kill debris that's off-screen or expired
+      if (d.life <= 0 || d.y > g.H + 50) {
+        g.debris.splice(i, 1);
+        continue;
+      }
+
+      // ── Debris → Enemy collision — the real payoff ──
+      if (d.damage) {
+        for (const e of g.enemies) {
+          if (e.dead) continue;
+          const ex = e.x, ey = e.y;
+          const ew = 30, eh = 50;
+          if (d.x > ex - ew && d.x < ex + ew && d.y > ey - eh && d.y < ey + 10) {
+            // DEBRIS KILL!
+            killEnemy(g, e, p, callbacks);
+            g.floatingTexts.push({
+              x: e.x, y: e.y - 30, text: d.killText || "DEBRIS!",
+              color: d.fire ? "#ff6644" : "#ffaa44", life: 1000, maxLife: 1000,
+            });
+            g.camera.shakeTimer = 100;
+            g.hitStop = Math.max(g.hitStop, 50); // satisfying freeze on debris kill
+            // Debris shatters on impact — spawn secondary particles
+            for (let j = 0; j < 4; j++) {
               g.particles.push({
-                x: bx + bw / 2 + rnd(-15, 15), y: by + bh / 2,
-                vx: rnd(-180, 180), vy: rnd(-350, -80),
-                life: 500, maxLife: 500,
-                color: ["#ff4422", "#ffaa30", "#ffdd40", "#ff6633"][i % 4],
-                size: rnd(2, 5),
+                x: d.x, y: d.y,
+                vx: rnd(-150, 150), vy: rnd(-200, -50),
+                life: 300, maxLife: 300, color: d.color, size: rnd(1, 3),
               });
             }
-          } else if (br.type === "pot") {
-            playSound("land", { volume: 0.4, playbackRate: 2.2 });
-            for (let i = 0; i < 8; i++) {
-              g.particles.push({
-                x: bx + rnd(0, bw), y: by + rnd(0, bh),
-                vx: rnd(-250, 250), vy: rnd(-280, -40),
-                life: 500, maxLife: 500,
-                color: ["#aa8866", "#887766", "#ccaa88"][i % 3],
-                size: rnd(1.5, 4),
-              });
-            }
-          } else if (br.type === "bamboo") {
-            playSound("wall_grab", { volume: 0.3 });
-            for (let i = 0; i < 6; i++) {
-              g.particles.push({
-                x: bx + rnd(0, bw), y: by + rnd(0, bh),
-                vx: rnd(-120, 120), vy: rnd(-200, -30),
-                life: 400, maxLife: 400,
-                color: ["#4a6a3a", "#3a5a2a", "#6a8a5a"][i % 3],
-                size: rnd(2, 4),
-              });
-            }
+            d.damage = false; // each chunk only kills one enemy
+            d.vx *= 0.3;
+            d.vy *= 0.3;
+            break;
           }
         }
       }
