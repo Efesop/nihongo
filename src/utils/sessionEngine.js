@@ -263,25 +263,23 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // Start with 1-2 easy wins (due items the user probably knows)
   shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 2).forEach(ch => addKana(ch));
 
-  // Add due items (mixed kana + phrases)
-  shuffle(dueKana).slice(0, 6).forEach(ch => addKana(ch));
-  shuffle(duePhrases).slice(0, 4).forEach(p => addPhrase(p));
+  // Add due items (mixed kana + phrases) — cap to leave room for variety
+  shuffle(dueKana).slice(0, 4).forEach(ch => addKana(ch));
+  shuffle(duePhrases).slice(0, 3).forEach(p => addPhrase(p));
 
   // Add struggling items (only ones not already added)
   shuffle(strugglingKana).slice(0, 3).forEach(ch => addKana(ch));
   shuffle(strugglingPhrases).slice(0, 2).forEach(p => addPhrase(p));
 
-  // Recently learned — reinforce within 24 hours even if not SRS-due yet
-  shuffle(recentKana).slice(0, 2).forEach(ch => addKana(ch));
-  shuffle(recentPhrases).slice(0, 2).forEach(p => addPhrase(p));
+  // Recently learned — max 1 each to avoid repetition across sessions
+  shuffle(recentKana).slice(0, 1).forEach(ch => addKana(ch));
+  shuffle(recentPhrases).slice(0, 1).forEach(p => addPhrase(p));
 
-  // ALWAYS include some kana — even if none are due, add maintenance review
-  // (keeps kana sharp between SRS intervals)
-  const kanaInQueue = queue.filter(q => q.type?.startsWith("kana-") || q.type === "learn-card").length;
+  // Maintenance kana — only if very few kana in queue AND pick from HIGH box items (not recently learned)
+  const kanaInQueue = queue.filter(q => q.type?.startsWith("kana-") || q.type === "learn-card" || q.type === "try-first-kana").length;
   if (kanaInQueue < 2) {
-    // Pick random known kana for maintenance practice (not due but learned)
-    const knownKana = shuffle(ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1 && !usedKana.has(ch)));
-    knownKana.slice(0, 3 - kanaInQueue).forEach(ch => addKana(ch));
+    const maintenanceKana = shuffle(ALL_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 3 && !usedKana.has(ch)));
+    maintenanceKana.slice(0, 2 - kanaInQueue).forEach(ch => addKana(ch));
   }
 
   // Productive failure: quiz FIRST on unseen items, then reveal learn card
@@ -331,12 +329,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     } else break;
   }
 
-  // ═══ SPECIAL EXERCISE TYPES ═══
+  // ═══ GUARANTEED SPECIAL EXERCISES (variety in every session) ═══
   const phrasesLearned = Object.keys(phrData).length;
 
-  // Confused pairs (after 20+ kana, 1 per session, 40% chance)
-  if (kanaLearned >= 20 && queue.length < sessionLength && Math.random() < 0.4) {
-    // Pick pairs where user knows both characters
+  // Confused pairs — ALWAYS include 1 if eligible (not random)
+  if (kanaLearned >= 20 && queue.length < sessionLength) {
     const eligible = CONFUSED_PAIRS.filter(pair =>
       pair.chars.every(ch => kanaData[ch]?.box >= 1)
     );
@@ -346,8 +343,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
-  // Grammar pattern exercise (after unlocked, 1 per session, 30% chance)
-  if (phrasesLearned >= 5 && queue.length < sessionLength && Math.random() < 0.3) {
+  // Grammar pattern — ALWAYS include 1 if unlocked
+  if (phrasesLearned >= 5 && queue.length < sessionLength) {
     const unlocked = getUnlockedPatterns(phrData, PHRASES);
     if (unlocked.length > 0) {
       const gp = unlocked[Math.floor(Math.random() * unlocked.length)];
@@ -355,7 +352,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
-  // Reverse exercise — production practice (box 2+ items, 1 per session)
+  // Reverse/production — ALWAYS include 1 if eligible
   if (queue.length < sessionLength) {
     const productionPhrases = PHRASES.filter(p => (phrData[p[0]]?.box || 0) >= 2 && !usedPhrases.has(p[0]));
     if (productionPhrases.length > 0) {

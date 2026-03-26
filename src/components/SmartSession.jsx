@@ -496,7 +496,7 @@ export default function SmartSession({
           setFb(ok ? "ok" : "no");
           setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
           updateKanaSRS(ex.item, ok);
-          setTimeout(() => advance(ok), ok ? 1500 : 2500);
+          setTimeout(() => advance(ok), ok ? 2500 : 3000);
         }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + c.b, background: c.s, color: c.tx, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
           {ch}
         </button>)}
@@ -1136,7 +1136,7 @@ export default function SmartSession({
               setFb(ok ? "ok" : "no");
               setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
               updateKanaSRS(targetChar, ok);
-              setTimeout(() => advance(ok), ok ? 1500 : 3000);
+              setTimeout(() => advance(ok), ok ? 2500 : 3500);
             }} style={{ ...btn, width: 120, height: 120, borderRadius: 16, border: "2px solid " + border, background: bg, fontSize: 56, color: col, transition: "all .2s" }}>
               {ch}
             </button>;
@@ -1206,7 +1206,7 @@ export default function SmartSession({
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             updateKanaSRS(ex.item, ok);
-            setTimeout(() => advance(ok), ok ? 1500 : 2500);
+            setTimeout(() => advance(ok), ok ? 2500 : 3000);
           }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: answered ? bg : c.s, color: answered ? col : c.tx, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
             {ch}
           </button>;
@@ -1263,12 +1263,13 @@ export default function SmartSession({
       const ok = input.trim().toLowerCase() === ex.romaji;
       setFb(ok ? "ok" : "no");
       // Don't update SRS here — the learn card after will handle it
-      setTimeout(() => advance(true), ok ? 1500 : 2500);
+      setTimeout(() => advance(true), ok ? 2500 : 3000);
     };
     return withSenpai(<>
       <div style={{ ...card, textAlign: "center", padding: "28px 20px", marginBottom: 14, background: fb === "ok" ? "#4caf5012" : fb === "no" ? c.rs : c.s }}>
         <div style={{ fontSize: 11, fontFamily: mono, color: c.a, textTransform: "uppercase", marginBottom: 8 }}>Try first — what sound does this make?</div>
         <div style={{ fontSize: isDesktop ? 120 : 90, lineHeight: 1, marginBottom: 12 }}>{ex.item}</div>
+        <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "6px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m, marginBottom: 8 }}>🔊 hear it</button>
         {fb && <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: 24, fontWeight: 700, fontFamily: mono, color: fb === "ok" ? "#4caf50" : c.a }}>{ex.romaji}</div>
           <div style={{ fontSize: 13, color: c.m, marginTop: 4 }}>{fb === "ok" ? "You already knew this!" : "No worries — you'll learn it next"}</div>
