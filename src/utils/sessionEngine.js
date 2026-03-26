@@ -82,36 +82,39 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const frequentErrorKana = ALL_KANA.filter(ch => (errors[ch] || 0) >= 3 && kanaData[ch]);
   const frequentErrorPhrases = PHRASES.filter(p => (errors[p[0]] || 0) >= 3 && phrData[p[0]]);
 
-  // 1. Due for review (highest priority) — includes dakuten & yōon
+  // 1. Due for review — include ALL items past their due date (even box 0)
+  // Box 0 items were getting stuck invisible — they exist in data but the old
+  // filter (box >= 1) excluded them, making them neither "due" nor "unseen"
   const dueKana = ALL_KANA.filter(ch => {
     const d = kanaData[ch];
-    return d && d.box >= 1 && now >= (d.next || 0);
+    return d && now >= (d.next || 0);
   });
 
   const duePhrases = PHRASES.filter(p => {
     const d = phrData[p[0]];
-    return d && d.box >= 1 && now >= (d.next || 0);
+    return d && now >= (d.next || 0);
   });
 
-  // 2. Struggling (box 1-2 AND due — don't repeat items just answered)
+  // 2. Struggling (box 0-2 AND due)
   const strugglingKana = ALL_KANA.filter(ch => {
     const d = kanaData[ch];
-    return d && d.box >= 1 && d.box <= 2 && now >= (d.next || 0);
+    return d && d.box <= 2 && now >= (d.next || 0);
   });
 
   const strugglingPhrases = PHRASES.filter(p => {
     const d = phrData[p[0]];
-    return d && d.box >= 1 && d.box <= 2 && now >= (d.next || 0);
+    return d && d.box <= 2 && now >= (d.next || 0);
   });
 
-  // 2b. Recently learned (last 24h, box 0-1) — reinforce even if not SRS-due
+  // 2b. Recently learned (last 2 hours, box 0-1) — same-session reinforcement only
+  // Was 24h which caused cross-session repetition of the same items
   const recentKana = ALL_KANA.filter(ch => {
     const d = kanaData[ch];
-    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 86400000;
+    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 7200000 && now < (d.next || 0);
   });
   const recentPhrases = PHRASES.filter(p => {
     const d = phrData[p[0]];
-    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 86400000;
+    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 7200000 && now < (p.next || 0);
   });
 
   // How much kana does the user know? (needed for unseen filtering + beginner check)

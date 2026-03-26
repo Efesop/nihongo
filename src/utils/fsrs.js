@@ -121,7 +121,9 @@ export function fsrsUpdate(itemData, correct, responseTime = null) {
  * Maps stability to approximate box level (0-5)
  */
 export function stabilityToBox(stability) {
-  if (stability < 0.5) return 0;
+  // Minimum box 1 for any reviewed item — box 0 is reserved for truly unseen
+  // items. Returning 0 here caused items to become invisible to the due filter.
+  if (stability < 0.5) return 1;
   if (stability < 1.5) return 1;
   if (stability < 4) return 2;
   if (stability < 10) return 3;
