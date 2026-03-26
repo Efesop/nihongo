@@ -274,6 +274,22 @@ export function startMusic() {
   _startAmbientNow();
 }
 
+// Start music with a gradual fade-in (avoids jarring blast after story screens)
+export function startMusicFadeIn(fadeSecs = 1.5) {
+  _wantsMusic = true;
+  if (_musicGain && _ctx) {
+    _musicGain.gain.setValueAtTime(0, _ctx.currentTime);
+    _startMusicNow();
+    _startAmbientNow();
+    try {
+      _musicGain.gain.linearRampToValueAtTime(_muted ? 0 : _musicVolume, _ctx.currentTime + fadeSecs);
+    } catch { /* fallback: already started */ }
+  } else {
+    _startMusicNow();
+    _startAmbientNow();
+  }
+}
+
 export function stopMusic() {
   _wantsMusic = false;
   try { _musicSource?.stop(); } catch { /* */ }
@@ -310,20 +326,21 @@ export function isMuted() {
   return _muted;
 }
 
-// ═══ VOICE BLIPS (Undertale-style character mumble voices) ═══
+// ═══ VOICE BLIPS (Undertale/Animal Crossing style character mumble voices) ═══
+// Each character has a distinct pitch range and waveform for personality
 const VOICE_CONFIG = {
-  sensei:  { freq: 175, type: 'sine',     dur: 0.065, vol: 0.07 },
-  player:  { freq: 310, type: 'square',   dur: 0.04,  vol: 0.05 },
-  shadow:  { freq: 115, type: 'sawtooth', dur: 0.075, vol: 0.06 },
-  elder:   { freq: 360, type: 'sine',     dur: 0.05,  vol: 0.05 },
-  system:  { freq: 480, type: 'sine',     dur: 0.03,  vol: 0.03 },
+  sensei:  { freqBase: 165, freqRange: 40, type: 'sine',     dur: 0.075, vol: 0.18, detune: 5 },   // deep, warm
+  player:  { freqBase: 290, freqRange: 60, type: 'square',   dur: 0.05,  vol: 0.14, detune: 8 },   // bright, youthful
+  shadow:  { freqBase: 110, freqRange: 30, type: 'sawtooth', dur: 0.085, vol: 0.16, detune: 12 },  // dark, menacing
+  elder:   { freqBase: 200, freqRange: 35, type: 'triangle', dur: 0.06,  vol: 0.15, detune: 4 },   // calm, wise
+  system:  { freqBase: 440, freqRange: 20, type: 'sine',     dur: 0.035, vol: 0.08, detune: 0 },   // neutral beep
 };
 let _lastBlipTime = 0;
 
 export function playVoiceBlip(speaker) {
   if (_muted || !_ctx || !_masterGain) return;
   const now = _ctx.currentTime;
-  if (now - _lastBlipTime < 0.025) return; // rate-limit
+  if (now - _lastBlipTime < 0.03) return; // rate-limit
   _lastBlipTime = now;
   const v = VOICE_CONFIG[speaker] || VOICE_CONFIG.system;
   try {
@@ -331,8 +348,13 @@ export function playVoiceBlip(speaker) {
     const osc = _ctx.createOscillator();
     const gain = _ctx.createGain();
     osc.type = v.type;
-    osc.frequency.value = v.freq + (Math.random() - 0.5) * 50;
-    gain.gain.value = v.vol;
+    // Randomize pitch within character's range for natural mumbling
+    osc.frequency.value = v.freqBase + (Math.random() - 0.5) * v.freqRange;
+    osc.detune.value = (Math.random() - 0.5) * v.detune;
+    // Attack → sustain → decay envelope
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(v.vol, now + 0.005); // 5ms attack
+    gain.gain.setValueAtTime(v.vol, now + v.dur * 0.4);
     gain.gain.exponentialRampToValueAtTime(0.001, now + v.dur);
     osc.connect(gain);
     gain.connect(_masterGain);

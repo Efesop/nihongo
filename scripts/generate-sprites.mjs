@@ -18,7 +18,7 @@ mkdirSync(OUT, { recursive: true });
 const API_KEY = process.env.GEMINI_API_KEY;
 if (!API_KEY) { console.error('Set GEMINI_API_KEY env var'); process.exit(1); }
 
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${API_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent`;
 
 // ═══ SPRITE DEFINITIONS ═══
 // Each sprite: [filename, description]
@@ -85,7 +85,7 @@ async function generateSprite(name, prompt) {
   try {
     const res = await fetch(GEMINI_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': API_KEY },
       body: JSON.stringify({
         contents: [{
           parts: [{
@@ -93,8 +93,7 @@ async function generateSprite(name, prompt) {
           }]
         }],
         generationConfig: {
-          responseModalities: ["IMAGE", "TEXT"],
-          imageMimeType: "image/png",
+          responseModalities: ["TEXT", "IMAGE"],
         },
       }),
     });

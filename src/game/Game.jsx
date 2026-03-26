@@ -6,7 +6,7 @@ import { makePlayer, makeEnemy } from "./entities.js";
 import { update, loadRoom, loadSave, deleteSave } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
-import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, stopMusic, isAudioReady, playVoiceBlip } from "./audio.js";
+import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, startMusicFadeIn, stopMusic, isAudioReady, playVoiceBlip } from "./audio.js";
 import { CHARACTERS, ROOM_DIALOGUE, ROOM_ENCOUNTERS, STORY_TRIGGERS, getDefaultChoices, getSceneConfig } from "./story.js";
 
 export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
@@ -14,6 +14,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const gameRef = useRef(null);
   const rafRef = useRef(null);
   const startRoomRef = useRef(0); // which room to start from (for continue)
+  const resumeFromStoryRef = useRef(false); // survives StrictMode double-mount
   const [screen, setScreen] = useState("menu");
   const [hasSave, setHasSave] = useState(() => !!loadSave());
   const [storyLines, setStoryLines] = useState([]);
@@ -117,9 +118,10 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     window.addEventListener("resize", resize);
 
     // Reuse existing game state when returning from mid-game story
+    // Uses ref (not game state flag) to survive React StrictMode double-mount
     let g = gameRef.current;
-    if (g && g._resumeFromStory) {
-      g._resumeFromStory = false;
+    if (g && resumeFromStoryRef.current) {
+      resumeFromStoryRef.current = false;
       g.time.last = performance.now();
       // Re-sync canvas size
       g.W = canvas.parentElement?.clientWidth || canvas.clientWidth;
@@ -134,8 +136,8 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     const cleanupKeys = setupKeyboard(gameRef, setScreen);
     const cleanupTouch = setupTouch(canvas, gameRef);
 
-    // Start combat music + ambient when gameplay begins
-    startMusic();
+    // Fade combat music in gradually (not jarring after story screens)
+    startMusicFadeIn(1.5);
 
     const callbacks = { setScore, setMaxCombo, setScreen, isDesktop, SIDEBAR_W, highScore, setHighScore };
 
@@ -155,6 +157,11 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       window.removeEventListener("resize", resize);
     };
   }, [screen, initGame, isDesktop, SIDEBAR_W, highScore]);
+
+  // Stop combat music when story screen appears (should be quiet/ambient)
+  useEffect(() => {
+    if (screen === "story") stopMusic();
+  }, [screen]);
 
   // Load story from engine trigger (mid-game story between acts)
   useEffect(() => {
@@ -184,9 +191,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     }
     setTypingDone(false);
     typingRef.current = setTimeout(() => {
-      // Play voice blip on non-space characters (every other char for less noise)
+      // Play voice blip on every non-punctuation character for Undertale-style mumbling
       const ch = fullText[typedChars];
-      if (ch && ch !== ' ' && ch !== '.' && ch !== ',' && ch !== '…' && typedChars % 2 === 0) {
+      if (ch && ch !== ' ' && ch !== '.' && ch !== ',' && ch !== '…' && ch !== '!' && ch !== '?') {
         playVoiceBlip(line.speaker);
       }
       setTypedChars(c => c + 1);
@@ -221,7 +228,8 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       waited += 100;
     }
     playSound("menuStart");
-    // Don't start combat music here — start when gameplay actually begins
+    // Stop any combat music — story screens should be quiet/ambient
+    stopMusic();
     setScore(0);
     setMaxCombo(0);
     // Check if there's a story trigger for this room
@@ -320,7 +328,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
         if (g && g._pendingRoom !== null && g._pendingRoom !== undefined) {
           loadRoom(g, g._pendingRoom);
           g._pendingRoom = null;
-          g._resumeFromStory = true;
+          resumeFromStoryRef.current = true; // ref survives StrictMode double-mount
           g.time.last = performance.now();
         }
         setScreen("playing");
@@ -331,79 +339,165 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       }
     };
     const isSystem = line.speaker === "system";
-    const portraitKanji = char.name?.[0] || "";
+
+    // ── Derive characters in scene — player LEFT, others RIGHT ──
+    const sceneSpeakers = [...new Set(storyLines.map(l => l.speaker).filter(s => s !== "system"))];
+    const leftChar = sceneSpeakers.includes("player") ? "player" : null;
+    const rightChar = sceneSpeakers.find(s => s !== "player") || null;
+    const leftInfo = leftChar ? CHARACTERS[leftChar] : null;
+    const rightInfo = rightChar ? CHARACTERS[rightChar] : null;
+    const activeSide = line.speaker === "player" ? "left" : (line.speaker !== "system" ? "right" : null);
+
+    // Character sprite renderer
+    const CharSprite = ({ side, charKey, charInfo, isActive }) => {
+      if (!charInfo) return null;
+      const kanji = charInfo.name?.[0] || "?";
+      const sideStyle = side === "left"
+        ? { left: isDesktop ? 40 : 16, alignItems: "flex-start" }
+        : { right: isDesktop ? 40 : 16, alignItems: "flex-end" };
+      return (
+        <div style={{
+          position: "absolute", bottom: isDesktop ? 180 : 160, ...sideStyle,
+          display: "flex", flexDirection: "column", gap: 6,
+          transition: "all 0.4s ease",
+          opacity: isActive ? 1 : 0.3,
+          filter: isActive ? "none" : "brightness(0.4) grayscale(0.6)",
+          transform: isActive ? "scale(1) translateY(0)" : "scale(0.92) translateY(8px)",
+          zIndex: isActive ? 5 : 4,
+        }}>
+          {/* Character sprite image (pixel art portrait) */}
+          <div style={{
+            width: isDesktop ? 140 : 100, height: isDesktop ? 140 : 100,
+            position: "relative",
+            imageRendering: "pixelated",
+          }}>
+            <img
+              src={`/images/tinysenpai/game/portrait_${charKey}.png`}
+              alt=""
+              style={{
+                width: "100%", height: "100%", objectFit: "contain",
+                imageRendering: "pixelated",
+                filter: isActive ? `drop-shadow(0 0 16px ${charInfo.color}80)` : "none",
+              }}
+              onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+            />
+            {/* Fallback: large kanji in a styled container */}
+            <div style={{
+              display: "none", width: "100%", height: "100%",
+              alignItems: "center", justifyContent: "center",
+              background: `radial-gradient(circle, ${charInfo.color}15 0%, transparent 70%)`,
+              border: `2px solid ${charInfo.color}${isActive ? "50" : "20"}`,
+              borderRadius: 12,
+            }}>
+              <span style={{
+                fontSize: isDesktop ? 64 : 48, color: charInfo.color,
+                filter: isActive ? `drop-shadow(0 0 12px ${charInfo.color})` : "none",
+                fontFamily: uiFont,
+              }}>{kanji}</span>
+            </div>
+          </div>
+          {/* Name plate below sprite */}
+          <div style={{
+            textAlign: side === "left" ? "left" : "right",
+            opacity: isActive ? 1 : 0.5,
+          }}>
+            <div style={{ fontSize: 13, fontFamily: uiFont, fontWeight: 700, color: charInfo.color, letterSpacing: ".06em" }}>
+              {charInfo.name}
+            </div>
+            <div style={{ fontSize: 9, fontFamily: font, color: charInfo.color + "66", letterSpacing: ".08em" }}>
+              {charInfo.nameEn}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     return (
       <div style={{ ...overlay, background: scene.bg, cursor: "pointer", justifyContent: "flex-end" }} onClick={advanceStory}>
         <style>{cssFx}{`
-          @keyframes portraitPulse{0%{box-shadow:0 0 20px ${char.color}30}50%{box-shadow:0 0 35px ${char.color}50}100%{box-shadow:0 0 20px ${char.color}30}}
-          @keyframes dustFloat{0%{transform:translateY(0) translateX(0);opacity:0.3}50%{opacity:0.6}100%{transform:translateY(-60px) translateX(20px);opacity:0}}
+          @keyframes charBreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+          @keyframes dustDrift{0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:0.4}90%{opacity:0.3}100%{transform:translateY(-80px) translateX(30px);opacity:0}}
+          @keyframes leafFall{0%{transform:translateY(-20px) rotate(0deg);opacity:0}10%{opacity:0.5}100%{transform:translateY(60px) rotate(180deg);opacity:0}}
+          @keyframes emberRise{0%{transform:translateY(0) scale(1);opacity:0.7}100%{transform:translateY(-100px) scale(0.3);opacity:0}}
         `}</style>
+
+        {/* ── Scene background layers ── */}
         {/* Scanline overlay */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite", zIndex: 3 }} />
-        {/* Vignette effect */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)", pointerEvents: "none", zIndex: 2 }} />
-        {/* Scene filter overlay (sepia for flashbacks) */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px)", pointerEvents: "none", animation: "scanmove 8s linear infinite", zIndex: 6 }} />
+        {/* Vignette */}
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%)", pointerEvents: "none", zIndex: 3 }} />
+        {/* Scene filter (sepia for flashbacks) */}
         {scene.filter && <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backdropFilter: scene.filter, WebkitBackdropFilter: scene.filter, pointerEvents: "none", zIndex: 1 }} />}
 
-        {/* Upper area — scene label + character portrait */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, position: "relative", zIndex: 4 }}>
-          {/* Scene label */}
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 28, color: "rgba(255,255,255,0.08)", fontFamily: uiFont, letterSpacing: ".3em" }}>
-              {scene.label}
-            </div>
-            <div style={{ fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.15)", letterSpacing: ".2em", marginTop: 2 }}>
-              {scene.labelEn}
-            </div>
-          </div>
+        {/* ── Atmospheric particles ── */}
+        {Array.from({ length: 12 }).map((_, i) => {
+          const pType = scene.particles || "dust";
+          const anim = pType === "leaves" ? "leafFall" : pType === "embers" ? "emberRise" : "dustDrift";
+          const colors = { dust: "#aa9966", leaves: "#44aa44", embers: "#ff6622", petals: "#ff88aa" };
+          return (
+            <div key={i} style={{
+              position: "absolute",
+              left: `${8 + Math.random() * 84}%`,
+              top: `${10 + Math.random() * 70}%`,
+              width: pType === "embers" ? 4 : pType === "leaves" ? 8 : 3,
+              height: pType === "leaves" ? 4 : pType === "embers" ? 4 : 3,
+              borderRadius: pType === "leaves" ? "40% 60%" : "50%",
+              background: colors[pType] || colors.dust,
+              opacity: 0,
+              animation: `${anim} ${3 + Math.random() * 4}s ease-in-out ${i * 0.5}s infinite`,
+              pointerEvents: "none", zIndex: 2,
+            }} />
+          );
+        })}
 
-          {/* Character portrait — glowing circle with kanji */}
-          {!isSystem && portraitKanji && (
-            <div style={{
-              width: 88, height: 88, borderRadius: "50%",
-              background: `radial-gradient(circle, ${char.color}18 0%, transparent 70%)`,
-              border: `2px solid ${char.color}40`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              animation: "portraitPulse 3s ease-in-out infinite",
-              position: "relative",
-            }}>
-              {/* Try actual portrait sprite */}
-              <img
-                src={`/images/tinysenpai/game/portrait_${line.speaker}.png`}
-                alt=""
-                style={{ width: 72, height: 72, imageRendering: "pixelated", borderRadius: "50%", position: "absolute" }}
-                onError={(e) => { e.target.style.display = "none"; }}
-              />
-              {/* Fallback: large kanji */}
-              <span style={{ fontSize: 44, color: char.color, filter: `drop-shadow(0 0 12px ${char.color})`, fontFamily: uiFont }}>
-                {portraitKanji}
-              </span>
-            </div>
-          )}
-          {/* Speaker name below portrait */}
-          {!isSystem && char.name && (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 16, fontFamily: uiFont, fontWeight: 700, color: char.color, letterSpacing: ".08em" }}>
-                {char.name}
-              </div>
-              <div style={{ fontSize: 10, fontFamily: font, color: char.color + "88", letterSpacing: ".1em", marginTop: 2 }}>
-                {char.nameEn}
-              </div>
-            </div>
-          )}
-          {/* Progress indicator */}
-          <div style={{ fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.15)", letterSpacing: ".1em" }}>
-            {storyIndex + 1} / {storyLines.length}
+        {/* ── Scene label (watermark-style, centered) ── */}
+        <div style={{
+          position: "absolute", top: isDesktop ? 40 : 24, left: 0, right: 0,
+          textAlign: "center", zIndex: 4, pointerEvents: "none",
+        }}>
+          <div style={{ fontSize: isDesktop ? 36 : 24, color: "rgba(255,255,255,0.06)", fontFamily: uiFont, letterSpacing: ".4em" }}>
+            {scene.label}
+          </div>
+          <div style={{ fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.12)", letterSpacing: ".2em", marginTop: 2 }}>
+            {scene.labelEn}
           </div>
         </div>
 
-        {/* Dialogue box — bottom area */}
+        {/* ── Character sprites — left (player) and right (NPC) ── */}
+        {leftChar && <CharSprite side="left" charKey={leftChar} charInfo={leftInfo} isActive={activeSide === "left"} />}
+        {rightChar && <CharSprite side="right" charKey={rightChar} charInfo={rightInfo} isActive={activeSide === "right"} />}
+
+        {/* ── Ground line (subtle) ── */}
         <div style={{
-          width: "100%", padding: "20px 24px 32px", maxWidth: 640, alignSelf: "center",
-          background: "linear-gradient(to bottom, rgba(8,8,16,0.88), rgba(8,8,16,0.96))",
-          borderTop: `2px solid ${char.color}30`,
-          position: "relative", zIndex: 4,
+          position: "absolute", bottom: isDesktop ? 178 : 158, left: 0, right: 0, height: 1,
+          background: "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.06) 70%, transparent 95%)",
+          zIndex: 3, pointerEvents: "none",
+        }} />
+
+        {/* ── Dialogue box — bottom panel ── */}
+        <div style={{
+          width: "100%", maxWidth: 700, alignSelf: "center",
+          padding: isDesktop ? "18px 28px 28px" : "14px 20px 24px",
+          background: "linear-gradient(to bottom, rgba(6,6,14,0.92), rgba(6,6,14,0.97))",
+          borderTop: `2px solid ${isSystem ? "#888899" : char.color}25`,
+          position: "relative", zIndex: 7,
         }}>
+          {/* Speaker name tag (inline, color-coded) */}
+          {!isSystem && (
+            <div style={{
+              fontSize: 11, fontFamily: font, fontWeight: 700,
+              color: char.color, letterSpacing: ".1em", marginBottom: 6,
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <span style={{ width: 8, height: 2, background: char.color, display: "inline-block" }} />
+              {char.nameEn?.toUpperCase() || char.name}
+              <span style={{ flex: 1, height: 1, background: char.color + "15" }} />
+              <span style={{ fontSize: 9, color: "rgba(255,255,255,0.15)", fontWeight: 400 }}>
+                {storyIndex + 1}/{storyLines.length}
+              </span>
+            </div>
+          )}
+
           {/* System text — centered, italic */}
           {isSystem ? (
             <div style={{
@@ -416,19 +510,19 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
             </div>
           ) : (
             <>
-              {/* Japanese text */}
+              {/* Japanese text (smaller, above) */}
               {line.textJp && (
                 <div style={{
-                  fontSize: 14, fontFamily: uiFont, color: char.color + "88",
-                  lineHeight: 1.6, marginBottom: 6, minHeight: 20,
+                  fontSize: 13, fontFamily: uiFont, color: char.color + "77",
+                  lineHeight: 1.5, marginBottom: 4, minHeight: 18,
                 }}>
                   {typingDone ? line.textJp : line.textJp.slice(0, Math.floor(typedChars * (line.textJp.length / Math.max(1, fullText.length))))}
                 </div>
               )}
-              {/* English text */}
+              {/* English text (main, larger) */}
               <div style={{
-                fontSize: 18, fontFamily: uiFont, color: c.tx,
-                lineHeight: 1.7, minHeight: 40,
+                fontSize: isDesktop ? 18 : 16, fontFamily: uiFont, color: "#e8e6e0",
+                lineHeight: 1.7, minHeight: 36,
               }}>
                 {displayText}
                 {!typingDone && <span style={{ opacity: 0.5, animation: "glitch 1s ease-in-out infinite" }}>▌</span>}
@@ -438,10 +532,10 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
           {/* Advance prompt */}
           {typingDone && (
             <div style={{
-              fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.25)",
-              letterSpacing: ".08em", marginTop: 12, textAlign: "right",
+              fontSize: 10, fontFamily: font, color: "rgba(255,255,255,0.2)",
+              letterSpacing: ".08em", marginTop: 10, textAlign: "right",
             }}>
-              {isLast ? "CLICK TO BEGIN ▶" : "CLICK ▶"}
+              {isLast ? "▶ BEGIN" : "▶"}
             </div>
           )}
         </div>
