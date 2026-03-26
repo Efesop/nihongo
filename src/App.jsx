@@ -314,13 +314,13 @@ function AuthedApp({ user, getToken }){
   };
 
   // ═══ ANSWER LOGGING ═══
-  const logAnswer=(prev,item,correct,type)=>{
-    const log=[...(prev.answerLog||[]),{item,correct,type,ts:Date.now()}];
+  const logAnswer=(prev,item,correct,type,responseMs)=>{
+    const log=[...(prev.answerLog||[]),{item,correct,type,ts:Date.now(),ms:responseMs||0}];
     if(log.length>200)log.splice(0,log.length-200);
     return log;
   };
 
-  const reviewPhr=(id,correct,exerciseType)=>{
+  const reviewPhr=(id,correct,exerciseType,responseMs)=>{
     setD(prev=>{
       const cur=prev.phr[id]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
@@ -334,7 +334,7 @@ function AuthedApp({ user, getToken }){
       const curSkill=skills[id]||{visual:0,listen:0,production:0};
       curSkill[skill]=correct?Math.min((curSkill[skill]||0)+1,5):Math.max((curSkill[skill]||0)-1,0);
       skills[id]=curSkill;
-      const answerLog=logAnswer(prev,id,correct,exerciseType||"phrase");
+      const answerLog=logAnswer(prev,id,correct,exerciseType||"phrase",responseMs);
       const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog,skills,totalC:correct?prev.totalC+1:prev.totalC};
       store.set(KEY,nd);
       clearTimeout(syncTimer.current);
@@ -347,7 +347,7 @@ function AuthedApp({ user, getToken }){
   const SKILL_MAP={"kana-visual":"visual","kana-listen":"listen","kana-reverse":"production","kana-pair":"visual",
     "phrase-scenario":"visual","phrase-listen":"listen","phrase-production":"production","phrase-reverse":"production"};
 
-  const updateKanaSRS=(ch,correct,exerciseType)=>{
+  const updateKanaSRS=(ch,correct,exerciseType,responseMs)=>{
     setD(prev=>{
       const cur=prev.kana[ch]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
@@ -355,13 +355,12 @@ function AuthedApp({ user, getToken }){
       const newBox=stabilityToBox(result.stability);
       const errors=prev.errors||{};
       if(!correct){errors[ch]=(errors[ch]||0)+1;}
-      // Multi-dimensional skill tracking
       const skills={...(prev.skills||{})};
       const skill=SKILL_MAP[exerciseType]||"visual";
       const curSkill=skills[ch]||{visual:0,listen:0,production:0};
       curSkill[skill]=correct?Math.min((curSkill[skill]||0)+1,5):Math.max((curSkill[skill]||0)-1,0);
       skills[ch]=curSkill;
-      const answerLog=logAnswer(prev,ch,correct,exerciseType||"kana");
+      const answerLog=logAnswer(prev,ch,correct,exerciseType||"kana",responseMs);
       const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog,skills};
       store.set(KEY,nd);
       clearTimeout(syncTimer.current);

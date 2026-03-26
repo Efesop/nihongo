@@ -23,6 +23,7 @@ export default function SmartSession({
   const [score, setScore] = useState({ c: 0, w: 0 });
   const [done, setDone] = useState(false);
   const [struggled, setStruggled] = useState([]);
+  const cardStartTime = useRef(Date.now());
   const [startTime] = useState(Date.now());
   const [choiceAnswer, setChoiceAnswer] = useState(null);
   const [sessionFeedback, setSessionFeedback] = useState(null);
@@ -356,15 +357,18 @@ export default function SmartSession({
   const elapsed = Math.round((Date.now() - startTime) / 1000);
   const mins = Math.floor(elapsed / 60);
 
+  // Response time — how long the user took to answer this card
+  const getResponseMs = () => Date.now() - cardStartTime.current;
+
   const advance = (correct) => {
-    stopAudio(); // Prevent audio overlap between cards
+    stopAudio();
     senpaiReact(correct);
     if (!correct && ex.item) setStruggled(s => [...s, { label: typeof ex.item === 'string' ? ex.item : ex.item?.[1] || ex.type, type: ex.type }]);
     setFb(null); setInput(""); setChoiceAnswer(null);
-    // Clean up ALL exercise-specific state between cards
     setConvoAnswers({}); setConvoSubmitted(false); setSelectedBlank(null); setDraggingId(null);
     setStoryData(null); setStoryAnswer(null); setStoryLoading(false);
     setBranchData(null); setBranchHistory([]); setBranchTurn(1); setBranchScore(0); setBranchLoading(false);
+    cardStartTime.current = Date.now(); // Reset timer for next card
     if (ci + 1 >= cards.length) setDone(true);
     else setCi(ci + 1);
   };
@@ -441,7 +445,7 @@ export default function SmartSession({
       const ok = input.trim().toLowerCase() === ex.romaji;
       setFb(ok ? "ok" : "no");
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-      updateKanaSRS(ex.item, ok, "kana-visual");
+      updateKanaSRS(ex.item, ok, "kana-visual", getResponseMs());
       setTimeout(() => speak(ex.item), 250);
       setTimeout(() => advance(ok), ok ? 1800 : 4000); // Longer for wrong — study the image
     };
@@ -509,8 +513,8 @@ export default function SmartSession({
           setChoiceAnswer({ ...choiceAnswer, selected: ch });
           setFb(ok ? "ok" : "no");
           setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          updateKanaSRS(ex.item, ok, "kana-listen");
-          setTimeout(() => advance(ok), ok ? 2500 : 3000);
+          updateKanaSRS(ex.item, ok, "kana-listen", getResponseMs());
+          setTimeout(() => advance(ok), ok ? (getResponseMs() < 2000 ? 1500 : 2500) : (getResponseMs() > 5000 ? 4000 : 3000));
         }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + c.b, background: c.s, color: c.tx, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
           {ch}
         </button>)}
@@ -562,7 +566,7 @@ export default function SmartSession({
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], correct, "phrase-scenario");
+            reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
             setTimeout(() => advance(correct), correct ? 4000 : 2200);
           }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? 20 : 17, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
@@ -575,7 +579,7 @@ export default function SmartSession({
           const correct = !!choiceAnswer.isTrick;
           setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          reviewPhr(p[0], correct, ex.type);
+          reviewPhr(p[0], correct, ex.type, getResponseMs());
           speakPhraseWithEnglish(p[0], p[1], p[3]);
           setTimeout(() => advance(correct), 3500);
         }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: answered && choiceAnswer.isTrick ? c.gs : answered && choiceAnswer.selected === "none" ? c.rs : "transparent", color: c.m, fontSize: 14, textAlign: "center" }}>
@@ -627,7 +631,7 @@ export default function SmartSession({
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], correct, "phrase-listen");
+            reviewPhr(p[0], correct, "phrase-listen", getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
             setTimeout(() => advance(correct), correct ? 4000 : 2000);
           }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 15, textAlign: "left", transition: "all .2s" }}>
@@ -639,7 +643,7 @@ export default function SmartSession({
           const correct = !!choiceAnswer.isTrick;
           setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          reviewPhr(p[0], correct, "phrase-scenario");
+          reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
           setTimeout(() => advance(correct), 3000);
         }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: 14, textAlign: "center" }}>None of these</button>
       </div>
@@ -679,7 +683,7 @@ export default function SmartSession({
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], correct, ex.type);
+            reviewPhr(p[0], correct, ex.type, getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
             setTimeout(() => advance(correct), correct ? 4000 : 2200);
           }} style={{ ...btn, padding: "12px 10px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? 16 : 14, fontWeight: 500, textAlign: "left", transition: "all .2s", lineHeight: 1.3 }}>
@@ -692,7 +696,7 @@ export default function SmartSession({
         const correct = !!choiceAnswer.isTrick;
         setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
         setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-        reviewPhr(p[0], correct, ex.type);
+        reviewPhr(p[0], correct, ex.type, getResponseMs());
         speakPhraseWithEnglish(p[0], p[1], p[3]);
         setTimeout(() => advance(correct), 3500);
       }} style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: 13, textAlign: "center", marginTop: 8 }}>None of these</button>}
@@ -1149,8 +1153,8 @@ export default function SmartSession({
               setChoiceAnswer({ ...choiceAnswer, selected: i });
               setFb(ok ? "ok" : "no");
               setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-              updateKanaSRS(targetChar, ok, "kana-pair");
-              setTimeout(() => advance(ok), ok ? 2500 : 3500);
+              updateKanaSRS(targetChar, ok, "kana-pair", getResponseMs());
+              setTimeout(() => advance(ok), ok ? (getResponseMs() < 2000 ? 1500 : 2500) : (getResponseMs() > 5000 ? 4000 : 3500));
             }} style={{ ...btn, width: 120, height: 120, borderRadius: 16, border: "2px solid " + border, background: bg, fontSize: 56, color: col, transition: "all .2s" }}>
               {ch}
             </button>;
@@ -1219,8 +1223,8 @@ export default function SmartSession({
             setChoiceAnswer({ ...choiceAnswer, selected: ch });
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            updateKanaSRS(ex.item, ok, "kana-reverse");
-            setTimeout(() => advance(ok), ok ? 2500 : 3000);
+            updateKanaSRS(ex.item, ok, "kana-reverse", getResponseMs());
+            setTimeout(() => advance(ok), ok ? (getResponseMs() < 2000 ? 1500 : 2500) : (getResponseMs() > 5000 ? 4000 : 3000));
           }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: answered ? bg : c.s, color: answered ? col : c.tx, fontSize: 28, textAlign: "center", transition: "all .15s" }}>
             {ch}
           </button>;
@@ -1258,7 +1262,7 @@ export default function SmartSession({
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], ok, "phrase-reverse");
+            reviewPhr(p[0], ok, "phrase-reverse", getResponseMs());
             if (ok) speakPhrase(p[0], p[1]);
             setTimeout(() => advance(ok), ok ? 2000 : 3000);
           }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 18, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
