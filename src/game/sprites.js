@@ -187,23 +187,12 @@ export function loadGameImages() {
   // Wait only for critical sprites, then start game immediately
   // Deferred sprites load in background — procedural fallback handles missing
   console.log(`[sprites] Loading ${critical.length} critical + ${deferred.length} deferred sprites`);
-  // Timeout: if critical sprites take >5s, proceed anyway (renderer handles missing)
-  const timeout = new Promise(resolve => setTimeout(() => {
-    console.warn("[sprites] Critical load timeout — proceeding without all sprites");
-    resolve();
-  }, 5000));
-  const criticalPromise = Promise.race([
-    Promise.all(critical).then(results => {
-      const loaded = results.filter(Boolean).length;
-      console.log(`[sprites] Critical done: ${loaded}/${critical.length} loaded`);
-    }),
-    timeout,
-  ]);
-  Promise.all(deferred).then(results => {
-    const loaded = results.filter(Boolean).length;
-    console.log(`[sprites] Deferred done: ${loaded}/${deferred.length} loaded`);
-  }).catch(e => console.warn("[sprites] Deferred error:", e));
-  return criticalPromise;
+  // ALL loading is fire-and-forget — game starts IMMEDIATELY
+  // Renderer handles missing sprites with procedural fallback
+  Promise.all(critical).then(r => console.log(`[sprites] Critical: ${r.filter(Boolean).length}/${critical.length}`)).catch(() => {});
+  Promise.all(deferred).then(r => console.log(`[sprites] Deferred: ${r.filter(Boolean).length}/${deferred.length}`)).catch(() => {});
+  // Return resolved immediately — don't wait for anything
+  return Promise.resolve();
 }
 
 export function getImage(key) { return _images[key] || null; }
