@@ -115,7 +115,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   });
   const recentPhrases = PHRASES.filter(p => {
     const d = phrData[p[0]];
-    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 7200000 && now < (p.next || 0);
+    return d && d.box <= 1 && d.lastReview && (now - d.lastReview) < 7200000 && now < (d.next || 0);
   });
 
   // How much kana does the user know? (needed for unseen filtering + beginner check)
@@ -184,16 +184,29 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (weak === "listen" && adjusted >= 1) return { type: "phrase-listen", item: p };
     if (weak === "production" && adjusted >= 2) return { type: "phrase-reverse", item: p };
 
-    // Default progression
+    // Default progression — mix exercise types at every level
+    // Earlier production/reverse builds recall, not just recognition
     const r = Math.random();
-    if (adjusted <= 0) return { type: "phrase-scenario", item: p };
-    if (adjusted <= 1) return r > 0.6 ? { type: "phrase-listen", item: p } : { type: "phrase-scenario", item: p };
-    if (adjusted <= 2) {
-      if (r > 0.7) return { type: "phrase-production", item: p };
-      if (r > 0.4) return { type: "phrase-listen", item: p };
+    if (adjusted <= 0) {
+      // Brand new: mostly scenario but sprinkle in listening
+      return r > 0.75 ? { type: "phrase-listen", item: p } : { type: "phrase-scenario", item: p };
+    }
+    if (adjusted <= 1) {
+      // Learning: 35% scenario, 35% listen, 30% reverse (early production!)
+      if (r > 0.65) return { type: "phrase-reverse", item: p };
+      if (r > 0.35) return { type: "phrase-listen", item: p };
       return { type: "phrase-scenario", item: p };
     }
-    if (r > 0.5) return { type: "phrase-reverse", item: p };
+    if (adjusted <= 2) {
+      // Reviewing: 25% scenario, 25% listen, 25% reverse, 25% production
+      if (r > 0.75) return { type: "phrase-production", item: p };
+      if (r > 0.50) return { type: "phrase-reverse", item: p };
+      if (r > 0.25) return { type: "phrase-listen", item: p };
+      return { type: "phrase-scenario", item: p };
+    }
+    // Mature: heavier on production/reverse (recall over recognition)
+    if (r > 0.6) return { type: "phrase-reverse", item: p };
+    if (r > 0.3) return { type: "phrase-production", item: p };
     return { type: "phrase-listen", item: p };
   }
 
@@ -296,8 +309,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       usedKana.add(ch);
       // First: a "try first" quiz — user sees the character, tries to guess
       queue.push({ type: "try-first-kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch] });
-      // Then: the learn card reveals the answer + mnemonic (delayed 1-2 cards later)
-      queue.push({ type: "_delayed_learn_kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], delay: 1 });
+      // Then: the learn card reveals the answer + mnemonic (delayed 2-3 cards later)
+      queue.push({ type: "_delayed_learn_kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], delay: 2 });
     });
   }
   if (unseenPhrases.length > 0 && queue.length < sessionLength - 1) {
@@ -306,8 +319,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       usedPhrases.add(np[0]);
       // First: situation prompt — "what would you say?"
       queue.push({ type: "try-first-phrase", item: np });
-      // Then: learn card with full breakdown
-      queue.push({ type: "_delayed_learn_phrase", item: np, delay: 1 });
+      // Then: learn card with full breakdown (delayed 2-3 cards later)
+      queue.push({ type: "_delayed_learn_phrase", item: np, delay: 2 });
     }
   }
 
@@ -419,8 +432,47 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     finalQueue.splice(pos, 0, d);
   }
 
+  // Interleave: avoid same exercise category back-to-back
+  // Also prevent same phrase/kana ID appearing within 3 cards of itself
+  const interleaved = [];
+  const kanaItems = [];
+  const phraseItems = [];
+  const specialItems = [];
+  for (const item of finalQueue) {
+    const t = item.type || "";
+    if (t.startsWith("kana-") || t === "learn-card" || t === "try-first-kana" || t === "leech-review" && item.isKana) {
+      kanaItems.push(item);
+    } else if (t.startsWith("phrase-") || t === "learn-phrase" || t === "try-first-phrase" || t === "leech-review" && !item.isKana) {
+      phraseItems.push(item);
+    } else {
+      specialItems.push(item);
+    }
+  }
+  // Alternate kana and phrase, weaving in specials
+  let ki = 0, pi = 0, si = 0;
+  // Start with whichever bucket is larger
+  let preferKana = kanaItems.length >= phraseItems.length;
+  while (ki < kanaItems.length || pi < phraseItems.length || si < specialItems.length) {
+    if (preferKana && ki < kanaItems.length) {
+      interleaved.push(kanaItems[ki++]);
+    } else if (!preferKana && pi < phraseItems.length) {
+      interleaved.push(phraseItems[pi++]);
+    } else if (ki < kanaItems.length) {
+      interleaved.push(kanaItems[ki++]);
+    } else if (pi < phraseItems.length) {
+      interleaved.push(phraseItems[pi++]);
+    }
+    preferKana = !preferKana;
+    // Insert a special every 4-5 cards
+    if (si < specialItems.length && interleaved.length % 4 === 3) {
+      interleaved.push(specialItems[si++]);
+    }
+  }
+  // Append remaining specials
+  while (si < specialItems.length) interleaved.push(specialItems[si++]);
+
   // Trim to session length
-  return finalQueue.slice(0, sessionLength);
+  return interleaved.slice(0, sessionLength);
 }
 
 /**
