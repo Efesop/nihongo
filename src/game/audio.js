@@ -89,6 +89,11 @@ const JSFXR = {
   menuStart: { oldParams: true, wave_type: 1, p_env_sustain: 0.15, p_env_punch: 0.6, p_env_decay: 0.35, p_base_freq: 0.25, p_freq_ramp: -0.05, p_vib_strength: 0.1, p_vib_speed: 0.2, p_arp_mod: 0.2, p_arp_speed: 0.6, p_duty: 0.5, p_lpf_freq: 0.8, p_lpf_resonance: 0.2, sound_vol: 0.35, sample_rate: 44100, sample_size: 8 },
   wallSlide: { oldParams: true, wave_type: 3, p_env_attack: 0.05, p_env_sustain: 0.2, p_env_decay: 0.1, p_base_freq: 0.08, p_freq_ramp: 0.02, p_vib_strength: 0.15, p_vib_speed: 0.6, p_repeat_speed: 0.7, p_lpf_freq: 0.3, p_lpf_resonance: 0.4, p_hpf_freq: 0.05, sound_vol: 0.12, sample_rate: 44100, sample_size: 8 },
   footstep: { oldParams: true, wave_type: 3, p_env_sustain: 0.01, p_env_punch: 0.3, p_env_decay: 0.04, p_base_freq: 0.08, p_freq_ramp: -0.1, p_lpf_freq: 0.4, p_hpf_freq: 0.1, sound_vol: 0.08, sample_rate: 44100, sample_size: 8 },
+  // Story UI sounds — soft clicks and tones for dialogue
+  sfx_text_advance: { oldParams: true, wave_type: 0, p_env_sustain: 0.02, p_env_punch: 0.15, p_env_decay: 0.06, p_base_freq: 0.55, p_freq_ramp: 0.1, p_duty: 0.5, p_lpf_freq: 0.7, p_hpf_freq: 0.3, sound_vol: 0.12, sample_rate: 44100, sample_size: 8 },
+  sfx_choice_appear: { oldParams: true, wave_type: 0, p_env_sustain: 0.04, p_env_punch: 0.2, p_env_decay: 0.12, p_base_freq: 0.45, p_freq_ramp: 0.15, p_arp_mod: 0.1, p_arp_speed: 0.5, p_duty: 0.5, p_lpf_freq: 0.8, p_hpf_freq: 0.2, sound_vol: 0.15, sample_rate: 44100, sample_size: 8 },
+  sfx_choice_select: { oldParams: true, wave_type: 0, p_env_sustain: 0.03, p_env_punch: 0.25, p_env_decay: 0.1, p_base_freq: 0.5, p_freq_ramp: 0.2, p_duty: 0.5, p_lpf_freq: 0.9, p_hpf_freq: 0.2, sound_vol: 0.18, sample_rate: 44100, sample_size: 8 },
+  sfx_choice_tick: { oldParams: true, wave_type: 0, p_env_sustain: 0.01, p_env_punch: 0.1, p_env_decay: 0.03, p_base_freq: 0.7, p_duty: 0.5, p_lpf_freq: 0.5, p_hpf_freq: 0.4, sound_vol: 0.08, sample_rate: 44100, sample_size: 8 },
 };
 
 // ═══ INIT ═══
@@ -335,14 +340,20 @@ export function setMusic(key) {
 }
 
 // Crossfade from current music to a new track (smooth transition for story ↔ combat)
+let _crossfadeTimeout = null;
 export function crossfadeMusic(toKey, duration = 1.0) {
   if (!_ctx || !_musicGain) return;
+  // Cancel any in-progress crossfade to prevent race conditions
+  if (_crossfadeTimeout) { clearTimeout(_crossfadeTimeout); _crossfadeTimeout = null; }
   // Fade out current music
   try {
+    _musicGain.gain.cancelScheduledValues(_ctx.currentTime);
+    _musicGain.gain.setValueAtTime(_musicGain.gain.value, _ctx.currentTime);
     _musicGain.gain.linearRampToValueAtTime(0, _ctx.currentTime + duration);
   } catch { /* */ }
   // After fade out, switch track and fade in
-  setTimeout(() => {
+  _crossfadeTimeout = setTimeout(() => {
+    _crossfadeTimeout = null;
     try { _musicSource?.stop(); } catch { /* */ }
     _musicSource = null;
     _currentMusic = toKey;

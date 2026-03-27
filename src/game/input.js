@@ -71,10 +71,45 @@ export function setupTouch(canvas, gameRef) {
     return "jump";
   };
 
+  const getChoiceZone = (t) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = t.clientX - rect.left;
+    const y = t.clientY - rect.top;
+    const w = rect.width;
+    const h = rect.height;
+    // Choice boxes are in the right 55% of screen, above the dialogue panel
+    // Panel starts at H * 0.72, choices above that
+    if (x > w * 0.45 && y < h * 0.72 && y > h * 0.3) {
+      // Map Y position to choice index (up to 3 choices)
+      const choiceZoneH = h * 0.42; // 0.3 to 0.72
+      const relY = y - h * 0.3;
+      return Math.min(2, Math.floor(relY / (choiceZoneH / 3)));
+    }
+    return -1; // not in choice area
+  };
+
   const onTouchStart = (e) => {
     e.preventDefault();
     const inp = gameRef.current?.input;
     if (!inp) return;
+
+    // Story mode — tap to advance, tap choice to select
+    if (gameRef.current?.gameState === "story") {
+      for (const t of e.changedTouches) {
+        const choiceIdx = getChoiceZone(t);
+        if (choiceIdx >= 0 && gameRef.current?.story?.choices) {
+          // Tap on a choice
+          if (choiceIdx === 0) inp.choice1 = true;
+          if (choiceIdx === 1) inp.choice2 = true;
+          if (choiceIdx === 2) inp.choice3 = true;
+        } else {
+          // Tap anywhere else to advance
+          inp.storyAdvance = true;
+        }
+      }
+      return; // Don't process gameplay touch during story
+    }
+
     for (const t of e.changedTouches) {
       const zone = getTouchZone(t);
       touches[t.identifier] = zone;
