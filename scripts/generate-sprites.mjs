@@ -282,39 +282,71 @@ const REF_ONI = loadRefImage(join(__dir, '..', 'public', 'images', 'oni', 'demon
 const REF_NINJA = loadRefImage(join(__dir, '..', 'public', 'images', 'ninja', 'ninja.png'));
 const REF_FOREST = loadRefImage(join(__dir, '..', 'public', 'images', 'forest.png'));
 
+// ═══ SELF-REFERENCING: for non-idle poses, use that character's own idle as primary reference ═══
+// This ensures all poses of the same character look consistent.
+function getCharacterPrefix(name) {
+  // Extract character type prefix: "ronin_walk1" → "ronin", "cyber_ninja_idle" → "cyber_ninja"
+  // Story sprites: "story_kunoichi_smirk" → "story_kunoichi"
+  // Player: "player_run1" → "player"
+  const prefixes = [
+    'story_kunoichi', 'story_katsura', 'story_hacker', 'story_fox',
+    'story_shadow', 'story_sensei', 'story_elder', 'story_player',
+    'cyber_ninja', 'spirit_fox', 'cursed_ronin',
+    'player', 'ronin', 'bouncer', 'monk',
+  ];
+  for (const p of prefixes) {
+    if (name.startsWith(p + '_')) return p;
+  }
+  return null;
+}
+
+function getSelfReference(name) {
+  const prefix = getCharacterPrefix(name);
+  if (!prefix) return null;
+  // Don't self-reference if this IS the idle sprite
+  const idleName = `${prefix}_idle`;
+  if (name === idleName) return null;
+  // Try to load the idle sprite for this character
+  return loadRefImage(join(OUT, `${idleName}.png`));
+}
+
 async function generateSprite(name, prompt) {
   const path = join(OUT, `${name}.png`);
   if (existsSync(path)) { console.log(`  ${name}: exists`); return; }
   process.stdout.write(`  ${name}: generating...`);
 
-  // Build request parts — include reference images for style matching
+  // Build request parts with self-referencing
   const isCharSprite = name.startsWith('story_') || name.startsWith('portrait_');
   const isBgSprite = name.startsWith('bg_');
-  const isEnemySprite = !isCharSprite && !isBgSprite;
+  const selfRef = getSelfReference(name); // THIS character's idle sprite
   const parts = [];
 
-  if (isCharSprite && REF_PLAYER) {
-    // Story characters + portraits: use player, oni, ninja as style references
-    parts.push({ text: 'Here are reference images showing the EXACT pixel art style of my game. ALL new sprites must match this style precisely — same chibi proportions (oversized head ~40-50% of body), same chunky black outlines, same pixel density, same color saturation, same level of detail:' });
-    parts.push(REF_PLAYER);
-    parts.push({ text: 'Reference 2 — oni enemy from the same game:' });
-    if (REF_ONI) parts.push(REF_ONI);
-    if (REF_NINJA) {
-      parts.push({ text: 'Reference 3 — ninja enemy from the same game:' });
-      parts.push(REF_NINJA);
-    }
-    parts.push({ text: `Now generate a NEW character sprite in the EXACT SAME chibi pixel art style as the references above. ${prompt}` });
-  } else if (isBgSprite && REF_FOREST) {
-    // Backgrounds: use forest as style reference
-    parts.push({ text: 'Here is a reference background from my pixel art game. Match this moody atmospheric pixel art style — same level of detail, same dark palette approach, same pixel rendering:' });
-    parts.push(REF_FOREST);
+  if (selfRef) {
+    // ── SELF-REFERENCE MODE: use character's own idle as PRIMARY reference ──
+    // This is the key to style consistency across poses
+    parts.push({ text: 'Here is the IDLE pose of this EXACT character. Generate a NEW pose of this SAME character — same colors, same proportions, same outfit, same accessories, same art style. The character must look IDENTICAL except for the pose change:' });
+    parts.push(selfRef);
+    // Also include game style references for overall art style
     if (REF_PLAYER) {
-      parts.push({ text: 'And here is a character from the game for scale/style context:' });
+      parts.push({ text: 'Here is another character from the same game for art style reference (chibi pixel art, chunky outlines, oversized head):' });
       parts.push(REF_PLAYER);
     }
+    parts.push({ text: `Now generate the NEW POSE of the character shown in the first reference. ${prompt}` });
+  } else if (isCharSprite) {
+    // Story characters + portraits: use player, oni, ninja as style references
+    parts.push({ text: 'Here are reference images showing the EXACT pixel art style of my game. ALL new sprites must match this style precisely — same chibi proportions (oversized head ~40-50% of body), same chunky black outlines, same pixel density, same color saturation, same level of detail:' });
+    if (REF_PLAYER) parts.push(REF_PLAYER);
+    if (REF_ONI) { parts.push({ text: 'Reference 2 — oni enemy:' }); parts.push(REF_ONI); }
+    if (REF_NINJA) { parts.push({ text: 'Reference 3 — ninja enemy:' }); parts.push(REF_NINJA); }
+    parts.push({ text: `Now generate a NEW character sprite in the EXACT SAME chibi pixel art style. ${prompt}` });
+  } else if (isBgSprite) {
+    // Backgrounds: use forest as style reference
+    parts.push({ text: 'Here is a reference background from my pixel art game. Match this moody atmospheric pixel art style — same level of detail, same dark palette approach, same pixel rendering:' });
+    if (REF_FOREST) parts.push(REF_FOREST);
+    if (REF_PLAYER) { parts.push({ text: 'Character for scale/style context:' }); parts.push(REF_PLAYER); }
     parts.push({ text: `Now generate a NEW background in the same pixel art style. ${prompt}` });
-  } else if (isEnemySprite) {
-    // Enemy sprites: use existing enemies as reference
+  } else {
+    // Enemy idle sprites (first generation) — use existing game enemies as style reference
     const refs = [REF_ONI, REF_NINJA, REF_PLAYER].filter(Boolean);
     if (refs.length > 0) {
       parts.push({ text: 'Here are reference sprites from my game. Match this EXACT chibi pixel art style — oversized heads, chunky black outlines, rich saturated colors, ~32x32 pixel detail rendered as 1024x1024:' });
@@ -323,8 +355,6 @@ async function generateSprite(name, prompt) {
     } else {
       parts.push({ text: `Generate a game sprite. ${prompt}` });
     }
-  } else {
-    parts.push({ text: `Generate a game sprite. ${prompt}` });
   }
 
   try {
@@ -370,13 +400,25 @@ async function generateSprite(name, prompt) {
 async function main() {
   console.log(`\nGenerating ${SPRITES.length} sprites to ${OUT}`);
   console.log(`Model: gemini-3.1-flash-image-preview\n`);
-
-  // Check reference images
   console.log(`References loaded: player=${!!REF_PLAYER} oni=${!!REF_ONI} ninja=${!!REF_NINJA} forest=${!!REF_FOREST}\n`);
 
-  for (const [name, prompt] of SPRITES) {
+  // ── 2-PASS GENERATION for style consistency ──
+  // Pass 1: Generate all _idle sprites FIRST (these become references for other poses)
+  // Pass 2: Generate all non-idle sprites (using their character's idle as reference)
+
+  const idleSprites = SPRITES.filter(([name]) => name.endsWith('_idle'));
+  const nonIdleSprites = SPRITES.filter(([name]) => !name.endsWith('_idle'));
+
+  console.log(`=== PASS 1: ${idleSprites.length} idle/hero sprites (style anchors) ===\n`);
+  for (const [name, prompt] of idleSprites) {
     await generateSprite(name, prompt);
   }
+
+  console.log(`\n=== PASS 2: ${nonIdleSprites.length} pose variants (self-referenced) ===\n`);
+  for (const [name, prompt] of nonIdleSprites) {
+    await generateSprite(name, prompt);
+  }
+
   console.log('\nDone!\n');
 }
 
