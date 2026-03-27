@@ -4,6 +4,7 @@ import { SRS_DAYS } from "../data/constants.js";
 import { shuffle } from "./helpers.js";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { CONFUSED_PAIRS } from "../data/confusedPairs.js";
+import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { getUnlockedPatterns } from "../data/grammarPatterns.js";
 
 // All kana including dakuten and yōon
@@ -359,6 +360,17 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (eligible.length > 0) {
       const pair = eligible[Math.floor(Math.random() * eligible.length)];
       queue.push({ type: "kana-pair", pair });
+    }
+  }
+
+  // Confused phrase pairs — ALWAYS include 1 if both phrases learned
+  if (phrasesLearned >= 5 && queue.length < sessionLength) {
+    const eligiblePhrPairs = CONFUSED_PHRASES.filter(cp =>
+      cp.ids.every(id => phrData[id]?.box >= 1)
+    );
+    if (eligiblePhrPairs.length > 0) {
+      const cp = eligiblePhrPairs[Math.floor(Math.random() * eligiblePhrPairs.length)];
+      queue.push({ type: "phrase-pair", pair: cp });
     }
   }
 

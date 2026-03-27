@@ -8,6 +8,7 @@ import { buildSmartSession, getSessionSummary, matchRomaji, getDistractors } fro
 import PhraseSegments from "./PhraseSegments.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { KANA_WORDS } from "../data/kanaWords.js";
+import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -1242,6 +1243,64 @@ export default function SmartSession({
           </button>;
         })}
       </div>
+    </>);
+  }
+
+  // ═══ EXERCISE: CONFUSED PHRASE PAIR ═══
+  if (ex.type === "phrase-pair") {
+    const pair = ex.pair; // { ids, hint, diff }
+    const p1 = PHRASES.find(p => p[0] === pair.ids[0]);
+    const p2 = PHRASES.find(p => p[0] === pair.ids[1]);
+    if (!p1 || !p2) { advance(true); return null; }
+    const phrases = [p1, p2];
+    const targetIdx = choiceAnswer?.targetIdx ?? Math.floor(Math.random() * 2);
+    const target = phrases[targetIdx];
+    if (!choiceAnswer) {
+      speakPhrase(target[0], target[1]);
+      setTimeout(() => setChoiceAnswer({ targetIdx, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
+    return withSenpai(<>
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14, textAlign: "center" }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: "#ff9800", textTransform: "uppercase", marginBottom: 8 }}>Similar Phrases</div>
+        <div style={{ fontSize: 15, color: c.m, marginBottom: 6 }}>Which one means:</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: c.tx, marginBottom: 4 }}>{target[3]}</div>
+        {target[5] && <div style={{ fontSize: 12, color: c.m, fontStyle: "italic" }}>{target[5]}</div>}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {phrases.map((p, i) => {
+          const isTarget = i === targetIdx;
+          const isSelected = choiceAnswer.selected === i;
+          let bg = c.s2, border = c.b, col = c.tx;
+          if (answered && isTarget) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isSelected && !isTarget) { bg = c.rs; border = c.a + "55"; col = c.a; }
+          return <button key={i} onClick={() => {
+            if (answered) return;
+            const ok = i === targetIdx;
+            setChoiceAnswer({ ...choiceAnswer, selected: i, correct: ok });
+            setFb(ok ? "ok" : "no");
+            setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            reviewPhr(target[0], ok, "phrase-pair", getResponseMs());
+            speakPhraseWithEnglish(target[0], target[1], target[3]);
+          }} style={{ ...btn, padding: "16px", borderRadius: 12, border: "2px solid " + border, background: bg, textAlign: "left", transition: "all .2s" }}>
+            <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 600, color: col }}>{p[1]}</div>
+            <div style={{ fontSize: 12, fontFamily: mono, color: c.m, marginTop: 4 }}>{p[2]}</div>
+            {answered && <div style={{ fontSize: 13, color: isTarget ? "#4caf50" : c.m, marginTop: 4, fontWeight: isTarget ? 600 : 400 }}>{p[3]}</div>}
+          </button>;
+        })}
+      </div>
+      {answered && <>
+        <div style={{ ...card, padding: "14px 16px", marginTop: 12, borderLeft: "3px solid #ff9800" }}>
+          <div style={{ fontSize: 13, color: c.tx, lineHeight: 1.6 }}>{pair.hint}</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button onClick={() => speakPhraseWithEnglish(target[0], target[1], target[3])}
+            style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: 14 }}>🔊 hear again</button>
+          <button onClick={() => advance(choiceAnswer.correct)}
+            style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+        </div>
+      </>}
     </>);
   }
 
