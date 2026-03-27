@@ -396,7 +396,16 @@ export function renderStoryScene(ctx, g, W, H, font) {
       ctx.globalAlpha = Math.min(ctx.globalAlpha, easeT);
     }
     const emotion = isActive ? line.emotion : null;
-    const sprite = getCharSprite(charKey, emotion);
+    // During walk-in entrance, use walk sprites instead of idle
+    const isWalking = shouldAnimate && s.entrance?.active && entranceT < 1;
+    let sprite;
+    if (isWalking) {
+      // Alternate walk frames based on entrance timer
+      const walkFrame = Math.floor((s.entrance?.timer || 0) * 6) % 2 === 0 ? "walk1" : "walk2";
+      sprite = getImage(`story_${charKey}_${walkFrame}`) || getCharSprite(charKey, emotion);
+    } else {
+      sprite = getCharSprite(charKey, emotion);
+    }
 
     ctx.save();
     if (!isActive) ctx.globalAlpha = 0.6;
