@@ -70,8 +70,8 @@ export const ROOMS = [
       { x: 1200, y: 0, w: 500 },
     ],
     enemies: [
-      { type: "oni", x: 700, y: -60, passive: true },
-      { type: "oni", x: 1050, y: -120, passive: true },
+      { type: "dummy", x: 700, y: -60, passive: true },
+      { type: "dummy", x: 1050, y: -120, passive: true },
     ],
     shadows: [],
     playerStart: 80,
@@ -89,7 +89,7 @@ export const ROOMS = [
       { x: 0, y: 0, w: 1400 },
     ],
     enemies: [
-      { type: "samurai", x: 700, y: 0 },
+      { type: "dummy", x: 700, y: 0, passive: true },
     ],
     shadows: [],
     playerStart: 80,
@@ -115,7 +115,7 @@ export const ROOMS = [
       { x: 720, y: -360, w: 400 },
     ],
     enemies: [
-      { type: "oni", x: 900, y: -360, passive: true },
+      { type: "dummy", x: 900, y: -360, passive: true },
     ],
     shadows: [],
     playerStart: 80,
@@ -136,9 +136,9 @@ export const ROOMS = [
       { x: 1300, y: -100, w: 160 },
     ],
     enemies: [
-      { type: "ninja", x: 580, y: -100 },
-      { type: "ninja", x: 980, y: -110 },
-      { type: "ninja", x: 1380, y: -100 },
+      { type: "dummy", x: 580, y: -100, passive: true },
+      { type: "dummy", x: 980, y: -110, passive: true },
+      { type: "dummy", x: 1380, y: -100, passive: true },
     ],
     shadows: [],
     playerStart: 80,
@@ -822,7 +822,7 @@ export const ROOMS = [
     ],
     enemies: [
       { type: "samurai", x: 300, y: 0 },
-      { type: "samurai", x: 700, y: 0 },
+      { type: "dummy", x: 700, y: 0, passive: true },
       { type: "samurai", x: 1100, y: 0 },
       { type: "samurai", x: 1500, y: 0 },
       { type: "oni", x: 1800, y: 0 },
@@ -1172,7 +1172,7 @@ export const ROOMS = [
     ],
     enemies: [
       { type: "oni", x: 300, y: 0 },
-      { type: "samurai", x: 700, y: 0 },
+      { type: "dummy", x: 700, y: 0, passive: true },
       { type: "ninja", x: 1000, y: -60 },
       { type: "brute", x: 1400, y: 0 },
       { type: "samurai", x: 1800, y: 0 },

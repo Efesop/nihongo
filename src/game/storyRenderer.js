@@ -403,7 +403,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
     if (!charInfo) return;
 
     // Position: centered in each half, with entrance slide-in
-    const finalX = side === "left" ? W * 0.25 : W * 0.75;
+    const finalX = side === "left" ? W * 0.32 : W * 0.72;
     const startX = side === "left" ? W * -0.1 : W * 1.1;
     // Check if this character should already be in place
     const charEntrance = scene.entrance?.[side === "left" ? "left" : "right"];

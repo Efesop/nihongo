@@ -1762,6 +1762,57 @@ function drawEnemy(ctx, e, elapsed, font) {
   ctx.save();
   ctx.translate(Math.round(x), Math.round(y));
 
+  if (e.type === "dummy") {
+    // ── TRAINING DUMMY — wooden post with straw target ──
+    const woodColor = "#8B6914";
+    const woodDark = "#5C4A0E";
+    const strawColor = "#D4A854";
+    const strawDark = "#A87A32";
+    // Main post
+    ctx.fillStyle = woodDark;
+    ctx.fillRect(-6, -10, 12, 68);
+    ctx.fillStyle = woodColor;
+    ctx.fillRect(-4, -8, 8, 64);
+    // Cross beam (arms)
+    ctx.fillStyle = woodDark;
+    ctx.fillRect(-22, 10, 44, 6);
+    ctx.fillStyle = woodColor;
+    ctx.fillRect(-20, 11, 40, 4);
+    // Straw head/target (round)
+    ctx.fillStyle = strawDark;
+    ctx.beginPath();
+    ctx.arc(0, -2, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = strawColor;
+    ctx.beginPath();
+    ctx.arc(0, -3, 12, 0, Math.PI * 2);
+    ctx.fill();
+    // Target circles
+    ctx.strokeStyle = "#c44";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -3, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, -3, 3, 0, Math.PI * 2);
+    ctx.stroke();
+    // Straw wrapping on body
+    ctx.fillStyle = strawDark;
+    ctx.fillRect(-10, 20, 20, 12);
+    ctx.fillStyle = strawColor;
+    ctx.fillRect(-8, 22, 16, 8);
+    // Base
+    ctx.fillStyle = woodDark;
+    ctx.fillRect(-14, 54, 28, 6);
+    // Hit reaction — lean back
+    if (e._hitFlash > 0) {
+      ctx.rotate(-0.15);
+    }
+    drawEnemyOverlays(ctx, e, elapsed, font);
+    ctx.restore();
+    return;
+  }
+
   if (e.type === "oni") {
     // ── BANDIT — round head, headband, staff ──
     const bodyColor = "#6b4830";
