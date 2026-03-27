@@ -105,12 +105,13 @@ export function updateStory(g, rawDt, callbacks) {
   if (line.type && line.type !== "dialogue") {
     // Process cinematic beat
     if (line.type === "bgSwap") {
-      // Change background image mid-scene
       s.sceneConfig.bgKey = line.to;
       if (line.transition === "flash") {
         s._flash = { color: line.color || "#ffffff", alpha: 1, duration: line.duration || 0.15 };
+      } else {
+        // Brief fade-through-black for smooth transitions (0.2s)
+        s._flash = { color: "#000000", alpha: 0.8, duration: 0.2 };
       }
-      // hardCut = instant swap, no flash needed
     } else if (line.type === "sfx") {
       playSound(line.sound);
     } else if (line.type === "musicStop") {
@@ -452,6 +453,9 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const bob = 0; // no bobbing — characters stand still
 
   // Determine who's in this scene
+  // Hide characters during cutscene-only backgrounds (approaching shadows, blood on doors, etc.)
+  const isCutsceneBg = scene.bgKey && scene.bgKey.startsWith("cutscene_");
+
   const speakers = [...new Set(s.lines.map(l => l.speaker).filter(x => x !== "system"))];
   const leftChar = speakers.includes("player") ? "player" : speakers[0] || null;
   const rightChar = speakers.find(x => x !== leftChar) || null;
@@ -576,12 +580,18 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.restore();
   };
 
-  drawChar(leftChar, "left", activeSide === "left" || activeSide === "both");
-  drawChar(rightChar, "right", activeSide === "right" || activeSide === "both");
+  if (!isCutsceneBg) {
+    drawChar(leftChar, "left", activeSide === "left" || activeSide === "both");
+    drawChar(rightChar, "right", activeSide === "right" || activeSide === "both");
+  }
 
   // Ground line removed — characters stand on background floor naturally
 
-  // ── 9. Dialogue panel ──
+  // ── 9. Dialogue panel (hidden during cutscene-only shots) ──
+  if (isCutsceneBg && !line.text) {
+    // During cutscene pauses, show just the image — no panel, no text
+    // (skip to effects rendering below)
+  } else {
   // panelY already defined above
   const panelGrad = ctx.createLinearGradient(0, panelY, 0, H);
   panelGrad.addColorStop(0, "rgba(6,6,14,0.92)");
@@ -681,6 +691,8 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.fillText(isLast ? "▶ BEGIN" : "▶", textStartX + textAreaW, H - barH - 8);
     ctx.textAlign = "left";
   }
+
+  } // end dialogue panel conditional
 
   // ── 13. Choice boxes (polished with slide-in + better styling) ──
   if (s.choices && s.typingDone) {

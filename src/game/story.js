@@ -101,20 +101,22 @@ export const ROOM_DIALOGUE = {
     { speaker: "sensei", textJp: "...お前は強い子だ。信じろ。", text: "...You've always been strong. Trust me.", emotion: "serious", condition: { flag: "departure_trust" } },
     { speaker: "sensei", textJp: "...聞け。大事な話が—", text: "...Listen. There's something important—", emotion: "serious" },
 
-    // Glass shatters — tension music still playing (don't stop it)
+    // Glass shatters — tension music still playing
     { type: "sfx", sound: "glass_shatter" },
     { type: "shake", intensity: 4, duration: 0.5 },
-    { type: "pause", duration: 1.5 },
+    { type: "pause", duration: 1.2 },
+    { type: "sfx", sound: "wind_howl" },
     { speaker: "sensei", textJp: "...！あの音...", text: "...! That sound...", emotion: "alarmed" },
     { speaker: "player", textJp: "先生、何が—", text: "Sensei, what's—" },
 
-    // Cut to exterior — approaching shadows (tension music continues)
-    { type: "bgSwap", to: "cutscene_approaching_shadows", transition: "hardCut" },
+    // Cut to exterior — approaching shadows
+    { type: "bgSwap", to: "cutscene_approaching_shadows" },
     { type: "sfx", sound: "distant_footsteps" },
-    { type: "pause", duration: 3.0 },
+    { type: "pause", duration: 3.5 },
 
-    // Back to dojo — urgent
-    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
+    // Back to dojo — music escalates
+    { type: "bgSwap", to: "bg_dojo_night_story" },
+    { type: "musicChange", to: "music_dojo_combat", fade: 0.5 },
     { speaker: "sensei", textJp: "来た。追っ手だ。", text: "They're here. The hunters.", emotion: "alarmed" },
     { speaker: "sensei", textJp: "聞け！山寺の長老を探せ！印のことを知っている！", text: "Listen! Find the Elder at the mountain temple! He knows about the mark!", emotion: "alarmed" },
     { speaker: "player", textJp: "何を言って—先生は？！", text: "What are you— what about you?!", emotion: "surprised" },
