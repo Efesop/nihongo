@@ -891,6 +891,40 @@ export function render(g, ctx, isDesktop, font) {
     ctx.restore();
   }
 
+  // Last kill cam visual effects
+  if (g.lastKillCam) {
+    const cam = g.lastKillCam;
+    if (cam.phase === "hold") {
+      // Chromatic aberration during hold
+      ctx.fillStyle = "rgba(255,50,50,0.06)";
+      ctx.fillRect(0, 0, 12, H);
+      ctx.fillStyle = "rgba(50,50,255,0.06)";
+      ctx.fillRect(W - 12, 0, 12, H);
+      // Subtle dark vignette
+      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      ctx.fillRect(0, 0, W, H);
+    } else if (cam.phase === "resume") {
+      // Speed lines radiating from kill point during resume
+      const kx = cam.targetX - (g.camera.x || 0);
+      const ky = cam.targetY;
+      const t = (cam.timer - 700) / 500;
+      ctx.save();
+      ctx.globalAlpha = 0.15 * (1 - t); // fade out as time resumes
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 16; i++) {
+        const angle = (i / 16) * Math.PI * 2;
+        const inner = 30 + t * 60;
+        const outer = 80 + t * W * 0.4;
+        ctx.beginPath();
+        ctx.moveTo(kx + Math.cos(angle) * inner, ky + Math.sin(angle) * inner);
+        ctx.lineTo(kx + Math.cos(angle) * outer, ky + Math.sin(angle) * outer);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
   // Scanlines
   ctx.fillStyle = "rgba(0,0,0,0.05)";
   for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);

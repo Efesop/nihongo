@@ -141,8 +141,22 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     function loop() {
       const g = gameRef.current;
       if (!g) return;
-      update(g, callbacks);
-      render(g, ctx, isDesktop, font);
+      try {
+        update(g, callbacks);
+        render(g, ctx, isDesktop, font);
+      } catch (err) {
+        console.error("Game loop error:", err);
+        // Reset to safe state so loop can continue
+        if (g.player?.dead) {
+          g.deathPhaseTimer = undefined;
+          g.deathPhase = undefined;
+          g.brushWipe = 0;
+          g.time.scale = 1;
+          g.camera.zoom = 1;
+          g.camera.zoomTarget = 1;
+          loadRoom(g, g.currentRoom);
+        }
+      }
       rafRef.current = requestAnimationFrame(loop);
     }
     rafRef.current = requestAnimationFrame(loop);

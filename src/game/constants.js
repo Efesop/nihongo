@@ -111,7 +111,8 @@ export const HITSTOP_LAST_KILL = 250; // final enemy in room
 export const COMBO_WINDOW = 350;
 export const DEATH_TIMER = 500;
 export const ROOM_CLEAR_PAUSE = 2200;
-export const LAST_KILL_FREEZE = 600;
+export const LAST_KILL_FREEZE = 600; // legacy — kept for reference
+export const LAST_KILL_CAM_DURATION = 1200; // total slow-mo camera duration (ms)
 
 // ═══ HELPERS ═══
 export function lerp(a, b, t) { return a + (b - a) * t; }

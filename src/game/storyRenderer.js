@@ -78,6 +78,17 @@ export function updateStory(g, rawDt, callbacks) {
   const line = s.lines[s.index];
   if (!line) return;
 
+  // Entrance animation — block everything until characters are in position
+  if (s.entrance && s.entrance.active) {
+    s.entrance.timer += rawDt;
+    if (s.entrance.timer >= s.entrance.duration) {
+      s.entrance.active = false;
+    }
+    updateParticles(rawDt, g.W, g.H);
+    s.bobTimer = (s.bobTimer || 0) + rawDt;
+    return; // don't type or accept input during entrance
+  }
+
   const fullText = line.text || "";
 
   // Typing animation
@@ -194,6 +205,35 @@ function advanceStory(g, callbacks) {
   } else {
     playSound("sfx_text_advance");
     s.index++;
+
+    // Skip lines whose conditions aren't met
+    while (s.index < s.lines.length) {
+      const nextLine = s.lines[s.index];
+      if (!nextLine.condition) break; // no condition — show it
+      const flag = nextLine.condition.flag;
+      if (flag.startsWith("!")) {
+        // Negation: show if flag is NOT set
+        if (!g.choices[flag.slice(1)]) break;
+      } else {
+        // Show if flag IS set
+        if (g.choices[flag]) break;
+      }
+      s.index++; // condition not met, skip this line
+    }
+
+    // Check if we skipped past the end
+    if (s.index >= s.lines.length) {
+      playSound("sfx_text_advance");
+      g.story = null;
+      g.gameState = "playing";
+      if (g._pendingRoom !== null && g._pendingRoom !== undefined) {
+        g._loadRoomAfterStory = g._pendingRoom;
+        g._pendingRoom = null;
+      }
+      g._resumeFromStory = true;
+      return;
+    }
+
     s.typedChars = 0;
     s.typingDone = false;
     s.timer = 0;
@@ -204,6 +244,7 @@ function advanceStory(g, callbacks) {
       s.choices = roomChoices.options;
       s.choiceIndex = 0;
       s.choiceTimer = 8; // 8 second timer
+      s._choiceAnim = 0; // reset slide-in animation
       playSound("sfx_choice_appear");
     }
   }
@@ -294,10 +335,10 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
   // ── 7. Characters in scene ──
   // Use ACTUAL in-game sprites scaled up with pixelated rendering.
-  // Characters stand on the visual floor of the background (~65% down).
   const panelH = H * 0.28;
-  const floorY = H - panelH - 5; // where characters' feet touch the ground
-  const charH = Math.min(150, H * 0.25); // large characters that fill the scene
+  const groundLevel = scene.groundLevel || 0.75;
+  const floorY = H * groundLevel; // per-background floor alignment
+  const charH = Math.min(100, H * 0.16); // smaller chars — backgrounds are the star
   const bob = Math.sin((s.bobTimer || 0) * 2) * 2;
 
   // Determine who's in this scene
@@ -305,6 +346,13 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const leftChar = speakers.includes("player") ? "player" : speakers[0] || null;
   const rightChar = speakers.find(x => x !== leftChar) || null;
   const activeSide = line.speaker === leftChar ? "left" : (line.speaker === rightChar ? "right" : "both");
+
+  // Entrance animation progress (0→1)
+  const entranceT = s.entrance && s.entrance.active
+    ? Math.min(1, s.entrance.timer / s.entrance.duration)
+    : 1;
+  // easeOutCubic for natural deceleration
+  const easeT = 1 - Math.pow(1 - entranceT, 3);
 
   // Map character keys to their ACTUAL in-game sprite keys
   const CHAR_SPRITE_MAP = {
@@ -335,8 +383,17 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const charInfo = CHARACTERS[charKey];
     if (!charInfo) return;
 
-    // Position: centered in each half of the screen, not at edges
-    const x = side === "left" ? W * 0.32 : W * 0.68;
+    // Position: centered in each half, with entrance slide-in
+    const finalX = side === "left" ? W * 0.25 : W * 0.75;
+    const startX = side === "left" ? W * -0.1 : W * 1.1;
+    // Check if this character should already be in place
+    const charEntrance = scene.entrance?.[side === "left" ? "left" : "right"];
+    const shouldAnimate = charEntrance !== "already_there" && charEntrance !== "fade_in";
+    const x = shouldAnimate ? startX + (finalX - startX) * easeT : finalX;
+    // Fade-in for characters with fade entrance
+    if (charEntrance === "fade_in" && entranceT < 1) {
+      ctx.globalAlpha = Math.min(ctx.globalAlpha, easeT);
+    }
     const emotion = isActive ? line.emotion : null;
     const sprite = getCharSprite(charKey, emotion);
 
@@ -398,14 +455,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
   drawChar(leftChar, "left", activeSide === "left" || activeSide === "both");
   drawChar(rightChar, "right", activeSide === "right" || activeSide === "both");
 
-  // ── 8. Ground line ──
-  const gGrad = ctx.createLinearGradient(0, 0, W, 0);
-  gGrad.addColorStop(0, "transparent");
-  gGrad.addColorStop(0.3, "rgba(255,255,255,0.06)");
-  gGrad.addColorStop(0.7, "rgba(255,255,255,0.06)");
-  gGrad.addColorStop(1, "transparent");
-  ctx.fillStyle = gGrad;
-  ctx.fillRect(0, floorY + 2, W, 1);
+  // Ground line removed — characters stand on background floor naturally
 
   // ── 9. Dialogue panel ──
   const panelY = H - panelH;
@@ -508,54 +558,86 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.textAlign = "left";
   }
 
-  // ── 13. Choice boxes ──
+  // ── 13. Choice boxes (polished with slide-in + better styling) ──
   if (s.choices && s.typingDone) {
     const choices = s.choices;
-    const choiceY = panelY - 8 - choices.length * 44;
-    const choiceW = Math.min(400, W * 0.55);
+    const choiceItemH = 46;
+    const choiceGap = 6;
+    const totalChoiceH = choices.length * choiceItemH + (choices.length - 1) * choiceGap;
+    const choiceY = panelY - 16 - totalChoiceH;
+    const choiceW = Math.min(420, W * 0.55);
     const choiceX = W - choiceW - 30;
 
+    // Slide-in animation based on how long choices have been visible
+    s._choiceAnim = Math.min(1, (s._choiceAnim || 0) + 0.06); // ~200ms
+    const slideT = 1 - Math.pow(1 - s._choiceAnim, 3); // easeOutCubic
+
     for (let i = 0; i < choices.length; i++) {
-      const cy = choiceY + i * 44;
+      const rawY = choiceY + i * (choiceItemH + choiceGap);
+      // Staggered slide: each choice slides in slightly after the previous
+      const itemT = Math.max(0, Math.min(1, slideT * 3 - i * 0.3));
+      const slideOffset = (1 - itemT) * 40; // slide up from 40px below
+      const cy = rawY + slideOffset;
+      const itemAlpha = itemT;
       const isHighlighted = (s.choiceIndex || 0) === i;
 
-      // Box background
-      ctx.fillStyle = isHighlighted ? "rgba(255,255,255,0.08)" : "rgba(6,6,14,0.85)";
-      ctx.fillRect(choiceX, cy, choiceW, 38);
+      ctx.save();
+      ctx.globalAlpha = itemAlpha;
+
+      // Box background with rounded corners
+      const r = 6;
+      ctx.beginPath();
+      ctx.roundRect(choiceX, cy, choiceW, choiceItemH - 2, r);
+      ctx.fillStyle = isHighlighted ? "rgba(255,255,255,0.10)" : "rgba(6,6,14,0.88)";
+      ctx.fill();
 
       // Border
-      ctx.strokeStyle = isHighlighted ? "#ffffff40" : "#ffffff15";
+      ctx.strokeStyle = isHighlighted ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.08)";
       ctx.lineWidth = isHighlighted ? 2 : 1;
-      ctx.strokeRect(choiceX, cy, choiceW, 38);
+      ctx.stroke();
 
-      // Glow for highlighted
+      // Subtle glow for highlighted
       if (isHighlighted) {
-        ctx.shadowColor = "#ffffff";
-        ctx.shadowBlur = 8;
-        ctx.strokeRect(choiceX, cy, choiceW, 38);
+        ctx.shadowColor = "rgba(255,255,255,0.4)";
+        ctx.shadowBlur = 12;
+        ctx.stroke();
         ctx.shadowBlur = 0;
       }
 
-      // Number label
+      // Number badge (rounded square)
+      const badgeX = choiceX + 10;
+      const badgeY = cy + 10;
+      const badgeSize = choiceItemH - 22;
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeSize, badgeSize, 4);
+      ctx.fillStyle = isHighlighted ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)";
+      ctx.fill();
       ctx.font = `bold 14px ${font}`;
-      ctx.fillStyle = isHighlighted ? "#ffffff" : "#ffffff60";
-      ctx.fillText(`${i + 1}`, choiceX + 12, cy + 24);
+      ctx.fillStyle = isHighlighted ? "#ffffff" : "#ffffff70";
+      ctx.textAlign = "center";
+      ctx.fillText(`${i + 1}`, badgeX + badgeSize / 2, badgeY + badgeSize / 2 + 5);
+      ctx.textAlign = "left";
 
       // Choice text
       ctx.font = `14px "Noto Sans JP",sans-serif`;
-      ctx.fillStyle = isHighlighted ? "#e8e6e0" : "#e8e6e0aa";
-      ctx.fillText(choices[i].text || "", choiceX + 36, cy + 24);
+      ctx.fillStyle = isHighlighted ? "#f0ece4" : "#c0bdb5";
+      ctx.fillText(choices[i].text || "", choiceX + badgeSize + 22, cy + choiceItemH / 2 + 5);
+
+      ctx.restore();
     }
 
-    // Timer bar
+    // Timer bar — integrated below last choice
     if (s.choiceTimer > 0) {
-      const timerW = choiceW;
       const progress = Math.max(0, s.choiceTimer / 8);
-      const barY = choiceY - 8;
+      const lastChoiceBottom = choiceY + choices.length * (choiceItemH + choiceGap) - choiceGap;
+      const barY = lastChoiceBottom + 6;
+      const barH = 3;
 
-      // Background
-      ctx.fillStyle = "rgba(255,255,255,0.05)";
-      ctx.fillRect(choiceX, barY, timerW, 3);
+      // Background track
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      ctx.beginPath();
+      ctx.roundRect(choiceX, barY, choiceW, barH, 2);
+      ctx.fill();
 
       // Fill — color shifts from blue to yellow to red
       let barColor;
@@ -563,7 +645,9 @@ export function renderStoryScene(ctx, g, W, H, font) {
       else if (progress > 0.25) barColor = `rgba(255,200,50,0.8)`;
       else barColor = `rgba(255,60,40,0.9)`;
       ctx.fillStyle = barColor;
-      ctx.fillRect(choiceX, barY, timerW * progress, 3);
+      ctx.beginPath();
+      ctx.roundRect(choiceX, barY, choiceW * progress, barH, 2);
+      ctx.fill();
 
       // Tick sound in last 3 seconds
       if (s.choiceTimer < 3 && s.choiceTimer > 0 && Math.floor(s.choiceTimer * 2) !== Math.floor((s.choiceTimer + 0.016) * 2)) {
@@ -584,6 +668,8 @@ export function initStoryState(g, roomIndex, lines) {
     labelEn: sceneConfig.labelEn,
     particleType: sceneConfig.particles || sceneConfig.particleType || "dust",
     characters: sceneConfig.characters || {},
+    groundLevel: sceneConfig.groundLevel || 0.75,
+    entrance: sceneConfig.entrance || {},
   };
 
   g.story = {
@@ -597,6 +683,8 @@ export function initStoryState(g, roomIndex, lines) {
     choiceIndex: 0,
     choiceTimer: 0,
     sceneConfig: canvasConfig,
+    // Entrance animation — characters walk in from offscreen
+    entrance: { active: true, timer: 0, duration: 0.6 },
   };
   g._storyRoomIndex = roomIndex;
   g.gameState = "story";

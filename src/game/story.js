@@ -333,42 +333,64 @@ export function getSceneConfig(roomIndex) {
     gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
     label: '道場', labelEn: 'THE DOJO',
     particleType: 'dust',
+    groundLevel: 0.78,
     characters: { left: 'player', right: 'sensei' },
+    entrance: { left: 'walk_in', right: 'already_there' },
   };
   if (roomIndex === 5) return {
     bgKey: 'bg_dojo_night_story',
     gradientColors: ['#1a0808', '#140606', '#0a0404'],
     label: '転機', labelEn: 'THE TURNING POINT',
     particleType: 'embers',
+    groundLevel: 0.78,
     characters: { left: 'player', right: 'sensei' },
+    entrance: { left: 'already_there', right: 'already_there' },
   };
   if (roomIndex <= 9) return {
     bgKey: 'bg_forest_story',
     gradientColors: ['#081a12', '#061210', '#040a08'],
     label: '森', labelEn: 'THE FOREST',
     particleType: 'leaves',
+    groundLevel: 0.80,
     characters: { left: 'player', right: null },
+    entrance: { left: 'walk_in' },
   };
   if (roomIndex === 10) return {
     bgKey: 'bg_forest_story',
     gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
     label: '出会い', labelEn: 'THE ENCOUNTER',
     particleType: 'embers',
+    groundLevel: 0.80,
     characters: { left: 'player', right: 'shadow' },
+    entrance: { left: 'already_there', right: 'fade_in' },
   };
   if (roomIndex <= 14) return {
     bgKey: 'bg_forest_story',
     gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
     label: '闇路', labelEn: 'THE DARK PATH',
     particleType: 'embers',
+    groundLevel: 0.80,
     characters: { left: 'player', right: 'shadow' },
+    entrance: { left: 'walk_in', right: 'already_there' },
+  };
+  // Epilogue — return to dojo
+  if (roomIndex >= 20) return {
+    bgKey: 'bg_dojo_story',
+    gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
+    label: '帰還', labelEn: 'HOMECOMING',
+    particleType: 'petals',
+    groundLevel: 0.78,
+    characters: { left: 'player', right: 'sensei' },
+    entrance: { left: 'walk_in', right: 'already_there' },
   };
   return {
     bgKey: 'bg_temple_story',
     gradientColors: ['#1a1508', '#161008', '#0c0a06'],
     label: '山寺', labelEn: 'THE MOUNTAIN TEMPLE',
     particleType: 'petals',
+    groundLevel: 0.76,
     characters: { left: 'player', right: roomIndex >= 17 ? 'shadow' : 'elder' },
+    entrance: { left: 'walk_in', right: 'already_there' },
   };
 }
 

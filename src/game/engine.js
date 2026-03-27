@@ -109,6 +109,7 @@ export function loadRoom(g, roomIndex) {
 
 function restartRoom(g) {
   g.deaths++;
+  g.time.scale = 1; // ensure time is normal after death
   loadRoom(g, g.currentRoom);
 }
 
@@ -192,21 +193,27 @@ export function update(g, callbacks) {
   // Hit-stop freeze
   if (g.hitStop > 0) { g.hitStop -= rawDt * 1000; return; }
 
-  // Slow-mo — require 20% meter to START (prevents rapid flicker when meter depletes)
-  const wasSlowMo = g.slowMo.active;
-  const canSlowMo = g.slowMo.active ? g.slowMo.meter > 0 : g.slowMo.meter > 20;
-  if (g.input.slowmo && canSlowMo) {
-    g.slowMo.active = true;
-    g.slowMo.meter = Math.max(0, g.slowMo.meter - 40 * rawDt);
-    g.time.scale = 0.25;
-    if (g.slowMo.meter <= 0) g.slowMo.active = false;
-  } else {
-    g.slowMo.active = false;
-    g.time.scale = 1;
-    g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 15 * rawDt);
+  // Skip slow-mo handling during death (death sequence controls time.scale)
+  // Also skip during lastKillCam (cinematic controls time.scale)
+  const isDeath = g.player && g.player.dead;
+  const isKillCam = g.roomState === "lastKillCam";
+  if (!isDeath && !isKillCam) {
+    // Slow-mo — require 20% meter to START (prevents rapid flicker when meter depletes)
+    const wasSlowMo = g.slowMo.active;
+    const canSlowMo = g.slowMo.active ? g.slowMo.meter > 0 : g.slowMo.meter > 20;
+    if (g.input.slowmo && canSlowMo) {
+      g.slowMo.active = true;
+      g.slowMo.meter = Math.max(0, g.slowMo.meter - 40 * rawDt);
+      g.time.scale = 0.25;
+      if (g.slowMo.meter <= 0) g.slowMo.active = false;
+    } else {
+      g.slowMo.active = false;
+      g.time.scale = 1;
+      g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 15 * rawDt);
+    }
+    if (!wasSlowMo && g.slowMo.active) playSound("slowmoOn");
+    if (wasSlowMo && !g.slowMo.active) playSound("slowmoOff");
   }
-  if (!wasSlowMo && g.slowMo.active) playSound("slowmoOn");
-  if (wasSlowMo && !g.slowMo.active) playSound("slowmoOff");
 
   const dt = rawDt * g.time.scale;
   g.time.dt = dt;
@@ -1393,8 +1400,8 @@ export function update(g, callbacks) {
   for (const s of g.slashEffects) s.timer -= dt * 1000;
   g.slashEffects = g.slashEffects.filter(s => s.timer > 0);
 
-  // ── Flash timer ──
-  if (g.flashTimer > 0) g.flashTimer -= dt * 1000;
+  // ── Flash timer (uses rawDt so slow-mo doesn't stretch white flash during death) ──
+  if (g.flashTimer > 0) g.flashTimer -= rawDt * 1000;
 
   // ── Camera (frame-rate independent) ──
   // Look-ahead: offset camera in player's facing direction
@@ -1542,10 +1549,36 @@ export function update(g, callbacks) {
         if (g.roomState === "playing") clearRoom(g, callbacks);
       }
     }
-  } else if (g.roomState === "lastKillFreeze") {
-    // Dramatic pause on last kill before room clear
-    g.roomClearTimer -= rawDt * 1000;
-    if (g.roomClearTimer <= 0) clearRoom(g, callbacks);
+  } else if (g.roomState === "lastKillCam") {
+    // Cinematic slow-mo kill cam: slowdown → hold → resume → clear
+    const cam = g.lastKillCam;
+    if (cam) {
+      cam.timer += rawDt * 1000;
+      if (cam.timer < 400) {
+        // Phase: slowdown — ramp time.scale down, zoom in
+        cam.phase = "slowdown";
+        g.time.scale = 0.08;
+        g.camera.zoomTarget = 1.5;
+      } else if (cam.timer < 700) {
+        // Phase: hold — brief dramatic pause at peak zoom
+        cam.phase = "hold";
+        g.time.scale = 0.08;
+      } else if (cam.timer < 1200) {
+        // Phase: resume — ramp time back up, zoom out
+        cam.phase = "resume";
+        const t = (cam.timer - 700) / 500; // 0→1 over 500ms
+        g.time.scale = 0.08 + t * 0.92; // 0.08→1.0
+        g.camera.zoomTarget = 1.5 - t * 0.5; // 1.5→1.0
+      } else {
+        // Kill cam complete
+        g.lastKillCam = null;
+        g.time.scale = 1;
+        g.camera.zoomTarget = 1;
+        clearRoom(g, callbacks);
+      }
+    } else {
+      clearRoom(g, callbacks);
+    }
   } else if (g.roomState === "cleared") {
     g.roomClearTimer -= rawDt * 1000;
     if (g.roomClearTimer <= 0) {
@@ -1597,33 +1630,46 @@ export function update(g, callbacks) {
 
   // Death phase processing (monochrome freeze → ink brush wipe → restart)
   if (g.player && g.player.dead && g.deathPhaseTimer !== undefined) {
-    g.deathPhaseTimer -= rawDt * 1000;
-    if (g.deathPhaseTimer > 1700) {
-      g.deathPhase = 0; // white flash (0-300ms)
-    } else if (g.deathPhaseTimer > 400) {
-      g.deathPhase = 1; // grayscale freeze (300-1600ms)
-      g.time.scale = 0.05;
-    } else if (g.deathPhaseTimer > 0) {
-      g.deathPhase = 2; // fade to black (1600-2000ms)
-      g.time.scale = 0.02;
-    } else if (g.brushWipe < 1) {
-      g.deathPhase = 3; // ink brush wipe
-      g.brushWipe = Math.min(1, (g.brushWipe || 0) + rawDt * 4); // 250ms sweep
-      g.time.scale = 1;
-    } else {
-      // Wipe complete — restart room
+    g._deathRealTime = (g._deathRealTime || 0) + rawDt;
+    // Safety: force restart if death sequence exceeds 5 seconds real time
+    if (g._deathRealTime > 5) {
       g.deathPhaseTimer = undefined;
       g.deathPhase = undefined;
       g.brushWipe = 0;
+      g._deathRealTime = 0;
       g.camera.zoomTarget = 1;
       g.camera.zoom = 1;
       restartRoom(g);
+    } else {
+      g.deathPhaseTimer -= rawDt * 1000;
+      if (g.deathPhaseTimer > 1700) {
+        g.deathPhase = 0; // white flash (0-300ms)
+      } else if (g.deathPhaseTimer > 400) {
+        g.deathPhase = 1; // grayscale freeze (300-1600ms)
+        g.time.scale = 0.05;
+      } else if (g.deathPhaseTimer > 0) {
+        g.deathPhase = 2; // fade to black (1600-2000ms)
+        g.time.scale = 0.02;
+      } else if (g.brushWipe < 1) {
+        g.deathPhase = 3; // ink brush wipe
+        g.brushWipe = Math.min(1, (g.brushWipe || 0) + rawDt * 4); // 250ms sweep
+        g.time.scale = 1;
+      } else {
+        // Wipe complete — restart room
+        g.deathPhaseTimer = undefined;
+        g.deathPhase = undefined;
+        g.brushWipe = 0;
+        g._deathRealTime = 0;
+        g.camera.zoomTarget = 1;
+        g.camera.zoom = 1;
+        restartRoom(g);
+      }
     }
   }
 
   // ── Transition animations ──
   // Letterbox: ease in during cleared, ease out otherwise
-  if (g.roomState === "cleared" || g.roomState === "lastKillFreeze") {
+  if (g.roomState === "cleared" || g.roomState === "lastKillCam") {
     g.letterbox = Math.min(1, (g.letterbox || 0) + rawDt * 3); // ~330ms to full
   } else {
     if (g.letterbox > 0) g.letterbox = Math.max(0, g.letterbox - rawDt * 4);
@@ -1765,16 +1811,18 @@ function killEnemy(g, e, p, callbacks) {
   }
   // Kill zoom — escalates with combo and last kill
   if (isLastKill) {
-    g.camera.zoom = LAST_KILL_ZOOM;
+    // Cinematic slow-mo kill cam instead of hard freeze
+    g.roomState = "lastKillCam";
+    g.lastKillCam = {
+      phase: "slowdown", timer: 0,
+      targetX: e.x, targetY: e.y,
+      totalTime: 1.2, // 1.2s total
+    };
+    g.camera.zoomTarget = 1.5;
+    g.time.scale = 0.08;
   } else {
     g.camera.zoom = Math.max(g.camera.zoom, combo === 3 ? KILL_ZOOM_3RD : KILL_ZOOM);
-  }
-  g.camera.zoomTarget = 1;
-
-  // Last kill freeze
-  if (isLastKill) {
-    g.roomState = "lastKillFreeze";
-    g.roomClearTimer = LAST_KILL_FREEZE;
+    g.camera.zoomTarget = 1;
   }
 
   // Brief auto-slow on kill for flow (aim next target)
