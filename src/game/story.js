@@ -86,7 +86,7 @@ export const ROOM_DIALOGUE = {
     // Show arm as centered overlay (not full background)
     { type: "musicChange", to: "music_story_tension", fade: 0.5 },
     { type: "sfx", sound: "tension_sting" },
-    { type: "centerImage", image: "cutscene_sensei_arm", fade: 0.5, scale: 0.4 },
+    { type: "centerImage", image: "cutscene_sensei_arm", fade: 0.5, scale: 0.25 },
     { type: "pause", duration: 0.8 },
     { speaker: "sensei", textJp: "...この印は...まさか。", text: "...This mark... no. It can't be.", emotion: "serious" },
     { speaker: "player", textJp: "分からない...集中すると光るんです。", text: "I don't know... it glows when I focus." },
@@ -105,8 +105,7 @@ export const ROOM_DIALOGUE = {
     { type: "musicStop" },
     { type: "pause", duration: 0.5 },
     { type: "sfx", sound: "glass_shatter" },
-    { type: "shake", intensity: 3, duration: 0.3 },
-    { type: "flash", color: "#ffffff", duration: 0.08 },
+    { type: "shake", intensity: 4, duration: 0.5 },
     { type: "pause", duration: 1.5 },
     // Total silence — then sensei reacts
     { speaker: "sensei", textJp: "...！", text: "...!", emotion: "alarmed" },
@@ -127,10 +126,9 @@ export const ROOM_DIALOGUE = {
 
     // ── Beat 4: The door breaks ──
     { type: "sfx", sound: "wood_splinter" },
-    { type: "shake", intensity: 10, duration: 1.0 },
-    { type: "flash", color: "#ff2200", duration: 0.15 },
-    { type: "bgSwap", to: "cutscene_shoji_blood", transition: "flash", color: "#ffffff", duration: 0.1 },
-    { type: "pause", duration: 2.0 },
+    { type: "shake", intensity: 8, duration: 0.8 },
+    { type: "bgSwap", to: "cutscene_shoji_blood", transition: "hardCut" },
+    { type: "pause", duration: 2.5 },
 
     // ── Beat 5: Final words ──
     { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },

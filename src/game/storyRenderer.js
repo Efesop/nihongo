@@ -138,6 +138,17 @@ export function updateStory(g, rawDt, callbacks) {
     }
     // Auto-advance to next line (cinematic beats don't wait for click)
     s.index++;
+    // If we've passed the last line, end the story
+    if (s.index >= s.lines.length) {
+      g.story = null;
+      g.gameState = "playing";
+      if (g._pendingRoom !== null && g._pendingRoom !== undefined) {
+        g._loadRoomAfterStory = g._pendingRoom;
+        g._pendingRoom = null;
+      }
+      g._resumeFromStory = true;
+      return;
+    }
     s.typedChars = 0; s.typingDone = false; s.timer = 0;
     return;
   }
@@ -835,6 +846,13 @@ export function initStoryState(g, roomIndex, lines) {
   };
   g._storyRoomIndex = roomIndex;
   g.gameState = "story";
+
+  // Pre-load any images referenced in cinematic beats
+  for (const line of lines) {
+    if (line.type === "bgSwap" && line.to) getImage(line.to); // triggers lazy-load
+    if (line.type === "overlay" && line.image) getImage(line.image);
+    if (line.type === "centerImage" && line.image) getImage(line.image);
+  }
 
   // Clear particles for fresh scene
   _particles.length = 0;
