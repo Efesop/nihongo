@@ -4,11 +4,15 @@
 // Show-don't-tell: the inciting incident is earned, not explained.
 
 export const CHARACTERS = {
-  sensei:  { name: "先生", nameEn: "Sensei", color: "#cc9933" },
-  player:  { name: "主人公", nameEn: "TinySenpai", color: "#cc4444" },
-  shadow:  { name: "影", nameEn: "Shadow", color: "#aa44cc" },
-  elder:   { name: "長老", nameEn: "Elder", color: "#44aa66" },
-  system:  { name: "", nameEn: "", color: "#888899" },
+  sensei:   { name: "先生",     nameEn: "Sensei",       color: "#cc9933" },
+  player:   { name: "主人公",   nameEn: "TinySenpai",   color: "#cc4444" },
+  shadow:   { name: "影",       nameEn: "Shadow",       color: "#aa44cc" },
+  elder:    { name: "長老",     nameEn: "Elder",        color: "#44aa66" },
+  kunoichi: { name: "くノ一",   nameEn: "Kunoichi",     color: "#cc4488" },
+  katsura:  { name: "桂",       nameEn: "Lord Katsura", color: "#aa8833" },
+  hacker:   { name: "ハッカー", nameEn: "Hacker",       color: "#44ccaa" },
+  fox:      { name: "狐",       nameEn: "Fox Spirit",   color: "#ff8844" },
+  system:   { name: "",         nameEn: "",             color: "#888899" },
 };
 
 // ═══════════════════════════════════════════════════════
@@ -198,19 +202,204 @@ export const ROOM_DIALOGUE = {
     { speaker: "elder", textJp: "呪いは先生との絆だと思っている。", text: "He sees the curse as his bond with Sensei." },
   ],
 
+  // ═══ ACT 1 FINALE (Room 11) — Shadow's test before the time rift ═══
+  11: [
+    { speaker: "shadow", textJp: "ここから先は...お前の知る世界じゃない。", text: "Beyond this point... isn't the world you know." },
+    { speaker: "player", textJp: "どういう意味だ？", text: "What do you mean?" },
+    { speaker: "shadow", textJp: "印は時を歪める。使いすぎると...時が裂ける。", text: "The mark warps time. Use it too much... and time itself tears." },
+    { speaker: "shadow", textJp: "生き延びろ。次に会う時は...違う場所だ。", text: "Survive. Next time we meet... it'll be a different place." },
+  ],
+
+  // ═══ ACT 2: EDO CASTLE TOWN (Rooms 12-18) ═══
+  // Time rift tears open. Player wakes in the Edo period.
+  // New ally: Kunoichi. New antagonist: Lord Katsura.
+
+  12: [
+    { speaker: "system", textJp: "第二幕 — 江戸城下町", text: "Act 2 — Edo Castle Town" },
+    { speaker: "system", textJp: "時が裂けた。見知らぬ街。見知らぬ時代。", text: "Time has torn. An unfamiliar city. An unfamiliar era." },
+    { speaker: "player", textJp: "...ここはどこだ？建物が...全然違う。", text: "...Where am I? The buildings are... completely different." },
+    { speaker: "player", textJp: "印が脈打っている。ここに引き寄せられた？", text: "The mark is pulsing. Was I drawn here?" },
+    { speaker: "kunoichi", textJp: "おい。そこの。印持ちだな。", text: "Hey. You there. You bear the mark." },
+    { speaker: "player", textJp: "誰だ？！", text: "Who are you?!" },
+    { speaker: "kunoichi", textJp: "味方だ。今は。ついてこい、追手が来る前に。", text: "An ally. For now. Follow me, before the hunters arrive." },
+  ],
+
+  13: [
+    { speaker: "kunoichi", textJp: "ここは安全だ。少し話そう。", text: "We're safe here. Let's talk." },
+    { speaker: "kunoichi", textJp: "私はくノ一。印の研究をしている。", text: "I'm Kunoichi. I study the mark." },
+    { speaker: "player", textJp: "研究？呪いだろう？", text: "Study? It's a curse, isn't it?" },
+    { speaker: "kunoichi", textJp: "呪い？...それは片面だけの話だ。", text: "A curse? ...That's only half the story." },
+    { speaker: "kunoichi", textJp: "印は元々、神からの贈り物だった。時を操る力。", text: "The mark was originally a gift from the gods. The power to control time." },
+    { speaker: "kunoichi", textJp: "だが人の欲が力を歪めた。贈り物は呪いになった。", text: "But human greed twisted the power. The gift became a curse." },
+  ],
+
+  15: [
+    { speaker: "kunoichi", textJp: "城の中に古い巻物がある。呪いの起源が書かれている。", text: "There's an ancient scroll inside the castle. It describes the curse's origin." },
+    { speaker: "player", textJp: "城に忍び込むのか？", text: "We're sneaking into the castle?" },
+    { speaker: "kunoichi", textJp: "見つかったら終わりだ。静かに、素早く。", text: "If we're spotted, it's over. Quiet and swift." },
+    { speaker: "kunoichi", textJp: "あの衛兵たちの視線を避けろ。影に隠れて進め。", text: "Avoid the guards' line of sight. Move through the shadows." },
+  ],
+
+  17: [
+    { speaker: "system", textJp: "城の最上階 — 桂の間", text: "Castle top floor — Katsura's chamber" },
+    { speaker: "katsura", textJp: "印持ちが...また来たか。", text: "A mark-bearer... has come again." },
+    { speaker: "player", textJp: "お前が桂公か。", text: "You're Lord Katsura." },
+    { speaker: "katsura", textJp: "数百年前、俺も同じ印を持っていた。", text: "Centuries ago, I bore the same mark." },
+    { speaker: "katsura", textJp: "俺は呪いを封じた。だが代償に...時に囚われた。", text: "I sealed the curse. But the price was... being trapped in time." },
+    { speaker: "player", textJp: "封じる方法を教えてくれ！", text: "Tell me how to seal it!" },
+    { speaker: "katsura", textJp: "方法は一つ。全ての時代を貫く印を集めろ。", text: "There is one way. Gather the marks across all eras." },
+    { speaker: "katsura", textJp: "だが覚悟しろ。集めるたびに...時がさらに裂ける。", text: "But be warned. Each time you gather one... time tears further." },
+  ],
+
+  18: [
+    { speaker: "kunoichi", textJp: "桂公の言葉...信じるのか？", text: "Lord Katsura's words... do you trust them?" },
+    { speaker: "player", textJp: "選択肢がない。先に進むしかない。", text: "I don't have a choice. I have to keep going." },
+    { speaker: "kunoichi", textJp: "...気をつけろ。次の裂け目が開く。", text: "...Be careful. The next rift is opening." },
+    { speaker: "system", textJp: "印が激しく脈打つ。光が全てを飲み込む。", text: "The mark pulses violently. Light swallows everything." },
+  ],
+
+  // ═══ ACT 3: NEON TOKYO (Rooms 19-25) ═══
+  // The curse tears through time again. Cyberpunk streets.
+
   19: [
-    { speaker: "shadow", textJp: "ここまで来たか。", text: "So you made it this far." },
-    { speaker: "player", textJp: "影。もう戦わなくていい。", text: "Shadow. You don't have to fight anymore." },
-    { speaker: "shadow", textJp: "...お前に何が分かる。", text: "...What would you know about it." },
-    { speaker: "shadow", textJp: "先生が俺を捨てた。新しい弟子を取った。", text: "Sensei abandoned me. Took a new student." },
-    { speaker: "player", textJp: "捨てたんじゃない。助けられなかったんだ。", text: "He didn't abandon you. He couldn't save you." },
+    { speaker: "system", textJp: "第三幕 — ネオン東京", text: "Act 3 — Neon Tokyo" },
+    { speaker: "system", textJp: "雨。ネオン。未来の東京。", text: "Rain. Neon. Future Tokyo." },
+    { speaker: "player", textJp: "...また違う時代。ここは...東京？", text: "...Another era. This is... Tokyo?" },
+    { speaker: "player", textJp: "看板が...日本語だけど、光っている。電気の光。", text: "The signs are... Japanese, but glowing. Electric light." },
+    { speaker: "hacker", textJp: "おい、お前。時間の裂け目から来たな？", text: "Hey, you. You came through a time rift, right?" },
+    { speaker: "player", textJp: "...なんで分かる。", text: "...How do you know." },
+    { speaker: "hacker", textJp: "俺のセンサーが反応した。墨の呪いの波長だ。", text: "My sensors picked it up. The wavelength of the Ink Curse." },
+    { speaker: "hacker", textJp: "ヤクザが印持ちを狩ってる。急いで隠れろ。", text: "The yakuza are hunting mark-bearers. Hide. Now." },
+  ],
+
+  21: [
+    { speaker: "hacker", textJp: "この時代では、印の力は技術と融合している。", text: "In this era, the mark's power has fused with technology." },
+    { speaker: "player", textJp: "サイバー忍者...印の力で瞬間移動する？", text: "Cyber ninjas... they teleport using the mark's power?" },
+    { speaker: "hacker", textJp: "そうだ。呪いを兵器化した。", text: "Exactly. They weaponized the curse." },
+    { speaker: "hacker", textJp: "高速道路を越えろ。向こう側に安全な場所がある。", text: "Cross the highway. There's a safe place on the other side." },
+  ],
+
+  22: [
+    { speaker: "shadow", textJp: "また会ったな。", text: "We meet again." },
+    { speaker: "player", textJp: "影...お前もここに？", text: "Shadow... you're here too?" },
+    { speaker: "shadow", textJp: "印は俺も引き寄せる。どの時代にも。", text: "The mark draws me too. To every era.", emotion: "bitter" },
+    { speaker: "shadow", textJp: "この街を見ろ。呪いが未来をどう変えたか。", text: "Look at this city. See what the curse did to the future." },
+    { speaker: "shadow", textJp: "それでもまだ...封じたいのか？", text: "And you still... want to seal it?" },
+  ],
+
+  25: [
+    { speaker: "hacker", textJp: "最後のデータを手に入れた。次の裂け目の座標だ。", text: "Got the last data. Coordinates for the next rift." },
+    { speaker: "player", textJp: "...地下か。", text: "...Underground." },
+    { speaker: "hacker", textJp: "気をつけろ。あそこは...ヤクザの本拠地だ。", text: "Be careful. That place... is yakuza headquarters." },
+    { speaker: "system", textJp: "印が震える。地下深くに何かがある。", text: "The mark trembles. Something lies deep below." },
+  ],
+
+  // ═══ ACT 4: UNDERGROUND / NIGHTCLUB (Rooms 26-31) ═══
+
+  26: [
+    { speaker: "system", textJp: "第四幕 — 地下", text: "Act 4 — The Underground" },
+    { speaker: "player", textJp: "暗い。見つからないように進まないと。", text: "Dark. I need to move without being seen." },
+    { speaker: "player", textJp: "ここの敵は...強い。正面から戦うのは危険だ。", text: "The enemies here are... strong. A frontal fight would be suicide." },
+  ],
+
+  28: [
+    { speaker: "system", textJp: "ナイトクラブ — 重低音が壁を震わせる", text: "Nightclub — bass shakes the walls" },
+    { speaker: "player", textJp: "...ここに裂け目がある？こんな場所に？", text: "...The rift is here? In a place like this?" },
+    { speaker: "hacker", textJp: "（通信）クラブの奥にVIPルームがある。裂け目の波長はそこからだ。", text: "(comms) There's a VIP room in the back. The rift signal is coming from there." },
+    { speaker: "hacker", textJp: "バウンサーに見つかるな。ライトの動きに合わせて進め。", text: "Don't let the bouncers spot you. Move with the lights." },
+  ],
+
+  29: [
+    { speaker: "system", textJp: "VIPルーム — DJメカが待ち構えている", text: "VIP Room — the DJ Mech awaits" },
+    { speaker: "player", textJp: "あれは...機械と人間の融合体？", text: "That's... a fusion of machine and human?" },
+    { speaker: "hacker", textJp: "DJメカ。呪いの力で音を兵器にした。気をつけろ。", text: "DJ Mech. It weaponized sound using the curse. Watch out." },
+  ],
+
+  31: [
+    { speaker: "shadow", textJp: "...まだ生きているか。", text: "...Still alive?" },
+    { speaker: "player", textJp: "影。もう一つの裂け目が開く。", text: "Shadow. Another rift is opening." },
+    { speaker: "shadow", textJp: "次は...最初に始まった場所だ。", text: "Next is... where it all began.", emotion: "bitter" },
+    { speaker: "shadow", textJp: "山寺。精霊の世界との境界。", text: "The mountain temple. The boundary with the spirit world." },
+    { speaker: "system", textJp: "光が裂ける。桜の花びらが舞う。", text: "Light tears. Cherry blossoms dance." },
+  ],
+
+  // ═══ ACT 5: TEMPLE / SPIRIT REALM (Rooms 32-38) ═══
+
+  32: [
+    { speaker: "system", textJp: "第五幕 — 山寺・精霊の世界", text: "Act 5 — Mountain Temple / Spirit Realm" },
+    { speaker: "elder", textJp: "お帰り。待っていた。", text: "Welcome back. I've been waiting." },
+    { speaker: "player", textJp: "長老...全ての時代を旅してきた。", text: "Elder... I've traveled through every era." },
+    { speaker: "elder", textJp: "印が集まっているな。最後の封印の準備ができた。", text: "The marks are gathering. The final seal is ready." },
+    { speaker: "elder", textJp: "だが...影もここに来る。止めに。", text: "But... Shadow will come too. To stop it." },
+  ],
+
+  34: [
+    { speaker: "system", textJp: "時が混ざる。全ての時代の敵が現れる。", text: "Time merges. Enemies from every era appear." },
+    { speaker: "player", textJp: "侍も忍者も...サイバー戦士も。全部混ざっている。", text: "Samurai, ninja... cyber warriors. Everything is mixed." },
+    { speaker: "elder", textJp: "時が崩壊し始めている。急げ。", text: "Time is beginning to collapse. Hurry." },
+  ],
+
+  35: [
+    { speaker: "system", textJp: "精霊の世界 — 境界を越えて", text: "Spirit Realm — beyond the boundary" },
+    { speaker: "fox", textJp: "印持ちよ。ここまで来たか。", text: "Mark-bearer. You've come this far." },
+    { speaker: "player", textJp: "お前は...？", text: "You are...?" },
+    { speaker: "fox", textJp: "私は狐。この力を最初に人に与えた者だ。", text: "I am Fox. The one who first gave this power to humans." },
+    { speaker: "fox", textJp: "贈り物だった。時を超える力。だが人はそれを呪いに変えた。", text: "It was a gift. The power to transcend time. But humans turned it into a curse." },
+    { speaker: "player", textJp: "元に戻せるのか？", text: "Can it be undone?" },
+    { speaker: "fox", textJp: "お前次第だ。全ての印を集めたなら...選択がある。", text: "That depends on you. If you've gathered all the marks... there is a choice." },
+  ],
+
+  37: [
+    { speaker: "shadow", textJp: "...ここで終わりにしよう。", text: "...Let's end this here." },
+    { speaker: "player", textJp: "影。まだ戦うのか。", text: "Shadow. Are you still fighting?" },
+    { speaker: "shadow", textJp: "全ての時代を見てきた。どこにも居場所がなかった。", text: "I've seen every era. I belonged in none of them.", emotion: "bitter" },
+    { speaker: "shadow", textJp: "この力だけが...俺の唯一の存在理由だ。", text: "This power is... my only reason to exist." },
+    { speaker: "player", textJp: "違う。お前の存在理由は先生との絆だ。力じゃない。", text: "No. Your reason to exist is your bond with Sensei. Not the power." },
     { speaker: "shadow", textJp: "...黙れ。", text: "...Shut up.", emotion: "angry" },
-    // Choice happens here (after index 5) — final_aggressive, final_compassionate, or final_talk
-    { speaker: "shadow", textJp: "...いいだろう。全力で来い。", text: "...Fine. Come at me with everything.", emotion: "angry", condition: { flag: "final_aggressive" } },
-    { speaker: "shadow", textJp: "傷つけたくない？...お前は甘すぎる。", text: "Don't want to hurt me? ...You're too soft.", emotion: "bitter", condition: { flag: "final_compassionate" } },
-    { speaker: "shadow", textJp: "話す...？今更何を話す。", text: "Talk...? What's left to say.", emotion: "bitter", condition: { flag: "final_talk" } },
-    { speaker: "shadow", textJp: "この印を消すというなら、俺を倒してからにしろ。", text: "If you want to break this curse, you'll have to go through me first." },
-    { speaker: "shadow", textJp: "先生の最初の弟子と、最後の弟子。決着をつけよう。", text: "Sensei's first student versus his last. Let's end this." },
+    // Choice: shadow_final_help or shadow_final_fight
+    { speaker: "player", textJp: "一緒に帰ろう。先生が待っている。", text: "Let's go home together. Sensei is waiting.", condition: { flag: "shadow_final_help" } },
+    { speaker: "player", textJp: "止められないなら...倒すしかない。", text: "If you won't stop... I'll have to stop you.", condition: { flag: "shadow_final_fight" } },
+    { speaker: "shadow", textJp: "...先生の弟子と...最後の勝負だ。", text: "...Sensei's student versus... one last fight." },
+  ],
+
+  38: [
+    { speaker: "system", textJp: "最終決戦 — 精霊の世界の中心", text: "Final Battle — Heart of the Spirit Realm" },
+    { speaker: "shadow", textJp: "全力で来い。手加減はしない。", text: "Come at me with everything. I won't hold back.", emotion: "angry" },
+    { speaker: "player", textJp: "分かった。...でも殺しはしない。", text: "Fine. ...But I won't kill you." },
+    { speaker: "shadow", textJp: "甘いな...それが命取りだ。", text: "So naive... that will be your downfall." },
+    { speaker: "system", textJp: "墨の呪いが暴走する。闇が形を取る。", text: "The Ink Curse erupts. Darkness takes shape." },
+  ],
+
+  // ═══ EPILOGUE (Rooms 39-41) ═══
+
+  39: [
+    { speaker: "system", textJp: "終章 — 帰還", text: "Epilogue — The Return" },
+    { speaker: "system", textJp: "精霊の世界が消えていく。桜が舞い散る。", text: "The spirit world fades. Cherry blossoms scatter." },
+    { speaker: "fox", textJp: "よくやった。呪いは...贈り物に戻った。", text: "Well done. The curse has... returned to being a gift." },
+    { speaker: "player", textJp: "影は...？", text: "Shadow...?" },
+    { speaker: "fox", textJp: "あなた次第だった。そしてあなたは選んだ。", text: "It was up to you. And you chose." },
+    // Conditional based on accumulated choices
+    { speaker: "fox", textJp: "慈悲を選んだ。影は救われた。", text: "You chose compassion. Shadow is saved.", condition: { flag: "shadow_final_help" } },
+    { speaker: "fox", textJp: "力で決着をつけた。影は自由になった...別の形で。", text: "You settled it with strength. Shadow is free... in another way.", condition: { flag: "shadow_final_fight" } },
+  ],
+
+  40: [
+    { speaker: "system", textJp: "山の道場 — 夜明け", text: "Mountain dojo — dawn" },
+    { speaker: "sensei", textJp: "...帰ってきたか。", text: "...You came back.", emotion: "amused" },
+    { speaker: "player", textJp: "先生。全部終わった。", text: "Sensei. It's all over." },
+    { speaker: "sensei", textJp: "茶を入れた。飲んでから話せ。", text: "I made tea. Drink first, then talk.", emotion: "amused" },
+    { speaker: "player", textJp: "...相変わらずですね。", text: "...You never change." },
+    { speaker: "sensei", textJp: "お前が変わった。...強くなった。", text: "You've changed. ...You've become strong.", emotion: "serious" },
+    // Shadow appears if saved
+    { speaker: "shadow", textJp: "...俺にも茶をくれ。", text: "...Tea for me too.", condition: { flag: "shadow_final_help" } },
+    { speaker: "sensei", textJp: "...二人とも。おかえり。", text: "...Both of you. Welcome home.", emotion: "amused", condition: { flag: "shadow_final_help" } },
+  ],
+
+  41: [
+    { speaker: "system", textJp: "修行の始まり — 新たな夜明け", text: "The beginning of training — a new dawn" },
+    { speaker: "sensei", textJp: "さあ。もう一度最初から。", text: "Now then. Once more, from the beginning.", emotion: "serious" },
+    { speaker: "player", textJp: "...はい、先生。", text: "...Yes, Sensei." },
+    { speaker: "system", textJp: "物語は終わり、修行は続く。", text: "The story ends. The training continues." },
   ],
 };
 
@@ -303,13 +492,29 @@ export const ROOM_CHOICES = {
       { textJp: "やるべきことをやる。", text: "I'll do what I must.", flag: "shadow_duty" },
     ],
   },
-  // Final — three approaches to the final battle
+  // Final — three approaches to the final battle (original Act 2)
   19: {
     after: 5,
     options: [
       { textJp: "全力で行く。", text: "I'll fight with everything.", flag: "final_aggressive" },
       { textJp: "傷つけたくない。", text: "I don't want to hurt you.", flag: "final_compassionate" },
       { textJp: "戦わなくていい。話そう。", text: "We don't have to fight. Let's talk.", flag: "final_talk" },
+    ],
+  },
+  // Act 3: Shadow encounter in Neon Tokyo
+  22: {
+    after: 4,
+    options: [
+      { textJp: "封じる。全ての時代のために。", text: "I'll seal it. For every era.", flag: "curse_seal" },
+      { textJp: "...分からない。まだ。", text: "...I don't know. Not yet.", flag: "curse_uncertain" },
+    ],
+  },
+  // Act 5: Final Shadow confrontation
+  37: {
+    after: 5,
+    options: [
+      { textJp: "一緒に帰ろう。", text: "Let's go home together.", flag: "shadow_final_help" },
+      { textJp: "止めるしかない。", text: "I have to stop you.", flag: "shadow_final_fight" },
     ],
   },
 };
@@ -320,108 +525,207 @@ export const ROOM_CHOICES = {
 // Single thoughts/reactions → in-game encounters (no interruption).
 // ═══════════════════════════════════════════════════════
 export const STORY_TRIGGERS = {
-  0: 0,    // Dojo — wake up, first training (5 lines)
-  1: 1,    // Dojo — jump training (4 lines)
-  2: 2,    // Dojo — dash training (4 lines)
-  3: 3,    // Dojo — wall training (5 lines)
-  4: 4,    // Dojo — focus/slow-mo, "don't overuse it" (6 lines)
-  5: 5,    // THE TURN — Sensei sees the mark, forces player to flee (13 lines)
-  // 6: encounter only (fleeing, no time to stop)
-  // 7: encounter only
-  8: 8,    // Brief — player running, scared (2 lines)
-  // 9: encounter only
-  10: 10,  // MAJOR — Shadow's entrance + exposition (13 lines)
-  // 11: encounter only
-  // 12: encounter only
-  13: 13,  // Shadow dialogue — the mark calls pursuers (4 lines)
-  14: 14,  // Shadow's test — gate to the mountain (4 lines)
-  15: 15,  // MAJOR — Elder reveals the Ink Curse (10 lines)
-  16: 16,  // Elder reveals Shadow's identity (7 lines)
-  17: 17,  // Shadow confronts player about removing curse (7 lines)
-  18: 18,  // Elder — the sealing technique + Shadow's love (6 lines)
-  19: 19,  // FINAL — Shadow vs Player, earned confrontation (8 lines)
+  // ── Prologue: Dojo (0-4) ──
+  0: 0, 1: 1, 2: 2, 3: 3, 4: 4,
+  // ── Act 1: Forest (5-11) ──
+  5: 5,     // THE TURN — forced to flee
+  8: 8,     // Solo — the mark burns
+  10: 10,   // MAJOR — Shadow's entrance
+  11: 11,   // Shadow warns about time rifts
+  13: 13,   // Shadow — the mark calls pursuers
+  14: 14,   // Shadow's gate test
+  // ── Act 2: Edo Castle Town (12-18) ──
+  12: 12,   // MAJOR — arrival in Edo, meet Kunoichi
+  13: 13,   // Kunoichi exposition — the mark's true origin
+  15: 15,   // Castle infiltration briefing
+  17: 17,   // MAJOR — Lord Katsura reveals the path
+  18: 18,   // Kunoichi warns, rift opens
+  // ── Act 3: Neon Tokyo (19-25) ──
+  19: 19,   // MAJOR — Neon Tokyo arrival, meet Hacker
+  21: 21,   // Hacker explains cyber ninjas
+  22: 22,   // Shadow reappears
+  25: 25,   // Hacker — next rift coordinates
+  // ── Act 4: Underground (26-31) ──
+  26: 26,   // Stealth briefing
+  28: 28,   // Nightclub infiltration
+  29: 29,   // DJ Mech boss
+  31: 31,   // Shadow — final rift opening
+  // ── Act 5: Spirit Realm (32-38) ──
+  32: 32,   // MAJOR — Elder, final preparations
+  34: 34,   // Time merging — mixed enemies
+  35: 35,   // MAJOR — Fox Spirit reveals the truth
+  37: 37,   // MAJOR — Shadow confrontation
+  38: 38,   // Final battle
+  // ── Epilogue (39-41) ──
+  39: 39,   // Fox Spirit — resolution
+  40: 40,   // Dojo return — sensei reunion
+  41: 41,   // New beginning
 };
 
 // ═══════════════════════════════════════════════════════
 // SCENE VISUAL CONFIG — environment per location
 // ═══════════════════════════════════════════════════════
 export function getSceneConfig(roomIndex) {
-  // Canvas-compatible scene configs — bgKey references loaded images
+  // ── Prologue: Dojo (0-4) ──
   if (roomIndex <= 4) return {
-    bgKey: 'bg_dojo_story',
-    gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
-    label: '道場', labelEn: 'THE DOJO',
-    particleType: 'dust',
-    groundLevel: 0.78,
+    bgKey: 'bg_dojo_story', gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
+    label: '道場', labelEn: 'THE DOJO', particleType: 'dust', groundLevel: 0.78,
     characters: { left: 'player', right: 'sensei' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
+  // ── The Turn (5) ──
   if (roomIndex === 5) return {
-    bgKey: 'bg_dojo_night_story',
-    gradientColors: ['#1a0808', '#140606', '#0a0404'],
-    label: '転機', labelEn: 'THE TURNING POINT',
-    particleType: 'embers',
-    groundLevel: 0.78,
+    bgKey: 'bg_dojo_night_story', gradientColors: ['#1a0808', '#140606', '#0a0404'],
+    label: '転機', labelEn: 'THE TURNING POINT', particleType: 'embers', groundLevel: 0.78,
     characters: { left: 'player', right: 'sensei' },
     entrance: { left: 'already_there', right: 'already_there' },
   };
+  // ── Forest solo scenes (6-9) ──
   if (roomIndex <= 9) return {
-    bgKey: 'bg_forest_story',
-    gradientColors: ['#081a12', '#061210', '#040a08'],
-    label: '森', labelEn: 'THE FOREST',
-    particleType: 'leaves',
-    groundLevel: 0.80,
+    bgKey: 'bg_forest_story', gradientColors: ['#081a12', '#061210', '#040a08'],
+    label: '森', labelEn: 'THE FOREST', particleType: 'leaves', groundLevel: 0.80,
     characters: { left: 'player', right: null },
     entrance: { left: 'walk_in' },
   };
+  // ── Shadow's entrance (10) ──
   if (roomIndex === 10) return {
-    bgKey: 'bg_forest_story',
-    gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
-    label: '出会い', labelEn: 'THE ENCOUNTER',
-    particleType: 'embers',
-    groundLevel: 0.80,
+    bgKey: 'bg_forest_story', gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
+    label: '出会い', labelEn: 'THE ENCOUNTER', particleType: 'embers', groundLevel: 0.80,
     characters: { left: 'player', right: 'shadow' },
     entrance: { left: 'already_there', right: 'fade_in' },
   };
-  if (roomIndex <= 14) return {
-    bgKey: 'bg_forest_story',
-    gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
-    label: '闇路', labelEn: 'THE DARK PATH',
-    particleType: 'embers',
-    groundLevel: 0.80,
+  // ── Forest + Shadow (11) ──
+  if (roomIndex === 11) return {
+    bgKey: 'bg_forest_story', gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
+    label: '闇路', labelEn: 'THE DARK PATH', particleType: 'embers', groundLevel: 0.80,
     characters: { left: 'player', right: 'shadow' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
-  // Epilogue — return to dojo
-  if (roomIndex >= 20) return {
-    bgKey: 'bg_dojo_story',
-    gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
-    label: '帰還', labelEn: 'HOMECOMING',
-    particleType: 'petals',
-    groundLevel: 0.78,
+  // ── Act 2: Edo Castle Town (12-18) ──
+  if (roomIndex >= 12 && roomIndex <= 14) return {
+    bgKey: 'bg_edo_story', gradientColors: ['#1a1508', '#14100c', '#0e0a06'],
+    label: '江戸', labelEn: 'EDO CASTLE TOWN', particleType: 'petals', groundLevel: 0.78,
+    characters: { left: 'player', right: 'kunoichi' },
+    entrance: { left: 'walk_in', right: roomIndex === 12 ? 'fade_in' : 'already_there' },
+  };
+  if (roomIndex >= 15 && roomIndex <= 16) return {
+    bgKey: 'bg_edo_story', gradientColors: ['#1a1508', '#14100c', '#0e0a06'],
+    label: '城', labelEn: 'THE CASTLE', particleType: 'dust', groundLevel: 0.78,
+    characters: { left: 'player', right: 'kunoichi' },
+    entrance: { left: 'walk_in', right: 'already_there' },
+  };
+  if (roomIndex >= 17 && roomIndex <= 18) return {
+    bgKey: 'bg_edo_story', gradientColors: ['#1a1208', '#14100a', '#0e0a06'],
+    label: '桂の間', labelEn: "KATSURA'S CHAMBER", particleType: 'embers', groundLevel: 0.78,
+    characters: { left: 'player', right: roomIndex === 17 ? 'katsura' : 'kunoichi' },
+    entrance: { left: 'walk_in', right: 'already_there' },
+  };
+  // ── Act 3: Neon Tokyo (19-25) ──
+  if (roomIndex >= 19 && roomIndex <= 21) return {
+    bgKey: 'bg_neon_story', gradientColors: ['#020210', '#040428', '#080840'],
+    label: 'ネオン東京', labelEn: 'NEON TOKYO', particleType: 'embers', groundLevel: 0.80,
+    characters: { left: 'player', right: roomIndex === 22 ? 'shadow' : 'hacker' },
+    entrance: { left: 'walk_in', right: roomIndex === 19 ? 'fade_in' : 'already_there' },
+  };
+  if (roomIndex >= 22 && roomIndex <= 25) return {
+    bgKey: 'bg_neon_story', gradientColors: ['#0a0420', '#140830', '#200c40'],
+    label: '暗路', labelEn: 'DARK STREETS', particleType: 'embers', groundLevel: 0.80,
+    characters: { left: 'player', right: roomIndex === 22 ? 'shadow' : 'hacker' },
+    entrance: { left: 'walk_in', right: roomIndex === 22 ? 'fade_in' : 'already_there' },
+  };
+  // ── Act 4: Underground / Nightclub (26-31) ──
+  if (roomIndex >= 26 && roomIndex <= 31) return {
+    bgKey: 'bg_nightclub_story', gradientColors: ['#020008', '#040018', '#080028'],
+    label: '地下', labelEn: 'THE UNDERGROUND', particleType: 'embers', groundLevel: 0.80,
+    characters: { left: 'player', right: roomIndex === 31 ? 'shadow' : (roomIndex >= 28 ? 'hacker' : null) },
+    entrance: { left: 'walk_in', right: roomIndex === 31 ? 'fade_in' : 'already_there' },
+  };
+  // ── Act 5: Spirit Realm (32-38) ──
+  if (roomIndex >= 32 && roomIndex <= 34) return {
+    bgKey: 'bg_spirit_story', gradientColors: ['#0a0812', '#140e20', '#1e1430'],
+    label: '山寺', labelEn: 'MOUNTAIN TEMPLE', particleType: 'petals', groundLevel: 0.76,
+    characters: { left: 'player', right: roomIndex === 32 ? 'elder' : null },
+    entrance: { left: 'walk_in', right: 'already_there' },
+  };
+  if (roomIndex === 35) return {
+    bgKey: 'bg_spirit_story', gradientColors: ['#0e0818', '#180e28', '#221438'],
+    label: '精霊の世界', labelEn: 'SPIRIT REALM', particleType: 'petals', groundLevel: 0.76,
+    characters: { left: 'player', right: 'fox' },
+    entrance: { left: 'walk_in', right: 'fade_in' },
+  };
+  if (roomIndex >= 36 && roomIndex <= 38) return {
+    bgKey: 'bg_spirit_story', gradientColors: ['#0e0818', '#180e28', '#221438'],
+    label: '最終決戦', labelEn: 'FINAL BATTLE', particleType: 'embers', groundLevel: 0.76,
+    characters: { left: 'player', right: 'shadow' },
+    entrance: { left: 'walk_in', right: 'already_there' },
+  };
+  // ── Epilogue (39-41) ──
+  if (roomIndex === 39) return {
+    bgKey: 'bg_spirit_story', gradientColors: ['#140e20', '#1e1430', '#281a40'],
+    label: '帰還', labelEn: 'THE RETURN', particleType: 'petals', groundLevel: 0.76,
+    characters: { left: 'player', right: 'fox' },
+    entrance: { left: 'already_there', right: 'fade_in' },
+  };
+  if (roomIndex >= 40) return {
+    bgKey: 'bg_dojo_story', gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
+    label: '新しい夜明け', labelEn: 'A NEW DAWN', particleType: 'petals', groundLevel: 0.78,
     characters: { left: 'player', right: 'sensei' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
+  // Fallback
   return {
-    bgKey: 'bg_temple_story',
-    gradientColors: ['#1a1508', '#161008', '#0c0a06'],
-    label: '山寺', labelEn: 'THE MOUNTAIN TEMPLE',
-    particleType: 'petals',
-    groundLevel: 0.76,
-    characters: { left: 'player', right: roomIndex >= 17 ? 'shadow' : 'elder' },
-    entrance: { left: 'walk_in', right: 'already_there' },
+    bgKey: 'bg_forest_story', gradientColors: ['#081a12', '#061210', '#040a08'],
+    label: '', labelEn: '', particleType: 'dust', groundLevel: 0.78,
+    characters: { left: 'player', right: null },
+    entrance: { left: 'walk_in' },
   };
 }
 
 // Default choices state
 export function getDefaultChoices() {
   return {
+    // Prologue
     training_push: false, training_rest: false,
     departure_demand: false, departure_trust: false,
+    // Act 1: Forest
     curse_accept_1: false, curse_resist_1: false,
-    curse_accept_2: false, curse_resist_2: false,
     shadow_prove: false, shadow_empathy: false,
     shadow_help: false, shadow_duty: false,
+    // Act 2: Edo (original Act 2 choices kept for backward compat)
     final_aggressive: false, final_compassionate: false, final_talk: false,
+    // Act 3: Neon Tokyo
+    curse_seal: false, curse_uncertain: false,
+    // Act 5: Spirit Realm — final Shadow choice
+    shadow_final_help: false, shadow_final_fight: false,
   };
+}
+
+// ═══ EPILOGUE DIALOGUE BUILDER ═══
+// Called after final boss to compute ending-specific dialogue
+export function getEpilogueDialogue(choices) {
+  const compassionate = choices.shadow_final_help || choices.final_compassionate || choices.shadow_help;
+  if (compassionate) {
+    return [
+      { speaker: "system", textJp: "影が崩れ落ちる。呪いの印が消えていく。", text: "Shadow collapses. The curse marks fade away." },
+      { speaker: "shadow", textJp: "なぜ...なぜ助けた...", text: "Why... why did you save me..." },
+      { speaker: "player", textJp: "先生が俺たち二人を愛していたから。", text: "Because Sensei loved us both." },
+      { speaker: "system", textJp: "封印の儀式が始まる。墨が雨のように溶けていく。", text: "The sealing ritual begins. Ink dissolves like rain." },
+      { speaker: "shadow", textJp: "...ありがとう。", text: "...Thank you." },
+      { speaker: "system", textJp: "数週間後 — 山の道場、再建", text: "Weeks later — the mountain dojo, rebuilt" },
+      { speaker: "sensei", textJp: "帰ってきたか。", text: "You came back.", emotion: "amused" },
+      { speaker: "player", textJp: "約束しただろ。", text: "I promised I would." },
+      { speaker: "sensei", textJp: "...二人とも、おかえり。", text: "...Both of you. Welcome home.", emotion: "amused" },
+      { speaker: "player", textJp: "茶でも飲むか。", text: "How about some tea?" },
+    ];
+  }
+  return [
+    { speaker: "system", textJp: "影が倒れる。呪いが砕け散る。", text: "Shadow falls. The curse shatters." },
+    { speaker: "player", textJp: "終わった。", text: "It's over." },
+    { speaker: "system", textJp: "呪いは消えた。だが影は立ち上がらない。", text: "The curse is gone. But Shadow doesn't rise." },
+    { speaker: "shadow", textJp: "あの老人に...分かったと...伝えてくれ。", text: "Tell the old man... I understand now..." },
+    { speaker: "system", textJp: "数ヶ月後 — 山の道場", text: "Months later — the mountain dojo" },
+    { speaker: "sensei", textJp: "俺にできなかったことを...お前がやった。", text: "You did... what I couldn't.", emotion: "serious" },
+    { speaker: "player", textJp: "...刀掛けに、余分な刀が。", text: "...There's an extra sword on the rack." },
+    { speaker: "sensei", textJp: "あいつが...お前に持っていてほしかったはずだ。", text: "He would have... wanted you to have it.", emotion: "serious" },
+  ];
 }
