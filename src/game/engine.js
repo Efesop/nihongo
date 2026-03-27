@@ -6,12 +6,12 @@ import {
   HITSTOP_HIT, HITSTOP_KILL_1, HITSTOP_KILL_2, HITSTOP_KILL_3, HITSTOP_LAST_KILL,
   lerp, clamp, rnd, rndInt,
 } from "./constants.js";
-import { updateEnemyAI, makeEnemy, makePlayer } from "./entities.js";
+import { updateEnemyAI, makeEnemy, makePlayer, makeNPC, updateNPC } from "./entities.js";
 import { ROOMS } from "./levels.js";
 import { ROOM_ENCOUNTERS, ROOM_DIALOGUE, STORY_TRIGGERS } from "./story.js";
 import { updateStory, initStoryState } from "./storyRenderer.js";
 import { crossfadeMusic } from "./audio.js";
-import { playSound, playRandom, playRandomExclusive, setAmbientTheme } from "./audio.js";
+import { playSound, playRandom, playRandomExclusive, setAmbientTheme, playVoiceBlip } from "./audio.js";
 
 // ═══ ZONE MUSIC MAPPING ═══
 const ZONE_MUSIC = {
@@ -43,6 +43,9 @@ export function loadRoom(g, roomIndex) {
   g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
+  // NPCs — friendly characters for in-world story encounters
+  g.npcs = (room.npcs || []).map(n => makeNPC(n.charKey, n.x, g.groundY + (n.y || 0), n));
+  g.activeDialogue = null; // current NPC dialogue state
   // Hide spots for stealth
   g.hideSpots = (room.hideSpots || []).map(hs => ({
     ...hs, y: g.groundY + (hs.y || 0), occupied: false,
@@ -817,6 +820,93 @@ export function update(g, callbacks) {
           killPlayer(g, callbacks);
         }
       }
+    }
+  }
+
+  // ── NPC updates — in-world story characters ──
+  if (g.npcs) {
+    for (const npc of g.npcs) {
+      updateNPC(npc, p, dt);
+
+      // Remove NPCs that walked offscreen
+      if (npc.state === "walking_out" && (npc.x < -100 || npc.x > g.levelW + 100)) {
+        npc._remove = true;
+        continue;
+      }
+
+      // Proximity dialogue trigger
+      if (!npc.triggered && npc.dialogueKey !== null) {
+        const dist = Math.abs(p.x - npc.x);
+        if (dist < npc.triggerRange && p.grounded) {
+          npc.triggered = true;
+          npc.state = "talking";
+          // Start in-world dialogue
+          const lines = ROOM_DIALOGUE[npc.dialogueKey];
+          if (lines) {
+            g.activeDialogue = {
+              npc,
+              lines,
+              index: 0,
+              typedChars: 0,
+              typingDone: false,
+              timer: 0,
+            };
+            // Slow game slightly during dialogue (Katana Zero style)
+            g._dialogueSlowMo = true;
+            playSound("encounter");
+          }
+        }
+      }
+    }
+    // Remove offscreen NPCs
+    g.npcs = g.npcs.filter(n => !n._remove);
+  }
+
+  // ── In-world dialogue update ──
+  if (g.activeDialogue) {
+    const d = g.activeDialogue;
+    const line = d.lines[d.index];
+    if (line) {
+      const fullText = line.text || "";
+      // Typing animation
+      if (!d.typingDone) {
+        d.timer += rawDt;
+        const charsToShow = Math.floor(d.timer / 0.03);
+        if (charsToShow > d.typedChars) {
+          d.typedChars = Math.min(charsToShow, fullText.length);
+          playVoiceBlip(line.speaker);
+        }
+        if (d.typedChars >= fullText.length) d.typingDone = true;
+      }
+      // Advance on click/space
+      if (g.input.storyAdvance) {
+        g.input.storyAdvance = false;
+        if (!d.typingDone) {
+          d.typedChars = fullText.length;
+          d.typingDone = true;
+        } else {
+          d.index++;
+          if (d.index >= d.lines.length) {
+            // Dialogue complete
+            const npc = d.npc;
+            npc.state = "idle";
+            npc.dialogueDone = true;
+            if (npc.exitAfter) {
+              npc.state = "walking_out";
+            }
+            g.activeDialogue = null;
+            g._dialogueSlowMo = false;
+          } else {
+            d.typedChars = 0;
+            d.typingDone = false;
+            d.timer = 0;
+          }
+        }
+      }
+    }
+    // Slow game during dialogue
+    if (g._dialogueSlowMo) {
+      g.time.scale = Math.max(g.time.scale, 0.6); // slightly slowed, not frozen
     }
   }
 

@@ -21,6 +21,66 @@ export function makePlayer(groundY, startX = 100) {
   };
 }
 
+// ═══ NPC FACTORY — friendly characters in the game world ═══
+export function makeNPC(charKey, x, platformY, opts = {}) {
+  return {
+    x, y: platformY - TILE * SCALE, vx: 0, vy: 0,
+    charKey,                          // "sensei", "kunoichi", "shadow", etc.
+    facing: opts.facing || -1,        // face left by default
+    state: "idle",                    // "idle", "walking_in", "walking_out", "talking"
+    frame: 0, frameTimer: 0,
+    spriteKey: opts.spriteKey || `story_${charKey}_idle`, // sprite to render
+    triggerRange: opts.triggerRange || 80,  // how close player must be to trigger dialogue
+    dialogueKey: opts.dialogueKey || null,  // key into ROOM_DIALOGUE for this NPC's lines
+    triggered: false,                 // has dialogue been triggered?
+    dialogueDone: false,              // has dialogue finished?
+    // Post-dialogue behavior
+    exitAfter: opts.exitAfter || false,     // walk offscreen after dialogue?
+    exitDirection: opts.exitDirection || 1,  // 1 = right, -1 = left
+    stayForever: opts.stayForever || false, // remains in room after dialogue
+    // Walking animation
+    walkSpeed: opts.walkSpeed || 60,
+    walkTarget: opts.walkTarget || null,    // x position to walk to (for walking_in)
+    startX: opts.startX || x,              // where NPC starts (for walk-in entrance)
+  };
+}
+
+// ═══ NPC AI — simple state machine ═══
+export function updateNPC(npc, player, dt) {
+  npc.frameTimer += dt * 1000;
+  if (npc.frameTimer > 250) { npc.frame = (npc.frame + 1) % 2; npc.frameTimer = 0; }
+
+  if (npc.state === "walking_in") {
+    // Walk toward target position
+    if (npc.walkTarget !== null) {
+      const dx = npc.walkTarget - npc.x;
+      if (Math.abs(dx) > 5) {
+        npc.facing = dx > 0 ? 1 : -1;
+        npc.vx = npc.facing * npc.walkSpeed;
+      } else {
+        npc.x = npc.walkTarget;
+        npc.vx = 0;
+        npc.state = "idle";
+      }
+    } else {
+      npc.state = "idle";
+    }
+  } else if (npc.state === "walking_out") {
+    // Walk offscreen
+    npc.facing = npc.exitDirection;
+    npc.vx = npc.exitDirection * npc.walkSpeed * 1.5;
+  } else if (npc.state === "idle" || npc.state === "talking") {
+    npc.vx = 0;
+    // Face the player when talking or when player is close
+    if (npc.state === "talking" || (!npc.triggered && Math.abs(player.x - npc.x) < npc.triggerRange * 1.5)) {
+      npc.facing = player.x > npc.x ? 1 : -1;
+    }
+  }
+
+  // Apply movement
+  npc.x += npc.vx * dt;
+}
+
 // ═══ ENEMY FACTORY ═══
 export function makeEnemy(type, x, platformY, opts = {}) {
   const cfg = ENEMY_CONFIG[type] || ENEMY_CONFIG.oni;

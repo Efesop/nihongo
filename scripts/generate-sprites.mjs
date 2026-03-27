@@ -236,6 +236,23 @@ const SPRITES = [
   // Player examining arm — solo story scene
   ['story_player_arm',     `Full body chibi pixel art of TinySenpai looking at glowing mark on forearm, facing RIGHT. Same massive kasa hat, red sash, black outfit, but holding out left arm and staring at it with concern, faint red-purple glow on forearm. Worried discovery. ${STYLE_CHAR}`],
 
+  // ═══ NPC WALK SPRITES (for in-world story encounters) ═══
+  // Sensei walking
+  ['story_sensei_walk1',   `Full body chibi pixel art of wise old Japanese sensei walking, left foot forward, facing LEFT. Same golden hat, white beard, dark robes, wooden staff used as walking stick. Calm deliberate stride. ${STYLE_CHAR}`],
+  ['story_sensei_walk2',   `Full body chibi pixel art of wise old Japanese sensei walking, right foot forward, facing LEFT. Same golden hat, white beard, dark robes, wooden staff forward. Matching stride with walk1. ${STYLE_CHAR}`],
+  // Shadow walking
+  ['story_shadow_walk1',   `Full body chibi pixel art of shadow ninja walking stealthily, left foot forward, facing LEFT. Same dark purple-black wrapped head, glowing purple eyes, scarf tails flowing behind, dark outfit. Silent predatory stride. ${STYLE_CHAR}`],
+  ['story_shadow_walk2',   `Full body chibi pixel art of shadow ninja walking stealthily, right foot forward, facing LEFT. Same wrapped head, purple eyes, scarf tails. Matching stride. ${STYLE_CHAR}`],
+  // Elder walking
+  ['story_elder_walk1',    `Full body chibi pixel art of old temple elder walking slowly, left foot forward, facing LEFT. Same bald head, white and green robes, prayer beads. Gentle measured pace. ${STYLE_CHAR}`],
+  ['story_elder_walk2',    `Full body chibi pixel art of old temple elder walking slowly, right foot forward, facing LEFT. Same bald head, robes. Matching stride. ${STYLE_CHAR}`],
+  // Kunoichi walking
+  ['story_kunoichi_walk1', `Full body chibi pixel art of female kunoichi ninja walking confidently, left foot forward, facing LEFT. Same dark outfit, red hair ribbon, kunai at side. Swift purposeful stride. ${STYLE_CHAR}`],
+  ['story_kunoichi_walk2', `Full body chibi pixel art of female kunoichi ninja walking, right foot forward, facing LEFT. Same dark outfit, red hair ribbon. Matching stride. ${STYLE_CHAR}`],
+  // Hacker walking
+  ['story_hacker_walk1',   `Full body chibi pixel art of cyberpunk hacker walking casually, left foot forward, facing LEFT. Same dark hoodie with green circuits, glowing visor, tablet tucked under arm. Relaxed amble. ${STYLE_CHAR}`],
+  ['story_hacker_walk2',   `Full body chibi pixel art of cyberpunk hacker walking, right foot forward, facing LEFT. Same hoodie, visor. Matching stride. ${STYLE_CHAR}`],
+
   // ═══ NEW ZONE BACKGROUNDS ═══
 
   // Edo Castle Town

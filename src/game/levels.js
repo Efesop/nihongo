@@ -34,7 +34,8 @@ export const ROOMS = [
   // ════════════════════════════════════════════════════
 
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
-  // Training post (breakable) instead of oni — makes sense for dojo training
+  // Sensei waits in the dojo. Walk up to him → dialogue triggers.
+  // After dialogue, slash the training post to clear the room.
   {
     title: { jp: "修行", en: "Training" },
     theme: "dojo",
@@ -42,16 +43,19 @@ export const ROOMS = [
       { x: 0, y: 0, w: 1200 },
     ],
     enemies: [],
+    npcs: [
+      { charKey: "sensei", x: 600, facing: -1, dialogueKey: 0, stayForever: true, triggerRange: 100 },
+    ],
     shadows: [],
     playerStart: 80,
     deco: [{ type: "lantern", x: 400 }, { type: "scroll", x: 200 }, { type: "weapon_rack", x: 900 }],
     breakables: [
-      { type: "bamboo", x: 700, y: 0, w: 40, h: 60, hp: 3 },
+      { type: "bamboo", x: 900, y: 0, w: 40, h: 60, hp: 3 },
     ],
     objective: { type: "parkour", time: 120, exitX: 1100 },
     tutorials: [
       { text: "← → to move    (A/D)", trigger: "start" },
-      { text: "J or Z to slash the target!", trigger: "start" },
+      { text: "Walk to Sensei to talk", trigger: "start" },
     ],
   },
 

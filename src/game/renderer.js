@@ -506,6 +506,72 @@ export function render(g, ctx, isDesktop, font) {
     ctx.globalAlpha = 1;
   }
 
+  // ── NPCs — friendly in-world story characters ──
+  if (g.npcs) {
+    for (const npc of g.npcs) {
+      if (npc.x < cx - 100 || npc.x > cx + W + 100) continue;
+      const nx = Math.round(npc.x);
+      const ny = Math.round(npc.y);
+      // Get sprite — use walk frames if walking, idle otherwise
+      let spriteKey = `story_${npc.charKey}_idle`;
+      if (npc.state === "walking_in" || npc.state === "walking_out") {
+        const walkFrame = npc.frame % 2 === 0 ? "walk1" : "walk2";
+        const walkKey = `story_${npc.charKey}_${walkFrame}`;
+        if (getImage(walkKey)) spriteKey = walkKey;
+      } else if (npc.state === "talking") {
+        // Use emotion sprite if available from current dialogue line
+        if (g.activeDialogue?.npc === npc) {
+          const line = g.activeDialogue.lines[g.activeDialogue.index];
+          if (line?.emotion) {
+            const emotionKey = `story_${npc.charKey}_${line.emotion}`;
+            if (getImage(emotionKey)) spriteKey = emotionKey;
+          }
+        }
+      }
+      const img = getImage(spriteKey);
+      if (img) {
+        const drawH = DRAW_SIZE * SPRITE_SCALE * 1.8; // story chars are larger than gameplay sprites
+        const drawW = drawH * (img.width / img.height);
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        // Flip based on facing direction (sprites face left by default)
+        if (npc.facing === 1) {
+          ctx.translate(nx + drawW / 2, ny + DRAW_SIZE - drawH);
+          ctx.scale(-1, 1);
+          ctx.drawImage(img, -drawW / 2, 0, drawW, drawH);
+        } else {
+          ctx.drawImage(img, nx - drawW / 2, ny + DRAW_SIZE - drawH, drawW, drawH);
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.restore();
+      } else {
+        // Fallback: colored circle with name
+        ctx.fillStyle = npc.charKey === "sensei" ? "#cc9933" : "#cc4488";
+        ctx.beginPath();
+        ctx.arc(nx, ny + DRAW_SIZE * 0.5, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `10px ${font}`;
+        ctx.textAlign = "center";
+        ctx.fillText(npc.charKey, nx, ny + DRAW_SIZE * 0.5 + 4);
+        ctx.textAlign = "left";
+      }
+      // Interaction prompt when player is close and dialogue not triggered
+      if (!npc.triggered && npc.dialogueKey !== null) {
+        const playerDist = Math.abs((g.player?.x || 0) - npc.x);
+        if (playerDist < npc.triggerRange * 2) {
+          ctx.globalAlpha = 0.7;
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `bold 10px ${font}`;
+          ctx.textAlign = "center";
+          ctx.fillText("▼", nx, ny - 8);
+          ctx.textAlign = "left";
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+  }
+
   // Projectiles with glowing trails
   for (const proj of g.projectiles) {
     // Enhanced trail: glowing streak instead of squares
@@ -1112,6 +1178,66 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillStyle = "#ffdd44";
     ctx.fillText(tut.text, W / 2, bannerY + 5);
     ctx.restore();
+  }
+
+  // ── In-world dialogue box (screen space, after all world rendering) ──
+  if (g.activeDialogue) {
+    const d = g.activeDialogue;
+    const line = d.lines[d.index];
+    if (line) {
+      const CHAR_COLORS = { sensei: "#cc9933", player: "#cc4444", shadow: "#aa44cc", elder: "#44aa66", kunoichi: "#cc4488", katsura: "#aa8833", hacker: "#44ccaa", fox: "#ff8844", system: "#888899" };
+      const CHAR_NAMES = { sensei: "SENSEI", player: "TINYSENPAI", shadow: "SHADOW", elder: "ELDER", kunoichi: "KUNOICHI", katsura: "LORD KATSURA", hacker: "HACKER", fox: "FOX SPIRIT" };
+      const color = CHAR_COLORS[line.speaker] || "#888899";
+      const isSystem = line.speaker === "system";
+      const fullText = line.text || "";
+      const displayText = d.typingDone ? fullText : fullText.slice(0, d.typedChars);
+      const panelH = H * 0.2;
+      const panelY = H - panelH;
+      // Panel background
+      const panelGrad = ctx.createLinearGradient(0, panelY, 0, H);
+      panelGrad.addColorStop(0, "rgba(6,6,14,0.88)");
+      panelGrad.addColorStop(1, "rgba(6,6,14,0.96)");
+      ctx.fillStyle = panelGrad;
+      ctx.fillRect(0, panelY, W, panelH);
+      ctx.fillStyle = color + "30";
+      ctx.fillRect(0, panelY, W, 2);
+      const padX = Math.min(28, W * 0.04);
+      const textW = Math.min(660, W - padX * 2);
+      const textX = (W - textW) / 2;
+      // Speaker name
+      if (!isSystem) {
+        ctx.font = `bold 11px ${font}`;
+        ctx.fillStyle = color;
+        ctx.fillText("— " + (CHAR_NAMES[line.speaker] || line.speaker.toUpperCase()), textX, panelY + 18);
+        const nameW = ctx.measureText("— " + (CHAR_NAMES[line.speaker] || "")).width;
+        ctx.fillStyle = color + "15";
+        ctx.fillRect(textX + nameW + 10, panelY + 14, textW - nameW - 10, 1);
+      }
+      // Japanese text
+      if (line.textJp) {
+        ctx.font = `13px "Noto Sans JP",sans-serif`;
+        ctx.fillStyle = color + "77";
+        const jpDisplay = d.typingDone ? line.textJp : line.textJp.slice(0, Math.floor(d.typedChars * (line.textJp.length / Math.max(1, fullText.length))));
+        ctx.fillText(jpDisplay, textX, panelY + 36);
+      }
+      // English text
+      ctx.font = `16px "Noto Sans JP",sans-serif`;
+      ctx.fillStyle = "#e8e6e0";
+      ctx.fillText(displayText, textX, panelY + (line.textJp ? 56 : 40));
+      // Cursor
+      if (!d.typingDone) {
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
+        ctx.fillText("▌", textX + ctx.measureText(displayText).width + 3, panelY + (line.textJp ? 56 : 40));
+      }
+      // Progress + advance prompt
+      if (d.typingDone) {
+        ctx.textAlign = "right";
+        ctx.font = `10px ${font}`;
+        ctx.fillStyle = "rgba(255,255,255,0.2)";
+        ctx.fillText(`${d.index + 1}/${d.lines.length}  ▶`, textX + textW, panelY + panelH - 10);
+        ctx.textAlign = "left";
+      }
+    }
   }
 
   renderHUD(ctx, g, W, isDesktop, font);
