@@ -128,6 +128,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       g = initGame();
       if (!g) return;
       gameRef.current = g;
+      window.__gameRef = g; // debug access
     }
 
     const cleanupKeys = setupKeyboard(gameRef, setScreen);
