@@ -1254,7 +1254,8 @@ export function render(g, ctx, isDesktop, font) {
 // Idle faces LEFT, all AI-generated action sprites face RIGHT
 // R flag measured by pixel-weight analysis (not guessing).
 // R:false = faces LEFT, R:true = faces RIGHT.
-const F = { x: 20, y: 20, w: 984, h: 984 }; // full frame crop (gray bg removed on load)
+// Crops scaled for 256px sprites (were 1024px, now 256px — divide by 4)
+const F = { x: 5, y: 5, w: 246, h: 246 }; // full frame crop
 const CROPS = {
   idle:      { ...F, R: false },
   run1:      { ...F, R: false },
@@ -1264,18 +1265,18 @@ const CROPS = {
   slash1:    { ...F, R: false },
   slash2:    { ...F, R: false },
   slash3:    { ...F, R: false },
-  slash4:    { x: 80, y: 100, w: 860, h: 800, R: true },
+  slash4:    { x: 20, y: 25, w: 215, h: 200, R: true },
   jump1:     { ...F, R: false },
   jump2:     { ...F, R: true },
   fall:      { ...F, R: true },
   wallslide:     { ...F, R: true },
-  wall_cling:    { ...F, R: false },  // faces left (clinging to right wall)
+  wall_cling:    { ...F, R: false },
   dash:          { ...F, R: false },
   death1:        { ...F, R: false },
   death2:        { ...F, R: false },
   parry:         { ...F, R: false },
   land_heavy:    { ...F, R: false },
-  slash_through: { ...F, R: true },   // faces right (dashing through enemy)
+  slash_through: { ...F, R: true },
 };
 
 // Helper: draw a sprite image with crop and flip
@@ -1459,7 +1460,7 @@ function drawBlade(ctx, x, y, angle, len, bladeColor, edgeColor) {
 // ═══ ENEMY SPRITE SYSTEM ═══
 // Each enemy type has per-state sprites with facing direction (R = faces right).
 // All use full-frame crops with gray bg removed on load.
-const EC = { x: 20, y: 20, w: 984, h: 984 }; // default full crop
+const EC = { x: 5, y: 5, w: 246, h: 246 }; // default full crop (256px sprites)
 
 // State → sprite key mapping per enemy type
 // R: false = faces left, R: true = faces right

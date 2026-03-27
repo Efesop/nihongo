@@ -339,7 +339,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const panelY = H - panelH;
   const groundLevel = scene.groundLevel || 0.78; // match background floor level
   const floorY = Math.min(H * groundLevel, panelY - 5); // feet on background floor, above panel
-  const charH = Math.min(90, H * 0.14); // smaller characters, proportional to backgrounds
+  const charH = Math.min(110, H * 0.17); // proportional to backgrounds
   const bob = 0; // no bobbing — characters stand still
 
   // Determine who's in this scene
