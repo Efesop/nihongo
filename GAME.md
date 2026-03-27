@@ -264,6 +264,83 @@ All sprites face LEFT by default. ~170 sprite definitions total.
 
 ---
 
+## In-World NPC System (Katana Zero Style)
+
+Two dialogue systems exist:
+1. **Story overlay** (storyRenderer.js) — full-screen canvas scene, used for major multi-character scenes (rooms 1-4, act transitions)
+2. **In-world NPCs** (entities.js + engine.js) — characters placed in the actual game world, dialogue triggers on proximity
+
+### How In-World NPCs Work
+```javascript
+// In levels.js room definition:
+npcs: [
+  { charKey: "sensei", x: 600, facing: -1, dialogueKey: 0, stayForever: true, triggerRange: 100 },
+]
+```
+- `charKey`: matches CHARACTERS in story.js (sensei, shadow, kunoichi, etc.)
+- `dialogueKey`: key into ROOM_DIALOGUE for this NPC's lines
+- `triggerRange`: player must be this close (px) to trigger dialogue
+- `exitAfter`: NPC walks offscreen after dialogue ends
+- `stayForever`: NPC remains in room after dialogue
+
+### NPC States
+1. `walking_in` → walks to target position (uses walk1/walk2 sprites)
+2. `idle` → standing still, faces player when nearby
+3. `talking` → dialogue active, uses emotion sprites
+4. `walking_out` → leaves the scene after dialogue
+
+### Dialogue During Gameplay
+- Renders at bottom of screen (semi-transparent panel, 20% height)
+- Game continues at 0.6x speed (not frozen)
+- Space/Enter/click advances text
+- Player can't move during dialogue (input captured)
+- Japanese + English text with typing animation
+
+### Converting Rooms to NPC System
+To convert a story overlay room to in-world NPC:
+1. Add `npcs: [...]` to room definition in levels.js
+2. Remove room number from STORY_TRIGGERS in story.js
+3. Keep dialogue in ROOM_DIALOGUE (NPCs reference it via dialogueKey)
+
+### NPC Sprites Needed Per Character
+- `story_{char}_idle.png` — standing
+- `story_{char}_walk1.png` — walk frame 1
+- `story_{char}_walk2.png` — walk frame 2
+- `story_{char}_{emotion}.png` — emotion variants (serious, amused, angry, etc.)
+
+---
+
+## Known Issues & Gotchas
+
+### Rain Indoors
+Rain particles are spawned in engine.js based on room theme. Indoor themes (dojo, nightclub, neonTokyo) skip rain. If rain appears indoors, check:
+1. Room has `theme: "dojo"` set in levels.js
+2. `setAmbientTheme()` is called in loadRoom and before story scenes
+3. Engine rain check at line ~290 uses `roomTheme` variable
+
+### Sprite Loading
+- Critical sprites (3) load synchronously, everything else is fire-and-forget
+- `loadGameImages()` returns `Promise.resolve()` immediately — never blocks
+- Gray backgrounds removed OFFLINE (not runtime) — see `scripts/remove-gray-bg.mjs`
+- Missing sprites → renderer uses procedural fallback (colored shapes)
+- New sprites must be registered in `sprites.js` loadGameImages()
+
+### Story Triggers vs NPC Dialogue
+- `STORY_TRIGGERS` in story.js maps room→dialogue for the **overlay** system
+- NPCs use `dialogueKey` to reference **the same** ROOM_DIALOGUE entries
+- A room should use ONE system, not both. Remove from STORY_TRIGGERS when adding NPCs.
+
+### Audio Initialization Race
+- `initAudio()` is fire-and-forget (don't await)
+- `setAmbientTheme()` always processes (no early return for same theme)
+- `startMusic()` starts ambient with current theme — call setAmbientTheme FIRST
+
+### Vercel Deployment Cache
+- Changes may take 30-60s to propagate after push
+- Hard refresh (Ctrl+Shift+R) to bypass CDN cache
+
+---
+
 ## Save System
 - Auto-saves after each room clear: room number, score, deaths, stars, time, choices
 - `localStorage` key: `nihongo-game-save`
