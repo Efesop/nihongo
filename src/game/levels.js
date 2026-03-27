@@ -714,6 +714,848 @@ export const ROOMS = [
       { type: "lantern", x: 1700, y: 0, w: 28, h: 36 },
     ],
   },
+
+  // ════════════════════════════════════════════════════
+  // ACT 2: EDO CASTLE TOWN (Rooms 20-26)
+  // Time rift. Rooftops, markets, castle corridors.
+  // Stealth rooms, one-way platforms, new enemy types.
+  // ════════════════════════════════════════════════════
+
+  // ── Room 20: "城下町 Castle Town" — Rooftop arrival ──
+  {
+    title: { jp: "城下町", en: "Castle Town" },
+    theme: "edo",
+    platforms: [
+      { x: 0, y: 0, w: 600 },
+      { x: 700, y: -40, w: 200, oneWay: true },
+      { x: 1000, y: -80, w: 200, oneWay: true },
+      { x: 1300, y: -40, w: 300 },
+      { x: 1700, y: 0, w: 500 },
+    ],
+    enemies: [
+      { type: "oni", x: 400, y: 0 },
+      { type: "samurai", x: 1400, y: -40 },
+      { type: "oni", x: 1900, y: 0 },
+    ],
+    shadows: [{ x: 200, w: 120 }],
+    hideSpots: [{ type: "crate", x: 550, w: 50 }],
+    playerStart: 60,
+    deco: [{ type: "lantern", x: 300 }, { type: "sign", x: 1100 }, { type: "lantern", x: 1800 }],
+  },
+
+  // ── Room 21: "市場 Market" — Stealth through market stalls ──
+  {
+    title: { jp: "市場", en: "Market Street" },
+    theme: "edo",
+    platforms: [
+      { x: 0, y: 0, w: 2200 },
+      { x: 300, y: -60, w: 100, oneWay: true },
+      { x: 600, y: -60, w: 100, oneWay: true },
+      { x: 900, y: -60, w: 100, oneWay: true },
+      { x: 1200, y: -100, w: 150, oneWay: true },
+      { x: 1500, y: -60, w: 100, oneWay: true },
+      { x: 1800, y: -60, w: 100, oneWay: true },
+    ],
+    enemies: [
+      { type: "oni", x: 500, y: 0 },
+      { type: "samurai", x: 800, y: 0 },
+      { type: "oni", x: 1100, y: 0 },
+      { type: "samurai", x: 1600, y: 0 },
+      { type: "oni", x: 1900, y: 0 },
+    ],
+    shadows: [{ x: 350, w: 80 }, { x: 950, w: 80 }, { x: 1550, w: 80 }],
+    hideSpots: [
+      { type: "tallGrass", x: 250, w: 80 },
+      { type: "crate", x: 850, w: 50 },
+      { type: "barrel", x: 1450, w: 50 },
+    ],
+    playerStart: 60,
+    deco: [{ type: "lantern", x: 200 }, { type: "sign", x: 700 }, { type: "lantern", x: 1300 }, { type: "sign", x: 1850 }],
+    objective: { type: "stealth", exitX: 2100, maxAlerts: 1 },
+  },
+
+  // ── Room 22: "城壁 Castle Wall" — Vertical climb with archers ──
+  {
+    title: { jp: "城壁", en: "Castle Wall" },
+    theme: "edo",
+    platforms: [
+      { x: 0, y: 0, w: 600 },
+      { x: 700, y: -80, w: 200 },
+      { x: 200, y: -180, w: 200, oneWay: true },
+      { x: 500, y: -280, w: 200 },
+      { x: 800, y: -360, w: 300 },
+      { x: 100, y: -360, w: 35, h: 280, wall: true },
+      { x: 1200, y: -200, w: 35, h: 200, wall: true },
+      { x: 1300, y: 0, w: 400 },
+    ],
+    movingPlatforms: [
+      { x: 1000, y: -150, w: 80, moveX: 0, moveY: -100, speed: 0.4 },
+    ],
+    enemies: [
+      { type: "archer", x: 800, y: -360 },
+      { type: "oni", x: 400, y: 0 },
+      { type: "samurai", x: 700, y: -80 },
+      { type: "archer", x: 1400, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "lantern", x: 300 }],
+    hazards: [{ type: "spikes", x: 900, y: 0, w: 80 }],
+  },
+
+  // ── Room 23: "廊下 Castle Corridor" — Tight stealth ──
+  {
+    title: { jp: "廊下", en: "Corridor" },
+    theme: "edo",
+    platforms: [
+      { x: 0, y: 0, w: 2000 },
+      { x: 400, y: -80, w: 150, oneWay: true },
+      { x: 800, y: -80, w: 150, oneWay: true },
+      { x: 1200, y: -80, w: 150, oneWay: true },
+    ],
+    enemies: [
+      { type: "samurai", x: 300, y: 0 },
+      { type: "samurai", x: 700, y: 0 },
+      { type: "samurai", x: 1100, y: 0 },
+      { type: "samurai", x: 1500, y: 0 },
+      { type: "oni", x: 1800, y: 0 },
+    ],
+    shadows: [{ x: 150, w: 100 }, { x: 550, w: 100 }, { x: 950, w: 100 }, { x: 1350, w: 100 }],
+    hideSpots: [
+      { type: "crate", x: 100, w: 50 },
+      { type: "barrel", x: 500, w: 50 },
+      { type: "crate", x: 900, w: 50 },
+      { type: "barrel", x: 1300, w: 50 },
+    ],
+    playerStart: 40,
+    deco: [{ type: "lantern", x: 250 }, { type: "lantern", x: 650 }, { type: "lantern", x: 1050 }, { type: "lantern", x: 1450 }],
+    objective: { type: "stealth", exitX: 1900, maxAlerts: 0 },
+  },
+
+  // ── Room 24: "中庭 Inner Court" — Open combat arena + survive ──
+  {
+    title: { jp: "中庭", en: "Inner Court" },
+    theme: "edo",
+    platforms: [
+      { x: 0, y: 0, w: 2500 },
+      { x: 400, y: -100, w: 200 },
+      { x: 800, y: -60, w: 150, oneWay: true },
+      { x: 1200, y: -120, w: 200 },
+      { x: 1600, y: -60, w: 150, oneWay: true },
+      { x: 2000, y: -100, w: 200 },
+    ],
+    enemies: [{ type: "oni", x: 300, y: 0 }],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 200 }, { type: "lantern", x: 1000 }, { type: "torii", x: 1800 }],
+    breakables: [
+      { type: "crate", x: 600, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1000, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 1400, y: 0, w: 24, h: 28 },
+      { type: "crate", x: 1800, y: 0, w: 40, h: 40 },
+    ],
+    objective: { type: "survive", waves: [
+      [{ type: "oni", x: 500 }, { type: "oni", x: 1500 }, { type: "samurai", x: 1000 }],
+      [{ type: "samurai", x: 400 }, { type: "archer", x: 1200 }, { type: "oni", x: 800 }, { type: "oni", x: 1800 }],
+      [{ type: "samurai", x: 600 }, { type: "samurai", x: 1400 }, { type: "brute", x: 1000 }],
+    ]},
+  },
+
+  // ── Room 25: "天守 Castle Keep" — Multi-level + boss ──
+  {
+    title: { jp: "天守", en: "Castle Keep" },
+    theme: "edo",
+    platforms: [
+      { x: 0, y: 0, w: 2000 },
+      ...makeStairs(200, -20, 600, -120, 5),
+      { x: 600, y: -120, w: 400 },
+      { x: 1100, y: -80, w: 200, oneWay: true },
+      { x: 1400, y: -160, w: 300 },
+      { x: 300, y: -240, w: 200, oneWay: true },
+      { x: 700, y: -280, w: 400 },
+    ],
+    enemies: [
+      { type: "samurai", x: 400, y: 0 },
+      { type: "archer", x: 800, y: -120 },
+      { type: "samurai", x: 1500, y: -160 },
+      { type: "oni", x: 900, y: -280 },
+      { type: "brute", x: 1200, y: 0 },
+      { type: "samurai", x: 1800, y: 0 },
+    ],
+    shadows: [{ x: 100, w: 100 }],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 150 }, { type: "lantern", x: 700 }, { type: "torii", x: 1600 }],
+    hazards: [
+      { type: "spikes", x: 1000, y: 0, w: 80 },
+      { type: "firejet", x: 1300, y: -160, w: 30, h: 80, onTime: 1200, offTime: 1800, offset: 0 },
+    ],
+  },
+
+  // ── Room 26: "桂の間 Katsura's Chamber" — Boss arena ──
+  {
+    title: { jp: "桂の間", en: "Katsura's Chamber" },
+    theme: "edo",
+    platforms: [
+      { x: 0, y: 0, w: 2200 },
+      { x: 300, y: -100, w: 200, oneWay: true },
+      { x: 700, y: -150, w: 200, oneWay: true },
+      { x: 1100, y: -100, w: 200, oneWay: true },
+      { x: 1500, y: -150, w: 200, oneWay: true },
+      { x: 1900, y: -100, w: 200, oneWay: true },
+    ],
+    enemies: [
+      { type: "samurai", x: 500, y: 0 },
+      { type: "brute", x: 1000, y: 0 },
+      { type: "samurai", x: 1300, y: 0 },
+      { type: "archer", x: 800, y: -150 },
+      { type: "archer", x: 1600, y: -150 },
+      { type: "samurai", x: 1800, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 200 }, { type: "lantern", x: 600 }, { type: "torii", x: 1100 }, { type: "lantern", x: 1700 }],
+    breakables: [
+      { type: "crate", x: 400, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 900, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1400, y: 0, w: 40, h: 40 },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════
+  // ACT 3: NEON TOKYO (Rooms 27-33)
+  // Cyberpunk streets. Rain. Neon signs as platforms.
+  // ════════════════════════════════════════════════════
+
+  // ── Room 27: "ネオン通り Neon Street" — Arrival ──
+  {
+    title: { jp: "ネオン通り", en: "Neon Street" },
+    theme: "neonTokyo",
+    platforms: [
+      { x: 0, y: 0, w: 800 },
+      { x: 900, y: -40, w: 120, oneWay: true },
+      { x: 1100, y: -80, w: 120, oneWay: true },
+      { x: 1300, y: 0, w: 600 },
+      { x: 2000, y: -60, w: 150, oneWay: true },
+      { x: 2200, y: 0, w: 400 },
+    ],
+    enemies: [
+      { type: "ninja", x: 600, y: 0 },
+      { type: "ninja", x: 1500, y: 0 },
+      { type: "oni", x: 2300, y: 0 },
+    ],
+    shadows: [{ x: 350, w: 100 }, { x: 1700, w: 80 }],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 400 }, { type: "lantern", x: 1200 }, { type: "sign", x: 2100 }],
+  },
+
+  // ── Room 28: "路地裏 Alley Chase" — Parkour ──
+  {
+    title: { jp: "路地裏", en: "Alley Chase" },
+    theme: "neonTokyo",
+    platforms: [
+      { x: 0, y: 0, w: 400 },
+      { x: 500, y: -60, w: 120, oneWay: true },
+      { x: 700, y: -120, w: 120, oneWay: true },
+      { x: 900, y: -60, w: 200 },
+      { x: 1200, y: -100, w: 120, oneWay: true },
+      { x: 1400, y: -40, w: 200 },
+      { x: 1700, y: -80, w: 120, oneWay: true },
+      { x: 1900, y: 0, w: 300 },
+      { x: 2300, y: -60, w: 200 },
+      { x: 2600, y: 0, w: 300 },
+    ],
+    enemies: [
+      { type: "ninja", x: 800, y: -60 },
+      { type: "oni", x: 1300, y: -100 },
+      { type: "ninja", x: 2000, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 300 }, { type: "sign", x: 1100 }, { type: "sign", x: 2400 }],
+    objective: { type: "parkour", time: 20, exitX: 2800 },
+  },
+
+  // ── Room 29: "高速道路 Highway" — Fast horizontal, drones ──
+  {
+    title: { jp: "高速道路", en: "Highway" },
+    theme: "neonTokyo",
+    platforms: [
+      { x: 0, y: 0, w: 3000 },
+      { x: 500, y: -80, w: 200 },
+      { x: 1000, y: -120, w: 200 },
+      { x: 1500, y: -80, w: 200 },
+      { x: 2000, y: -120, w: 200 },
+      { x: 2500, y: -80, w: 200 },
+    ],
+    movingPlatforms: [
+      { x: 700, y: -60, w: 100, moveX: 150, moveY: 0, speed: 0.5 },
+      { x: 1700, y: -60, w: 100, moveX: 150, moveY: 0, speed: 0.5, offset: 0.5 },
+    ],
+    enemies: [
+      { type: "ninja", x: 400, y: 0 },
+      { type: "tengu", x: 800, y: -200 },
+      { type: "ninja", x: 1200, y: 0 },
+      { type: "tengu", x: 1600, y: -200 },
+      { type: "ninja", x: 2200, y: 0 },
+      { type: "samurai", x: 2600, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 300 }, { type: "sign", x: 1300 }, { type: "sign", x: 2300 }],
+    hazards: [
+      { type: "laser", x: 900, y: 0, w: 4, h: 200, onTime: 2000, offTime: 1500, offset: 0 },
+      { type: "laser", x: 1900, y: 0, w: 4, h: 200, onTime: 2000, offTime: 1500, offset: 750 },
+    ],
+  },
+
+  // ── Room 30: "地下通路 Underground" — Dark stealth ──
+  {
+    title: { jp: "地下通路", en: "Underground" },
+    theme: "neonTokyo",
+    platforms: [
+      { x: 0, y: 0, w: 2400 },
+      { x: 500, y: -60, w: 120, oneWay: true },
+      { x: 1000, y: -60, w: 120, oneWay: true },
+      { x: 1500, y: -60, w: 120, oneWay: true },
+    ],
+    enemies: [
+      { type: "ninja", x: 400, y: 0 },
+      { type: "samurai", x: 800, y: 0 },
+      { type: "ninja", x: 1200, y: 0 },
+      { type: "samurai", x: 1600, y: 0 },
+      { type: "ninja", x: 2000, y: 0 },
+    ],
+    shadows: [{ x: 200, w: 120 }, { x: 700, w: 120 }, { x: 1100, w: 120 }, { x: 1700, w: 120 }],
+    hideSpots: [
+      { type: "crate", x: 300, w: 50 },
+      { type: "barrel", x: 850, w: 50 },
+      { type: "crate", x: 1350, w: 50 },
+      { type: "barrel", x: 1850, w: 50 },
+    ],
+    playerStart: 60,
+    deco: [{ type: "lantern", x: 250 }, { type: "lantern", x: 750 }, { type: "lantern", x: 1250 }],
+    objective: { type: "stealth", exitX: 2300, maxAlerts: 1 },
+    hazards: [
+      { type: "laser", x: 600, y: 0, w: 4, h: 150, onTime: 1500, offTime: 2000, offset: 0 },
+      { type: "laser", x: 1400, y: 0, w: 4, h: 150, onTime: 1500, offTime: 2000, offset: 1000 },
+    ],
+  },
+
+  // ── Room 31: "アーケード Arcade" — Mixed combat ──
+  {
+    title: { jp: "アーケード", en: "Arcade" },
+    theme: "neonTokyo",
+    platforms: [
+      { x: 0, y: 0, w: 2000 },
+      { x: 400, y: -80, w: 150 },
+      { x: 800, y: -120, w: 200 },
+      { x: 1200, y: -80, w: 150 },
+      { x: 1600, y: -120, w: 200 },
+    ],
+    enemies: [
+      { type: "oni", x: 300, y: 0 },
+      { type: "ninja", x: 600, y: -80 },
+      { type: "samurai", x: 900, y: 0 },
+      { type: "tengu", x: 1100, y: -200 },
+      { type: "ninja", x: 1400, y: -80 },
+      { type: "samurai", x: 1700, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 200 }, { type: "sign", x: 1000 }, { type: "sign", x: 1800 }],
+    breakables: [
+      { type: "crate", x: 500, y: 0, w: 40, h: 40 },
+      { type: "pot", x: 1000, y: 0, w: 24, h: 28 },
+      { type: "crate", x: 1500, y: 0, w: 40, h: 40 },
+    ],
+  },
+
+  // ── Room 32: "屋上庭園 Rooftop Garden" — Vertical gauntlet ──
+  {
+    title: { jp: "屋上庭園", en: "Rooftop Garden" },
+    theme: "neonTokyo",
+    platforms: [
+      { x: 0, y: 0, w: 500 },
+      { x: 200, y: -100, w: 35, h: 100, wall: true },
+      { x: 500, y: -100, w: 35, h: 100, wall: true },
+      { x: 300, y: -200, w: 200, oneWay: true },
+      { x: 100, y: -300, w: 200 },
+      { x: 400, y: -380, w: 300 },
+      { x: 800, y: -300, w: 200 },
+      { x: 800, y: 0, w: 400 },
+    ],
+    enemies: [
+      { type: "ninja", x: 400, y: -380 },
+      { type: "ninja", x: 200, y: -300 },
+      { type: "samurai", x: 900, y: 0 },
+      { type: "tengu", x: 600, y: -400 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 100 }],
+  },
+
+  // ── Room 33: "影の再会 Shadow Encounter" — Open arena + dialogue ──
+  {
+    title: { jp: "影の再会", en: "Shadow's Return" },
+    theme: "neonTokyo",
+    platforms: [
+      { x: 0, y: 0, w: 2200 },
+      { x: 400, y: -100, w: 200, oneWay: true },
+      { x: 900, y: -150, w: 300 },
+      { x: 1400, y: -100, w: 200, oneWay: true },
+      { x: 1800, y: -80, w: 200 },
+    ],
+    enemies: [
+      { type: "samurai", x: 500, y: 0 },
+      { type: "brute", x: 1000, y: 0 },
+      { type: "ninja", x: 700, y: -100 },
+      { type: "ninja", x: 1500, y: -100 },
+      { type: "samurai", x: 1900, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 300 }, { type: "sign", x: 1200 }],
+  },
+
+  // ════════════════════════════════════════════════════
+  // ACT 4: UNDERGROUND / NIGHTCLUB (Rooms 34-39)
+  // Dark. Stealth-heavy. Neon purple lighting.
+  // ════════════════════════════════════════════════════
+
+  // ── Room 34: "下水道 Sewers" — Dark stealth entry ──
+  {
+    title: { jp: "下水道", en: "Sewers" },
+    theme: "nightclub",
+    platforms: [
+      { x: 0, y: 0, w: 2000 },
+      { x: 500, y: -80, w: 100, oneWay: true },
+      { x: 1000, y: -80, w: 100, oneWay: true },
+      { x: 1500, y: -80, w: 100, oneWay: true },
+    ],
+    enemies: [
+      { type: "ninja", x: 400, y: 0 },
+      { type: "oni", x: 800, y: 0 },
+      { type: "ninja", x: 1200, y: 0 },
+      { type: "oni", x: 1700, y: 0 },
+    ],
+    shadows: [{ x: 150, w: 150 }, { x: 600, w: 150 }, { x: 1050, w: 150 }, { x: 1550, w: 150 }],
+    hideSpots: [
+      { type: "barrel", x: 300, w: 50 },
+      { type: "crate", x: 750, w: 50 },
+      { type: "barrel", x: 1150, w: 50 },
+      { type: "crate", x: 1650, w: 50 },
+    ],
+    playerStart: 40,
+    deco: [{ type: "lantern", x: 200 }, { type: "lantern", x: 900 }],
+    objective: { type: "stealth", exitX: 1900, maxAlerts: 1 },
+  },
+
+  // ── Room 35: "闇市 Black Market" — Mixed ──
+  {
+    title: { jp: "闇市", en: "Black Market" },
+    theme: "nightclub",
+    platforms: [
+      { x: 0, y: 0, w: 2400 },
+      { x: 400, y: -100, w: 200, oneWay: true },
+      { x: 800, y: -60, w: 150 },
+      { x: 1200, y: -120, w: 200, oneWay: true },
+      { x: 1600, y: -60, w: 150 },
+      { x: 2000, y: -100, w: 200, oneWay: true },
+    ],
+    enemies: [
+      { type: "oni", x: 300, y: 0 },
+      { type: "samurai", x: 700, y: 0 },
+      { type: "ninja", x: 1000, y: -60 },
+      { type: "brute", x: 1400, y: 0 },
+      { type: "samurai", x: 1800, y: 0 },
+      { type: "ninja", x: 2100, y: -100 },
+    ],
+    shadows: [{ x: 500, w: 100 }, { x: 1300, w: 100 }],
+    playerStart: 60,
+    deco: [{ type: "lantern", x: 200 }, { type: "sign", x: 900 }, { type: "lantern", x: 1700 }],
+    breakables: [
+      { type: "crate", x: 450, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1100, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 1900, y: 0, w: 24, h: 28 },
+    ],
+  },
+
+  // ── Room 36: "クラブ Nightclub" — Pulsing stealth ──
+  {
+    title: { jp: "クラブ", en: "Nightclub" },
+    theme: "nightclub",
+    platforms: [
+      { x: 0, y: 0, w: 2000 },
+      { x: 300, y: -80, w: 150, oneWay: true },
+      { x: 700, y: -80, w: 150, oneWay: true },
+      { x: 1100, y: -80, w: 150, oneWay: true },
+      { x: 1500, y: -80, w: 150, oneWay: true },
+    ],
+    enemies: [
+      { type: "brute", x: 500, y: 0 },
+      { type: "ninja", x: 800, y: 0 },
+      { type: "brute", x: 1200, y: 0 },
+      { type: "ninja", x: 1600, y: 0 },
+    ],
+    shadows: [{ x: 200, w: 80 }, { x: 600, w: 80 }, { x: 1000, w: 80 }, { x: 1400, w: 80 }],
+    hideSpots: [
+      { type: "crate", x: 350, w: 50 },
+      { type: "barrel", x: 750, w: 50 },
+      { type: "crate", x: 1150, w: 50 },
+    ],
+    playerStart: 40,
+    deco: [{ type: "sign", x: 200 }, { type: "sign", x: 800 }, { type: "sign", x: 1400 }],
+    hazards: [
+      { type: "electric", x: 400, y: 0, w: 150, onTime: 1500, offTime: 2500, offset: 0 },
+      { type: "electric", x: 1000, y: 0, w: 150, onTime: 1500, offTime: 2500, offset: 1250 },
+    ],
+  },
+
+  // ── Room 37: "VIP室 VIP Room" — Boss: DJ Mech ──
+  {
+    title: { jp: "VIP室", en: "VIP Room" },
+    theme: "nightclub",
+    platforms: [
+      { x: 0, y: 0, w: 2000 },
+      { x: 300, y: -120, w: 200 },
+      { x: 700, y: -80, w: 150, oneWay: true },
+      { x: 1100, y: -120, w: 200 },
+      { x: 1500, y: -80, w: 150, oneWay: true },
+    ],
+    enemies: [
+      { type: "brute", x: 600, y: 0 },
+      { type: "brute", x: 1000, y: 0 },
+      { type: "samurai", x: 1400, y: 0 },
+      { type: "ninja", x: 400, y: -120 },
+      { type: "ninja", x: 1200, y: -120 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 300 }, { type: "sign", x: 1000 }, { type: "sign", x: 1700 }],
+    breakables: [
+      { type: "crate", x: 500, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 900, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1300, y: 0, w: 40, h: 40 },
+    ],
+    hazards: [
+      { type: "electric", x: 200, y: 0, w: 100, onTime: 1200, offTime: 2000, offset: 0 },
+      { type: "electric", x: 800, y: 0, w: 100, onTime: 1200, offTime: 2000, offset: 600 },
+      { type: "electric", x: 1400, y: 0, w: 100, onTime: 1200, offTime: 2000, offset: 1200 },
+    ],
+  },
+
+  // ── Room 38: "サーバー室 Server Room" — Laser parkour ──
+  {
+    title: { jp: "サーバー室", en: "Server Room" },
+    theme: "nightclub",
+    platforms: [
+      { x: 0, y: 0, w: 400 },
+      { x: 500, y: -60, w: 120, oneWay: true },
+      { x: 700, y: -120, w: 120 },
+      { x: 900, y: -60, w: 200 },
+      { x: 1200, y: -120, w: 120, oneWay: true },
+      { x: 1400, y: -60, w: 200 },
+      { x: 1700, y: -120, w: 120 },
+      { x: 1900, y: 0, w: 400 },
+    ],
+    enemies: [
+      { type: "ninja", x: 700, y: -120 },
+      { type: "ninja", x: 1400, y: -60 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 200 }, { type: "sign", x: 1500 }],
+    objective: { type: "parkour", time: 22, exitX: 2200 },
+    hazards: [
+      { type: "laser", x: 450, y: 0, w: 4, h: 180, onTime: 1500, offTime: 1500, offset: 0 },
+      { type: "laser", x: 850, y: 0, w: 4, h: 180, onTime: 1500, offTime: 1500, offset: 750 },
+      { type: "laser", x: 1150, y: 0, w: 4, h: 180, onTime: 1500, offTime: 1500, offset: 1500 },
+      { type: "laser", x: 1650, y: 0, w: 4, h: 180, onTime: 1500, offTime: 1500, offset: 375 },
+    ],
+  },
+
+  // ── Room 39: "脱出 Rooftop Escape" — Vertical climb, fast ──
+  {
+    title: { jp: "脱出", en: "Escape" },
+    theme: "nightclub",
+    platforms: [
+      { x: 0, y: 0, w: 400 },
+      { x: 100, y: -100, w: 35, h: 100, wall: true },
+      { x: 400, y: -100, w: 35, h: 100, wall: true },
+      { x: 200, y: -200, w: 200, oneWay: true },
+      { x: 500, y: -300, w: 200 },
+      { x: 100, y: -380, w: 200, oneWay: true },
+      { x: 300, y: -460, w: 300 },
+      { x: 700, y: 0, w: 400 },
+    ],
+    enemies: [
+      { type: "ninja", x: 300, y: -200 },
+      { type: "tengu", x: 400, y: -400 },
+      { type: "samurai", x: 800, y: 0 },
+      { type: "ninja", x: 500, y: -460 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "sign", x: 100 }],
+    hazards: [
+      { type: "falling", x: 200, y: -200, w: 100 },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════
+  // ACT 5: SPIRIT REALM (Rooms 40-46)
+  // Cherry blossoms. Ethereal. Time fracturing.
+  // ════════════════════════════════════════════════════
+
+  // ── Room 40: "山道 Mountain Path" — Temple approach ──
+  {
+    title: { jp: "山道", en: "Mountain Path" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 2000 },
+      ...makeStairs(400, -10, 800, -100, 6),
+      { x: 800, y: -100, w: 400 },
+      ...makeStairs(1200, -100, 1600, -10, 6),
+      { x: 1600, y: 0, w: 400 },
+    ],
+    enemies: [
+      { type: "samurai", x: 600, y: -50 },
+      { type: "oni", x: 1000, y: -100 },
+      { type: "samurai", x: 1400, y: -50 },
+      { type: "archer", x: 900, y: -100 },
+    ],
+    shadows: [{ x: 300, w: 100 }],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 200 }, { type: "lantern", x: 700 }, { type: "torii", x: 1500 }],
+  },
+
+  // ── Room 41: "鳥居 Temple Gate" — Spirit foxes ──
+  {
+    title: { jp: "鳥居", en: "Temple Gate" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 2200 },
+      { x: 400, y: -80, w: 200, oneWay: true },
+      { x: 800, y: -120, w: 200 },
+      { x: 1200, y: -80, w: 200, oneWay: true },
+      { x: 1600, y: -120, w: 200 },
+    ],
+    enemies: [
+      { type: "ninja", x: 500, y: 0 },
+      { type: "tengu", x: 900, y: -200 },
+      { type: "samurai", x: 1300, y: 0 },
+      { type: "tengu", x: 1700, y: -200 },
+      { type: "ninja", x: 2000, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 150 }, { type: "torii", x: 700 }, { type: "torii", x: 1400 }, { type: "torii", x: 1900 }],
+    breakables: [
+      { type: "pot", x: 400, y: 0, w: 24, h: 28 },
+      { type: "lantern", x: 1000, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 1600, y: 0, w: 24, h: 28 },
+    ],
+  },
+
+  // ── Room 42: "内殿 Inner Temple" — Time fracture, mixed era enemies ──
+  {
+    title: { jp: "時の狭間", en: "Time Fracture" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 2800 },
+      { x: 500, y: -100, w: 200 },
+      { x: 900, y: -60, w: 150, oneWay: true },
+      { x: 1300, y: -140, w: 200 },
+      { x: 1700, y: -80, w: 150, oneWay: true },
+      { x: 2100, y: -120, w: 200 },
+    ],
+    movingPlatforms: [
+      { x: 700, y: -80, w: 100, moveY: -60, speed: 0.4 },
+      { x: 1500, y: -100, w: 100, moveY: -60, speed: 0.4, offset: 0.5 },
+    ],
+    enemies: [
+      { type: "oni", x: 400, y: 0 },
+      { type: "ninja", x: 800, y: 0 },
+      { type: "samurai", x: 1200, y: 0 },
+      { type: "tengu", x: 1600, y: -200 },
+      { type: "brute", x: 2000, y: 0 },
+      { type: "archer", x: 1400, y: -140 },
+      { type: "samurai", x: 2400, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 200 }, { type: "lantern", x: 1000 }, { type: "torii", x: 1800 }],
+    hazards: [
+      { type: "spikes", x: 600, y: 0, w: 64 },
+      { type: "firejet", x: 1100, y: 0, w: 30, h: 80, onTime: 1200, offTime: 1800, offset: 0 },
+      { type: "falling", x: 1900, y: -120, w: 100 },
+    ],
+  },
+
+  // ── Room 43: "精霊の道 Spirit Path" — Floating platforms ──
+  {
+    title: { jp: "精霊の道", en: "Spirit Path" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 300 },
+      { x: 400, y: -40, w: 120, oneWay: true },
+      { x: 600, y: -100, w: 120, oneWay: true },
+      { x: 800, y: -60, w: 120 },
+      { x: 1050, y: -140, w: 120, oneWay: true },
+      { x: 1250, y: -80, w: 120 },
+      { x: 1500, y: -160, w: 200 },
+      { x: 1800, y: -100, w: 120, oneWay: true },
+      { x: 2000, y: 0, w: 400 },
+    ],
+    movingPlatforms: [
+      { x: 350, y: -80, w: 80, moveY: -40, speed: 0.3 },
+      { x: 1400, y: -120, w: 80, moveX: 80, speed: 0.4 },
+    ],
+    enemies: [
+      { type: "tengu", x: 700, y: -200 },
+      { type: "ninja", x: 1100, y: -140 },
+      { type: "tengu", x: 1600, y: -250 },
+      { type: "samurai", x: 2100, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 100 }, { type: "torii", x: 1500 }],
+  },
+
+  // ── Room 44: "試練 Spirit Trial" — Gauntlet ──
+  {
+    title: { jp: "試練", en: "Spirit Trial" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 2500 },
+      { x: 400, y: -100, w: 200, oneWay: true },
+      { x: 800, y: -150, w: 200 },
+      { x: 1200, y: -100, w: 200, oneWay: true },
+      { x: 1600, y: -150, w: 200 },
+      { x: 2000, y: -100, w: 200, oneWay: true },
+    ],
+    enemies: [{ type: "samurai", x: 300, y: 0 }],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 150 }, { type: "torii", x: 900 }, { type: "torii", x: 1700 }],
+    objective: { type: "survive", waves: [
+      [{ type: "oni", x: 500 }, { type: "samurai", x: 1000 }, { type: "oni", x: 1500 }],
+      [{ type: "ninja", x: 400 }, { type: "samurai", x: 800 }, { type: "tengu", x: 1200, y: -200 }, { type: "oni", x: 1600 }],
+      [{ type: "brute", x: 600 }, { type: "samurai", x: 1000 }, { type: "samurai", x: 1400 }, { type: "archer", x: 1800 }],
+      [{ type: "brute", x: 500 }, { type: "brute", x: 1000 }, { type: "samurai", x: 1500 }, { type: "tengu", x: 800, y: -200 }],
+    ]},
+    hazards: [
+      { type: "spikes", x: 700, y: 0, w: 64 },
+      { type: "firejet", x: 1400, y: 0, w: 30, h: 80, onTime: 1000, offTime: 1500, offset: 0 },
+    ],
+  },
+
+  // ── Room 45: "呪いの心臓 Heart of the Curse" — Story heavy ──
+  {
+    title: { jp: "呪いの心臓", en: "Heart of the Curse" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 1500 },
+      { x: 300, y: -100, w: 200, oneWay: true },
+      { x: 700, y: -120, w: 300 },
+      { x: 1100, y: -80, w: 200, oneWay: true },
+    ],
+    enemies: [
+      { type: "samurai", x: 500, y: 0 },
+      { type: "samurai", x: 900, y: -120 },
+      { type: "samurai", x: 1200, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 150 }, { type: "torii", x: 750 }],
+  },
+
+  // ── Room 46: "最終決戦 Final Battle" — Shadow boss arena ──
+  {
+    title: { jp: "最終決戦", en: "Final Battle" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 2200 },
+      { x: 300, y: -120, w: 200, oneWay: true },
+      { x: 700, y: -180, w: 200 },
+      { x: 1100, y: -120, w: 200, oneWay: true },
+      { x: 1500, y: -180, w: 200 },
+      { x: 1900, y: -120, w: 200, oneWay: true },
+      { x: 200, y: -300, w: 35, h: 180, wall: true },
+      { x: 2000, y: -300, w: 35, h: 180, wall: true },
+    ],
+    enemies: [
+      { type: "samurai", x: 500, y: 0 },
+      { type: "brute", x: 900, y: 0 },
+      { type: "tengu", x: 700, y: -280 },
+      { type: "samurai", x: 1300, y: 0 },
+      { type: "brute", x: 1700, y: 0 },
+      { type: "tengu", x: 1500, y: -280 },
+      { type: "samurai", x: 2000, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 100 }, { type: "torii", x: 1000 }, { type: "torii", x: 1900 }],
+    hazards: [
+      { type: "spikes", x: 600, y: 0, w: 80 },
+      { type: "spikes", x: 1400, y: 0, w: 80 },
+    ],
+    breakables: [
+      { type: "lantern", x: 400, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1000, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 1600, y: 0, w: 28, h: 36 },
+    ],
+  },
+
+  // ════════════════════════════════════════════════════
+  // EPILOGUE (Rooms 47-49)
+  // Quiet. Resolution. No enemies in room 47.
+  // ════════════════════════════════════════════════════
+
+  // ── Room 47: "帰路 Spirit Walk" — No enemies, pure story ──
+  {
+    title: { jp: "帰路", en: "Spirit Walk" },
+    theme: "spirit",
+    platforms: [
+      { x: 0, y: 0, w: 1500 },
+    ],
+    enemies: [],
+    shadows: [],
+    playerStart: 60,
+    deco: [{ type: "torii", x: 200 }, { type: "torii", x: 700 }, { type: "torii", x: 1200 }],
+    objective: { type: "parkour", time: 60, exitX: 1400 }, // just walk to end
+  },
+
+  // ── Room 48: "道場 Dojo Return" — Nostalgic callback ──
+  {
+    title: { jp: "帰還", en: "Homecoming" },
+    theme: "dojo",
+    platforms: [
+      { x: 0, y: 0, w: 1200 },
+    ],
+    enemies: [
+      { type: "oni", x: 700, y: 0, passive: true },
+    ],
+    shadows: [],
+    playerStart: 80,
+    deco: [{ type: "lantern", x: 400 }, { type: "scroll", x: 200 }, { type: "weapon_rack", x: 900 }],
+  },
+
+  // ── Room 49: "新しい夜明け New Dawn" — Final test ──
+  {
+    title: { jp: "新しい夜明け", en: "New Dawn" },
+    theme: "dojo",
+    platforms: [
+      { x: 0, y: 0, w: 800 },
+    ],
+    enemies: [
+      { type: "samurai", x: 500, y: 0 },
+    ],
+    shadows: [],
+    playerStart: 80,
+    deco: [{ type: "lantern", x: 200 }, { type: "torii", x: 600 }],
+  },
 ];
 
 export const SEGMENTS = ROOMS.map(r => ({

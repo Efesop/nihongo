@@ -17,14 +17,14 @@ export const GROUND_Y = 0.78;
 // ═══ ACT / CHAPTER STRUCTURE ═══
 export const ACTS = [
   { name: "序章",   nameEn: "Prologue: The Dojo",     theme: "dojo",      startRoom: 0,  endRoom: 4  },
-  { name: "第一幕", nameEn: "Act 1: Feudal Forest",   theme: "forest",    startRoom: 5,  endRoom: 11 },
-  { name: "第二幕", nameEn: "Act 2: Edo Castle Town", theme: "edo",       startRoom: 12, endRoom: 18 },
-  { name: "第三幕", nameEn: "Act 3: Neon Tokyo",      theme: "neonTokyo", startRoom: 19, endRoom: 25 },
-  { name: "第四幕", nameEn: "Act 4: Underground",     theme: "nightclub", startRoom: 26, endRoom: 31 },
-  { name: "第五幕", nameEn: "Act 5: Spirit Realm",    theme: "spirit",    startRoom: 32, endRoom: 38 },
-  { name: "終章",   nameEn: "Epilogue: The Return",   theme: "dojo",      startRoom: 39, endRoom: 41 },
+  { name: "第一幕", nameEn: "Act 1: Feudal Forest",   theme: "forest",    startRoom: 5,  endRoom: 19 },
+  { name: "第二幕", nameEn: "Act 2: Edo Castle Town", theme: "edo",       startRoom: 20, endRoom: 26 },
+  { name: "第三幕", nameEn: "Act 3: Neon Tokyo",      theme: "neonTokyo", startRoom: 27, endRoom: 33 },
+  { name: "第四幕", nameEn: "Act 4: Underground",     theme: "nightclub", startRoom: 34, endRoom: 39 },
+  { name: "第五幕", nameEn: "Act 5: Spirit Realm",    theme: "spirit",    startRoom: 40, endRoom: 46 },
+  { name: "終章",   nameEn: "Epilogue: The Return",   theme: "dojo",      startRoom: 47, endRoom: 49 },
 ];
-export const TOTAL_ROOMS = 42; // 5 prologue + 7 forest + 7 edo + 7 neon + 6 nightclub + 7 spirit + 3 epilogue
+export const TOTAL_ROOMS = 50; // 5 prologue + 15 forest/temple + 7 edo + 7 neon + 6 nightclub + 7 spirit + 3 epilogue
 
 // ═══ ROOM STAR RATINGS (seconds) ═══
 export const STAR_3 = 6;   // clear room under 6s = ★★★

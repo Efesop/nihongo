@@ -527,39 +527,44 @@ export const ROOM_CHOICES = {
 export const STORY_TRIGGERS = {
   // ── Prologue: Dojo (0-4) ──
   0: 0, 1: 1, 2: 2, 3: 3, 4: 4,
-  // ── Act 1: Forest (5-11) ──
+  // ── Act 1: Forest (5-19, existing rooms) ──
   5: 5,     // THE TURN — forced to flee
   8: 8,     // Solo — the mark burns
   10: 10,   // MAJOR — Shadow's entrance
   11: 11,   // Shadow warns about time rifts
   13: 13,   // Shadow — the mark calls pursuers
   14: 14,   // Shadow's gate test
-  // ── Act 2: Edo Castle Town (12-18) ──
-  12: 12,   // MAJOR — arrival in Edo, meet Kunoichi
-  13: 13,   // Kunoichi exposition — the mark's true origin
-  15: 15,   // Castle infiltration briefing
-  17: 17,   // MAJOR — Lord Katsura reveals the path
-  18: 18,   // Kunoichi warns, rift opens
-  // ── Act 3: Neon Tokyo (19-25) ──
-  19: 19,   // MAJOR — Neon Tokyo arrival, meet Hacker
-  21: 21,   // Hacker explains cyber ninjas
-  22: 22,   // Shadow reappears
-  25: 25,   // Hacker — next rift coordinates
-  // ── Act 4: Underground (26-31) ──
-  26: 26,   // Stealth briefing
-  28: 28,   // Nightclub infiltration
-  29: 29,   // DJ Mech boss
-  31: 31,   // Shadow — final rift opening
-  // ── Act 5: Spirit Realm (32-38) ──
-  32: 32,   // MAJOR — Elder, final preparations
-  34: 34,   // Time merging — mixed enemies
-  35: 35,   // MAJOR — Fox Spirit reveals the truth
-  37: 37,   // MAJOR — Shadow confrontation
-  38: 38,   // Final battle
-  // ── Epilogue (39-41) ──
-  39: 39,   // Fox Spirit — resolution
-  40: 40,   // Dojo return — sensei reunion
-  41: 41,   // New beginning
+  15: 15,   // Elder reveals the Ink Curse
+  16: 16,   // Elder reveals Shadow's identity
+  17: 17,   // Shadow confronts about removing curse
+  18: 18,   // Elder — sealing technique
+  19: 19,   // Original final battle (now mid-game)
+  // ── Act 2: Edo Castle Town (20-26) ──
+  20: 12,   // MAJOR — arrival in Edo, meet Kunoichi (uses dialogue key 12)
+  21: 13,   // Kunoichi exposition
+  23: 15,   // Castle infiltration briefing
+  25: 17,   // MAJOR — Lord Katsura reveals the path
+  26: 18,   // Kunoichi warns, rift opens
+  // ── Act 3: Neon Tokyo (27-33) ──
+  27: 19,   // MAJOR — Neon Tokyo arrival, meet Hacker (reuses key 19 for neon intro)
+  29: 21,   // Hacker explains cyber ninjas
+  30: 22,   // Shadow reappears
+  33: 25,   // Hacker — next rift coordinates
+  // ── Act 4: Underground (34-39) ──
+  34: 26,   // Stealth briefing
+  36: 28,   // Nightclub infiltration
+  37: 29,   // DJ Mech boss
+  39: 31,   // Shadow — final rift opening
+  // ── Act 5: Spirit Realm (40-46) ──
+  40: 32,   // MAJOR — Elder, final preparations
+  42: 34,   // Time merging — mixed enemies
+  43: 35,   // MAJOR — Fox Spirit reveals the truth
+  45: 37,   // MAJOR — Shadow confrontation
+  46: 38,   // Final battle
+  // ── Epilogue (47-49) ──
+  47: 39,   // Fox Spirit — resolution
+  48: 40,   // Dojo return — sensei reunion
+  49: 41,   // New beginning
 };
 
 // ═══════════════════════════════════════════════════════
