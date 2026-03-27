@@ -2,6 +2,34 @@
 
 A Katana Zero-inspired action side-scroller with stealth mechanics. 50 rooms across 7 acts spanning feudal Japan through cyberpunk Tokyo to the spirit realm. Built on HTML5 Canvas 2D, no game framework.
 
+## Vision & Design Philosophy
+
+**Reference game: Katana Zero.** Every design decision should be measured against this bar.
+
+### Story Presentation (CRITICAL)
+The game should use **in-world NPC encounters**, NOT separate overlay screens:
+- Player physically walks through the level and encounters NPCs in the game world
+- Characters are IN the environment — standing on floors, sitting in chairs, leaning on walls
+- Player walks up to NPCs using actual controls, dialogue triggers on proximity
+- After dialogue, NPCs walk away, sit down, fight, or react — not just appear/disappear
+- NOT every scene needs action — quiet moments, discoveries, campfires are important
+- Characters should WALK with actual walk animation sprites, never slide/lerp
+
+### What to Avoid
+- Characters bobbing/floating in story scenes
+- Characters sliding into frame without walking animations
+- Enemies in rooms that don't fit the story (e.g., oni demon in a training dojo)
+- Rain or weather effects inside indoor environments
+- Generic sprite generation without self-referencing (causes inconsistent character looks)
+- Long loading screens — sprites load in background, game starts immediately
+- Anything that feels "amateur" — polish every detail
+
+### Art Consistency
+- Every character's sprites must use 2-pass generation: idle first as "hero" reference, then all other poses reference that idle
+- Gray backgrounds removed OFFLINE via `scripts/remove-gray-bg.mjs`, not at runtime
+- Originals always archived before processing (archive_originals/, archive_originals_safe/)
+- Never delete assets — archive old versions for potential reuse
+
 ## Quick Start
 
 ```bash
