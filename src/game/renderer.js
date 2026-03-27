@@ -1465,6 +1465,23 @@ const EC = { x: 5, y: 5, w: 246, h: 246 }; // default full crop (256px sprites)
 // State → sprite key mapping per enemy type
 // R: false = faces left, R: true = faces right
 const ENEMY_SPRITE_MAP = {
+  dummy: {
+    idle:    { key: "dummy_idle", R: false },
+    patrol:  { key: "dummy_idle", R: false },
+    chase:   { key: "dummy_idle", R: false },
+    alert:   { key: "dummy_idle", R: false },
+    attack_windup: { key: "dummy_idle", R: false },
+    attack_strike: { key: "dummy_idle", R: false },
+    dazed:   { key: "dummy_hit", R: false },
+    cooldown:{ key: "dummy_idle", R: false },
+    kneel:   { key: "dummy_hit", R: false },
+    dead:    { key: "dummy_dead", R: false },
+    hit:     { key: "dummy_hit", R: false },
+    kb_back: { key: "dummy_dead", R: false },
+    kb_tumble:{ key: "dummy_dead", R: false },
+    kb_seated:{ key: "dummy_dead", R: false },
+    fallback: "dummy_idle",
+  },
   oni: {
     idle:    { key: "oni_idle", R: false },
     patrol:  { frames: ["oni_walk1", "oni_walk2"], R: false },

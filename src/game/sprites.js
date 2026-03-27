@@ -43,7 +43,9 @@ const PLAYER_CORE = [
 const ZONE_SPRITES = {
   dojo: [
     gs("bg_dojo"), gs("bg_dojo_story"), gs("bg_dojo_night_story"),
-    // Oni (dojo training enemies)
+    // Training dummies (dojo rooms 0-4)
+    gs("dummy_idle"), gs("dummy_hit"), gs("dummy_dead"),
+    // Oni (room 5 — the attack)
     ps("oni", "/images/oni/demon.png"), ps("oni_idle", "/images/oni/oni-idle.png"),
     ps("oni_walk1", "/images/oni/oni-walk1.png"), ps("oni_walk2", "/images/oni/oni-walk2.png"),
     ps("oni_alert", "/images/oni/oni-alert.png"), ps("oni_windup", "/images/oni/oni-windup.png"),
