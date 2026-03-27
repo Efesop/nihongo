@@ -39,7 +39,7 @@ function loadImg(key, src, removeGrayBg = false) {
         resolve(img);
       }
     };
-    img.onerror = () => resolve(null);
+    img.onerror = () => { console.warn(`[sprites] FAILED: ${key} (${src})`); resolve(null); };
     img.src = src;
   });
 }
