@@ -190,14 +190,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const startGame = async (fromRoom = 0) => {
     startRoomRef.current = fromRoom;
     setScreen("loading");
-    const audioPromise = initAudio();
-    await loadMascotImage();
-    await audioPromise;
-    let waited = 0;
-    while (!isAudioReady() && waited < 3000) {
-      await new Promise(r => setTimeout(r, 100));
-      waited += 100;
-    }
+    initAudio(); // fire-and-forget — audio loads in background
+    await loadMascotImage(); // only waits for critical sprites (~30)
+    // Don't wait for audio — game starts immediately, sounds load in background
     playSound("menuStart");
     stopMusic();
     setScore(0);
