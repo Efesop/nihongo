@@ -10,146 +10,148 @@ function loadImg(key, src) {
     if (_images[key]) { resolve(_images[key]); return; }
     const img = new Image();
     img.onload = () => { _images[key] = img; resolve(img); };
-    img.onerror = () => { resolve(null); }; // silent fail — procedural fallback handles missing
+    img.onerror = () => { resolve(null); };
     img.src = src;
   });
 }
 
-// Helper: load a batch of sprites from /images/tinysenpai/game/
-const g = (key) => loadImg(key, `/images/tinysenpai/game/${key}.png`);
+// Spec helper — returns [key, src] pair, does NOT start loading
+const gs = (key) => [key, `/images/tinysenpai/game/${key}.png`];
+const ps = (key, src) => [key, src];
 
 export function loadGameImages() {
   console.log("[sprites] loadGameImages called");
 
-  // ── CRITICAL: Minimum to render room 0 (player + dojo bg + sensei NPC) ──
+  // ── CRITICAL: Minimum to render room 0 ──
   const critical = [
     loadImg("player", "/images/tinysenpai/idle.png"),
-    g("bg_dojo"),
-    g("story_sensei_idle"),
+    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
+    loadImg("story_sensei_idle", "/images/tinysenpai/game/story_sensei_idle.png"),
     loadImg("run1", "/images/tinysenpai/run/1.png"),
     loadImg("slash1", "/images/tinysenpai/slash/1.png"),
   ];
 
-  // ── DEFERRED: Everything else loads in background ──
-  const deferred = [
+  // ── DEFERRED: Specs only — NOT loaded yet ──
+  const deferredSpecs = [
     // Player — original sprite set
-    loadImg("run2", "/images/tinysenpai/run/2.png"),
-    loadImg("run3", "/images/tinysenpai/run/3.png"),
-    loadImg("run4", "/images/tinysenpai/run/4.png"),
-    loadImg("slash2", "/images/tinysenpai/slash/2.png"),
-    loadImg("slash3", "/images/tinysenpai/slash/3.png"),
-    loadImg("slash4", "/images/tinysenpai/slash/4.png"),
-    loadImg("jump1", "/images/tinysenpai/jump/launch.png"),
-    loadImg("jump2", "/images/tinysenpai/jump/airborne.png"),
-    loadImg("fall", "/images/tinysenpai/fall.png"),
-    loadImg("wallslide", "/images/tinysenpai/wallslide.png"),
-    loadImg("dash", "/images/tinysenpai/dash.png"),
-    loadImg("death1", "/images/tinysenpai/death/hit.png"),
-    loadImg("death2", "/images/tinysenpai/death/fallen.png"),
-    loadImg("wall_cling", "/images/tinysenpai/wall-cling.png"),
-    loadImg("parry", "/images/tinysenpai/parry.png"),
-    loadImg("land_heavy", "/images/tinysenpai/land-heavy.png"),
-    loadImg("slash_through", "/images/tinysenpai/slash-through.png"),
-    // Player — Gemini-generated refresh set
+    ps("run2", "/images/tinysenpai/run/2.png"),
+    ps("run3", "/images/tinysenpai/run/3.png"),
+    ps("run4", "/images/tinysenpai/run/4.png"),
+    ps("slash2", "/images/tinysenpai/slash/2.png"),
+    ps("slash3", "/images/tinysenpai/slash/3.png"),
+    ps("slash4", "/images/tinysenpai/slash/4.png"),
+    ps("jump1", "/images/tinysenpai/jump/launch.png"),
+    ps("jump2", "/images/tinysenpai/jump/airborne.png"),
+    ps("fall", "/images/tinysenpai/fall.png"),
+    ps("wallslide", "/images/tinysenpai/wallslide.png"),
+    ps("dash", "/images/tinysenpai/dash.png"),
+    ps("death1", "/images/tinysenpai/death/hit.png"),
+    ps("death2", "/images/tinysenpai/death/fallen.png"),
+    ps("wall_cling", "/images/tinysenpai/wall-cling.png"),
+    ps("parry", "/images/tinysenpai/parry.png"),
+    ps("land_heavy", "/images/tinysenpai/land-heavy.png"),
+    ps("slash_through", "/images/tinysenpai/slash-through.png"),
+    // Player — Gemini refresh set
     ...["idle","run1","run2","run3","run4","slash1","slash2","slash3","slash4",
-        "jump1","jump2","fall","dash","wallslide","crouch","death1","death2"].map(s => g(`player_${s}`)),
+        "jump1","jump2","fall","dash","wallslide","crouch","death1","death2"].map(s => gs(`player_${s}`)),
     // Oni
-    loadImg("oni", "/images/oni/demon.png"),
-    loadImg("oni_idle", "/images/oni/oni-idle.png"),
-    loadImg("oni_walk1", "/images/oni/oni-walk1.png"),
-    loadImg("oni_walk2", "/images/oni/oni-walk2.png"),
-    loadImg("oni_alert", "/images/oni/oni-alert.png"),
-    loadImg("oni_windup", "/images/oni/oni-windup.png"),
-    loadImg("oni_attack", "/images/oni/oni-attack-lunge.png"),
-    loadImg("oni_dazed", "/images/oni/oni-dazed.png"),
-    loadImg("oni_hit", "/images/oni/oni-hit.png"),
-    loadImg("oni_kneel", "/images/oni/oni-kneel-defeat.png"),
-    loadImg("oni_dead", "/images/oni/oni-fallen-dead.png"),
-    loadImg("oni_kb_back", "/images/oni/oni-knockback-back.png"),
-    loadImg("oni_kb_tumble", "/images/oni/oni-knockback-tumble.png"),
-    loadImg("oni_kb_seated", "/images/oni/oni-knockback-seated.png"),
+    ps("oni", "/images/oni/demon.png"),
+    ps("oni_idle", "/images/oni/oni-idle.png"),
+    ps("oni_walk1", "/images/oni/oni-walk1.png"),
+    ps("oni_walk2", "/images/oni/oni-walk2.png"),
+    ps("oni_alert", "/images/oni/oni-alert.png"),
+    ps("oni_windup", "/images/oni/oni-windup.png"),
+    ps("oni_attack", "/images/oni/oni-attack-lunge.png"),
+    ps("oni_dazed", "/images/oni/oni-dazed.png"),
+    ps("oni_hit", "/images/oni/oni-hit.png"),
+    ps("oni_kneel", "/images/oni/oni-kneel-defeat.png"),
+    ps("oni_dead", "/images/oni/oni-fallen-dead.png"),
+    ps("oni_kb_back", "/images/oni/oni-knockback-back.png"),
+    ps("oni_kb_tumble", "/images/oni/oni-knockback-tumble.png"),
+    ps("oni_kb_seated", "/images/oni/oni-knockback-seated.png"),
     // Ninja
-    loadImg("ninja", "/images/ninja/ninja.png"),
-    loadImg("ninja_idle", "/images/ninja/ninja-idle.png"),
-    loadImg("ninja_walk1", "/images/ninja/ninja-walk1.png"),
-    loadImg("ninja_walk2", "/images/ninja/ninja-walk2.png"),
-    loadImg("ninja_alert", "/images/ninja/ninja-alert.png"),
-    loadImg("ninja_throw", "/images/ninja/ninja-throw.png"),
-    loadImg("ninja_retreat", "/images/ninja/ninja-retreat.png"),
-    loadImg("ninja_dazed", "/images/ninja/ninja-dazed.png"),
-    loadImg("ninja_hit", "/images/ninja/ninja-hit.png"),
-    loadImg("ninja_kneel", "/images/ninja/ninja-kneel.png"),
-    loadImg("ninja_dead", "/images/ninja/ninja-dead.png"),
-    loadImg("ninja_kb_back", "/images/ninja/ninja-knockback-back.png"),
-    loadImg("ninja_kb_tumble", "/images/ninja/ninja-knockback-tumble.png"),
-    loadImg("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png"),
+    ps("ninja", "/images/ninja/ninja.png"),
+    ps("ninja_idle", "/images/ninja/ninja-idle.png"),
+    ps("ninja_walk1", "/images/ninja/ninja-walk1.png"),
+    ps("ninja_walk2", "/images/ninja/ninja-walk2.png"),
+    ps("ninja_alert", "/images/ninja/ninja-alert.png"),
+    ps("ninja_throw", "/images/ninja/ninja-throw.png"),
+    ps("ninja_retreat", "/images/ninja/ninja-retreat.png"),
+    ps("ninja_dazed", "/images/ninja/ninja-dazed.png"),
+    ps("ninja_hit", "/images/ninja/ninja-hit.png"),
+    ps("ninja_kneel", "/images/ninja/ninja-kneel.png"),
+    ps("ninja_dead", "/images/ninja/ninja-dead.png"),
+    ps("ninja_kb_back", "/images/ninja/ninja-knockback-back.png"),
+    ps("ninja_kb_tumble", "/images/ninja/ninja-knockback-tumble.png"),
+    ps("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png"),
     // Samurai
-    ...["idle","walk1","walk2","alert","attack","dazed","hit","windup","kb_back","kb_tumble","kb_seated"].map(s => g(`samurai_${s}`)),
-    loadImg("samurai_kneel", "/images/samurai/samurai-kneel.png"),
-    loadImg("samurai_dead", "/images/samurai/samurai-dead.png"),
+    ...["idle","walk1","walk2","alert","attack","dazed","hit","windup","kb_back","kb_tumble","kb_seated"].map(s => gs(`samurai_${s}`)),
+    ps("samurai_kneel", "/images/samurai/samurai-kneel.png"),
+    ps("samurai_dead", "/images/samurai/samurai-dead.png"),
     // Archer
-    ...["idle","alert","draw_bow","fire","retreat","dazed","hit","kneel","dead","kb_back"].map(s => g(`archer_${s}`)),
+    ...["idle","alert","draw_bow","fire","retreat","dazed","hit","kneel","dead","kb_back"].map(s => gs(`archer_${s}`)),
     // Brute
-    ...["idle","alert","attack","charge","exhausted","hit","kneel","dead","kb_back"].map(s => g(`brute_${s}`)),
+    ...["idle","alert","attack","charge","exhausted","hit","kneel","dead","kb_back"].map(s => gs(`brute_${s}`)),
     // Tengu
-    ...["hover","swoop","attack","dazed","hit","dead"].map(s => g(`tengu_${s}`)),
-    // Ronin (Edo)
-    ...["idle","walk1","walk2","alert","attack","dazed","hit","kneel","dead","kb_back","kb_seated","kb_tumble"].map(s => g(`ronin_${s}`)),
-    // Cyber Ninja (Neon Tokyo)
-    ...["idle","walk1","walk2","alert","attack","dazed","hit","kneel","dead","kb_back","kb_seated","kb_tumble"].map(s => g(`cyber_ninja_${s}`)),
-    // Bouncer (Nightclub)
-    ...["idle","walk1","walk2","alert","attack","charge","dazed","hit","kb_back","kb_seated"].map(s => g(`bouncer_${s}`)),
-    // Monk Guardian (Spirit)
-    ...["idle","walk1","walk2","alert","attack","block","dazed","hit","kneel","dead","kb_back","kb_seated"].map(s => g(`monk_${s}`)),
+    ...["hover","swoop","attack","dazed","hit","dead"].map(s => gs(`tengu_${s}`)),
+    // Ronin
+    ...["idle","walk1","walk2","alert","attack","dazed","hit","kneel","dead","kb_back","kb_seated","kb_tumble"].map(s => gs(`ronin_${s}`)),
+    // Cyber Ninja
+    ...["idle","walk1","walk2","alert","attack","dazed","hit","kneel","dead","kb_back","kb_seated","kb_tumble"].map(s => gs(`cyber_ninja_${s}`)),
+    // Bouncer
+    ...["idle","walk1","walk2","alert","attack","charge","dazed","hit","kb_back","kb_seated"].map(s => gs(`bouncer_${s}`)),
+    // Monk
+    ...["idle","walk1","walk2","alert","attack","block","dazed","hit","kneel","dead","kb_back","kb_seated"].map(s => gs(`monk_${s}`)),
     // Spirit Fox
-    ...["idle","alert","attack","dazed","hit","dead"].map(s => g(`spirit_fox_${s}`)),
-    // Cursed Ronin (Spirit — dark mirror)
-    ...["idle","walk1","walk2","alert","attack","dash","dazed","hit","kneel","dead","kb_back","kb_seated"].map(s => g(`cursed_ronin_${s}`)),
-    // Backgrounds — gameplay
-    loadImg("bg_forest", "/images/forest.png"),
-    // Backgrounds — story scenes
+    ...["idle","alert","attack","dazed","hit","dead"].map(s => gs(`spirit_fox_${s}`)),
+    // Cursed Ronin
+    ...["idle","walk1","walk2","alert","attack","dash","dazed","hit","kneel","dead","kb_back","kb_seated"].map(s => gs(`cursed_ronin_${s}`)),
+    // Backgrounds
+    ps("bg_forest", "/images/forest.png"),
     ...["bg_dojo_story","bg_dojo_night_story","bg_forest_story","bg_temple_story",
-        "bg_edo_story","bg_neon_story","bg_nightclub_story","bg_spirit_story"].map(k => g(k)),
-    // Backgrounds — multi-layer parallax
+        "bg_edo_story","bg_neon_story","bg_nightclub_story","bg_spirit_story"].map(k => gs(k)),
     ...["far","mid","near"].flatMap(layer =>
-      ["edo","neon","spirit"].map(zone => g(`bg_${zone}_${layer}`))),
-    ...["far","mid"].map(layer => g(`bg_nightclub_${layer}`)),
-    // Story characters — player poses
-    ...["idle","surprised","determined","kneeling","arm"].map(s => g(`story_player_${s}`)),
-    // Story characters — sensei
-    ...["idle","serious","amused","walk1","walk2"].map(s => g(`story_sensei_${s}`)),
-    // Story characters — shadow
-    ...["idle","angry","bitter","defeated","human","walk1","walk2"].map(s => g(`story_shadow_${s}`)),
-    // Story characters — elder
-    ...["idle","concerned","walk1","walk2"].map(s => g(`story_elder_${s}`)),
-    // Story characters — kunoichi
-    ...["idle","smirk","serious","walk1","walk2"].map(s => g(`story_kunoichi_${s}`)),
-    // Story characters — katsura
-    ...["idle","angry"].map(s => g(`story_katsura_${s}`)),
-    // Story characters — hacker
-    ...["idle","walk1","walk2"].map(s => g(`story_hacker_${s}`)),
-    // Story characters — fox spirit
-    g("story_fox_idle"),
+      ["edo","neon","spirit"].map(zone => gs(`bg_${zone}_${layer}`))),
+    ...["far","mid"].map(layer => gs(`bg_nightclub_${layer}`)),
+    // Story characters
+    ...["idle","surprised","determined","kneeling","arm"].map(s => gs(`story_player_${s}`)),
+    ...["idle","serious","amused","walk1","walk2"].map(s => gs(`story_sensei_${s}`)),
+    ...["idle","angry","bitter","defeated","human","walk1","walk2"].map(s => gs(`story_shadow_${s}`)),
+    ...["idle","concerned","walk1","walk2"].map(s => gs(`story_elder_${s}`)),
+    ...["idle","smirk","serious","walk1","walk2"].map(s => gs(`story_kunoichi_${s}`)),
+    ...["idle","angry"].map(s => gs(`story_katsura_${s}`)),
+    ...["idle","walk1","walk2"].map(s => gs(`story_hacker_${s}`)),
+    gs("story_fox_idle"),
     // Portraits
-    ...["sensei","sensei_v2","player","shadow","elder","kunoichi","katsura","hacker","fox"].map(s => g(`portrait_${s}`)),
+    ...["sensei","sensei_v2","player","shadow","elder","kunoichi","katsura","hacker","fox"].map(s => gs(`portrait_${s}`)),
   ];
 
-  console.log(`[sprites] Loading ${critical.length} critical + ${deferred.length} deferred sprites`);
-  // Fire deferred in background — don't await
-  Promise.all(deferred).then(r => {
-    const loaded = r.filter(Boolean).length;
-    console.log(`[sprites] Deferred: ${loaded}/${deferred.length}`);
-  }).catch(() => {});
-  // Only wait for critical (with 3s timeout)
-  const timeout = new Promise(r => setTimeout(() => { console.warn("[sprites] Critical timeout"); r(); }, 3000));
-  return Promise.race([
-    Promise.all(critical).then(r => console.log(`[sprites] Critical: ${r.filter(Boolean).length}/${critical.length}`)),
-    timeout,
-  ]);
+  console.log(`[sprites] Loading ${critical.length} critical + ${deferredSpecs.length} deferred sprites`);
+
+  // Wait for critical, then batch-load deferred (6 at a time, 50ms gaps)
+  return Promise.all(critical).then(r => {
+    console.log(`[sprites] Critical: ${r.filter(Boolean).length}/${critical.length}`);
+    // Batch load deferred with yielding to main thread
+    let loaded = 0;
+    const BATCH = 6;
+    function nextBatch(i) {
+      if (i >= deferredSpecs.length) {
+        console.log(`[sprites] Deferred: ${loaded}/${deferredSpecs.length}`);
+        return;
+      }
+      const batch = deferredSpecs.slice(i, i + BATCH);
+      Promise.all(batch.map(([k, s]) => loadImg(k, s))).then(results => {
+        loaded += results.filter(Boolean).length;
+        // Yield to let game loop run between batches
+        requestAnimationFrame(() => nextBatch(i + BATCH));
+      });
+    }
+    // Start first batch after game loop has started
+    requestAnimationFrame(() => nextBatch(0));
+  });
 }
 
 export function getImage(key) { return _images[key] || null; }
-// Backwards compat
 export function getMascotImage() { return _images["player"] || null; }
 export function loadMascotImage() { return loadGameImages(); }
 
@@ -171,7 +173,6 @@ const SPR = {
   ],
 };
 
-// ═══ SPRITE CACHE (for projectiles only) ═══
 const _cache = {};
 
 export function getSprite(name, flip = false) {
