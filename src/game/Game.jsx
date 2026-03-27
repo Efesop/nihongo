@@ -150,6 +150,18 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       } catch (err) {
         _errN++;
         if (_errN <= 5) console.error(`[game crash #${_errN}]`, err.message, err.stack);
+        // Show error ON SCREEN so user can report it
+        if (_errN === 1) {
+          const errDiv = document.getElementById('game-error-display');
+          if (errDiv) errDiv.textContent = `CRASH: ${err.message} @ ${(err.stack||'').split('\n')[1]?.trim() || 'unknown'}`;
+          else {
+            const d = document.createElement('div');
+            d.id = 'game-error-display';
+            d.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(200,0,0,0.9);color:#fff;padding:8px 16px;font:12px monospace;z-index:9999;border-radius:6px;max-width:80vw;word-break:break-all';
+            d.textContent = `CRASH: ${err.message} @ ${(err.stack||'').split('\n')[1]?.trim() || 'unknown'}`;
+            document.body.appendChild(d);
+          }
+        }
         // If crashing repeatedly, force recover
         if (_errN >= 3) {
           try {

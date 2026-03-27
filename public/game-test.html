@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>Game Test</title>
+<style>* { margin:0; padding:0; } body { background:#131316; overflow:hidden; }</style>
+</head><body>
+<canvas id="c" style="display:block;width:100vw;height:100vh"></canvas>
+<div id="log" style="position:fixed;top:0;left:0;color:lime;font:11px monospace;background:rgba(0,0,0,0.8);padding:4px;max-height:50vh;overflow:auto;z-index:999;pointer-events:none"></div>
+<script type="module">
+// Minimal game bootstrap — no React, no Clerk
+import { initGame } from '/src/game/engine.js';
+import { update } from '/src/game/engine.js';
+import { render } from '/src/game/renderer.js';
+import { loadGameImages } from '/src/game/sprites.js';
+import { setupKeyboard, setupTouch } from '/src/game/input.js';
+import { initAudio } from '/src/game/audio.js';
+
+const log = document.getElementById('log');
+function addLog(msg) {
+  const d = document.createElement('div');
+  d.textContent = `[${(performance.now()/1000).toFixed(1)}s] ${msg}`;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  console.log(msg);
+}
+
+window.onerror = (msg, src, line, col, err) => {
+  addLog(`ERROR: ${msg} at ${src}:${line}:${col}`);
+  addLog(`Stack: ${err?.stack || 'none'}`);
+};
+window.onunhandledrejection = (e) => {
+  addLog(`UNHANDLED: ${e.reason?.message || e.reason}`);
+};
+
+const canvas = document.getElementById('c');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+const ctx = canvas.getContext('2d');
+const font = '"Press Start 2P", monospace';
+
+addLog('Loading sprites...');
+try {
+  await loadGameImages();
+  addLog('Sprites loaded!');
+} catch(e) {
+  addLog('Sprite load error: ' + e.message);
+}
+
+addLog('Initializing game...');
+const g = initGame();
+g.W = canvas.width;
+g.H = canvas.height;
+window.__gameRef = g;
+
+const gameRef = { current: g };
+const cleanupKeys = setupKeyboard(gameRef, () => {});
+const cleanupTouch = setupTouch(canvas, gameRef);
+
+try { initAudio(); } catch(e) { addLog('Audio skip: ' + e.message); }
+
+const callbacks = {
+  setScore: () => {}, setMaxCombo: () => {}, setScreen: (s) => addLog('setScreen: ' + s),
+  isDesktop: true, SIDEBAR_W: 0, highScore: 0, setHighScore: () => {},
+};
+
+addLog('Starting game loop...');
+let frameCount = 0;
+let lastLog = 0;
+
+function loop() {
+  try {
+    update(g, callbacks);
+    render(g, ctx, true, font);
+    frameCount++;
+    const now = performance.now();
+    if (now - lastLog > 2000) {
+      addLog(`Frame ${frameCount}, room=${g.currentRoom}, state=${g.roomState}, timer=${g.roomTimer?.toFixed(1)}, player=${Math.round(g.player?.x)},${Math.round(g.player?.y)} dead=${g.player?.dead}`);
+      lastLog = now;
+    }
+  } catch(err) {
+    addLog(`CRASH frame ${frameCount}: ${err.message}`);
+    addLog(`Stack: ${err.stack}`);
+    // Don't stop — try to recover
+    try {
+      g.time.scale = 1;
+      g.camera.zoom = 1; g.camera.zoomTarget = 1;
+    } catch {}
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+addLog('Loop started');
+</script>
+</body></html>
