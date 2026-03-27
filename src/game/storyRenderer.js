@@ -400,9 +400,14 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const isWalking = shouldAnimate && s.entrance?.active && entranceT < 1;
     let sprite;
     if (isWalking) {
-      // Alternate walk frames based on entrance timer
       const walkFrame = Math.floor((s.entrance?.timer || 0) * 6) % 2 === 0 ? "walk1" : "walk2";
-      sprite = getImage(`story_${charKey}_${walkFrame}`) || getCharSprite(charKey, emotion);
+      if (charKey === "player") {
+        // Player uses actual gameplay run sprites for walking
+        const runFrame = (Math.floor((s.entrance?.timer || 0) * 8) % 4) + 1;
+        sprite = getImage("run" + runFrame) || getImage("player");
+      } else {
+        sprite = getImage(`story_${charKey}_${walkFrame}`) || getCharSprite(charKey, emotion);
+      }
     } else {
       sprite = getCharSprite(charKey, emotion);
     }
