@@ -112,6 +112,160 @@ const SPRITES = [
 
   // ═══ REDESIGNED SENSEI PORTRAIT ═══
   ['portrait_sensei_v2', `Close-up face portrait of wise old Japanese sensei. Oversized chibi head, long flowing white beard, deep kind wise eyes with warmth, tall golden ornate hat with decorative kanji symbol, weathered but warm face, dark navy robes visible at neck. Distinguished noble teacher. ${STYLE_CHAR}`],
+
+  // ═══ PLAYER REFRESH — TinySenpai (massive straw kasa hat, narrow eyes, black ninja outfit, red sash, katana) ═══
+  ['player_idle',    `Tiny samurai ronin standing in relaxed idle pose. Massive wide-brimmed golden-brown woven straw kasa hat (wider than body), narrow eyes barely visible under hat brim, black/dark gray ninja outfit, bright red sash/belt at waist, katana with white blade at hip, small skin-tone hands. Compact stocky chibi proportions. Facing left. ${STYLE_CHAR}`],
+  ['player_run1',    `Tiny samurai ronin running, left foot forward mid-stride. Same massive kasa hat, red sash, black outfit, katana. Dynamic forward lean. Facing left. ${STYLE_CHAR}`],
+  ['player_run2',    `Tiny samurai ronin running, right foot forward mid-stride. Same massive kasa hat, red sash, black outfit, katana. Matching stride with run1. Facing left. ${STYLE_CHAR}`],
+  ['player_run3',    `Tiny samurai ronin running, similar to run1 but slightly different arm position. Same massive kasa hat, red sash, black outfit. Facing left. ${STYLE_CHAR}`],
+  ['player_run4',    `Tiny samurai ronin running, similar to run2 but slightly different arm position. Same massive kasa hat, red sash, black outfit. Facing left. ${STYLE_CHAR}`],
+  ['player_slash1',  `Tiny samurai ronin slashing horizontally from left to right, katana extended. Massive kasa hat, red sash, aggressive forward lean. Facing left. ${STYLE_CHAR}`],
+  ['player_slash2',  `Tiny samurai ronin mid-upward slash, katana arcing upward. Massive kasa hat, red sash, powerful stance. Facing left. ${STYLE_CHAR}`],
+  ['player_slash3',  `Tiny samurai ronin finishing heavy downward slash, katana swinging down with force. Massive kasa hat, red sash, wide planted stance. Facing left. ${STYLE_CHAR}`],
+  ['player_slash4',  `Tiny samurai ronin in piercing thrust, katana pointed straight forward like a spear. Massive kasa hat, red sash, deep lunge. Facing left. ${STYLE_CHAR}`],
+  ['player_jump1',   `Tiny samurai ronin jumping upward, knees tucked, ascending. Massive kasa hat, red sash, katana at side. Facing left. ${STYLE_CHAR}`],
+  ['player_jump2',   `Tiny samurai ronin at peak of jump, arms slightly raised. Massive kasa hat, red sash. Facing left. ${STYLE_CHAR}`],
+  ['player_fall',    `Tiny samurai ronin falling downward, legs and arms spread slightly. Massive kasa hat, red sash. Facing left. ${STYLE_CHAR}`],
+  ['player_dash',    `Tiny samurai ronin dashing forward in burst of speed, body horizontal, motion blur trail. Massive kasa hat, red sash. Facing left. ${STYLE_CHAR}`],
+  ['player_wallslide', `Tiny samurai ronin sliding down a wall, one hand touching wall, body against surface. Massive kasa hat, red sash. Facing left. ${STYLE_CHAR}`],
+  ['player_crouch',  `Tiny samurai ronin crouching low to the ground, one knee down, body compact and low. Massive kasa hat pulled low covering eyes, red sash, katana ready. Stealthy sneaking pose. Facing left. ${STYLE_CHAR}`],
+  ['player_death1',  `Tiny samurai ronin hit and recoiling, body arching backward in pain. Massive kasa hat flying up slightly, red sash, katana dropping. Facing left. ${STYLE_CHAR}`],
+  ['player_death2',  `Tiny samurai ronin collapsed on ground, face down, defeated. Massive kasa hat fallen nearby, red sash, katana on ground. Facing left. ${STYLE_CHAR}`],
+
+  // ═══ EDO CASTLE TOWN ENEMIES ═══
+
+  // ── RONIN (wandering swordsman — tattered brown kimono, straw hat like player but different, single katana, world-weary posture) ──
+  ['ronin_idle',     `Ronin swordsman standing idle, world-weary posture. Tattered brown kimono with frayed edges, smaller conical straw hat (different from player's wide kasa), stubbled chin visible, worn katana at hip, sandals. Tired but dangerous. Facing left. ${STYLE_CHAR}`],
+  ['ronin_walk1',    `Ronin swordsman walking step 1, slow deliberate stride. Tattered brown kimono, conical straw hat, katana at side. Facing left. ${STYLE_CHAR}`],
+  ['ronin_walk2',    `Ronin swordsman walking step 2, opposite foot forward. Tattered brown kimono, conical straw hat, katana at side. Facing left. ${STYLE_CHAR}`],
+  ['ronin_alert',    `Ronin swordsman drawing katana, alert stance, hat brim shadowing eyes. Tattered brown kimono. Facing left. ${STYLE_CHAR}`],
+  ['ronin_attack',   `Ronin swordsman mid-slash, fast horizontal cut. Tattered brown kimono, conical hat, katana extended. Facing left. ${STYLE_CHAR}`],
+  ['ronin_dazed',    `Ronin swordsman stunned, leaning back dizzy. Tattered brown kimono, hat askew. Facing left. ${STYLE_CHAR}`],
+  ['ronin_hit',      `Ronin swordsman recoiling from hit. Tattered brown kimono, pain expression. Facing left. ${STYLE_CHAR}`],
+  ['ronin_kneel',    `Ronin swordsman kneeling defeated, head bowed. Tattered brown kimono, hat fallen. Facing left. ${STYLE_CHAR}`],
+  ['ronin_dead',     `Ronin swordsman collapsed dead on ground. Tattered brown kimono, hat beside body. Facing left. ${STYLE_CHAR}`],
+  ['ronin_kb_back',  `Ronin swordsman flying backward from heavy hit. Tattered brown kimono billowing. Facing left. ${STYLE_CHAR}`],
+  ['ronin_kb_tumble',`Ronin swordsman tumbling on ground from impact. Tattered brown kimono, hat flying off. Facing left. ${STYLE_CHAR}`],
+  ['ronin_kb_seated',`Ronin swordsman slumped sitting on ground defeated. Tattered brown kimono. Facing left. ${STYLE_CHAR}`],
+
+  // ── CYBER NINJA (sleek black bodysuit, neon blue circuit line patterns, energy katana, glowing visor) ──
+  ['cyber_ninja_idle',     `Cyber ninja standing in ready stance. Sleek black bodysuit with glowing neon blue circuit line patterns, dark visor with blue glow, energy katana at side humming with light. Futuristic but clearly ninja. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_walk1',    `Cyber ninja walking step 1, smooth silent stride. Black bodysuit, neon blue circuits, energy katana. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_walk2',    `Cyber ninja walking step 2. Black bodysuit, neon blue circuits. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_alert',    `Cyber ninja activating, visor flashing bright, circuits pulsing. Black bodysuit, energy katana drawn. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_attack',   `Cyber ninja mid-teleport-slash, body blurring with afterimage trail, energy katana swinging. Black bodysuit, neon blue circuits blazing. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_dazed',    `Cyber ninja stunned, circuits flickering, sparks flying from suit. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_hit',      `Cyber ninja recoiling from hit, circuit lines disrupted. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_kneel',    `Cyber ninja kneeling, system failure, circuits dimming. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_dead',     `Cyber ninja collapsed, all circuits dark, energy katana deactivated. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_kb_back',  `Cyber ninja flying backward, sparks and circuit fragments trailing. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_kb_tumble',`Cyber ninja tumbling, bodysuit cracking. Facing left. ${STYLE_CHAR}`],
+  ['cyber_ninja_kb_seated',`Cyber ninja slumped sitting, circuits pulsing weakly. Facing left. ${STYLE_CHAR}`],
+
+  // ── BOUNCER (massive build, black suit, sunglasses, brass knuckles — nightclub enforcer) ──
+  ['bouncer_idle',     `Massive nightclub bouncer standing arms crossed. Black suit stretching over huge muscular body, dark sunglasses, brass knuckles on both fists, earpiece, intimidating scowl. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_walk1',    `Bouncer walking step 1, heavy deliberate stride. Black suit, sunglasses, brass knuckles. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_walk2',    `Bouncer walking step 2. Black suit, sunglasses. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_alert',    `Bouncer cracking knuckles, removing sunglasses, aggressive stance. Black suit. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_attack',   `Bouncer throwing massive haymaker punch, brass knuckles gleaming. Black suit. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_charge',   `Bouncer charging forward like a bull, shoulder down, ground-shaking. Black suit. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_dazed',    `Bouncer stunned, swaying, sunglasses cracked. Black suit. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_hit',      `Bouncer flinching from hit, surprised. Black suit. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_kneel',    `Bouncer kneeling defeated, one knee down. Black suit torn. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_dead',     `Bouncer collapsed on ground, sunglasses fallen. Black suit. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_kb_back',  `Bouncer flying backward from powerful hit. Black suit. Facing left. ${STYLE_CHAR}`],
+  ['bouncer_kb_seated',`Bouncer slumped sitting against wall. Black suit. Facing left. ${STYLE_CHAR}`],
+
+  // ── MONK GUARDIAN (orange robes, shaved head, bo staff — temple protector) ──
+  ['monk_idle',     `Monk guardian standing peacefully with bo staff. Shaved bald head, serene expression, flowing orange Buddhist robes, wooden bo staff held vertically, prayer beads on wrist. Facing left. ${STYLE_CHAR}`],
+  ['monk_walk1',    `Monk guardian walking calmly step 1. Orange robes, bo staff, bald head. Facing left. ${STYLE_CHAR}`],
+  ['monk_walk2',    `Monk guardian walking step 2. Orange robes, bo staff. Facing left. ${STYLE_CHAR}`],
+  ['monk_alert',    `Monk guardian shifting to defensive martial arts stance, bo staff horizontal ready to block. Orange robes, focused expression. Facing left. ${STYLE_CHAR}`],
+  ['monk_attack',   `Monk guardian striking with bo staff, sweeping horizontal strike. Orange robes flowing with motion. Facing left. ${STYLE_CHAR}`],
+  ['monk_block',    `Monk guardian blocking with bo staff held across body, planted wide stance. Orange robes. Facing left. ${STYLE_CHAR}`],
+  ['monk_dazed',    `Monk guardian stunned, off balance. Orange robes, bo staff drooping. Facing left. ${STYLE_CHAR}`],
+  ['monk_hit',      `Monk guardian recoiling from hit. Orange robes. Facing left. ${STYLE_CHAR}`],
+  ['monk_kneel',    `Monk guardian kneeling in meditation pose, defeated peacefully. Orange robes. Facing left. ${STYLE_CHAR}`],
+  ['monk_dead',     `Monk guardian collapsed, bo staff broken beside. Orange robes. Facing left. ${STYLE_CHAR}`],
+  ['monk_kb_back',  `Monk guardian flying backward from hit. Orange robes billowing. Facing left. ${STYLE_CHAR}`],
+  ['monk_kb_seated',`Monk guardian sitting in meditation pose on ground. Orange robes. Facing left. ${STYLE_CHAR}`],
+
+  // ── SPIRIT FOX (ethereal white fox, multiple tails, ghostly translucent glow) ──
+  ['spirit_fox_idle',  `Ethereal spirit fox sitting regally. White-blue translucent ghostly body, multiple flowing tails (3-5), glowing golden eyes, soft light aura, ancient wise expression. Mystical Japanese kitsune. Facing left. ${STYLE_CHAR}`],
+  ['spirit_fox_alert', `Spirit fox standing alert, tails fanned out, golden eyes blazing. White-blue translucent ghostly body, defensive pose. Facing left. ${STYLE_CHAR}`],
+  ['spirit_fox_attack',`Spirit fox lunging with spiritual fire, tails streaking behind. White-blue body, golden eyes, supernatural energy. Facing left. ${STYLE_CHAR}`],
+  ['spirit_fox_dazed', `Spirit fox flickering, partially transparent, stunned. Tails drooping. Facing left. ${STYLE_CHAR}`],
+  ['spirit_fox_hit',   `Spirit fox recoiling, body briefly fragmenting into particles. Facing left. ${STYLE_CHAR}`],
+  ['spirit_fox_dead',  `Spirit fox dissolving into floating light particles, fading peacefully. Facing left. ${STYLE_CHAR}`],
+
+  // ── CURSED RONIN (dark mirror of TinySenpai — same kasa hat but ink-black, red glowing mark on arm, dark aura) ──
+  ['cursed_ronin_idle',     `Dark mirror of TinySenpai standing menacingly. Same massive wide-brimmed kasa hat but completely ink-BLACK with dark purple edges, glowing red eyes under brim, all-black ninja outfit with red ink marks spreading across body, dark red sash, cursed katana with dark blade. Dark aura wisps. Evil twin. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_walk1',    `Cursed dark TinySenpai walking step 1. Ink-black kasa hat, glowing red eyes, black outfit with red curse marks. Dark aura trail. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_walk2',    `Cursed dark TinySenpai walking step 2. Ink-black kasa hat, red eyes, curse marks. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_alert',    `Cursed dark TinySenpai drawing cursed katana, red eyes flaring bright. Ink-black hat, dark aura intensifying. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_attack',   `Cursed dark TinySenpai mid-slash with dark energy trailing from blade. Ink-black hat, red curse marks glowing. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_dash',     `Cursed dark TinySenpai dashing forward, body trailing dark afterimages. Ink-black hat, red aura. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_dazed',    `Cursed dark TinySenpai stunned, curse marks flickering. Ink-black hat, red eyes dimming. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_hit',      `Cursed dark TinySenpai recoiling, curse marks cracking. Ink-black hat. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_kneel',    `Cursed dark TinySenpai kneeling, curse marks fading, showing glimpse of the person beneath. Ink-black hat. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_dead',     `Cursed dark TinySenpai collapsed, curse dissolving off body, hat fading from black back toward golden-brown. Redemption in defeat. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_kb_back',  `Cursed dark TinySenpai flying backward, dark energy scattering. Ink-black hat. Facing left. ${STYLE_CHAR}`],
+  ['cursed_ronin_kb_seated',`Cursed dark TinySenpai slumped sitting, curse marks receding. Facing left. ${STYLE_CHAR}`],
+
+  // ═══ NEW STORY CHARACTER SPRITES ═══
+
+  // Kunoichi — female ninja ally, practical dark outfit, red hair ribbon, confident smirk
+  ['story_kunoichi_idle',    `Full body chibi pixel art of female kunoichi ninja standing confidently, facing LEFT. Dark practical ninja outfit, visible red hair ribbon, short dark hair, confident smirk, kunai knife in hand, utility belt with pouches. Capable and sharp. ${STYLE_CHAR}`],
+  ['story_kunoichi_smirk',   `Full body chibi pixel art of kunoichi with mischievous knowing smirk, facing LEFT. Same dark outfit, red hair ribbon, hand on hip, slight lean. Playful intelligence. ${STYLE_CHAR}`],
+  ['story_kunoichi_serious', `Full body chibi pixel art of kunoichi in serious focused pose, facing LEFT. Same dark outfit, red hair ribbon, arms crossed, stern expression. All business. ${STYLE_CHAR}`],
+
+  // Lord Katsura — Edo lord, ornate dark kimono with gold patterns, topknot, authoritative
+  ['story_katsura_idle',   `Full body chibi pixel art of Japanese feudal lord standing regally, facing LEFT. Ornate dark navy kimono with gold phoenix pattern, traditional topknot hairstyle, sharp calculating eyes, hand on katana hilt, tall proud posture. Power and authority. ${STYLE_CHAR}`],
+  ['story_katsura_angry',  `Full body chibi pixel art of feudal lord in fury, facing LEFT. Same ornate kimono, topknot, eyes blazing with anger, hand gripping katana, aggressive forward lean. Outraged. ${STYLE_CHAR}`],
+
+  // Hacker — cyberpunk tech expert, hoodie with circuit patterns, glowing visor/glasses, tablet
+  ['story_hacker_idle',    `Full body chibi pixel art of cyberpunk hacker standing casually, facing LEFT. Dark hoodie with glowing green circuit patterns, futuristic glowing green visor/glasses, holding holographic tablet, messy dark hair, relaxed slouching posture, sneakers. Tech-savvy rebel. ${STYLE_CHAR}`],
+
+  // Fox Spirit — ethereal white fox in humanoid form, flowing white robes, golden eyes, multiple tail hints
+  ['story_fox_idle',       `Full body chibi pixel art of ethereal fox spirit in semi-humanoid form, facing LEFT. Flowing white-blue translucent robes, golden glowing eyes, fox ears atop head, multiple ghostly tail wisps behind, prayer beads, gentle wise expression. Ancient divine being. ${STYLE_CHAR}`],
+
+  // Shadow special poses for epilogue
+  ['story_shadow_defeated', `Full body chibi pixel art of shadow ninja kneeling in defeat, curse marks visibly fading from body, facing LEFT. Dark purple cloth unwinding slightly to reveal exhausted face beneath, scarf tails limp, purple eye glow dimming to normal human eyes. Vulnerable. ${STYLE_CHAR}`],
+  ['story_shadow_human',    `Full body chibi pixel art of shadow ninja REDEEMED — standing calmly without curse, facing LEFT. Purple cloth still wrapping head but looser, showing calm normal eyes (not glowing), clean arm without ink marks, relaxed peaceful posture, scarf tails gentle. The person behind the curse. ${STYLE_CHAR}`],
+
+  // Player examining arm — solo story scene
+  ['story_player_arm',     `Full body chibi pixel art of TinySenpai looking at glowing mark on forearm, facing RIGHT. Same massive kasa hat, red sash, black outfit, but holding out left arm and staring at it with concern, faint red-purple glow on forearm. Worried discovery. ${STYLE_CHAR}`],
+
+  // ═══ NEW ZONE BACKGROUNDS ═══
+
+  // Edo Castle Town
+  ['bg_edo_story',       `Wide pixel art background of an Edo period Japanese castle town at dusk. Wooden merchant buildings with tile roofs lining a narrow street, paper lanterns hanging between buildings casting warm amber glow, stone castle wall visible in background, cherry blossom petals falling. Warm golden hour lighting. ${STYLE_BG} Aspect ratio 16:9.`],
+  ['bg_edo_far',         `Very wide pixel art distant background layer: Edo castle silhouette on hilltop, mountains beyond, orange-pink sunset sky. Simple shapes, muted warm colors. For parallax scrolling. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+  ['bg_edo_mid',         `Very wide pixel art mid-ground layer: Edo wooden building rooftops and tile roofs, wooden fences, stone walls, warm lantern glows from windows. More detail than far layer. For parallax scrolling. Semi-transparent gaps (no ground). ${STYLE_BG} Aspect ratio wider than 3:1.`],
+  ['bg_edo_near',        `Very wide pixel art near-ground layer: Cherry blossom branches, wooden market stall roofs, hanging cloth banners with kanji. Close-up foreground elements. For parallax scrolling. Semi-transparent. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+
+  // Neon Tokyo
+  ['bg_neon_story',      `Wide pixel art background of rain-soaked cyberpunk Tokyo alley at night. Neon signs in Japanese (カラオケ, 居酒屋, etc.) in hot pink, cyan, and purple reflecting off wet pavement. Vending machines glowing, steam rising from grates, overhead cables and pipes. Blade Runner meets pixel art. ${STYLE_BG} Aspect ratio 16:9.`],
+  ['bg_neon_far',        `Very wide pixel art distant background layer: futuristic Tokyo skyline with massive towers, holographic billboards, dark sky with neon glow on clouds. Muted purples and blues. For parallax scrolling. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+  ['bg_neon_mid',        `Very wide pixel art mid-ground layer: Neon signs in Japanese kanji, mid-rise buildings with glowing windows, rain streaks, steam vents. Hot pink and cyan neon colors. For parallax scrolling. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+  ['bg_neon_near',       `Very wide pixel art near-ground layer: Wet pavement reflections, vending machines, neon puddles, street-level signs. Close foreground detail. For parallax scrolling. Semi-transparent. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+
+  // Nightclub / Underground
+  ['bg_nightclub_story', `Wide pixel art background of dark underground nightclub interior. Purple and magenta laser beams cutting through haze, massive speaker stacks, DJ booth with turntables silhouetted, dance floor with geometric neon patterns, strobe light effects. Dark and pulsing energy. ${STYLE_BG} Aspect ratio 16:9.`],
+  ['bg_nightclub_far',   `Very wide pixel art distant background layer: Dark void with purple laser grid lines receding into distance, faint strobe flashes. Minimal detail, very dark. For parallax scrolling. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+  ['bg_nightclub_mid',   `Very wide pixel art mid-ground layer: Speaker stacks, DJ equipment silhouettes, purple neon tube lights, ceiling infrastructure. For parallax scrolling. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+
+  // Spirit Realm
+  ['bg_spirit_story',    `Wide pixel art background of ethereal Japanese spirit realm. Floating shrine torii gates in misty void, massive cherry blossom tree raining pink petals, aurora-like lights in sky, translucent ghostly shrine buildings, soft purple-blue color palette with warm golden accents. Otherworldly and beautiful. ${STYLE_BG} Aspect ratio 16:9.`],
+  ['bg_spirit_far',      `Very wide pixel art distant background layer: starfield with aurora borealis in purple and blue, floating shrine silhouettes in distance. Ethereal and vast. For parallax scrolling. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+  ['bg_spirit_mid',      `Very wide pixel art mid-ground layer: Floating torii gates, drifting shrine platforms, cherry blossom branches. Purple and golden mist. For parallax scrolling. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+  ['bg_spirit_near',     `Very wide pixel art near-ground layer: Dense cherry blossom petal storm, floating lanterns, ethereal mist tendrils. Close foreground elements. For parallax scrolling. Semi-transparent. ${STYLE_BG} Aspect ratio wider than 3:1.`],
+
+  // Portraits for new characters
+  ['portrait_kunoichi',  `Close-up face portrait of female kunoichi ninja. Oversized chibi head, short dark hair with red ribbon, confident sharp eyes, slight smirk, dark ninja collar visible. ${STYLE_CHAR}`],
+  ['portrait_katsura',   `Close-up face portrait of Japanese feudal lord. Oversized chibi head, traditional topknot hairstyle, sharp calculating eyes, thin stern mouth, ornate gold-trimmed dark collar. ${STYLE_CHAR}`],
+  ['portrait_hacker',    `Close-up face portrait of cyberpunk hacker. Oversized chibi head, messy dark hair, glowing green visor/glasses, slight grin, hoodie collar with circuit patterns. ${STYLE_CHAR}`],
+  ['portrait_fox',       `Close-up face portrait of ethereal fox spirit. Oversized chibi head, white-blue translucent fur, golden glowing eyes, fox ears, gentle wise expression, soft light aura. ${STYLE_CHAR}`],
 ];
 
 // ═══ REFERENCE IMAGES for style consistency ═══
