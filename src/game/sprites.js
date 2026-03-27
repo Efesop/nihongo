@@ -45,6 +45,7 @@ function loadImg(key, src, removeGrayBg = false) {
 }
 
 export function loadGameImages() {
+  console.log("[sprites] loadGameImages called");
   // Load CRITICAL sprites first (player + oni + ninja — needed for room 0)
   // Then load everything else in background (non-blocking)
   const critical = [
@@ -185,8 +186,15 @@ export function loadGameImages() {
 
   // Wait only for critical sprites, then start game immediately
   // Deferred sprites load in background — procedural fallback handles missing
-  const criticalPromise = Promise.all(critical);
-  Promise.all(deferred).catch(() => {}); // fire-and-forget, errors are OK
+  console.log(`[sprites] Loading ${critical.length} critical + ${deferred.length} deferred sprites`);
+  const criticalPromise = Promise.all(critical).then(results => {
+    const loaded = results.filter(Boolean).length;
+    console.log(`[sprites] Critical done: ${loaded}/${critical.length} loaded`);
+  });
+  Promise.all(deferred).then(results => {
+    const loaded = results.filter(Boolean).length;
+    console.log(`[sprites] Deferred done: ${loaded}/${deferred.length} loaded`);
+  }).catch(e => console.warn("[sprites] Deferred error:", e));
   return criticalPromise;
 }
 

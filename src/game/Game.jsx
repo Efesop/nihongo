@@ -190,9 +190,17 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const startGame = async (fromRoom = 0) => {
     startRoomRef.current = fromRoom;
     setScreen("loading");
+    console.log("[game] startGame called, fromRoom:", fromRoom);
     initAudio(); // fire-and-forget — audio loads in background
-    await loadMascotImage(); // only waits for critical sprites (~30)
+    console.log("[game] audio init fired, loading sprites...");
+    try {
+      await loadMascotImage(); // only waits for critical sprites (~30)
+      console.log("[game] sprites loaded OK");
+    } catch (e) {
+      console.error("[game] sprite load failed:", e);
+    }
     // Don't wait for audio — game starts immediately, sounds load in background
+    console.log("[game] proceeding to playing screen");
     playSound("menuStart");
     stopMusic();
     setScore(0);
