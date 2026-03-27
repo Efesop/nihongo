@@ -98,9 +98,32 @@ export function loadGameImages() {
     loadImg("ninja_kb_back", "/images/ninja/ninja-knockback-back.png", true),
     loadImg("ninja_kb_tumble", "/images/ninja/ninja-knockback-tumble.png", true),
     loadImg("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png", true),
-    // Samurai — partial set (kneel + dead)
+    // Samurai — full set from generated sprites
+    ...["idle","walk1","walk2","alert","attack","dazed","hit","windup","kb_back","kb_tumble","kb_seated"].map(s =>
+      loadImg(`samurai_${s}`, `/images/tinysenpai/game/samurai_${s}.png`, true)),
     loadImg("samurai_kneel", "/images/samurai/samurai-kneel.png", true),
     loadImg("samurai_dead", "/images/samurai/samurai-dead.png", true),
+    // Ronin — Edo Castle Town enemy
+    ...["idle","walk1","walk2","alert","attack","dazed","hit","kneel","dead","kb_back","kb_tumble","kb_seated"].map(s =>
+      loadImg(`ronin_${s}`, `/images/tinysenpai/game/ronin_${s}.png`, true)),
+    // Cyber Ninja — Neon Tokyo enemy
+    ...["idle","walk1","walk2","alert","attack","dazed","hit","kneel","dead","kb_back","kb_tumble","kb_seated"].map(s =>
+      loadImg(`cyber_ninja_${s}`, `/images/tinysenpai/game/cyber_ninja_${s}.png`, true)),
+    // Bouncer — Nightclub enemy
+    ...["idle","walk1","walk2","alert","attack","charge","dazed","hit","kneel","dead","kb_back","kb_seated"].map(s =>
+      loadImg(`bouncer_${s}`, `/images/tinysenpai/game/bouncer_${s}.png`, true)),
+    // Monk Guardian — Spirit Realm enemy
+    ...["idle","walk1","walk2","alert","attack","block","dazed","hit","kneel","dead","kb_back","kb_seated"].map(s =>
+      loadImg(`monk_${s}`, `/images/tinysenpai/game/monk_${s}.png`, true)),
+    // Spirit Fox — Spirit Realm enemy
+    ...["idle","alert","attack","dazed","hit","dead"].map(s =>
+      loadImg(`spirit_fox_${s}`, `/images/tinysenpai/game/spirit_fox_${s}.png`, true)),
+    // Cursed Ronin — Spirit Realm dark mirror of player
+    ...["idle","walk1","walk2","alert","attack","dash","dazed","hit","kneel","dead","kb_back","kb_seated"].map(s =>
+      loadImg(`cursed_ronin_${s}`, `/images/tinysenpai/game/cursed_ronin_${s}.png`, true)),
+    // Player refresh sprites (new Gemini-generated set)
+    ...["idle","run1","run2","run3","run4","slash1","slash2","slash3","slash4","jump1","jump2","fall","dash","wallslide","crouch","death1","death2"].map(s =>
+      loadImg(`player_${s}`, `/images/tinysenpai/game/player_${s}.png`, true)),
     // Backgrounds — gameplay
     loadImg("bg_forest", "/images/forest.png"),
     loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
@@ -109,7 +132,16 @@ export function loadGameImages() {
     loadImg("bg_dojo_night_story", "/images/tinysenpai/game/bg_dojo_night_story.png"),
     loadImg("bg_forest_story", "/images/tinysenpai/game/bg_forest_story.png"),
     loadImg("bg_temple_story", "/images/tinysenpai/game/bg_temple_story.png"),
-    // Story character sprites (full body, 64x128)
+    // New zone story backgrounds
+    loadImg("bg_edo_story", "/images/tinysenpai/game/bg_edo_story.png"),
+    loadImg("bg_neon_story", "/images/tinysenpai/game/bg_neon_story.png"),
+    loadImg("bg_nightclub_story", "/images/tinysenpai/game/bg_nightclub_story.png"),
+    loadImg("bg_spirit_story", "/images/tinysenpai/game/bg_spirit_story.png"),
+    // Multi-layer parallax backgrounds
+    ...["far","mid","near"].flatMap(layer =>
+      ["edo","neon","nightclub","spirit"].map(zone =>
+        loadImg(`bg_${zone}_${layer}`, `/images/tinysenpai/game/bg_${zone}_${layer}.png`))),
+    // Story character sprites — existing
     loadImg("story_player_idle", "/images/tinysenpai/game/story_player_idle.png", true),
     loadImg("story_player_surprised", "/images/tinysenpai/game/story_player_surprised.png", true),
     loadImg("story_player_determined", "/images/tinysenpai/game/story_player_determined.png", true),
@@ -122,8 +154,22 @@ export function loadGameImages() {
     loadImg("story_shadow_bitter", "/images/tinysenpai/game/story_shadow_bitter.png", true),
     loadImg("story_elder_idle", "/images/tinysenpai/game/story_elder_idle.png", true),
     loadImg("story_elder_concerned", "/images/tinysenpai/game/story_elder_concerned.png", true),
-    // Redesigned sensei portrait
+    // New story characters
+    ...["idle","smirk","serious"].map(s =>
+      loadImg(`story_kunoichi_${s}`, `/images/tinysenpai/game/story_kunoichi_${s}.png`, true)),
+    ...["idle","angry"].map(s =>
+      loadImg(`story_katsura_${s}`, `/images/tinysenpai/game/story_katsura_${s}.png`, true)),
+    loadImg("story_hacker_idle", "/images/tinysenpai/game/story_hacker_idle.png", true),
+    loadImg("story_fox_idle", "/images/tinysenpai/game/story_fox_idle.png", true),
+    loadImg("story_shadow_defeated", "/images/tinysenpai/game/story_shadow_defeated.png", true),
+    loadImg("story_shadow_human", "/images/tinysenpai/game/story_shadow_human.png", true),
+    loadImg("story_player_arm", "/images/tinysenpai/game/story_player_arm.png", true),
+    // Portraits — existing + new
     loadImg("portrait_sensei_v2", "/images/tinysenpai/game/portrait_sensei_v2.png", true),
+    loadImg("portrait_kunoichi", "/images/tinysenpai/game/portrait_kunoichi.png", true),
+    loadImg("portrait_katsura", "/images/tinysenpai/game/portrait_katsura.png", true),
+    loadImg("portrait_hacker", "/images/tinysenpai/game/portrait_hacker.png", true),
+    loadImg("portrait_fox", "/images/tinysenpai/game/portrait_fox.png", true),
   ]);
 }
 
