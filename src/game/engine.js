@@ -1,7 +1,7 @@
 import {
   GRAVITY, MOVE_SPEED, JUMP_FORCE, SLASH_DURATION, SLASH_RANGE,
   DASH_SPEED, DASH_DURATION, DASH_COOLDOWN, GROUND_POUND_SPEED, PARRY_WINDOW,
-  TILE, SCALE, GROUND_Y, TOTAL_ROOMS, STAR_3, STAR_2,
+  TILE, SCALE, GROUND_Y, TOTAL_ROOMS, STAR_3, STAR_2, ACTS,
   ENEMY_CONFIG, KILL_ZOOM, KILL_ZOOM_3RD, MILESTONE_ZOOM, LAST_KILL_ZOOM, LAST_KILL_FREEZE,
   HITSTOP_HIT, HITSTOP_KILL_1, HITSTOP_KILL_2, HITSTOP_KILL_3, HITSTOP_LAST_KILL,
   lerp, clamp, rnd, rndInt,
@@ -12,6 +12,24 @@ import { ROOM_ENCOUNTERS, ROOM_DIALOGUE, STORY_TRIGGERS } from "./story.js";
 import { updateStory, initStoryState } from "./storyRenderer.js";
 import { crossfadeMusic } from "./audio.js";
 import { playSound, playRandom, playRandomExclusive, setAmbientTheme } from "./audio.js";
+
+// ═══ ZONE MUSIC MAPPING ═══
+const ZONE_MUSIC = {
+  dojo: "music_forest",      // reuse forest for dojo tutorial
+  forest: "music_forest",
+  edo: "music_edo",
+  neonTokyo: "music_neon",
+  nightclub: "music_nightclub",
+  spirit: "music_spirit",
+};
+function getZoneMusic(roomIndex) {
+  for (const act of ACTS) {
+    if (roomIndex >= act.startRoom && roomIndex <= act.endRoom) {
+      return ZONE_MUSIC[act.theme] || "music_forest";
+    }
+  }
+  return "music_forest";
+}
 
 // ═══ ROOM MANAGEMENT ═══
 export function loadRoom(g, roomIndex) {
@@ -199,9 +217,8 @@ export function update(g, callbacks) {
     }
     if (g._resumeFromStory) {
       g._resumeFromStory = false;
-      // Crossfade to combat music
-      const theme = g.currentRoom >= 15 ? "music_temple" : g.currentRoom >= 14 ? "music_boss" : "music_forest";
-      crossfadeMusic(theme, 1.5);
+      // Crossfade to zone-appropriate combat music
+      crossfadeMusic(getZoneMusic(g.currentRoom), 1.5);
     }
     return;
   }

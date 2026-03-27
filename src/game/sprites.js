@@ -45,7 +45,9 @@ function loadImg(key, src, removeGrayBg = false) {
 }
 
 export function loadGameImages() {
-  return Promise.all([
+  // Load CRITICAL sprites first (player + oni + ninja — needed for room 0)
+  // Then load everything else in background (non-blocking)
+  const critical = [
     // Player — all with gray bg removal
     loadImg("player", "/images/tinysenpai/idle.png", true),
     loadImg("run1", "/images/tinysenpai/run/1.png", true),
@@ -98,6 +100,20 @@ export function loadGameImages() {
     loadImg("ninja_kb_back", "/images/ninja/ninja-knockback-back.png", true),
     loadImg("ninja_kb_tumble", "/images/ninja/ninja-knockback-tumble.png", true),
     loadImg("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png", true),
+    // Backgrounds needed for room 0
+    loadImg("bg_forest", "/images/forest.png"),
+    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
+    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),
+    loadImg("bg_dojo_night_story", "/images/tinysenpai/game/bg_dojo_night_story.png"),
+    // Story sprites for room 0 (player + sensei)
+    loadImg("story_player_idle", "/images/tinysenpai/game/story_player_idle.png", true),
+    loadImg("story_sensei_idle", "/images/tinysenpai/game/story_sensei_idle.png", true),
+    loadImg("story_sensei_serious", "/images/tinysenpai/game/story_sensei_serious.png", true),
+    loadImg("story_sensei_amused", "/images/tinysenpai/game/story_sensei_amused.png", true),
+  ];
+
+  // Load everything else in background (non-blocking — game starts immediately)
+  const deferred = [
     // Samurai — full set from generated sprites
     ...["idle","walk1","walk2","alert","attack","dazed","hit","windup","kb_back","kb_tumble","kb_seated"].map(s =>
       loadImg(`samurai_${s}`, `/images/tinysenpai/game/samurai_${s}.png`, true)),
@@ -124,12 +140,7 @@ export function loadGameImages() {
     // Player refresh sprites (new Gemini-generated set)
     ...["idle","run1","run2","run3","run4","slash1","slash2","slash3","slash4","jump1","jump2","fall","dash","wallslide","crouch","death1","death2"].map(s =>
       loadImg(`player_${s}`, `/images/tinysenpai/game/player_${s}.png`, true)),
-    // Backgrounds — gameplay
-    loadImg("bg_forest", "/images/forest.png"),
-    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
-    // Backgrounds — story scenes
-    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),
-    loadImg("bg_dojo_night_story", "/images/tinysenpai/game/bg_dojo_night_story.png"),
+    // Backgrounds — story scenes (dojo ones loaded in critical, skip dupes)
     loadImg("bg_forest_story", "/images/tinysenpai/game/bg_forest_story.png"),
     loadImg("bg_temple_story", "/images/tinysenpai/game/bg_temple_story.png"),
     // New zone story backgrounds
@@ -170,7 +181,13 @@ export function loadGameImages() {
     loadImg("portrait_katsura", "/images/tinysenpai/game/portrait_katsura.png", true),
     loadImg("portrait_hacker", "/images/tinysenpai/game/portrait_hacker.png", true),
     loadImg("portrait_fox", "/images/tinysenpai/game/portrait_fox.png", true),
-  ]);
+  ];
+
+  // Wait only for critical sprites, then start game immediately
+  // Deferred sprites load in background — procedural fallback handles missing
+  const criticalPromise = Promise.all(critical);
+  Promise.all(deferred).catch(() => {}); // fire-and-forget, errors are OK
+  return criticalPromise;
 }
 
 export function getImage(key) { return _images[key] || null; }

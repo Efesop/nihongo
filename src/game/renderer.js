@@ -2046,15 +2046,51 @@ function drawEnemyOverlays(ctx, e, elapsed, font) {
   ctx.save();
   ctx.translate(Math.round(e.x), Math.round(e.y));
 
-  // Alert "!"
-  if (e.alert > 0 && !e.dead) {
-    const alertAlpha = Math.min(1, e.alert / 200);
-    ctx.globalAlpha = alertAlpha;
-    ctx.fillStyle = "#ff4444";
-    ctx.font = `bold 16px ${font}`;
-    ctx.textAlign = "center";
-    ctx.fillText("!", 0, -8);
-    ctx.globalAlpha = 1;
+  // Detection state indicators (stealth system)
+  if (!e.dead) {
+    if (e.detection === "alert") {
+      // Red "!" — fully alert, chasing
+      const pulse = 0.7 + Math.sin(elapsed * 8) * 0.3;
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = "#ff3333";
+      ctx.font = `bold 20px ${font}`;
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#ff0000";
+      ctx.shadowBlur = 12;
+      ctx.fillText("!", 0, -14);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    } else if (e.detection === "suspicious") {
+      // Yellow "?" — searching, investigating
+      const bob = Math.sin(elapsed * 4) * 3;
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "#ffaa00";
+      ctx.font = `bold 18px ${font}`;
+      ctx.textAlign = "center";
+      ctx.shadowColor = "#ffaa00";
+      ctx.shadowBlur = 8;
+      ctx.fillText("?", 0, -14 + bob);
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+    } else if (e.alert > 0) {
+      // Legacy alert indicator (backward compat)
+      const alertAlpha = Math.min(1, e.alert / 200);
+      ctx.globalAlpha = alertAlpha;
+      ctx.fillStyle = "#ff4444";
+      ctx.font = `bold 16px ${font}`;
+      ctx.textAlign = "center";
+      ctx.fillText("!", 0, -8);
+      ctx.globalAlpha = 1;
+    }
+    // Suspicion bar (thin bar showing detection progress)
+    if (e.suspicion > 0 && e.suspicion < 100 && e.detection !== "alert") {
+      const barW = 30, barH = 3;
+      const fill = e.suspicion / 100;
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillRect(-barW / 2, -20, barW, barH);
+      ctx.fillStyle = fill > 0.5 ? "#ff6600" : "#ffaa00";
+      ctx.fillRect(-barW / 2, -20, barW * fill, barH);
+    }
   }
 
   // HP pips (samurai: 2HP, brute: 3HP)
