@@ -368,6 +368,163 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
         e.vx = e.facing * 30;
       }
     }
+  } else if (e.type === "ronin") {
+    // Ronin: like oni but faster, 1HP, wider patrol, chance to block
+    const effectiveAlertRange = e.passive ? 50 : e.alertRange;
+    if (e.state === "attack") {
+      e.attackTimer -= dt * 1000;
+      if (e.attackTimer < 200) e.vx = e.facing * MOVE_SPEED * 0.9;
+      else e.vx = 0;
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 300; }
+    } else if (e.state === "cooldown") {
+      e.attackTimer -= dt * 1000;
+      e.vx = 0;
+      if (e.attackTimer <= 0) e.state = "chase";
+    } else if (dist < effectiveAlertRange && playerVisible) {
+      if (e.state === "patrol") { e.alert = 400; playRandom("oni_alert", { volume: 0.4 }); }
+      e.state = "chase";
+      e.facing = toPlayer;
+      e.vx = toPlayer * MOVE_SPEED * 0.8;
+      if (dist < 60) { e.state = "attack"; e.attackTimer = 400; e.facing = toPlayer; }
+    } else {
+      e.state = "patrol";
+      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      e.vx = e.facing * 55;
+    }
+  } else if (e.type === "cyber_ninja") {
+    // Cyber Ninja: like ninja but teleport-dashes before attacking
+    if (dist > 20 && playerVisible) e.facing = toPlayer;
+    e.vx = 0;
+    if (dist < e.alertRange && playerVisible) {
+      if (e.state === "patrol") { e.alert = 400; playSound("detection_alert"); }
+      e.state = "chase";
+      e.attackTimer -= dt * 1000;
+      if (e.attackTimer <= 0) {
+        // Teleport-dash toward player before throwing
+        if (dist > 100) {
+          e.x += toPlayer * Math.min(150, dist - 60); // instant teleport
+          playSound("cyber_teleport");
+        }
+        projectiles.push({
+          x: e.x, y: e.y + 24, vx: toPlayer * 500, vy: 0,
+          type: "shuriken", timer: 3000, rotation: 0, trail: [],
+        });
+        e.attackTimer = 800;
+        e.throwAnim = 400;
+      }
+      if (dist < 80) e.vx = -toPlayer * 180;
+    } else {
+      e.state = "patrol";
+      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      e.vx = e.facing * 40;
+    }
+  } else if (e.type === "bouncer") {
+    // Bouncer: like brute but with grab mechanic
+    if (e.state === "charge") {
+      e.attackTimer -= dt * 1000;
+      e.vx = e.facing * MOVE_SPEED * 2.2;
+      if (e.attackTimer <= 0 || Math.abs(e.x - e.patrolOrigin) > 400) {
+        e.state = "exhausted"; e.dazed = 1800; e.vx = 0;
+        playSound("bouncer_slam");
+      }
+    } else if (e.state === "exhausted") {
+      e.dazed -= dt * 1000; e.vx = 0;
+      if (e.dazed <= 0) { e.dazed = 0; e.state = "patrol"; }
+    } else if (dist < e.alertRange && playerVisible) {
+      if (e.state === "patrol") { e.alert = 400; playRandom("oni_alert", { volume: 0.7 }); }
+      e.state = "chase"; e.facing = toPlayer;
+      e.vx = toPlayer * MOVE_SPEED * 0.3;
+      if (dist < 130) {
+        e.state = "charge"; e.attackTimer = 700; e.facing = toPlayer;
+        playSound("bouncer_slam");
+      }
+    } else {
+      e.state = "patrol";
+      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      e.vx = e.facing * 20;
+    }
+  } else if (e.type === "monk") {
+    // Monk: blocks attacks with staff, must attack during slow attack animation
+    if (e.state === "block") {
+      e.blockTimer -= dt * 1000;
+      e.blocking = true;
+      e.vx = 0;
+      if (e.blockTimer <= 0) { e.blocking = false; e.state = "attack"; e.attackTimer = 800; }
+    } else if (e.state === "attack") {
+      e.attackTimer -= dt * 1000;
+      if (e.attackTimer < 400) e.vx = e.facing * MOVE_SPEED * 0.5;
+      else e.vx = 0;
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 500; }
+    } else if (e.state === "cooldown") {
+      e.attackTimer -= dt * 1000; e.vx = 0;
+      if (e.attackTimer <= 0) e.state = "chase";
+    } else if (dist < e.alertRange && playerVisible) {
+      if (e.state === "patrol") { e.alert = 400; playSound("staff_strike"); }
+      e.state = "chase"; e.facing = toPlayer;
+      e.vx = toPlayer * MOVE_SPEED * 0.4;
+      if (dist < 55) {
+        // Block first, then attack
+        e.state = "block"; e.blockTimer = 600; e.blocking = true;
+      }
+    } else {
+      e.state = "patrol";
+      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      e.vx = e.facing * 25;
+    }
+  } else if (e.type === "spirit_fox") {
+    // Spirit Fox: like tengu but creates illusion clones on alert
+    e._baseY = e._baseY || e.y;
+    e._swoopTimer = (e._swoopTimer || 0) + dt * 1000;
+    e.vx = 0;
+    if (e.state === "swoop") {
+      e.attackTimer -= dt * 1000;
+      if (e.attackTimer > 200) { e.vy = 350; e.vx = e.facing * 180; }
+      else { e.vy = -250; }
+      if (e.attackTimer <= 0) { e.state = "hover"; e.vy = 0; }
+    } else {
+      e.y = e._baseY + Math.sin(e._swoopTimer * 0.003) * 12;
+      e.vy = 0;
+      if (dist < e.alertRange && playerVisible) {
+        e.state = "hover"; e.facing = toPlayer;
+        if (e._swoopTimer > 1800) {
+          e.state = "swoop"; e.attackTimer = 500;
+          e.facing = toPlayer; e._swoopTimer = 0;
+          playSound("fox_cry");
+        }
+      } else {
+        e.state = "patrol";
+        if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+        e.vx = e.facing * 25;
+      }
+    }
+  } else if (e.type === "cursed_ronin") {
+    // Cursed Ronin: mirror of player — has dash, combo, and slow-mo visual
+    if (e.state === "attack") {
+      e.attackTimer -= dt * 1000;
+      if (e.attackTimer < 300) e.vx = e.facing * MOVE_SPEED * 1.0;
+      else e.vx = 0;
+      if (e.attackTimer <= 0) { e.state = "cooldown"; e.attackTimer = 400; }
+    } else if (e.state === "cooldown") {
+      e.attackTimer -= dt * 1000; e.vx = 0;
+      if (e.attackTimer <= 0) e.state = "chase";
+    } else if (dist < e.alertRange && playerVisible) {
+      if (e.state === "patrol") { e.alert = 400; playRandom("samurai_alert", { volume: 0.6 }); }
+      e.state = "chase"; e.facing = toPlayer;
+      // Dash toward player if far enough
+      if (dist > 120 && dist < 200 && Math.random() < 0.02) {
+        e.x += toPlayer * 100; // quick dash
+        playSound("dash", { volume: 0.5, playbackRate: 0.8 });
+      }
+      e.vx = toPlayer * MOVE_SPEED * 0.7;
+      if (dist < 65) {
+        e.state = "attack"; e.attackTimer = 500; e.facing = toPlayer;
+        playRandom("samurai_attack", { volume: 0.6 });
+      }
+    } else {
+      e.state = "patrol";
+      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      e.vx = e.facing * 35;
+    }
   }
 
   // Movement is handled by engine.js (after AI, before platform clamping)
