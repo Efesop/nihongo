@@ -43,6 +43,10 @@ const PLAYER_CORE = [
 const ZONE_SPRITES = {
   dojo: [
     gs("bg_dojo"), gs("bg_dojo_story"), gs("bg_dojo_night_story"),
+    // Cinematic cutscene images (Room 5 Turning Point)
+    gs("bg_dojo_exterior_night"), gs("cutscene_approaching_shadows"),
+    gs("cutscene_shoji_blood"), gs("cutscene_door_break"), gs("cutscene_sensei_arm"),
+    gs("story_sensei_alarmed"), gs("story_player_looking_arm"),
     // Training dummies (dojo rooms 0-4)
     gs("dummy_idle"), gs("dummy_hit"), gs("dummy_dead"),
     // Oni (room 5 — the attack)

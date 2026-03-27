@@ -70,29 +70,71 @@ export const ROOM_DIALOGUE = {
   ],
 
   // ═══ THE INCITING INCIDENT (Room 5) ═══
-  // After training, Sensei notices the mark. Everything changes.
-  // The player is FORCED out — they don't choose to leave.
+  // Cinematic sequence: calm → discovery → panic → flight
+  // Uses the beat system for timed VFX, bg swaps, SFX
 
   5: [
+    // ── Beat 1: Calm aftermath of training ──
     { speaker: "system", textJp: "修行の後 — 夕暮れの道場", text: "After training — the dojo at dusk" },
     { speaker: "sensei", textJp: "...今日はよくやった。成長してる。", text: "...You did well today. You're improving.", emotion: "amused" },
     { speaker: "player", textJp: "先生、褒めてくれるなんて珍しいですね。", text: "Sensei, it's rare for you to compliment me.", emotion: "surprised" },
     { speaker: "sensei", textJp: "ふん。図に乗るなよ。", text: "Hmph. Don't let it go to your head.", emotion: "amused" },
-    { speaker: "sensei", textJp: "...ところで。腕を見せろ。", text: "...By the way. Show me your arm.", emotion: "serious" },
+
+    // ── Beat 2: The discovery — Sensei notices the mark ──
+    { speaker: "sensei", textJp: "...待て。腕を見せろ。", text: "...Wait. Show me your arm.", emotion: "serious" },
     { speaker: "player", textJp: "え？なんで—", text: "Huh? Why—", emotion: "surprised" },
-    { speaker: "sensei", textJp: "...いつからある。この印は。", text: "...How long have you had this. This mark.", emotion: "serious" },
-    { speaker: "player", textJp: "分からない。気づいたら...集中すると光るんです。", text: "I don't know. It just appeared... it glows when I focus.", emotion: "idle" },
-    { speaker: "sensei", textJp: "...", text: "...", emotion: "serious" },
-    { speaker: "player", textJp: "先生？顔色が悪いですよ。大丈夫ですか？", text: "Sensei? You've gone pale. Are you alright?", emotion: "concerned" },
-    // Choice happens here (after index 9) — departure_demand or departure_trust
-    { speaker: "sensei", textJp: "...説明している暇はない！信じろ！", text: "...There's no time to explain! Trust me!", emotion: "serious", condition: { flag: "departure_demand" } },
-    { speaker: "sensei", textJp: "...お前は強い子だ。", text: "...You've always been strong.", emotion: "serious", condition: { flag: "departure_trust" } },
-    { speaker: "sensei", textJp: "...聞け。今から言うことを全部覚えろ。", text: "...Listen. Remember everything I'm about to say.", emotion: "serious" },
-    { speaker: "sensei", textJp: "今すぐ道場を出ろ。山寺の長老を探せ。", text: "Leave the dojo. Right now. Find the Elder at the mountain temple.", emotion: "serious" },
-    { speaker: "player", textJp: "何を言って—一人で？先生は？", text: "What are you— alone? What about you?", emotion: "surprised" },
-    { speaker: "sensei", textJp: "印を持つ者は...狙われる。もう来ている。", text: "Those who bear the mark... are hunted. They're already here.", emotion: "serious" },
-    { speaker: "sensei", textJp: "お前を守るのは、もう俺の仕事じゃない。", text: "Protecting you... isn't my job anymore.", emotion: "serious" },
-    { speaker: "sensei", textJp: "自分の足で立て。行け！！", text: "Stand on your own two feet. GO!!", emotion: "serious" },
+    // Flash to close-up of the cursed arm
+    { type: "sfx", sound: "tension_sting" },
+    { type: "bgSwap", to: "cutscene_sensei_arm", transition: "flash", duration: 0.2 },
+    { type: "pause", duration: 1.5 },
+    { speaker: "sensei", textJp: "...いつからある。この印は。", text: "...How long have you had this mark.", emotion: "serious" },
+    { speaker: "player", textJp: "分からない...集中すると光るんです。", text: "I don't know... it glows when I focus." },
+    // Cut back to dojo
+    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
+    { type: "sfx", sound: "heartbeat_tension" },
+    { speaker: "sensei", textJp: "...", text: "..." },
+    { speaker: "player", textJp: "先生？顔色が悪いですよ。大丈夫ですか？", text: "Sensei? You've gone pale. Are you alright?" },
+
+    // ── Beat 3: The attack — shadows approach ──
+    // Choice point: demand answers or trust sensei
+    { speaker: "sensei", textJp: "...説明している暇はない！信じろ！", text: "...No time to explain! Trust me!", emotion: "alarmed", condition: { flag: "departure_demand" } },
+    { speaker: "sensei", textJp: "...お前は強い子だ。信じろ。", text: "...You've always been strong. Trust me.", emotion: "serious", condition: { flag: "departure_trust" } },
+
+    // Distant sound — something is wrong
+    { type: "sfx", sound: "glass_shatter" },
+    { type: "pause", duration: 0.8 },
+    { type: "musicStop" },
+    { type: "pause", duration: 1.0 },
+    { speaker: "sensei", textJp: "...!", text: "...!", emotion: "alarmed" },
+
+    // Cut to exterior — shadows approaching
+    { type: "bgSwap", to: "bg_dojo_exterior_night", transition: "hardCut" },
+    { type: "sfx", sound: "distant_footsteps" },
+    { type: "pause", duration: 2.0 },
+    { type: "overlay", image: "cutscene_approaching_shadows", fade: 1.5 },
+    { type: "pause", duration: 2.0 },
+
+    // Cut back to dojo — panic
+    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
+    { type: "sfx", sound: "wind_howl" },
+    { speaker: "sensei", textJp: "見つかった。", text: "They found us.", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "聞け！山寺の長老を探せ！", text: "Listen! Find the Elder at the mountain temple!", emotion: "alarmed" },
+    { speaker: "player", textJp: "何を言って—先生は？！", text: "What are you— what about you?!", emotion: "surprised" },
+
+    // ── Beat 4: The door breaks ──
+    { type: "sfx", sound: "wood_splinter" },
+    { type: "shake", intensity: 10, duration: 1.0 },
+    { type: "flash", color: "#ff2200", duration: 0.15 },
+    { type: "bgSwap", to: "cutscene_shoji_blood", transition: "flash", color: "#ffffff", duration: 0.1 },
+    { type: "pause", duration: 1.5 },
+
+    // ── Beat 5: Final words ──
+    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
+    { speaker: "sensei", textJp: "印を持つ者は...狙われる。", text: "Those who bear the mark... are hunted.", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "自分の足で立て。行け！！", text: "Stand on your own feet. GO!!", emotion: "alarmed" },
+
+    // Hard blackout → combat begins
+    { type: "blackout", duration: 0.8 },
   ],
 
   // ═══ ACT 1: THE FOREST (Rooms 6-9) ═══

@@ -46,6 +46,10 @@ const SFX_STORY = [
   "crate_break", "pot_break", "lantern_break", "bamboo_break",
   "death_dramatic", "brush_wipe", "wave_incoming", "encounter", "text_type",
 ];
+const SFX_CINEMATIC = [
+  "glass_shatter", "wood_splinter", "distant_footsteps",
+  "heartbeat_tension", "wind_howl", "tension_sting",
+];
 const SFX_STEALTH = [
   "stealth_kill", "detection_suspicious", "detection_alert",
 ];
@@ -57,7 +61,7 @@ const SFX_NEW_ENEMIES = [
   "bouncer_slam", "shockwave_bass", "smoke_bomb", "staff_strike",
   "fox_cry", "illusion_pop", "time_rift",
 ];
-const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY, ...SFX_STORY, ...SFX_STEALTH, ...SFX_HAZARDS, ...SFX_NEW_ENEMIES];
+const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY, ...SFX_STORY, ...SFX_CINEMATIC, ...SFX_STEALTH, ...SFX_HAZARDS, ...SFX_NEW_ENEMIES];
 const AMBIENT_NAMES = ["rain_loop", "forest_night", "city_hum", "nightclub_bass", "spirit_wind"];
 const MUSIC_NAMES = [
   "music_forest", "music_temple", "music_boss", "music_story_calm", "music_story_tension",

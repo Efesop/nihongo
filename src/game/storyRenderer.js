@@ -5,7 +5,7 @@
 
 import { getImage } from "./sprites.js";
 import { CHARACTERS, getSceneConfig, ROOM_CHOICES } from "./story.js";
-import { playVoiceBlip, playSound } from "./audio.js";
+import { playVoiceBlip, playSound, stopMusic, crossfadeMusic } from "./audio.js";
 
 // ── Text wrapping helper ──
 function wrapText(ctx, text, maxW) {
@@ -82,9 +82,64 @@ export function updateStory(g, rawDt, callbacks) {
   if (s._fadeOut !== undefined) {
     s._fadeOut += rawDt * 1.5; // ~0.7s fade
     if (s._fadeOut >= 1) {
-      advanceStory(g, callbacks); // will now proceed past the isLast check
+      advanceStory(g, callbacks);
     }
     return;
+  }
+
+  // ═══ CINEMATIC BEAT SYSTEM ═══
+  // Non-dialogue lines execute instantly and auto-advance
+  if (line.type && line.type !== "dialogue") {
+    // Process cinematic beat
+    if (line.type === "bgSwap") {
+      // Change background image mid-scene
+      s.sceneConfig.bgKey = line.to;
+      if (line.transition === "flash") {
+        s._flash = { color: line.color || "#ffffff", alpha: 1, duration: line.duration || 0.15 };
+      } else if (line.transition === "hardCut") {
+        s._flash = { color: "#000000", alpha: 1, duration: 0.08 };
+      }
+    } else if (line.type === "sfx") {
+      playSound(line.sound);
+    } else if (line.type === "musicStop") {
+      stopMusic();
+    } else if (line.type === "shake") {
+      g.camera.shakeTimer = (line.duration || 0.5) * 1000;
+      g._cinematicShakeIntensity = line.intensity || 5;
+    } else if (line.type === "flash") {
+      s._flash = { color: line.color || "#ffffff", alpha: 1, duration: line.duration || 0.15 };
+    } else if (line.type === "pause") {
+      // Timed pause — wait before advancing
+      if (!s._pauseTimer) {
+        s._pauseTimer = line.duration || 1.0;
+        return; // don't advance yet
+      }
+      s._pauseTimer -= rawDt;
+      if (s._pauseTimer > 0) return; // still pausing
+      s._pauseTimer = null; // done pausing
+    } else if (line.type === "blackout") {
+      s._flash = { color: "#000000", alpha: 1, duration: line.duration || 0.5 };
+    } else if (line.type === "overlay") {
+      s._overlay = { key: line.image, alpha: 0, targetAlpha: 1, fadeSpeed: 1 / (line.fade || 1.0) };
+    } else if (line.type === "charSwap") {
+      // Change which characters are shown
+      if (line.left !== undefined) s._charOverrideLeft = line.left;
+      if (line.right !== undefined) s._charOverrideRight = line.right;
+    }
+    // Auto-advance to next line (cinematic beats don't wait for click)
+    s.index++;
+    s.typedChars = 0; s.typingDone = false; s.timer = 0;
+    return;
+  }
+
+  // Update flash effect
+  if (s._flash) {
+    s._flash.alpha -= rawDt / s._flash.duration;
+    if (s._flash.alpha <= 0) s._flash = null;
+  }
+  // Update overlay fade
+  if (s._overlay) {
+    s._overlay.alpha = Math.min(s._overlay.targetAlpha, s._overlay.alpha + rawDt * s._overlay.fadeSpeed);
   }
 
   // Entrance animation — block everything until characters are in position
@@ -687,6 +742,30 @@ export function renderStoryScene(ctx, g, W, H, font) {
         playSound("sfx_choice_tick");
       }
     }
+  }
+
+  // ── Cinematic overlay image (e.g. approaching shadows over bg) ──
+  if (s._overlay) {
+    const oImg = getImage(s._overlay.key);
+    if (oImg) {
+      ctx.globalAlpha = s._overlay.alpha;
+      // COVER mode
+      const ia = oImg.width / oImg.height;
+      const sa = W / H;
+      let dw, dh, dx, dy;
+      if (sa > ia) { dw = W; dh = W / ia; dx = 0; dy = (H - dh) / 2; }
+      else { dh = H; dw = H * ia; dx = (W - dw) / 2; dy = 0; }
+      ctx.drawImage(oImg, dx, dy, dw, dh);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ── Flash effect (white flash, red flash, hard cut) ──
+  if (s._flash) {
+    ctx.fillStyle = s._flash.color;
+    ctx.globalAlpha = Math.max(0, s._flash.alpha);
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 1;
   }
 
   // ── Fade-out overlay (when story is ending) ──
