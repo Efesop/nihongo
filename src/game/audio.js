@@ -94,6 +94,10 @@ const JSFXR = {
   sfx_choice_appear: { oldParams: true, wave_type: 0, p_env_sustain: 0.04, p_env_punch: 0.2, p_env_decay: 0.12, p_base_freq: 0.45, p_freq_ramp: 0.15, p_arp_mod: 0.1, p_arp_speed: 0.5, p_duty: 0.5, p_lpf_freq: 0.8, p_hpf_freq: 0.2, sound_vol: 0.15, sample_rate: 44100, sample_size: 8 },
   sfx_choice_select: { oldParams: true, wave_type: 0, p_env_sustain: 0.03, p_env_punch: 0.25, p_env_decay: 0.1, p_base_freq: 0.5, p_freq_ramp: 0.2, p_duty: 0.5, p_lpf_freq: 0.9, p_hpf_freq: 0.2, sound_vol: 0.18, sample_rate: 44100, sample_size: 8 },
   sfx_choice_tick: { oldParams: true, wave_type: 0, p_env_sustain: 0.01, p_env_punch: 0.1, p_env_decay: 0.03, p_base_freq: 0.7, p_duty: 0.5, p_lpf_freq: 0.5, p_hpf_freq: 0.4, sound_vol: 0.08, sample_rate: 44100, sample_size: 8 },
+  // Stealth sounds
+  detection_suspicious: { oldParams: true, wave_type: 0, p_env_sustain: 0.08, p_env_punch: 0.2, p_env_decay: 0.15, p_base_freq: 0.4, p_freq_ramp: 0.15, p_duty: 0.5, p_lpf_freq: 0.6, p_hpf_freq: 0.2, sound_vol: 0.15, sample_rate: 44100, sample_size: 8 },
+  detection_alert: { oldParams: true, wave_type: 1, p_env_sustain: 0.06, p_env_punch: 0.5, p_env_decay: 0.2, p_base_freq: 0.55, p_freq_ramp: 0.2, p_arp_mod: 0.2, p_arp_speed: 0.5, p_duty: 0.5, p_lpf_freq: 0.9, p_hpf_freq: 0.15, sound_vol: 0.25, sample_rate: 44100, sample_size: 8 },
+  stealth_kill: { oldParams: true, wave_type: 3, p_env_sustain: 0.04, p_env_punch: 0.3, p_env_decay: 0.12, p_base_freq: 0.2, p_freq_ramp: -0.15, p_lpf_freq: 0.4, p_lpf_ramp: -0.2, sound_vol: 0.2, sample_rate: 44100, sample_size: 8 },
 };
 
 // ═══ INIT ═══

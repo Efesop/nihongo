@@ -25,6 +25,11 @@ export function loadRoom(g, roomIndex) {
   g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
+  // Hide spots for stealth
+  g.hideSpots = (room.hideSpots || []).map(hs => ({
+    ...hs, y: g.groundY + (hs.y || 0), occupied: false,
+  }));
+  g._stealthFailed = false;
   // Breakable objects
   g.breakables = (room.breakables || []).map(b => ({
     ...b,
@@ -41,7 +46,18 @@ export function loadRoom(g, roomIndex) {
     shaking: 0, fallen: false, respawnTimer: 0, // falling platform state
     originalY: g.groundY + (h.y || 0),
   }));
-  g.levelW = Math.max(...room.platforms.map(p => p.x + p.w));
+  // Moving platforms — create both a platform entry (for collision) and a motion tracker
+  g.movingPlatforms = [];
+  for (const mp of (room.movingPlatforms || [])) {
+    const plat = { x: mp.x, y: g.groundY + (mp.y || 0), w: mp.w || 100, h: mp.h || 16, _isMoving: true, oneWay: mp.oneWay || false };
+    g.platforms.push(plat);
+    g.movingPlatforms.push({
+      plat, originX: plat.x, originY: plat.y,
+      moveX: mp.moveX || 0, moveY: mp.moveY || 0,
+      speed: mp.speed || 0.5, offset: mp.offset || 0,
+    });
+  }
+  g.levelW = Math.max(...g.platforms.map(p => p.x + p.w));
   g.player = makePlayer(g.groundY, room.playerStart || 100);
   g.particles = [];
   g.slashEffects = [];
@@ -389,8 +405,11 @@ export function update(g, callbacks) {
     // Player automatically flies to opposite wall without needing to steer
     p.vx *= 0.99; // tiny drag so they don't overshoot
   } else {
-    p.vx = moveDir * MOVE_SPEED;
+    const speed = p.crouching ? 100 : MOVE_SPEED; // crouch = slow
+    p.vx = moveDir * speed;
     if (moveDir !== 0) p.facing = moveDir;
+    // Hidden players can't move
+    if (p.hidden) p.vx = 0;
   }
 
   if (p.dashCooldown > 0) p.dashCooldown -= rawDt * 1000;
@@ -499,6 +518,9 @@ export function update(g, callbacks) {
   if (p.comboWindow <= 0 && p.slashTimer <= 0) p.slashCombo = 0;
 
   if (g.input.slashPressed && p.slashTimer <= 0 && (p.slashCombo === 0 || p.comboWindow > 0)) {
+    // Exit hide on attack
+    if (p.hidden) { p.hidden = false; if (p.hideSpot) { p.hideSpot.occupied = false; p.hideSpot = null; } }
+    p.noiseLevel = Math.min(1, p.noiseLevel + 0.8); // slash is loud
     // Advance combo (0→1, 1→2, 2→3, 3→4, max 4)
     p.slashCombo = Math.min(p.slashCombo + 1, 4);
     const combo = p.slashCombo;
@@ -637,7 +659,18 @@ export function update(g, callbacks) {
   // ── Platform collision — landing on top of surfaces ──
   const wasGrounded = p.grounded;
   p.grounded = false;
+  p._onMovingPlat = null; // track moving platform for position updates
   for (const plat of g.platforms) {
+    // One-way platforms: only collide when falling AND was above last frame
+    if (plat.oneWay) {
+      // Drop through: press down while on a one-way platform
+      if (g.input.downPressed && p.grounded) continue;
+      // Only land when falling downward and feet are at/above platform surface
+      if (p.vy < 0) continue; // going up = pass through
+      const feetY = p.y + TILE * SCALE;
+      const prevFeetY = feetY - p.vy * dt;
+      if (prevFeetY > plat.y + 4) continue; // was already below = pass through
+    }
     // Can land on TOP of wall blocks (only the very top surface)
     const landH = plat.wall ? 6 : plat.h;
     if (p.x + pw > plat.x && p.x - pw < plat.x + plat.w &&
@@ -648,9 +681,28 @@ export function update(g, callbacks) {
         spawnDust(g, p.x, p.y + TILE * SCALE);
         playSound("land", { volume: Math.min(1, p.vy / 600) });
         if (p.vy > 500) g.camera.shakeTimer = 50;
+        p.noiseLevel = Math.min(1, p.noiseLevel + 0.5); // landing is noisy
       }
       p.vy = 0;
       p.grounded = true;
+      if (plat._isMoving) p._onMovingPlat = plat; // ride moving platforms
+    }
+  }
+
+  // ── Moving platforms — update positions ──
+  if (g.movingPlatforms) {
+    for (const mp of g.movingPlatforms) {
+      const prevX = mp.plat.x;
+      const prevY = mp.plat.y;
+      // Sine-wave motion from origin
+      const t = g.time.elapsed * mp.speed + (mp.offset || 0);
+      mp.plat.x = mp.originX + Math.sin(t * Math.PI * 2) * mp.moveX;
+      mp.plat.y = mp.originY + Math.sin(t * Math.PI * 2) * mp.moveY;
+      // If player is riding this platform, move them with it
+      if (p._onMovingPlat === mp.plat) {
+        p.x += mp.plat.x - prevX;
+        p.y += mp.plat.y - prevY;
+      }
     }
   }
 
@@ -1057,7 +1109,7 @@ export function update(g, callbacks) {
       e.y += 400 * dt;
     }
 
-    updateEnemyAI(e, p, dt, g.projectiles);
+    updateEnemyAI(e, p, dt, g.projectiles, g.enemies);
 
     // Move enemy AFTER AI sets velocity, BEFORE platform clamping
     e.x += e.vx * dt;
@@ -1688,12 +1740,96 @@ export function update(g, callbacks) {
       }
     }
   }
+
+  // ── Stealth: crouch, hide, visibility, noise ──
+  if (g.player && !g.player.dead) {
+    // Crouch: hold down while grounded and not dashing/slashing
+    const wantCrouch = g.input.down && p.grounded && !p.dashTimer && !p.slashTimer;
+    p.crouching = wantCrouch;
+
+    // Hide spots: enter when crouching near a hide spot, exit on move/jump/slash
+    if (g.hideSpots) {
+      if (p.hidden) {
+        // Exit hide if moving, jumping, or slashing
+        if (g.input.left || g.input.right || g.input.up || g.input.slash || g.input.dash) {
+          p.hidden = false;
+          p.hideSpot = null;
+        }
+      } else if (p.crouching) {
+        // Check if near a hide spot
+        for (const hs of g.hideSpots) {
+          if (!hs.occupied && p.x > hs.x && p.x < hs.x + hs.w && p.grounded) {
+            p.hidden = true;
+            p.hideSpot = hs;
+            hs.occupied = true;
+            break;
+          }
+        }
+      }
+      // Clean up occupied flag when player exits
+      if (!p.hidden && p.hideSpot) {
+        p.hideSpot.occupied = false;
+        p.hideSpot = null;
+      }
+    }
+
+    // Visibility: 0 = invisible, 1 = fully visible
+    let vis = 1.0;
+    if (p.hidden) vis = 0;
+    else {
+      if (p.inShadow) vis *= 0.3;
+      if (p.crouching) vis *= 0.4;
+      if (Math.abs(p.vx) > 50) vis = Math.min(1, vis + 0.2);
+      if (p.slashTimer > 0) vis = Math.min(1, vis + 0.5);
+    }
+    p.visibility = vis;
+
+    // Noise: decays over time, spikes on actions
+    const NOISE_DECAY = 2.0;
+    p.noiseLevel = Math.max(0, p.noiseLevel - NOISE_DECAY * rawDt);
+    if (Math.abs(p.vx) > 100 && !p.crouching) p.noiseLevel = Math.min(1, p.noiseLevel + 0.3 * rawDt);
+    // Spikes are applied in slash/dash/land handlers (one-time)
+  }
+
+  // ── Stealth objective check ──
+  if (g.objective?.type === "stealth") {
+    // Count how many enemies are in "alert" state
+    const alertCount = g.enemies.filter(e => !e.dead && e.detection === "alert").length;
+    if (alertCount > (g.objective.maxAlerts || 0)) {
+      // Failed stealth — restart room
+      if (!g._stealthFailed) {
+        g._stealthFailed = true;
+        g.floatingTexts.push({
+          x: g.W / 2 + g.camera.x, y: g.groundY - 80,
+          text: "DETECTED!", color: "#ff4444", life: 1500, maxLife: 1500,
+        });
+        // Brief delay then restart
+        setTimeout(() => { if (g._stealthFailed) { g._stealthFailed = false; loadRoom(g, g.currentRoom); } }, 1500);
+      }
+    }
+    // Check for reaching exit
+    if (g.objective.exitX && p.x >= g.objective.exitX) {
+      if (g.roomState === "playing") clearRoom(g, callbacks);
+    }
+  }
 }
 
 // ═══ HELPERS ═══
 function killEnemy(g, e, p, callbacks) {
   e.dead = true;
   const combo = p.slashCombo;
+
+  // ── Stealth kill detection ──
+  // Behind enemy + low visibility = stealth kill (instant, silent, 3x score)
+  const isBehindEnemy = (p.x < e.x && e.facing === -1) || (p.x > e.x && e.facing === 1);
+  const isStealthKill = isBehindEnemy && p.visibility < 0.5 && e.detection !== "alert";
+  if (isStealthKill) {
+    g.floatingTexts.push({
+      x: e.x, y: e.y - 30, text: "SILENT!", color: "#44ddaa", life: 1000, maxLife: 1000,
+    });
+    // Stealth kills don't alert nearby enemies
+    e._silentDeath = true;
+  }
 
   // Check if this is the last enemy (for hitstop/zoom escalation)
   const aliveAfter = g.enemies.filter(en => !en.dead && en !== e).length;

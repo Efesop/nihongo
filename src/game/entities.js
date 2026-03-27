@@ -12,6 +12,12 @@ export function makePlayer(groundY, startX = 100) {
     slashCombo: 0, comboWindow: 0,
     scaleX: 1, scaleY: 1,
     dashSlashing: false, parryTimer: 0, groundPounding: false,
+    // ── Stealth system ──
+    crouching: false,    // reduced speed + detection range
+    hidden: false,       // inside a hide spot (invisible)
+    hideSpot: null,      // reference to active hide object
+    visibility: 1,       // 0 = invisible, 1 = fully visible (computed each frame)
+    noiseLevel: 0,       // decays over time, spikes on actions (0-1)
   };
 }
 
@@ -34,16 +40,33 @@ export function makeEnemy(type, x, platformY, opts = {}) {
     _hitThisSlash: false,
     passive: opts.passive || false, // tutorial: doesn't attack until player is close
     windupTimer: 0, // telegraph before attacking
+    // ── Stealth detection ──
+    detection: "unaware",  // "unaware" → "suspicious" → "alert"
+    suspicion: 0,          // 0-100, thresholds at 50 (suspicious) and 100 (alert)
+    searchTimer: 0,        // time spent searching when suspicious/lost sight
+    lastKnownX: null,      // where player was last seen
+    lastKnownY: null,
   };
 }
 
+// ═══ STEALTH CONSTANTS ═══
+const CROUCH_DETECT_MULT = 0.4;   // 40% detection range when crouched
+const SHADOW_DETECT_MULT = 0.3;   // 30% detection range when in shadow
+const NOISE_HEAR_RANGE = 200;     // enemies hear noise within this range
+const SUSPICION_RATE = 80;        // suspicion gain per second when visible
+const SUSPICION_DECAY = 20;       // suspicion decay per second when not visible
+const SUSPICION_SUSPICIOUS = 50;  // threshold for "suspicious" state
+const SUSPICION_ALERT = 100;      // threshold for "alert" state
+const ALERT_PROPAGATE_RANGE = 300; // alert spreads to enemies within this range
+const SEARCH_DURATION = 3000;     // ms to search before returning to unaware
+
 // ═══ ENEMY AI ═══
-export function updateEnemyAI(e, player, dt, projectiles) {
+export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   // Dazed — can't do anything
   if (e.dazed > 0) {
     e.dazed -= dt * 1000;
     e.vx = 0;
-    if (e.dazed <= 0) { e.dazed = 0; e.state = "patrol"; }
+    if (e.dazed <= 0) { e.dazed = 0; e.state = "patrol"; e.detection = "unaware"; e.suspicion = 0; }
     return;
   }
 
@@ -51,11 +74,91 @@ export function updateEnemyAI(e, player, dt, projectiles) {
   const dist = Math.abs(dx);
   const toPlayer = dx > 0 ? 1 : -1;
 
-  // Can't see player if they're in shadow or enemy is facing away
-  // But close proximity (80px) alerts them even from behind (they hear you)
-  const playerVisible = !player.inShadow && (e.facing === toPlayer || dist < 80);
-  if (!playerVisible && e.state === "chase") {
-    // Lost sight — return to patrol after brief delay
+  // ── Stealth detection system ──
+  // Calculate effective detection range based on player stealth state
+  const detectMult = (player.crouching ? CROUCH_DETECT_MULT : 1) * (player.inShadow ? SHADOW_DETECT_MULT : 1);
+  const effectiveRange = (e.passive ? 50 : e.alertRange) * detectMult;
+
+  // Can enemy see the player?
+  const canSee = !player.hidden && player.visibility > 0.3 &&
+    dist < effectiveRange && (e.facing === toPlayer || dist < 80 * detectMult);
+
+  // Can enemy hear the player? (noise-based, ignores facing)
+  const canHear = player.noiseLevel > 0.4 && dist < NOISE_HEAR_RANGE;
+
+  // Update suspicion based on detection
+  if (canSee) {
+    e.suspicion = Math.min(SUSPICION_ALERT, e.suspicion + SUSPICION_RATE * player.visibility * dt);
+    e.lastKnownX = player.x;
+    e.lastKnownY = player.y;
+  } else if (canHear) {
+    e.suspicion = Math.min(SUSPICION_ALERT, e.suspicion + 40 * player.noiseLevel * dt);
+    e.lastKnownX = player.x;
+    e.lastKnownY = player.y;
+  } else {
+    e.suspicion = Math.max(0, e.suspicion - SUSPICION_DECAY * dt);
+  }
+
+  // Update detection state based on suspicion thresholds
+  const prevDetection = e.detection;
+  if (e.suspicion >= SUSPICION_ALERT) {
+    e.detection = "alert";
+    e.searchTimer = SEARCH_DURATION;
+    // Alert propagation — nearby enemies gain suspicion
+    if (prevDetection !== "alert" && allEnemies) {
+      for (const other of allEnemies) {
+        if (other === e || other.dead) continue;
+        const eDist = Math.abs(other.x - e.x);
+        if (eDist < ALERT_PROPAGATE_RANGE) {
+          other.suspicion = Math.min(SUSPICION_ALERT, other.suspicion + 40);
+          other.lastKnownX = e.lastKnownX;
+          other.lastKnownY = e.lastKnownY;
+        }
+      }
+      playSound("detection_alert"); // jsfxr fallback handles missing mp3
+    }
+  } else if (e.suspicion >= SUSPICION_SUSPICIOUS) {
+    if (e.detection === "unaware") {
+      e.detection = "suspicious";
+      e.searchTimer = SEARCH_DURATION;
+      playSound("detection_suspicious");
+    }
+  } else if (e.detection === "suspicious") {
+    e.searchTimer -= dt * 1000;
+    if (e.searchTimer <= 0) {
+      e.detection = "unaware";
+      e.suspicion = 0;
+      e.lastKnownX = null;
+    }
+  } else if (e.detection === "alert" && !canSee && !canHear) {
+    // Alert but lost sight — search then calm down
+    e.searchTimer -= dt * 1000;
+    if (e.searchTimer <= 0) {
+      e.detection = "suspicious";
+      e.suspicion = SUSPICION_SUSPICIOUS - 1;
+      e.searchTimer = SEARCH_DURATION;
+    }
+  }
+
+  // Backward compat: playerVisible based on detection state
+  const playerVisible = e.detection === "alert" || (canSee && e.detection === "suspicious");
+
+  // Suspicious behavior: walk toward last known position
+  if (e.detection === "suspicious" && !playerVisible && e.lastKnownX !== null) {
+    const searchDx = e.lastKnownX - e.x;
+    if (Math.abs(searchDx) > 20) {
+      e.facing = searchDx > 0 ? 1 : -1;
+      e.vx = e.facing * 40; // slow searching walk
+    } else {
+      e.vx = 0; // arrived at last known pos, look around
+      e.lastKnownX = null;
+    }
+    // Don't override with combat AI while searching
+    if (e.state === "chase") e.state = "patrol";
+  }
+
+  if (!playerVisible && e.state === "chase" && e.detection !== "alert") {
+    // Lost sight — return to patrol
     e.state = "patrol";
     e.vx = e.facing * 30;
   }

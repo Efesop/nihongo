@@ -5,9 +5,25 @@
 // Platform types:
 //   { x, y, w }               — standard thin platform (land on top only)
 //   { x, y, w, h, wall:true } — solid wall block (blocks movement, wall-jumpable)
+//   { x, y, w, oneWay:true }  — one-way platform (jump through from below, land on top)
+//
+// Moving platforms (separate array):
+//   { x, y, w, moveX, moveY, speed, offset, oneWay }
+//
+// Hide spots (stealth):
+//   { type: "tallGrass"|"crate"|"barrel", x, w }
 //
 // Tutorial fields:
 //   title: { jp, en }         — room title shown on entry
+
+// Helper: generate a staircase as a series of one-way platforms
+export function makeStairs(startX, startY, endX, endY, steps = 6) {
+  const dx = (endX - startX) / steps;
+  const dy = (endY - startY) / steps;
+  return Array.from({ length: steps }, (_, i) => ({
+    x: startX + dx * i, y: startY + dy * i, w: dx + 4, oneWay: true,
+  }));
+}
 //   tutorials: [{ text, trigger }] — tutorial prompts
 //     trigger: "start" | "nearEnemy" | "nearWall" | "nearGap" | "shurikens"
 
