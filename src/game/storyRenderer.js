@@ -134,7 +134,7 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "clearCenter") {
       s._centerImage = null;
     } else if (line.type === "musicChange") {
-      crossfadeMusic(line.to, line.fade || 1.0);
+      try { crossfadeMusic(line.to, line.fade || 1.0); } catch {}
     }
     // Advance to next line — but WAIT one frame before processing next beat
     // This prevents multiple SFX/effects from stacking on the same frame

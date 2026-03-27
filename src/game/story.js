@@ -107,35 +107,33 @@ export const ROOM_DIALOGUE = {
     { type: "sfx", sound: "glass_shatter" },
     { type: "shake", intensity: 4, duration: 0.5 },
     { type: "pause", duration: 1.5 },
-    // Total silence — then sensei reacts
-    { speaker: "sensei", textJp: "...！", text: "...!", emotion: "alarmed" },
-    { speaker: "player", textJp: "何の音？", text: "What was that sound?" },
-    { speaker: "sensei", textJp: "...来るな。窓の外を見るな。", text: "...Don't move. Don't look outside.", emotion: "alarmed" },
+    // Silence — then sensei reacts
+    { speaker: "sensei", textJp: "...！あの音...まさか。", text: "...! That sound... no.", emotion: "alarmed" },
+    { speaker: "player", textJp: "先生、何が—", text: "Sensei, what's—" },
 
-    // Cut to exterior — approaching shadows (auto-skips after 4s or click)
+    // Cut to exterior — approaching shadows
     { type: "bgSwap", to: "cutscene_approaching_shadows", transition: "hardCut" },
     { type: "sfx", sound: "distant_footsteps" },
-    { type: "pause", duration: 4.0 },
+    { type: "pause", duration: 3.0 },
 
-    // Back to dojo — panic
+    // Back to dojo
     { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
-    { speaker: "sensei", textJp: "見つかった。奴らだ。", text: "They found us. It's them.", emotion: "alarmed" },
-    { speaker: "player", textJp: "誰が—", text: "Who—" },
+    { speaker: "sensei", textJp: "来た。追っ手だ。", text: "They're here. The hunters.", emotion: "alarmed" },
     { speaker: "sensei", textJp: "聞け！山寺の長老を探せ！印のことを知っている！", text: "Listen! Find the Elder at the mountain temple! He knows about the mark!", emotion: "alarmed" },
     { speaker: "player", textJp: "何を言って—先生は？！", text: "What are you— what about you?!", emotion: "surprised" },
+    { speaker: "sensei", textJp: "俺のことはいい。お前が生き延びろ。", text: "Forget about me. You need to survive.", emotion: "alarmed" },
 
-    // ── Beat 4: The door breaks ──
+    // Door smashes open
     { type: "sfx", sound: "wood_splinter" },
     { type: "shake", intensity: 8, duration: 0.8 },
     { type: "bgSwap", to: "cutscene_shoji_blood", transition: "hardCut" },
-    { type: "pause", duration: 2.5 },
+    { type: "pause", duration: 2.0 },
 
-    // ── Beat 5: Final words ──
+    // Final words
     { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
-    { speaker: "sensei", textJp: "印を持つ者は...狩られる。", text: "Those who bear the mark... are hunted.", emotion: "alarmed" },
-    { speaker: "sensei", textJp: "自分の足で立て。行け！！", text: "Stand on your own feet. GO!!", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "行け！！今すぐ！！", text: "GO!! NOW!!", emotion: "alarmed" },
 
-    // Hard blackout → combat begins
+    // Blackout → combat
     { type: "blackout", duration: 0.8 },
   ],
 

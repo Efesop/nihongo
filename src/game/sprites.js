@@ -28,6 +28,9 @@ const ps = (key, src) => [key, src];
 
 const PLAYER_CORE = [
   ps("player", "/images/tinysenpai/idle.png"),
+  // Cinematic cutscene images (small ~160KB each, needed for Room 5 story)
+  gs("bg_dojo_exterior_night"), gs("cutscene_approaching_shadows"),
+  gs("cutscene_shoji_blood"), gs("cutscene_sensei_arm"),
   ps("run1", "/images/tinysenpai/run/1.png"), ps("run2", "/images/tinysenpai/run/2.png"),
   ps("run3", "/images/tinysenpai/run/3.png"), ps("run4", "/images/tinysenpai/run/4.png"),
   ps("slash1", "/images/tinysenpai/slash/1.png"), ps("slash2", "/images/tinysenpai/slash/2.png"),
