@@ -48,9 +48,23 @@ export function loadGameImages() {
   console.log("[sprites] loadGameImages called");
   // Load CRITICAL sprites first (player + oni + ninja — needed for room 0)
   // Then load everything else in background (non-blocking)
+  // CRITICAL: Only the bare minimum to render room 0 story + first gameplay frame
+  // Just 8 images — player idle, oni idle, dojo bg, story sprites
   const critical = [
-    // Player — all with gray bg removal
     loadImg("player", "/images/tinysenpai/idle.png", true),
+    loadImg("oni_idle", "/images/oni/oni-idle.png", true),
+    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
+    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),
+    loadImg("story_player_idle", "/images/tinysenpai/game/story_player_idle.png", true),
+    loadImg("story_sensei_idle", "/images/tinysenpai/game/story_sensei_idle.png", true),
+    loadImg("story_sensei_serious", "/images/tinysenpai/game/story_sensei_serious.png", true),
+    loadImg("story_sensei_amused", "/images/tinysenpai/game/story_sensei_amused.png", true),
+  ];
+
+  // EVERYTHING else loads in background — game starts immediately
+  // Player sprites, enemy sprites, backgrounds all load while you play
+  const deferred = [
+    // Player — full set
     loadImg("run1", "/images/tinysenpai/run/1.png", true),
     loadImg("run2", "/images/tinysenpai/run/2.png", true),
     loadImg("run3", "/images/tinysenpai/run/3.png", true),
@@ -66,14 +80,12 @@ export function loadGameImages() {
     loadImg("dash", "/images/tinysenpai/dash.png", true),
     loadImg("death1", "/images/tinysenpai/death/hit.png", true),
     loadImg("death2", "/images/tinysenpai/death/fallen.png", true),
-    // New player sprites
     loadImg("wall_cling", "/images/tinysenpai/wall-cling.png", true),
     loadImg("parry", "/images/tinysenpai/parry.png", true),
     loadImg("land_heavy", "/images/tinysenpai/land-heavy.png", true),
     loadImg("slash_through", "/images/tinysenpai/slash-through.png", true),
-    // Oni — full animation set
+    // Oni — remaining states
     loadImg("oni", "/images/oni/demon.png", true),
-    loadImg("oni_idle", "/images/oni/oni-idle.png", true),
     loadImg("oni_walk1", "/images/oni/oni-walk1.png", true),
     loadImg("oni_walk2", "/images/oni/oni-walk2.png", true),
     loadImg("oni_alert", "/images/oni/oni-alert.png", true),
@@ -86,7 +98,7 @@ export function loadGameImages() {
     loadImg("oni_kb_back", "/images/oni/oni-knockback-back.png", true),
     loadImg("oni_kb_tumble", "/images/oni/oni-knockback-tumble.png", true),
     loadImg("oni_kb_seated", "/images/oni/oni-knockback-seated.png", true),
-    // Ninja — full animation set
+    // Ninja
     loadImg("ninja", "/images/ninja/ninja.png", true),
     loadImg("ninja_idle", "/images/ninja/ninja-idle.png", true),
     loadImg("ninja_walk1", "/images/ninja/ninja-walk1.png", true),
@@ -101,20 +113,9 @@ export function loadGameImages() {
     loadImg("ninja_kb_back", "/images/ninja/ninja-knockback-back.png", true),
     loadImg("ninja_kb_tumble", "/images/ninja/ninja-knockback-tumble.png", true),
     loadImg("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png", true),
-    // Backgrounds needed for room 0
+    // Backgrounds
     loadImg("bg_forest", "/images/forest.png"),
-    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
-    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),
     loadImg("bg_dojo_night_story", "/images/tinysenpai/game/bg_dojo_night_story.png"),
-    // Story sprites for room 0 (player + sensei)
-    loadImg("story_player_idle", "/images/tinysenpai/game/story_player_idle.png", true),
-    loadImg("story_sensei_idle", "/images/tinysenpai/game/story_sensei_idle.png", true),
-    loadImg("story_sensei_serious", "/images/tinysenpai/game/story_sensei_serious.png", true),
-    loadImg("story_sensei_amused", "/images/tinysenpai/game/story_sensei_amused.png", true),
-  ];
-
-  // Load everything else in background (non-blocking — game starts immediately)
-  const deferred = [
     // Samurai — full set from generated sprites
     ...["idle","walk1","walk2","alert","attack","dazed","hit","windup","kb_back","kb_tumble","kb_seated"].map(s =>
       loadImg(`samurai_${s}`, `/images/tinysenpai/game/samurai_${s}.png`, true)),
