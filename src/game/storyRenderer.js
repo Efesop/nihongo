@@ -75,6 +75,19 @@ export function updateStory(g, rawDt, callbacks) {
   const s = g.story;
   if (!s || !s.lines || s.lines.length === 0) return;
 
+  // ═══ ALWAYS UPDATE EFFECTS (before any early returns) ═══
+  // Flash, overlay, centerImage must fade even during beat processing
+  if (s._flash) {
+    s._flash.alpha -= rawDt / s._flash.duration;
+    if (s._flash.alpha <= 0) s._flash = null;
+  }
+  if (s._overlay) {
+    s._overlay.alpha = Math.min(s._overlay.targetAlpha, s._overlay.alpha + rawDt * s._overlay.fadeSpeed);
+  }
+  if (s._centerImage) {
+    s._centerImage.alpha = Math.min(s._centerImage.targetAlpha, s._centerImage.alpha + rawDt * s._centerImage.fadeSpeed);
+  }
+
   const line = s.lines[s.index];
   if (!line) return;
 
@@ -96,9 +109,8 @@ export function updateStory(g, rawDt, callbacks) {
       s.sceneConfig.bgKey = line.to;
       if (line.transition === "flash") {
         s._flash = { color: line.color || "#ffffff", alpha: 1, duration: line.duration || 0.15 };
-      } else if (line.transition === "hardCut") {
-        s._flash = { color: "#000000", alpha: 1, duration: 0.08 };
       }
+      // hardCut = instant swap, no flash needed
     } else if (line.type === "sfx") {
       playSound(line.sound);
     } else if (line.type === "musicStop") {
@@ -164,19 +176,7 @@ export function updateStory(g, rawDt, callbacks) {
     return;
   }
 
-  // Update flash effect
-  if (s._flash) {
-    s._flash.alpha -= rawDt / s._flash.duration;
-    if (s._flash.alpha <= 0) s._flash = null;
-  }
-  // Update overlay fade
-  if (s._overlay) {
-    s._overlay.alpha = Math.min(s._overlay.targetAlpha, s._overlay.alpha + rawDt * s._overlay.fadeSpeed);
-  }
-  // Update center image fade
-  if (s._centerImage) {
-    s._centerImage.alpha = Math.min(s._centerImage.targetAlpha, s._centerImage.alpha + rawDt * s._centerImage.fadeSpeed);
-  }
+  // (Effects updated at top of function — before any early returns)
 
   // Entrance animation — block everything until characters are in position
   if (s.entrance && s.entrance.active) {
