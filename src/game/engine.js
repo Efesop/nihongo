@@ -16,7 +16,7 @@ import { preloadZone } from "./sprites.js";
 
 // ═══ ZONE MUSIC MAPPING ═══
 const ZONE_MUSIC = {
-  dojo: "music_forest",      // reuse forest for dojo tutorial
+  dojo: "music_dojo_combat",  // desperate combat — not heroic
   forest: "music_forest",
   edo: "music_edo",
   neonTokyo: "music_phonk",  // Japanese shamisen + dark phonk 808s
