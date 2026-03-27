@@ -148,15 +148,21 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
         render(g, ctx, isDesktop, font);
         _errN = 0;
       } catch (err) {
-        if (++_errN <= 3) console.error("[game]", err.message, err.stack);
-        try {
-          if (g.player?.dead) {
-            g.deathPhaseTimer = undefined; g.deathPhase = undefined;
-            g.brushWipe = 0; g.time.scale = 1;
+        _errN++;
+        if (_errN <= 5) console.error(`[game crash #${_errN}]`, err.message, err.stack);
+        // If crashing repeatedly, force recover
+        if (_errN >= 3) {
+          try {
+            g.time.scale = 1;
             g.camera.zoom = 1; g.camera.zoomTarget = 1;
+            g.deathPhaseTimer = undefined; g.deathPhase = undefined;
+            g.brushWipe = 0;
+            g.activeDialogue = null;
+            g.gameState = undefined; // ensure not stuck in "story"
             loadRoom(g, g.currentRoom);
-          }
-        } catch {}
+            _errN = 0; // reset after recovery
+          } catch {}
+        }
       }
       rafRef.current = requestAnimationFrame(loop);
     }
