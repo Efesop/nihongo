@@ -46,9 +46,23 @@ const SFX_STORY = [
   "crate_break", "pot_break", "lantern_break", "bamboo_break",
   "death_dramatic", "brush_wipe", "wave_incoming", "encounter", "text_type",
 ];
-const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY, ...SFX_STORY];
-const AMBIENT_NAMES = ["rain_loop", "forest_night"];
-const MUSIC_NAMES = ["music_forest", "music_temple", "music_boss", "music_story_calm", "music_story_tension"];
+const SFX_STEALTH = [
+  "stealth_kill", "detection_suspicious", "detection_alert",
+];
+const SFX_HAZARDS = [
+  "laser_hum", "electric_zap",
+];
+const SFX_NEW_ENEMIES = [
+  "cyber_teleport", "pistol_shot", "drone_hover", "drone_laser",
+  "bouncer_slam", "shockwave_bass", "smoke_bomb", "staff_strike",
+  "fox_cry", "illusion_pop", "time_rift",
+];
+const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY, ...SFX_STORY, ...SFX_STEALTH, ...SFX_HAZARDS, ...SFX_NEW_ENEMIES];
+const AMBIENT_NAMES = ["rain_loop", "forest_night", "city_hum", "nightclub_bass", "spirit_wind"];
+const MUSIC_NAMES = [
+  "music_forest", "music_temple", "music_boss", "music_story_calm", "music_story_tension",
+  "music_edo", "music_neon", "music_nightclub", "music_spirit", "music_boss_shadow", "music_epilogue",
+];
 
 // Sound variant groups — playRandom picks one at random
 const VARIANTS = {
@@ -270,8 +284,17 @@ let _currentTheme = "forest"; // track which ambient set to play
 
 function _startAmbientNow() {
   if (!_ctx || !_ambientGain) return;
-  // Indoor themes (dojo) don't get rain
-  const ambientForTheme = _currentTheme === "dojo" ? [] : AMBIENT_NAMES;
+  // Theme-specific ambient sounds
+  const THEME_AMBIENT = {
+    dojo: [],                             // indoor — no ambient
+    forest: ["rain_loop", "forest_night"],
+    temple: ["rain_loop", "forest_night"],
+    edo: ["forest_night"],                // outdoor but no heavy rain
+    neonTokyo: ["city_hum"],              // urban ambience
+    nightclub: ["nightclub_bass"],        // muffled bass
+    spirit: ["spirit_wind"],              // ethereal wind
+  };
+  const ambientForTheme = THEME_AMBIENT[_currentTheme] || ["rain_loop", "forest_night"];
   for (const name of ambientForTheme) {
     if (_ambientSources[name]) continue;
     const buf = _buffers[name];

@@ -84,6 +84,28 @@ const SOUNDS = [
   ['sfx_choice_tick',   'Subtle clock tick, soft tension timer, quiet countdown beat, game timer sfx', 0.3, 0.3],
   ['sfx_text_advance',  'Very soft page turn, paper sliding sound, gentle parchment flip, minimal, game dialogue advance sfx', 0.4, 0.3],
   ['sfx_combo4_pierce', 'Deep powerful piercing thrust impact, heavy spear-like stab through multiple targets, bass-heavy penetrating blow with metallic ring, game sfx', 0.8, 0.6],
+
+  // ────── STEALTH ──────
+  ['stealth_kill',      'Quiet satisfying blade insertion, muffled stab, clean silent assassination, no scream, game stealth kill sfx', 0.6, 0.5],
+  ['detection_suspicious', 'Subtle warning chime, enemy becoming suspicious, soft questioning alert, game stealth sfx', 0.5, 0.4],
+  ['detection_alert',   'Sharp alarm sting, enemy fully alert, aggressive detection sound with urgency, game stealth sfx', 0.5, 0.6],
+
+  // ────── NEW HAZARDS ──────
+  ['laser_hum',         'Electric laser beam continuous hum, sci-fi security laser drone, tense high-frequency buzz, game hazard sfx', 1.0, 0.4],
+  ['electric_zap',      'Electric floor zap discharge, crackling voltage burst, shocking impact, game hazard sfx', 0.5, 0.5],
+
+  // ────── NEW ENEMIES ──────
+  ['cyber_teleport',    'Electronic digital teleport zap, short-range warp displacement, cyberpunk ninja dash, game sfx', 0.4, 0.5],
+  ['pistol_shot',       'Single pistol gunshot, sharp crack, yakuza enforcer firearm, game sfx', 0.4, 0.6],
+  ['drone_hover',       'Small electronic drone hovering buzz, futuristic surveillance drone motor, game sfx', 1.0, 0.4],
+  ['drone_laser',       'Focused laser beam firing, thin high-energy beam weapon, sci-fi drone attack, game sfx', 0.6, 0.5],
+  ['bouncer_slam',      'Massive heavy fist slam impact, ground-shaking punch, bass-heavy body blow, game sfx', 0.6, 0.6],
+  ['shockwave_bass',    'Deep bass shockwave expanding, DJ speaker blast AOE attack, rumbling sub-bass explosion, game sfx', 1.0, 0.6],
+  ['smoke_bomb',        'Ninja smoke bomb poof, muffled explosion with hissing smoke, concealment cloud, game sfx', 0.6, 0.4],
+  ['staff_strike',      'Wooden bo staff striking, clean wooden impact, monk martial arts weapon hit, game sfx', 0.5, 0.5],
+  ['fox_cry',           'Ethereal mystical fox spirit cry, supernatural kitsune howl, otherworldly and beautiful, game sfx', 1.0, 0.5],
+  ['illusion_pop',      'Magical illusion clone disappearing poof, spirit dissolving into particles, game sfx', 0.4, 0.4],
+  ['time_rift',         'Deep reality-tearing warp, dimensional rift opening, spacetime distortion bass rumble, game transition sfx', 1.5, 0.6],
 ];
 
 const LOOPS = [
@@ -99,6 +121,19 @@ const LOOPS = [
   // ────── STORY MUSIC ──────
   ['music_story_calm',    'Calm peaceful Japanese ambient music, soft koto melody, gentle shakuhachi flute, distant wind chimes, meditative atmosphere, warm and nostalgic, video game story scene loop', 30, 0.5, true],
   ['music_story_tension', 'Tense suspenseful Japanese ambient music, low shamisen drones, subtle taiko heartbeat rhythm, ominous atmosphere, building unease, dramatic revelation moment, video game story loop', 30, 0.5, true],
+
+  // ────── NEW ZONE MUSIC ──────
+  ['music_edo',           'Traditional Edo period Japanese music, shamisen melody with koto accompaniment, wooden percussion, steady rhythmic taiko, feudal town atmosphere, warm but tense, action game combat loop', 30, 0.5, true],
+  ['music_neon',          'Cyberpunk synthwave mixed with Japanese instruments, electronic beats with taiko drums, neon city night action, fast-paced, aggressive but melodic, Akira meets Katana Zero, game combat loop', 30, 0.6, true],
+  ['music_nightclub',     'Dark underground electronic bass music, deep pulsing beat, Japanese hip-hop influence, menacing club atmosphere, heavy sub-bass, stealth infiltration vibe, game combat loop', 30, 0.5, true],
+  ['music_spirit',        'Ethereal otherworldly Japanese music, celestial koto with reverb, shakuhachi echoing in void, temple bells, aurora-like ambient pads, beautiful and haunting, spirit realm atmosphere, game loop', 30, 0.5, true],
+  ['music_boss_shadow',   'Intense personal boss battle music, dramatic shamisen duel, fast taiko rhythm, emotional strings, tragic but fierce, two warriors destined to fight, climactic final confrontation, game boss loop', 30, 0.6, true],
+  ['music_epilogue',      'Quiet hopeful Japanese music, gentle koto resolution, soft shakuhachi sunrise melody, peaceful morning atmosphere, warm nostalgic ending, bittersweet and beautiful, video game credits loop', 30, 0.4, true],
+
+  // ────── NEW AMBIENT ──────
+  ['city_hum',            'Cyberpunk city night ambience, distant traffic, neon sign electrical buzz, rain on concrete, urban Japanese nightlife background, no music', 10, 0.4, true],
+  ['nightclub_bass',      'Muffled bass beat through club walls, distant deep electronic music, vibrating floors, underground nightlife, no clear melody', 10, 0.4, true],
+  ['spirit_wind',         'Otherworldly ethereal wind, distant wind chimes, ghostly whispers, cherry blossom petals rustling, supernatural peaceful ambience, no music', 10, 0.4, true],
 ];
 
 async function generate(name, prompt, dur, influence, loop = false) {
