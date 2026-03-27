@@ -526,8 +526,7 @@ export const ROOM_CHOICES = {
 // ═══════════════════════════════════════════════════════
 export const STORY_TRIGGERS = {
   // ── Prologue: Dojo (0-4) ──
-  // Room 0: NPC-based (sensei in world), no story overlay
-  1: 1, 2: 2, 3: 3, 4: 4,
+  0: 0, 1: 1, 2: 2, 3: 3, 4: 4,
   // ── Act 1: Forest (5-19, existing rooms) ──
   5: 5,     // THE TURN — forced to flee
   8: 8,     // Solo — the mark burns
