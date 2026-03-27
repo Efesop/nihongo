@@ -50,6 +50,9 @@ export const ROOM_DIALOGUE = {
     { speaker: "player", textJp: "...斬り返す？", text: "...Cut my way out?" },
     { speaker: "sensei", textJp: "壁を登れ。", text: "Climb the wall.", emotion: "serious" },
     { speaker: "player", textJp: "え？", text: "Huh?" },
+    // Choice happens here (after index 3) — training_push or training_rest
+    { speaker: "sensei", textJp: "いい心意気だ。限界は超えるためにある。", text: "Good spirit. Limits exist to be broken.", emotion: "amused", condition: { flag: "training_push" } },
+    { speaker: "sensei", textJp: "...賢い判断だ。折れた刀は戦えん。", text: "...A wise choice. A broken blade can't fight.", emotion: "amused", condition: { flag: "training_rest" } },
     { speaker: "sensei", textJp: "壁は障害じゃない。道だ。飛び移れ。", text: "A wall isn't an obstacle. It's a path. Jump between them." },
   ],
 
@@ -77,6 +80,9 @@ export const ROOM_DIALOGUE = {
     { speaker: "player", textJp: "分からない。気づいたら...集中すると光るんです。", text: "I don't know. It just appeared... it glows when I focus.", emotion: "idle" },
     { speaker: "sensei", textJp: "...", text: "...", emotion: "serious" },
     { speaker: "player", textJp: "先生？顔色が悪いですよ。大丈夫ですか？", text: "Sensei? You've gone pale. Are you alright?", emotion: "concerned" },
+    // Choice happens here (after index 9) — departure_demand or departure_trust
+    { speaker: "sensei", textJp: "...説明している暇はない！信じろ！", text: "...There's no time to explain! Trust me!", emotion: "serious", condition: { flag: "departure_demand" } },
+    { speaker: "sensei", textJp: "...お前は強い子だ。", text: "...You've always been strong.", emotion: "serious", condition: { flag: "departure_trust" } },
     { speaker: "sensei", textJp: "...聞け。今から言うことを全部覚えろ。", text: "...Listen. Remember everything I'm about to say.", emotion: "serious" },
     { speaker: "sensei", textJp: "今すぐ道場を出ろ。山寺の長老を探せ。", text: "Leave the dojo. Right now. Find the Elder at the mountain temple.", emotion: "serious" },
     { speaker: "player", textJp: "何を言って—一人で？先生は？", text: "What are you— alone? What about you?", emotion: "surprised" },
@@ -114,6 +120,9 @@ export const ROOM_DIALOGUE = {
     { speaker: "shadow", textJp: "力だ。そして代償だ。", text: "Power. And a price." },
     { speaker: "shadow", textJp: "時を遅くする力...お前も使っているだろう？", text: "The power to slow time... you've been using it too, right?" },
     { speaker: "shadow", textJp: "使うたびに印は広がる。やがて—", text: "Every time you use it, the mark spreads. Eventually—" },
+    // Choice happens here (after index 11) — curse_accept_1 or curse_resist_1
+    { speaker: "shadow", textJp: "...面白い。恐れないか。", text: "...Interesting. You're not afraid.", emotion: "bitter", condition: { flag: "curse_accept_1" } },
+    { speaker: "shadow", textJp: "抑える？...無駄だ。でも面白い。", text: "Suppress it? ...Pointless. But interesting.", condition: { flag: "curse_resist_1" } },
     { speaker: "shadow", textJp: "...まあいい。生き延びろ。", text: "...Never mind. Just survive this." },
     { speaker: "shadow", textJp: "長老に辿り着けたら...続きを教えてやる。", text: "If you reach the Elder... I'll tell you the rest." },
   ],
@@ -132,6 +141,9 @@ export const ROOM_DIALOGUE = {
   14: [
     { speaker: "shadow", textJp: "ここから先は山道だ。", text: "The mountain path starts here." },
     { speaker: "player", textJp: "退くつもりはない。", text: "I'm not backing down." },
+    // Choice happens here (after index 2) — shadow_prove or shadow_empathy
+    { speaker: "shadow", textJp: "言葉はいい。見せてみろ。", text: "Words are cheap. Show me.", condition: { flag: "shadow_prove" } },
+    { speaker: "shadow", textJp: "...試す必要がないだと？甘いな。", text: "...No need to test you? How naive.", emotion: "bitter", condition: { flag: "shadow_empathy" } },
     { speaker: "shadow", textJp: "...いいだろう。最後の試験だ。", text: "...Fine. One last test." },
     { speaker: "shadow", textJp: "ここを越えられなければ、山は越えられない。", text: "If you can't get past this, you won't survive the mountain." },
   ],
@@ -171,6 +183,9 @@ export const ROOM_DIALOGUE = {
     { speaker: "shadow", textJp: "なら分かるだろう。この力は手放せない。", text: "Then you understand. This power can't be given up." },
     { speaker: "player", textJp: "長老は消せると言った。", text: "The Elder said it can be removed." },
     { speaker: "shadow", textJp: "消す？俺からこれを奪うのか？", text: "Remove it? You'd take this from me?", emotion: "angry" },
+    // Choice happens here (after index 5) — shadow_help or shadow_duty
+    { speaker: "shadow", textJp: "助ける...？誰もそんなこと言わなかった。", text: "Help me...? No one's ever said that.", emotion: "bitter", condition: { flag: "shadow_help" } },
+    { speaker: "shadow", textJp: "義務か。お前も結局、あの老人と同じだ。", text: "Duty, huh. You're just like the old man after all.", emotion: "angry", condition: { flag: "shadow_duty" } },
     { speaker: "shadow", textJp: "この力は...先生がくれた唯一のものだ。", text: "This power is... the only thing Sensei ever gave me." },
   ],
 
@@ -190,6 +205,10 @@ export const ROOM_DIALOGUE = {
     { speaker: "shadow", textJp: "先生が俺を捨てた。新しい弟子を取った。", text: "Sensei abandoned me. Took a new student." },
     { speaker: "player", textJp: "捨てたんじゃない。助けられなかったんだ。", text: "He didn't abandon you. He couldn't save you." },
     { speaker: "shadow", textJp: "...黙れ。", text: "...Shut up.", emotion: "angry" },
+    // Choice happens here (after index 5) — final_aggressive, final_compassionate, or final_talk
+    { speaker: "shadow", textJp: "...いいだろう。全力で来い。", text: "...Fine. Come at me with everything.", emotion: "angry", condition: { flag: "final_aggressive" } },
+    { speaker: "shadow", textJp: "傷つけたくない？...お前は甘すぎる。", text: "Don't want to hurt me? ...You're too soft.", emotion: "bitter", condition: { flag: "final_compassionate" } },
+    { speaker: "shadow", textJp: "話す...？今更何を話す。", text: "Talk...? What's left to say.", emotion: "bitter", condition: { flag: "final_talk" } },
     { speaker: "shadow", textJp: "この印を消すというなら、俺を倒してからにしろ。", text: "If you want to break this curse, you'll have to go through me first." },
     { speaker: "shadow", textJp: "先生の最初の弟子と、最後の弟子。決着をつけよう。", text: "Sensei's first student versus his last. Let's end this." },
   ],
@@ -270,7 +289,7 @@ export const ROOM_CHOICES = {
   },
   // Shadow's gate — prove yourself or appeal to empathy?
   14: {
-    after: 2,
+    after: 1, // after "I'm not backing down"
     options: [
       { textJp: "証明してやる。", text: "I'll prove myself.", flag: "shadow_prove" },
       { textJp: "試す必要はない。", text: "You don't need to test me.", flag: "shadow_empathy" },
