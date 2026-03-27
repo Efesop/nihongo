@@ -455,12 +455,18 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     if (g.gameState === "story" || g.activeDialogue) {
       g.input.storyAdvance = true;
     }
+    // Ensure canvas has focus for keyboard input
+    canvasRef.current?.focus();
   };
   return (
-    <div style={{ ...gameContainer, background: "#0a0a14", overflow: "hidden", touchAction: "none" }}>
+    <div
+      style={{ ...gameContainer, background: "#0a0a14", overflow: "hidden", touchAction: "none" }}
+      onClick={handleCanvasClick}
+    >
       <canvas
         ref={canvasRef}
-        style={{ display: "block", width: "100%", height: "100%", cursor: gameRef.current?.gameState === "story" ? "pointer" : "default" }}
+        tabIndex={0}
+        style={{ display: "block", width: "100%", height: "100%", outline: "none", cursor: gameRef.current?.gameState === "story" ? "pointer" : "default" }}
         onClick={handleCanvasClick}
       />
     </div>

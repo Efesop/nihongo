@@ -22,10 +22,11 @@ const ps = (key, src) => [key, src];
 export function loadGameImages() {
   console.log("[sprites] loadGameImages called");
 
-  // ── CRITICAL: Minimum to render room 0 ──
+  // ── CRITICAL: Minimum to render room 0 (story scene + gameplay) ──
   const critical = [
     loadImg("player", "/images/tinysenpai/idle.png"),
     loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
+    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),
     loadImg("story_sensei_idle", "/images/tinysenpai/game/story_sensei_idle.png"),
     loadImg("run1", "/images/tinysenpai/run/1.png"),
     loadImg("slash1", "/images/tinysenpai/slash/1.png"),
