@@ -312,7 +312,7 @@ function _startAmbientNow() {
 
 // Set the ambient theme (controls which ambient loops play)
 export function setAmbientTheme(theme) {
-  if (theme === _currentTheme) return;
+  // Always process — don't skip even if same theme (fixes race with audio init)
   _currentTheme = theme;
   // Stop all current ambient
   for (const [k, s] of Object.entries(_ambientSources)) {

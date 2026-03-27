@@ -288,14 +288,20 @@ export function update(g, callbacks) {
     });
   }
   // Rain — diagonal streaks, bent by periodic wind gusts
-  const wind = g._wind || 0;
-  for (let i = 0; i < 6; i++) {
-    g.embers.push({
-      x: g.camera.x + rnd(-100, g.W + 100), y: rnd(-20, -5),
-      vx: rnd(-40, -20) - wind, vy: rnd(700, 1000),
-      life: rnd(400, 700), maxLife: 700,
-      size: rnd(1.5, 2.5), color: rnd(0,1) > 0.3 ? "#99aacc" : "#bbccee", type: "rain",
-    });
+  // Skip rain for indoor rooms (dojo, nightclub)
+  const room = (g._rooms || [])[g.currentRoom];
+  const roomTheme = room?.theme || "forest";
+  const noRain = roomTheme === "dojo" || roomTheme === "nightclub" || roomTheme === "neonTokyo" || room?.noRain;
+  if (!noRain) {
+    const wind = g._wind || 0;
+    for (let i = 0; i < 6; i++) {
+      g.embers.push({
+        x: g.camera.x + rnd(-100, g.W + 100), y: rnd(-20, -5),
+        vx: rnd(-40, -20) - wind, vy: rnd(700, 1000),
+        life: rnd(400, 700), maxLife: 700,
+        size: rnd(1.5, 2.5), color: rnd(0,1) > 0.3 ? "#99aacc" : "#bbccee", type: "rain",
+      });
+    }
   }
 
   for (const em of g.embers) {

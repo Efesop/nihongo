@@ -15,8 +15,10 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "KeyJ" || e.code === "KeyZ") { inp.slash = true; inp.slashPressed = true; e.preventDefault(); }
     if (e.code === "KeyK" || e.code === "KeyX" || e.code === "ShiftLeft" || e.code === "ShiftRight") { inp.slowmo = true; e.preventDefault(); }
     if (e.code === "KeyL" || e.code === "KeyC") { inp.dash = true; inp.dashPressed = true; e.preventDefault(); }
-    // Story mode inputs
-    if (gameRef.current?.gameState === "story") {
+    // Story mode inputs (story overlay OR in-world NPC dialogue)
+    const inStory = gameRef.current?.gameState === "story";
+    const inDialogue = !!gameRef.current?.activeDialogue;
+    if (inStory || inDialogue) {
       if (e.code === "Space" || e.code === "Enter") { inp.storyAdvance = true; e.preventDefault(); }
       if (e.code === "Digit1" || e.code === "Numpad1") { inp.choice1 = true; e.preventDefault(); }
       if (e.code === "Digit2" || e.code === "Numpad2") { inp.choice2 = true; e.preventDefault(); }
@@ -24,7 +26,7 @@ export function setupKeyboard(gameRef, setScreen) {
       if (e.code === "ArrowUp" || e.code === "KeyW") { inp.choiceUp = true; e.preventDefault(); }
       if (e.code === "ArrowDown" || e.code === "KeyS") { inp.choiceDown = true; e.preventDefault(); }
       if (e.code === "Enter") { inp.choiceConfirm = true; e.preventDefault(); }
-      return; // Don't process game inputs during story
+      return; // Don't process game inputs during dialogue
     }
     if (e.code === "Escape" || e.code === "KeyP") setScreen("paused");
   };
@@ -93,8 +95,8 @@ export function setupTouch(canvas, gameRef) {
     const inp = gameRef.current?.input;
     if (!inp) return;
 
-    // Story mode — tap to advance, tap choice to select
-    if (gameRef.current?.gameState === "story") {
+    // Story mode OR NPC dialogue — tap to advance, tap choice to select
+    if (gameRef.current?.gameState === "story" || gameRef.current?.activeDialogue) {
       for (const t of e.changedTouches) {
         const choiceIdx = getChoiceZone(t);
         if (choiceIdx >= 0 && gameRef.current?.story?.choices) {

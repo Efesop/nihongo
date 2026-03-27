@@ -530,7 +530,7 @@ export function render(g, ctx, isDesktop, font) {
       }
       const img = getImage(spriteKey);
       if (img) {
-        const drawH = DRAW_SIZE * SPRITE_SCALE * 1.8; // story chars are larger than gameplay sprites
+        const drawH = DRAW_SIZE * SPRITE_SCALE; // same size as player
         const drawW = drawH * (img.width / img.height);
         ctx.save();
         ctx.imageSmoothingEnabled = false;
