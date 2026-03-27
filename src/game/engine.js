@@ -18,8 +18,8 @@ const ZONE_MUSIC = {
   dojo: "music_forest",      // reuse forest for dojo tutorial
   forest: "music_forest",
   edo: "music_edo",
-  neonTokyo: "music_neon",
-  nightclub: "music_nightclub",
+  neonTokyo: "music_phonk",  // Japanese shamisen + dark phonk 808s
+  nightclub: "music_phonk_battle", // aggressive phonk for nightclub fights
   spirit: "music_spirit",
 };
 function getZoneMusic(roomIndex) {

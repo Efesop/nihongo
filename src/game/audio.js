@@ -62,6 +62,7 @@ const AMBIENT_NAMES = ["rain_loop", "forest_night", "city_hum", "nightclub_bass"
 const MUSIC_NAMES = [
   "music_forest", "music_temple", "music_boss", "music_story_calm", "music_story_tension",
   "music_edo", "music_neon", "music_nightclub", "music_spirit", "music_boss_shadow", "music_epilogue",
+  "music_phonk", "music_phonk_battle",
 ];
 
 // Sound variant groups — playRandom picks one at random
