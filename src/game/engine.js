@@ -367,7 +367,52 @@ export function update(g, callbacks) {
   g.embers = g.embers.filter(em => em.life > 0);
 
   const p = g.player;
-  if (p.dead) return;
+  // If player is dead, skip ALL gameplay logic and go straight to
+  // flash timer, camera, room state, death phases, etc.
+  if (p.dead) {
+    // Still update flash timer
+    if (g.flashTimer > 0) g.flashTimer -= rawDt * 1000;
+    // Camera stays where it is (no follow)
+    g.camera.zoom = lerp(g.camera.zoom, g.camera.zoomTarget, 1 - Math.pow(0.001, rawDt));
+    if (g.camera.shakeTimer > 0) {
+      g.camera.shakeTimer -= rawDt * 1000;
+      const amp = g.camera.shakeTimer > 80 ? 6 : 3;
+      g.camera.shakeX = rnd(-amp, amp); g.camera.shakeY = rnd(-amp, amp);
+    } else { g.camera.shakeX = 0; g.camera.shakeY = 0; }
+    // Letterbox
+    if (g.letterbox > 0) g.letterbox = Math.max(0, g.letterbox - rawDt * 4);
+    // Fade overlay
+    if (g.fadeOverlay > 0) g.fadeOverlay = Math.max(0, g.fadeOverlay - rawDt * 4);
+    // DEATH PHASE PROCESSING — the critical code that was being skipped!
+    if (g.deathPhaseTimer !== undefined) {
+      g._deathRealTime = (g._deathRealTime || 0) + rawDt;
+      if (g._deathRealTime > 5) {
+        g.deathPhaseTimer = undefined; g.deathPhase = undefined;
+        g.brushWipe = 0; g._deathRealTime = 0;
+        g.camera.zoomTarget = 1; g.camera.zoom = 1; g.time.scale = 1;
+        restartRoom(g);
+      } else {
+        g.deathPhaseTimer -= rawDt * 1000;
+        if (g.deathPhaseTimer > 1700) {
+          g.deathPhase = 0;
+        } else if (g.deathPhaseTimer > 400) {
+          g.deathPhase = 1; g.time.scale = 0.05;
+        } else if (g.deathPhaseTimer > 0) {
+          g.deathPhase = 2; g.time.scale = 0.02;
+        } else if ((g.brushWipe || 0) < 1) {
+          g.deathPhase = 3;
+          g.brushWipe = Math.min(1, (g.brushWipe || 0) + rawDt * 4);
+          g.time.scale = 1;
+        } else {
+          g.deathPhaseTimer = undefined; g.deathPhase = undefined;
+          g.brushWipe = 0; g._deathRealTime = 0;
+          g.camera.zoomTarget = 1; g.camera.zoom = 1; g.time.scale = 1;
+          restartRoom(g);
+        }
+      }
+    }
+    return;
+  }
 
   // ── Player movement ──
   const moveDir = (g.input.left ? -1 : 0) + (g.input.right ? 1 : 0);
