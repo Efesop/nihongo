@@ -431,7 +431,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   // ═══ PLAYING (also handles story scenes on canvas) ═══
   const handleCanvasClick = () => {
     const g = gameRef.current;
-    if (g && g.gameState === "story" && g.input) {
+    if (!g || !g.input) return;
+    // Advance story overlay OR in-world NPC dialogue
+    if (g.gameState === "story" || g.activeDialogue) {
       g.input.storyAdvance = true;
     }
   };
