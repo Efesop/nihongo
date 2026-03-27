@@ -139,27 +139,16 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
 
     const callbacks = { setScore, setMaxCombo, setScreen, isDesktop, SIDEBAR_W, highScore, setHighScore };
 
-    let _errorCount = 0;
+    let _errN = 0;
     function loop() {
       const g = gameRef.current;
       if (!g) return;
       try {
         update(g, callbacks);
         render(g, ctx, isDesktop, font);
-        _errorCount = 0; // reset on success
+        _errN = 0;
       } catch (err) {
-        _errorCount++;
-        if (_errorCount <= 3) {
-          // Log full error with stack trace (only first 3 to avoid spam)
-          console.error(`[GAME CRASH #${_errorCount}]`, err.message, err.stack);
-          console.error("[GAME STATE]", JSON.stringify({
-            gameState: g.gameState, roomState: g.roomState, room: g.currentRoom,
-            playerX: g.player?.x, playerDead: g.player?.dead,
-            activeDialogue: !!g.activeDialogue, npcs: g.npcs?.length,
-            enemies: g.enemies?.length, timeScale: g.time?.scale,
-          }));
-        }
-        // Try to recover
+        if (++_errN <= 3) console.error("[game]", err.message, err.stack);
         try {
           if (g.player?.dead) {
             g.deathPhaseTimer = undefined; g.deathPhase = undefined;

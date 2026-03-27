@@ -335,11 +335,11 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
   // ── 7. Characters in scene ──
   // Use ACTUAL in-game sprites scaled up with pixelated rendering.
-  const panelH = H * 0.22; // shorter panel so characters aren't covered
+  const panelH = H * 0.22; // dialogue panel height
   const panelY = H - panelH;
-  const groundLevel = scene.groundLevel || 0.68;
-  const floorY = Math.min(H * groundLevel, panelY - 10); // characters ABOVE panel, always
-  const charH = Math.min(120, H * 0.18); // slightly bigger characters
+  const groundLevel = scene.groundLevel || 0.78; // match background floor level
+  const floorY = Math.min(H * groundLevel, panelY - 5); // feet on background floor, above panel
+  const charH = Math.min(90, H * 0.14); // smaller characters, proportional to backgrounds
   const bob = 0; // no bobbing — characters stand still
 
   // Determine who's in this scene
@@ -399,7 +399,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const sprite = getCharSprite(charKey, emotion);
 
     ctx.save();
-    if (!isActive) ctx.globalAlpha = 0.35;
+    if (!isActive) ctx.globalAlpha = 0.6;
 
     if (sprite) {
       const aspect = sprite.width / sprite.height;
