@@ -112,56 +112,68 @@ const ZONE_SPRITES = {
   ],
 };
 
-// Track which zones are loaded
+// Build a full registry of all known sprite paths for lazy loading
+const _registry = {};
+function registerSpecs(specs) {
+  for (const [k, s] of specs) _registry[k] = s;
+}
+// Register everything
+registerSpecs(PLAYER_CORE);
+for (const specs of Object.values(ZONE_SPRITES)) registerSpecs(specs);
+
+// Track which zones have been queued
 const _loadedZones = new Set();
 
-// Load sprites for a specific zone (batched, non-blocking)
+// Load sprites for a zone: ONE AT A TIME using setTimeout (not RAF)
+// This prevents blocking the main thread
 function loadZoneSprites(zone) {
-  if (_loadedZones.has(zone)) return Promise.resolve();
+  if (_loadedZones.has(zone)) return;
   _loadedZones.add(zone);
   const specs = ZONE_SPRITES[zone] || [];
   console.log(`[sprites] Loading zone '${zone}': ${specs.length} sprites`);
-  // Load in batches of 6
-  return new Promise(resolve => {
-    let i = 0;
-    function batch() {
-      if (i >= specs.length) { resolve(); return; }
-      const b = specs.slice(i, i + 6);
-      Promise.all(b.map(([k, s]) => loadImg(k, s))).then(() => {
-        i += 6;
-        requestAnimationFrame(batch);
-      });
+  let i = 0;
+  function loadNext() {
+    if (i >= specs.length) {
+      console.log(`[sprites] Zone '${zone}' complete`);
+      return;
     }
-    batch();
-  });
+    const [k, s] = specs[i++];
+    loadImg(k, s).then(() => setTimeout(loadNext, 10)); // 10ms gap between each
+  }
+  loadNext();
 }
 
 // ═══ PUBLIC API ═══
 
 export function loadGameImages() {
   console.log("[sprites] loadGameImages called");
-  // Load ONLY player core + dojo zone (needed for room 0)
   const corePromises = PLAYER_CORE.map(([k, s]) => loadImg(k, s));
-  console.log(`[sprites] Loading ${corePromises.length} core player sprites + dojo zone`);
+  console.log(`[sprites] Loading ${corePromises.length} core player sprites`);
   return Promise.all(corePromises).then(r => {
     console.log(`[sprites] Core: ${r.filter(Boolean).length}/${corePromises.length}`);
-    // Start loading dojo zone in background (non-blocking)
+    // Start loading dojo zone one-by-one in background
     loadZoneSprites("dojo");
   });
 }
 
-// Call this when player enters a new zone to preload its sprites
 export function preloadZone(zone) {
   loadZoneSprites(zone);
-  // Also preload the NEXT zone for seamless transitions
   const zoneOrder = ["dojo", "forest", "edo", "neonTokyo", "nightclub", "spirit"];
   const idx = zoneOrder.indexOf(zone);
   if (idx >= 0 && idx < zoneOrder.length - 1) {
-    setTimeout(() => loadZoneSprites(zoneOrder[idx + 1]), 2000);
+    setTimeout(() => loadZoneSprites(zoneOrder[idx + 1]), 5000);
   }
 }
 
-export function getImage(key) { return _images[key] || null; }
+// getImage: returns cached image, or triggers lazy load if known
+export function getImage(key) {
+  if (_images[key]) return _images[key];
+  // Lazy load: if we know this sprite exists, start loading it
+  if (_registry[key] && !_loading[key]) {
+    loadImg(key, _registry[key]); // fire and forget — will be available next frame
+  }
+  return null;
+}
 export function getMascotImage() { return _images["player"] || null; }
 export function loadMascotImage() { return loadGameImages(); }
 
