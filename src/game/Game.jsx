@@ -138,24 +138,35 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
 
     const callbacks = { setScore, setMaxCombo, setScreen, isDesktop, SIDEBAR_W, highScore, setHighScore };
 
+    let _errorCount = 0;
     function loop() {
       const g = gameRef.current;
       if (!g) return;
       try {
         update(g, callbacks);
         render(g, ctx, isDesktop, font);
+        _errorCount = 0; // reset on success
       } catch (err) {
-        console.error("Game loop error:", err);
-        // Reset to safe state so loop can continue
-        if (g.player?.dead) {
-          g.deathPhaseTimer = undefined;
-          g.deathPhase = undefined;
-          g.brushWipe = 0;
-          g.time.scale = 1;
-          g.camera.zoom = 1;
-          g.camera.zoomTarget = 1;
-          loadRoom(g, g.currentRoom);
+        _errorCount++;
+        if (_errorCount <= 3) {
+          // Log full error with stack trace (only first 3 to avoid spam)
+          console.error(`[GAME CRASH #${_errorCount}]`, err.message, err.stack);
+          console.error("[GAME STATE]", JSON.stringify({
+            gameState: g.gameState, roomState: g.roomState, room: g.currentRoom,
+            playerX: g.player?.x, playerDead: g.player?.dead,
+            activeDialogue: !!g.activeDialogue, npcs: g.npcs?.length,
+            enemies: g.enemies?.length, timeScale: g.time?.scale,
+          }));
         }
+        // Try to recover
+        try {
+          if (g.player?.dead) {
+            g.deathPhaseTimer = undefined; g.deathPhase = undefined;
+            g.brushWipe = 0; g.time.scale = 1;
+            g.camera.zoom = 1; g.camera.zoomTarget = 1;
+            loadRoom(g, g.currentRoom);
+          }
+        } catch {}
       }
       rafRef.current = requestAnimationFrame(loop);
     }
