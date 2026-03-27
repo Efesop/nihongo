@@ -34,21 +34,24 @@ export const ROOMS = [
   // ════════════════════════════════════════════════════
 
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
+  // Training post (breakable) instead of oni — makes sense for dojo training
   {
     title: { jp: "修行", en: "Training" },
     theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 1200 },
     ],
-    enemies: [
-      { type: "oni", x: 700, y: 0, passive: true },
-    ],
+    enemies: [],
     shadows: [],
     playerStart: 80,
     deco: [{ type: "lantern", x: 400 }, { type: "scroll", x: 200 }, { type: "weapon_rack", x: 900 }],
+    breakables: [
+      { type: "bamboo", x: 700, y: 0, w: 40, h: 60, hp: 3 },
+    ],
+    objective: { type: "parkour", time: 120, exitX: 1100 },
     tutorials: [
       { text: "← → to move    (A/D)", trigger: "start" },
-      { text: "J or Z to slash!", trigger: "nearEnemy" },
+      { text: "J or Z to slash the target!", trigger: "start" },
     ],
   },
 

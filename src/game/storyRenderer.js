@@ -339,7 +339,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const groundLevel = scene.groundLevel || 0.75;
   const floorY = H * groundLevel; // per-background floor alignment
   const charH = Math.min(100, H * 0.16); // smaller chars — backgrounds are the star
-  const bob = Math.sin((s.bobTimer || 0) * 2) * 2;
+  const bob = 0; // no bobbing — characters stand still
 
   // Determine who's in this scene
   const speakers = [...new Set(s.lines.map(l => l.speaker).filter(x => x !== "system"))];

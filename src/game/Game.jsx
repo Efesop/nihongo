@@ -6,7 +6,7 @@ import { makePlayer, makeEnemy } from "./entities.js";
 import { update, loadRoom, loadSave, deleteSave } from "./engine.js";
 import { render } from "./renderer.js";
 import { setupKeyboard, setupTouch } from "./input.js";
-import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, startMusicFadeIn, stopMusic, isAudioReady, playVoiceBlip } from "./audio.js";
+import { initAudio, playSound, playRandom, toggleMute, isMuted, startMusic, startMusicFadeIn, stopMusic, isAudioReady, playVoiceBlip, setAmbientTheme } from "./audio.js";
 import { ROOM_DIALOGUE, STORY_TRIGGERS, getDefaultChoices } from "./story.js";
 import { initStoryState } from "./storyRenderer.js";
 import { crossfadeMusic } from "./audio.js";
@@ -216,6 +216,9 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       if (dialogue) {
         g._pendingRoom = fromRoom;
         crossfadeMusic("music_story_calm", 0.5);
+        // Set ambient theme early so rain doesn't play during dojo story
+        const room = ROOMS[fromRoom];
+        if (room?.theme) setAmbientTheme(room.theme);
         initStoryState(g, fromRoom, dialogue);
       }
     }, 50);
