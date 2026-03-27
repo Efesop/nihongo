@@ -78,9 +78,24 @@ export function updateStory(g, rawDt, callbacks) {
   const line = s.lines[s.index];
   if (!line) return;
 
+  // Fade-out transition — darken screen then end story
+  if (s._fadeOut !== undefined) {
+    s._fadeOut += rawDt * 1.5; // ~0.7s fade
+    if (s._fadeOut >= 1) {
+      advanceStory(g, callbacks); // will now proceed past the isLast check
+    }
+    return;
+  }
+
   // Entrance animation — block everything until characters are in position
   if (s.entrance && s.entrance.active) {
     s.entrance.timer += rawDt;
+    // Footstep sounds during walk-in (~4 steps per second)
+    s.entrance._stepTimer = (s.entrance._stepTimer || 0) + rawDt;
+    if (s.entrance._stepTimer > 0.25) {
+      s.entrance._stepTimer = 0;
+      playSound("footstep");
+    }
     if (s.entrance.timer >= s.entrance.duration) {
       s.entrance.active = false;
     }
@@ -191,16 +206,19 @@ function advanceStory(g, callbacks) {
   const isLast = s.index >= s.lines.length - 1;
 
   if (isLast) {
-    // Story complete — load room and resume gameplay
-    playSound("sfx_text_advance");
+    // Story complete — start fade-out, then load room
+    if (!s._fadeOut) {
+      s._fadeOut = 0;
+      playSound("sfx_text_advance");
+      return; // don't end yet — let fade play
+    }
+    // Fade is handled in render — when it reaches 1.0, we proceed
     g.story = null;
     g.gameState = "playing";
     if (g._pendingRoom !== null && g._pendingRoom !== undefined) {
-      // loadRoom is called by the engine when transitioning
       g._loadRoomAfterStory = g._pendingRoom;
       g._pendingRoom = null;
     }
-    // Signal music crossfade (handled by engine)
     g._resumeFromStory = true;
   } else {
     playSound("sfx_text_advance");
@@ -669,6 +687,12 @@ export function renderStoryScene(ctx, g, W, H, font) {
         playSound("sfx_choice_tick");
       }
     }
+  }
+
+  // ── Fade-out overlay (when story is ending) ──
+  if (s._fadeOut !== undefined) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.min(1, s._fadeOut)})`;
+    ctx.fillRect(0, 0, W, H);
   }
 }
 
