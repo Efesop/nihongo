@@ -763,6 +763,42 @@ export function update(g, callbacks) {
           p.vy = 0;
           p.grounded = true;
         }
+      } else if (h.type === "laser") {
+        // Laser grid — thin beam that toggles on/off
+        h.timer += rawDt * 1000;
+        const cycle = (h.onTime || 2000) + (h.offTime || 1500);
+        const phase = h.timer % cycle;
+        h.active = phase < (h.onTime || 2000);
+        h.telegraph = !h.active && phase > cycle - 400; // flicker before activating
+        if (h.active && !p.dead && p.invincible <= 0) {
+          // Laser is a thin vertical or horizontal line
+          const lx = h.x, ly = h.y - (h.h || 200), lw = h.w || 4, lh = h.h || 200;
+          if (h.horizontal) {
+            // Horizontal laser
+            if (p.x + 15 > lx && p.x - 15 < lx + (h.w || 200) &&
+                Math.abs((p.y + TILE * SCALE * 0.5) - h.y) < 10) {
+              killPlayer(g, callbacks);
+            }
+          } else {
+            // Vertical laser
+            if (p.x + 10 > lx && p.x - 10 < lx + lw &&
+                p.y + TILE * SCALE > ly && p.y < h.y) {
+              killPlayer(g, callbacks);
+            }
+          }
+        }
+      } else if (h.type === "electric") {
+        // Electric floor — ground section that zaps periodically
+        h.timer += rawDt * 1000;
+        const cycle = (h.onTime || 1500) + (h.offTime || 2500);
+        const phase = h.timer % cycle;
+        h.active = phase < (h.onTime || 1500);
+        h.telegraph = !h.active && phase > cycle - 500;
+        if (h.active && !p.dead && p.invincible <= 0 && p.grounded &&
+            p.x + 10 > h.x && p.x - 10 < h.x + h.w &&
+            Math.abs((p.y + TILE * SCALE) - h.y) < 10) {
+          killPlayer(g, callbacks);
+        }
       }
     }
   }

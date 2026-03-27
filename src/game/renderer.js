@@ -854,6 +854,22 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillText(et.text, bubbleX, bubbleY + (et.textJp ? 14 : 4));
   }
 
+  // ── Foreground parallax layer (renders OVER world objects) ──
+  if (g._fgLayerKey) {
+    const fgImg = getImage(g._fgLayerKey);
+    if (fgImg) {
+      const fgScale = Math.max(W / fgImg.width, H / fgImg.height);
+      const fgW = fgImg.width * fgScale;
+      const fgH = fgImg.height * fgScale;
+      const maxCxFg = Math.max(1, g.levelW - W);
+      const fgPanRange = Math.max(0, fgW - W);
+      const fgPanX = fgPanRange > 0 ? -(cx / maxCxFg) * fgPanRange * 1.2 : 0; // 1.2x = faster than camera
+      ctx.globalAlpha = 0.6;
+      ctx.drawImage(fgImg, fgPanX, -(fgH - H) * 0.3, fgW, fgH);
+      ctx.globalAlpha = 1;
+    }
+  }
+
   ctx.restore(); // end camera
 
   // End zoom transform (before HUD — HUD stays unzoomed)
@@ -2062,6 +2078,40 @@ const THEME_PALETTES = {
     fogColor: "rgba(14,10,6,",
     farBldg: "#0c0a06", midBldg: "#100e08", windowColor: "rgba(255,160,80,0.1)",
   },
+  // ── New zones ──
+  edo: {
+    sky: ["#0c0806", "#1a1008", "#241810", "#1e140a"],
+    ground: "#0c0806", groundEdge: "rgba(140,100,60,0.12)",
+    platAccent: "#c4963a", platBase: "#2a1e14", platDark: "#1a120c",
+    wallBase: "#201810", wallDark: "#14100a",
+    star: "#ffeecc", fogColor: "rgba(14,10,6,",
+    farBldg: "#100c06", midBldg: "#1a140a", windowColor: "rgba(255,180,80,0.2)",
+  },
+  neonTokyo: {
+    sky: ["#020210", "#040428", "#080840", "#060630"],
+    ground: "#040410", groundEdge: "rgba(80,40,200,0.25)",
+    platAccent: "#ff44aa", platBase: "#1a1030", platDark: "#0e0820",
+    wallBase: "#16102a", wallDark: "#0c081a",
+    star: "#6688ff", fogColor: "rgba(4,2,16,",
+    farBldg: "#080820", midBldg: "#0e0e30", windowColor: "rgba(255,60,180,0.3)",
+  },
+  nightclub: {
+    sky: ["#020008", "#040018", "#080028", "#060020"],
+    ground: "#020008", groundEdge: "rgba(200,40,200,0.2)",
+    platAccent: "#aa22ff", platBase: "#18082a", platDark: "#0e041a",
+    wallBase: "#140822", wallDark: "#0a0414",
+    star: "#000000", // indoor — no stars
+    fogColor: "rgba(4,0,12,",
+    farBldg: "#060014", midBldg: "#0a0020", windowColor: "rgba(200,40,255,0.25)",
+  },
+  spirit: {
+    sky: ["#0a0812", "#140e20", "#1e1430", "#181028"],
+    ground: "#0a0810", groundEdge: "rgba(100,80,200,0.15)",
+    platAccent: "#8866cc", platBase: "#1e1630", platDark: "#120e20",
+    wallBase: "#181228", wallDark: "#0e0a1a",
+    star: "#ccaaff", fogColor: "rgba(10,6,18,",
+    farBldg: "#0c0818", midBldg: "#141028", windowColor: "rgba(150,100,255,0.2)",
+  },
 };
 
 function getTheme(g) {
@@ -2077,29 +2127,69 @@ function getTheme(g) {
 function renderBackground(ctx, W, H, cx, g) {
   const groundY = g.groundY;
   const pal = getTheme(g);
-  // Select background image based on room theme
   const room = (g._rooms || [])[g.currentRoom];
-  const bgKey = (room && room.theme === "dojo") ? "bg_dojo" : (g.currentRoom >= 15 ? "bg_temple" : "bg_forest");
-  const bgImg = getImage(bgKey) || getImage("bg_forest");
   const t = g.time.elapsed;
+  const maxCx = Math.max(1, g.levelW - W);
 
-  if (bgImg) {
-    // ── Image-based parallax background ──
-    const scaleW = W / bgImg.width;
-    const scaleH = H / bgImg.height;
-    const bgScale = Math.max(scaleW, scaleH);
-    const bgW = bgImg.width * bgScale;
-    const bgH = bgImg.height * bgScale;
-    const panRange = Math.max(0, bgW - W);
-    const maxCx = Math.max(1, g.levelW - W);
-    const panX = panRange > 0 ? -(cx / maxCx) * panRange : 0;
-    const panY = -(bgH - H) * 0.3;
+  // ── Multi-layer parallax system ──
+  // Rooms can define bg: { far, mid, near, fg, tint } for 4-layer parallax
+  // Falls back to single background image for backward compatibility
+  const roomBg = room?.bg;
 
-    ctx.drawImage(bgImg, panX, panY, bgW, bgH);
+  if (roomBg && (roomBg.far || roomBg.mid || roomBg.near)) {
+    // Multi-layer mode: each layer scrolls at different speed
+    const layers = [
+      { key: roomBg.far,  speed: 0.1 },  // slowest — distant mountains/skyline
+      { key: roomBg.mid,  speed: 0.3 },  // medium — mid-ground buildings
+      { key: roomBg.near, speed: 0.6 },  // fast — near objects
+    ];
+    for (const layer of layers) {
+      const img = layer.key ? getImage(layer.key) : null;
+      if (!img) continue;
+      const scaleW = W / img.width;
+      const scaleH = H / img.height;
+      const bgScale = Math.max(scaleW, scaleH);
+      const bgW = img.width * bgScale;
+      const bgH = img.height * bgScale;
+      const panRange = Math.max(0, bgW - W);
+      const panX = panRange > 0 ? -(cx / maxCx) * panRange * layer.speed : 0;
+      const panY = -(bgH - H) * 0.3;
+      ctx.drawImage(img, panX, panY, bgW, bgH);
+    }
+    // Tint overlay
+    if (roomBg.tint) {
+      ctx.fillStyle = roomBg.tint;
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = "rgba(5,8,15,0.15)";
+      ctx.fillRect(0, 0, W, H);
+    }
+  } else {
+    // Single-image fallback (backward compatible with existing rooms)
+    const bgKey = (room && room.theme === "dojo") ? "bg_dojo" : (g.currentRoom >= 15 ? "bg_temple" : "bg_forest");
+    const bgImg = getImage(bgKey) || getImage("bg_forest");
 
-    // Dark overlay for depth
-    ctx.fillStyle = "rgba(5,8,15,0.2)";
-    ctx.fillRect(0, 0, W, H);
+    if (bgImg) {
+      const scaleW = W / bgImg.width;
+      const scaleH = H / bgImg.height;
+      const bgScale = Math.max(scaleW, scaleH);
+      const bgW = bgImg.width * bgScale;
+      const bgH = bgImg.height * bgScale;
+      const panRange = Math.max(0, bgW - W);
+      const panX = panRange > 0 ? -(cx / maxCx) * panRange : 0;
+      const panY = -(bgH - H) * 0.3;
+      ctx.drawImage(bgImg, panX, panY, bgW, bgH);
+      ctx.fillStyle = "rgba(5,8,15,0.2)";
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // Store foreground layer key for rendering AFTER world objects
+  g._fgLayerKey = roomBg?.fg || null;
+
+  // Check if ANY background was drawn (image or multi-layer)
+  const hasBg = roomBg ? !!(roomBg.far || roomBg.mid || roomBg.near) : !!getImage((room && room.theme === "dojo") ? "bg_dojo" : "bg_forest");
+  if (hasBg) {
 
     // ── Wind gusts — periodic sideways push affecting rain angle ──
     // Store wind state on game object for rain particles to access
