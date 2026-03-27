@@ -136,9 +136,9 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "musicChange") {
       crossfadeMusic(line.to, line.fade || 1.0);
     }
-    // Auto-advance to next line (cinematic beats don't wait for click)
+    // Advance to next line — but WAIT one frame before processing next beat
+    // This prevents multiple SFX/effects from stacking on the same frame
     s.index++;
-    // If we've passed the last line, end the story
     if (s.index >= s.lines.length) {
       g.story = null;
       g.gameState = "playing";
@@ -150,6 +150,17 @@ export function updateStory(g, rawDt, callbacks) {
       return;
     }
     s.typedChars = 0; s.typingDone = false; s.timer = 0;
+    // If next line is ALSO a beat, wait one frame before processing it
+    const nextLine = s.lines[s.index];
+    if (nextLine && nextLine.type && nextLine.type !== "dialogue") {
+      s._beatCooldown = 0.05; // 50ms gap between consecutive beats
+    }
+    return;
+  }
+
+  // Beat cooldown — prevents rapid-fire stacking
+  if (s._beatCooldown > 0) {
+    s._beatCooldown -= rawDt;
     return;
   }
 
