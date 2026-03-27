@@ -95,6 +95,13 @@ export const ENEMY_CONFIG = {
   archer:  { hp: 1, speed: 0,   alertRange: 400, fireRate: 1200, retreatSpeed: 120, score: 200 },
   brute:   { hp: 3, speed: 0.4, alertRange: 250, attackRange: 80, cooldown: 1200, chargeSpeed: 2.0, score: 500 },
   tengu:   { hp: 1, speed: 0,   alertRange: 300, swoopInterval: 2000, score: 250 },
+  // ── New enemy types ──
+  ronin:       { hp: 1, speed: 0.8, alertRange: 220, attackRange: 60, cooldown: 600, score: 200 },
+  cyber_ninja: { hp: 1, speed: 0,   alertRange: 350, fireRate: 800, retreatSpeed: 180, score: 300, teleportRange: 150 },
+  bouncer:     { hp: 3, speed: 0.3, alertRange: 200, attackRange: 70, cooldown: 1000, chargeSpeed: 2.2, score: 600 },
+  monk:        { hp: 2, speed: 0.4, alertRange: 180, attackRange: 55, cooldown: 900, score: 350 },
+  spirit_fox:  { hp: 1, speed: 0,   alertRange: 280, swoopInterval: 1800, score: 300 },
+  cursed_ronin:{ hp: 3, speed: 0.7, alertRange: 250, attackRange: 65, cooldown: 500, score: 800 },
 };
 
 // ═══ CAMERA ═══
