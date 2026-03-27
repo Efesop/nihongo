@@ -48,22 +48,21 @@ export function loadGameImages() {
   console.log("[sprites] loadGameImages called");
   // Load CRITICAL sprites first (player + oni + ninja — needed for room 0)
   // Then load everything else in background (non-blocking)
-  // CRITICAL: Only the bare minimum to render room 0 story + first gameplay frame
-  // Just 8 images — player idle, oni idle, dojo bg, story sprites
+  // CRITICAL: Absolute minimum to show room 0 — just 3 images, no gray bg processing
   const critical = [
-    loadImg("player", "/images/tinysenpai/idle.png", true),
-    loadImg("oni_idle", "/images/oni/oni-idle.png", true),
-    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
-    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),
-    loadImg("story_player_idle", "/images/tinysenpai/game/story_player_idle.png", true),
+    loadImg("player", "/images/tinysenpai/idle.png", true),  // small sprite, fast
+    loadImg("bg_dojo_story", "/images/tinysenpai/game/bg_dojo_story.png"),  // no processing
     loadImg("story_sensei_idle", "/images/tinysenpai/game/story_sensei_idle.png", true),
-    loadImg("story_sensei_serious", "/images/tinysenpai/game/story_sensei_serious.png", true),
-    loadImg("story_sensei_amused", "/images/tinysenpai/game/story_sensei_amused.png", true),
   ];
 
   // EVERYTHING else loads in background — game starts immediately
-  // Player sprites, enemy sprites, backgrounds all load while you play
   const deferred = [
+    // Room 0 extras (not blocking)
+    loadImg("oni_idle", "/images/oni/oni-idle.png", true),
+    loadImg("bg_dojo", "/images/tinysenpai/game/bg_dojo.png"),
+    loadImg("story_player_idle", "/images/tinysenpai/game/story_player_idle.png", true),
+    loadImg("story_sensei_serious", "/images/tinysenpai/game/story_sensei_serious.png", true),
+    loadImg("story_sensei_amused", "/images/tinysenpai/game/story_sensei_amused.png", true),
     // Player — full set
     loadImg("run1", "/images/tinysenpai/run/1.png", true),
     loadImg("run2", "/images/tinysenpai/run/2.png", true),
@@ -188,10 +187,18 @@ export function loadGameImages() {
   // Wait only for critical sprites, then start game immediately
   // Deferred sprites load in background — procedural fallback handles missing
   console.log(`[sprites] Loading ${critical.length} critical + ${deferred.length} deferred sprites`);
-  const criticalPromise = Promise.all(critical).then(results => {
-    const loaded = results.filter(Boolean).length;
-    console.log(`[sprites] Critical done: ${loaded}/${critical.length} loaded`);
-  });
+  // Timeout: if critical sprites take >5s, proceed anyway (renderer handles missing)
+  const timeout = new Promise(resolve => setTimeout(() => {
+    console.warn("[sprites] Critical load timeout — proceeding without all sprites");
+    resolve();
+  }, 5000));
+  const criticalPromise = Promise.race([
+    Promise.all(critical).then(results => {
+      const loaded = results.filter(Boolean).length;
+      console.log(`[sprites] Critical done: ${loaded}/${critical.length} loaded`);
+    }),
+    timeout,
+  ]);
   Promise.all(deferred).then(results => {
     const loaded = results.filter(Boolean).length;
     console.log(`[sprites] Deferred done: ${loaded}/${deferred.length} loaded`);
