@@ -699,7 +699,7 @@ export function initStoryState(g, roomIndex, lines) {
     choiceTimer: 0,
     sceneConfig: canvasConfig,
     // Entrance animation — characters walk in from offscreen
-    entrance: { active: true, timer: 0, duration: 0.6 },
+    entrance: { active: true, timer: 0, duration: 1.5 },
   };
   g._storyRoomIndex = roomIndex;
   g.gameState = "story";
