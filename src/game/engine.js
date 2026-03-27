@@ -12,6 +12,7 @@ import { ROOM_ENCOUNTERS, ROOM_DIALOGUE, STORY_TRIGGERS } from "./story.js";
 import { updateStory, initStoryState } from "./storyRenderer.js";
 import { crossfadeMusic } from "./audio.js";
 import { playSound, playRandom, playRandomExclusive, setAmbientTheme, playVoiceBlip } from "./audio.js";
+import { preloadZone } from "./sprites.js";
 
 // ═══ ZONE MUSIC MAPPING ═══
 const ZONE_MUSIC = {
@@ -37,8 +38,11 @@ export function loadRoom(g, roomIndex) {
   if (!room) return;
   g.currentRoom = roomIndex;
   g._rooms = ROOMS; // expose for renderer theme lookup
+  // Preload sprites for this zone (and next zone)
+  const theme = room.theme || "forest";
+  preloadZone(theme);
   // Set ambient theme (no rain in dojo)
-  setAmbientTheme(room.theme || (roomIndex >= 15 ? "temple" : "forest"));
+  setAmbientTheme(theme === "dojo" ? "dojo" : (roomIndex >= 15 ? "temple" : "forest"));
   g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
   g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
