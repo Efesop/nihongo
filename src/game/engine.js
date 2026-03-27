@@ -204,11 +204,16 @@ export function deleteSave() {
 }
 
 // ═══ UPDATE ═══
+let _updateLogCount = 0;
 export function update(g, callbacks) {
   const { setScore, setMaxCombo, setScreen, isDesktop, SIDEBAR_W, highScore, setHighScore } = callbacks;
   const now = performance.now();
   let rawDt = Math.min(now - g.time.last, 33) / 1000;
   g.time.last = now;
+  if (_updateLogCount < 3) {
+    _updateLogCount++;
+    console.log(`[update #${_updateLogCount}] gameState=${g.gameState} roomState=${g.roomState} rawDt=${rawDt.toFixed(4)} enemies=${g.enemies?.length} player=${!!g.player}`);
+  }
 
   // ── Story mode — canvas-based dialogue scenes ──
   if (g.gameState === "story") {
