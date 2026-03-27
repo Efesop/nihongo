@@ -575,113 +575,113 @@ export function getSceneConfig(roomIndex) {
   // ── Prologue: Dojo (0-4) ──
   if (roomIndex <= 4) return {
     bgKey: 'bg_dojo_story', gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
-    label: '道場', labelEn: 'THE DOJO', particleType: 'dust', groundLevel: 0.78,
+    label: '道場', labelEn: 'THE DOJO', particleType: 'dust', groundLevel: 0.68,
     characters: { left: 'player', right: 'sensei' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
   // ── The Turn (5) ──
   if (roomIndex === 5) return {
     bgKey: 'bg_dojo_night_story', gradientColors: ['#1a0808', '#140606', '#0a0404'],
-    label: '転機', labelEn: 'THE TURNING POINT', particleType: 'embers', groundLevel: 0.78,
+    label: '転機', labelEn: 'THE TURNING POINT', particleType: 'embers', groundLevel: 0.68,
     characters: { left: 'player', right: 'sensei' },
     entrance: { left: 'already_there', right: 'already_there' },
   };
   // ── Forest solo scenes (6-9) ──
   if (roomIndex <= 9) return {
     bgKey: 'bg_forest_story', gradientColors: ['#081a12', '#061210', '#040a08'],
-    label: '森', labelEn: 'THE FOREST', particleType: 'leaves', groundLevel: 0.80,
+    label: '森', labelEn: 'THE FOREST', particleType: 'leaves', groundLevel: 0.68,
     characters: { left: 'player', right: null },
     entrance: { left: 'walk_in' },
   };
   // ── Shadow's entrance (10) ──
   if (roomIndex === 10) return {
     bgKey: 'bg_forest_story', gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
-    label: '出会い', labelEn: 'THE ENCOUNTER', particleType: 'embers', groundLevel: 0.80,
+    label: '出会い', labelEn: 'THE ENCOUNTER', particleType: 'embers', groundLevel: 0.68,
     characters: { left: 'player', right: 'shadow' },
     entrance: { left: 'already_there', right: 'fade_in' },
   };
   // ── Forest + Shadow (11) ──
   if (roomIndex === 11) return {
     bgKey: 'bg_forest_story', gradientColors: ['#1a0a1a', '#140818', '#0a0410'],
-    label: '闇路', labelEn: 'THE DARK PATH', particleType: 'embers', groundLevel: 0.80,
+    label: '闇路', labelEn: 'THE DARK PATH', particleType: 'embers', groundLevel: 0.68,
     characters: { left: 'player', right: 'shadow' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
   // ── Act 2: Edo Castle Town (12-18) ──
   if (roomIndex >= 12 && roomIndex <= 14) return {
     bgKey: 'bg_edo_story', gradientColors: ['#1a1508', '#14100c', '#0e0a06'],
-    label: '江戸', labelEn: 'EDO CASTLE TOWN', particleType: 'petals', groundLevel: 0.78,
+    label: '江戸', labelEn: 'EDO CASTLE TOWN', particleType: 'petals', groundLevel: 0.68,
     characters: { left: 'player', right: 'kunoichi' },
     entrance: { left: 'walk_in', right: roomIndex === 12 ? 'fade_in' : 'already_there' },
   };
   if (roomIndex >= 15 && roomIndex <= 16) return {
     bgKey: 'bg_edo_story', gradientColors: ['#1a1508', '#14100c', '#0e0a06'],
-    label: '城', labelEn: 'THE CASTLE', particleType: 'dust', groundLevel: 0.78,
+    label: '城', labelEn: 'THE CASTLE', particleType: 'dust', groundLevel: 0.68,
     characters: { left: 'player', right: 'kunoichi' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
   if (roomIndex >= 17 && roomIndex <= 18) return {
     bgKey: 'bg_edo_story', gradientColors: ['#1a1208', '#14100a', '#0e0a06'],
-    label: '桂の間', labelEn: "KATSURA'S CHAMBER", particleType: 'embers', groundLevel: 0.78,
+    label: '桂の間', labelEn: "KATSURA'S CHAMBER", particleType: 'embers', groundLevel: 0.68,
     characters: { left: 'player', right: roomIndex === 17 ? 'katsura' : 'kunoichi' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
   // ── Act 3: Neon Tokyo (19-25) ──
   if (roomIndex >= 19 && roomIndex <= 21) return {
     bgKey: 'bg_neon_story', gradientColors: ['#020210', '#040428', '#080840'],
-    label: 'ネオン東京', labelEn: 'NEON TOKYO', particleType: 'embers', groundLevel: 0.80,
+    label: 'ネオン東京', labelEn: 'NEON TOKYO', particleType: 'embers', groundLevel: 0.68,
     characters: { left: 'player', right: roomIndex === 22 ? 'shadow' : 'hacker' },
     entrance: { left: 'walk_in', right: roomIndex === 19 ? 'fade_in' : 'already_there' },
   };
   if (roomIndex >= 22 && roomIndex <= 25) return {
     bgKey: 'bg_neon_story', gradientColors: ['#0a0420', '#140830', '#200c40'],
-    label: '暗路', labelEn: 'DARK STREETS', particleType: 'embers', groundLevel: 0.80,
+    label: '暗路', labelEn: 'DARK STREETS', particleType: 'embers', groundLevel: 0.68,
     characters: { left: 'player', right: roomIndex === 22 ? 'shadow' : 'hacker' },
     entrance: { left: 'walk_in', right: roomIndex === 22 ? 'fade_in' : 'already_there' },
   };
   // ── Act 4: Underground / Nightclub (26-31) ──
   if (roomIndex >= 26 && roomIndex <= 31) return {
     bgKey: 'bg_nightclub_story', gradientColors: ['#020008', '#040018', '#080028'],
-    label: '地下', labelEn: 'THE UNDERGROUND', particleType: 'embers', groundLevel: 0.80,
+    label: '地下', labelEn: 'THE UNDERGROUND', particleType: 'embers', groundLevel: 0.68,
     characters: { left: 'player', right: roomIndex === 31 ? 'shadow' : (roomIndex >= 28 ? 'hacker' : null) },
     entrance: { left: 'walk_in', right: roomIndex === 31 ? 'fade_in' : 'already_there' },
   };
   // ── Act 5: Spirit Realm (32-38) ──
   if (roomIndex >= 32 && roomIndex <= 34) return {
     bgKey: 'bg_spirit_story', gradientColors: ['#0a0812', '#140e20', '#1e1430'],
-    label: '山寺', labelEn: 'MOUNTAIN TEMPLE', particleType: 'petals', groundLevel: 0.76,
+    label: '山寺', labelEn: 'MOUNTAIN TEMPLE', particleType: 'petals', groundLevel: 0.66,
     characters: { left: 'player', right: roomIndex === 32 ? 'elder' : null },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
   if (roomIndex === 35) return {
     bgKey: 'bg_spirit_story', gradientColors: ['#0e0818', '#180e28', '#221438'],
-    label: '精霊の世界', labelEn: 'SPIRIT REALM', particleType: 'petals', groundLevel: 0.76,
+    label: '精霊の世界', labelEn: 'SPIRIT REALM', particleType: 'petals', groundLevel: 0.66,
     characters: { left: 'player', right: 'fox' },
     entrance: { left: 'walk_in', right: 'fade_in' },
   };
   if (roomIndex >= 36 && roomIndex <= 38) return {
     bgKey: 'bg_spirit_story', gradientColors: ['#0e0818', '#180e28', '#221438'],
-    label: '最終決戦', labelEn: 'FINAL BATTLE', particleType: 'embers', groundLevel: 0.76,
+    label: '最終決戦', labelEn: 'FINAL BATTLE', particleType: 'embers', groundLevel: 0.66,
     characters: { left: 'player', right: 'shadow' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
   // ── Epilogue (39-41) ──
   if (roomIndex === 39) return {
     bgKey: 'bg_spirit_story', gradientColors: ['#140e20', '#1e1430', '#281a40'],
-    label: '帰還', labelEn: 'THE RETURN', particleType: 'petals', groundLevel: 0.76,
+    label: '帰還', labelEn: 'THE RETURN', particleType: 'petals', groundLevel: 0.66,
     characters: { left: 'player', right: 'fox' },
     entrance: { left: 'already_there', right: 'fade_in' },
   };
   if (roomIndex >= 40) return {
     bgKey: 'bg_dojo_story', gradientColors: ['#1a1510', '#14100c', '#0e0a06'],
-    label: '新しい夜明け', labelEn: 'A NEW DAWN', particleType: 'petals', groundLevel: 0.78,
+    label: '新しい夜明け', labelEn: 'A NEW DAWN', particleType: 'petals', groundLevel: 0.68,
     characters: { left: 'player', right: 'sensei' },
     entrance: { left: 'walk_in', right: 'already_there' },
   };
   // Fallback
   return {
     bgKey: 'bg_forest_story', gradientColors: ['#081a12', '#061210', '#040a08'],
-    label: '', labelEn: '', particleType: 'dust', groundLevel: 0.78,
+    label: '', labelEn: '', particleType: 'dust', groundLevel: 0.68,
     characters: { left: 'player', right: null },
     entrance: { left: 'walk_in' },
   };

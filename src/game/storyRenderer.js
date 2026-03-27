@@ -335,10 +335,11 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
   // ── 7. Characters in scene ──
   // Use ACTUAL in-game sprites scaled up with pixelated rendering.
-  const panelH = H * 0.28;
-  const groundLevel = scene.groundLevel || 0.75;
-  const floorY = H * groundLevel; // per-background floor alignment
-  const charH = Math.min(100, H * 0.16); // smaller chars — backgrounds are the star
+  const panelH = H * 0.22; // shorter panel so characters aren't covered
+  const panelY = H - panelH;
+  const groundLevel = scene.groundLevel || 0.68;
+  const floorY = Math.min(H * groundLevel, panelY - 10); // characters ABOVE panel, always
+  const charH = Math.min(120, H * 0.18); // slightly bigger characters
   const bob = 0; // no bobbing — characters stand still
 
   // Determine who's in this scene
@@ -458,7 +459,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
   // Ground line removed — characters stand on background floor naturally
 
   // ── 9. Dialogue panel ──
-  const panelY = H - panelH;
+  // panelY already defined above
   const panelGrad = ctx.createLinearGradient(0, panelY, 0, H);
   panelGrad.addColorStop(0, "rgba(6,6,14,0.92)");
   panelGrad.addColorStop(1, "rgba(6,6,14,0.98)");
