@@ -83,47 +83,44 @@ export const ROOM_DIALOGUE = {
     // ── Beat 2: The discovery — Sensei notices the mark ──
     { speaker: "sensei", textJp: "...待て。腕を見せろ。", text: "...Wait. Show me your arm.", emotion: "serious" },
     { speaker: "player", textJp: "え？なんで—", text: "Huh? Why—", emotion: "surprised" },
-    // Show arm as centered overlay (not full background)
-    { type: "musicChange", to: "music_story_tension", fade: 0.5 },
-    { type: "sfx", sound: "tension_sting" },
+    // Show arm — tension music starts, plays through entire scene
+    { type: "musicChange", to: "music_story_tension", fade: 1.0 },
     { type: "centerImage", image: "cutscene_sensei_arm", fade: 0.5, scale: 0.25 },
-    { type: "pause", duration: 0.8 },
+    { type: "pause", duration: 1.0 },
+    { type: "sfx", sound: "tension_sting" },
     { speaker: "sensei", textJp: "...この印は...まさか。", text: "...This mark... no. It can't be.", emotion: "serious" },
     { speaker: "player", textJp: "分からない...集中すると光るんです。", text: "I don't know... it glows when I focus." },
     { type: "clearCenter" },
-    { type: "sfx", sound: "heartbeat_tension" },
     { speaker: "sensei", textJp: "...", text: "..." },
+    { type: "sfx", sound: "heartbeat_tension" },
     { speaker: "player", textJp: "先生？顔色が悪いですよ。大丈夫ですか？", text: "Sensei? You've gone pale. Are you alright?" },
 
-    // ── Beat 3: The attack — shadows approach ──
-    // Choice point: demand answers or trust sensei
+    // ── Beat 3: The attack ──
+    // Tension music keeps playing — eerie atmosphere builds
     { speaker: "sensei", textJp: "...説明している暇はない！信じろ！", text: "...No time to explain! Trust me!", emotion: "alarmed", condition: { flag: "departure_demand" } },
     { speaker: "sensei", textJp: "...お前は強い子だ。信じろ。", text: "...You've always been strong. Trust me.", emotion: "serious", condition: { flag: "departure_trust" } },
-
-    // Glass shatters — make it VERY obvious
     { speaker: "sensei", textJp: "...聞け。大事な話が—", text: "...Listen. There's something important—", emotion: "serious" },
-    { type: "musicStop" },
-    { type: "pause", duration: 0.5 },
+
+    // Glass shatters — tension music still playing (don't stop it)
     { type: "sfx", sound: "glass_shatter" },
     { type: "shake", intensity: 4, duration: 0.5 },
     { type: "pause", duration: 1.5 },
-    // Silence — then sensei reacts
-    { speaker: "sensei", textJp: "...！あの音...まさか。", text: "...! That sound... no.", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "...！あの音...", text: "...! That sound...", emotion: "alarmed" },
     { speaker: "player", textJp: "先生、何が—", text: "Sensei, what's—" },
 
-    // Cut to exterior — approaching shadows
+    // Cut to exterior — approaching shadows (tension music continues)
     { type: "bgSwap", to: "cutscene_approaching_shadows", transition: "hardCut" },
     { type: "sfx", sound: "distant_footsteps" },
     { type: "pause", duration: 3.0 },
 
-    // Back to dojo
+    // Back to dojo — urgent
     { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
     { speaker: "sensei", textJp: "来た。追っ手だ。", text: "They're here. The hunters.", emotion: "alarmed" },
     { speaker: "sensei", textJp: "聞け！山寺の長老を探せ！印のことを知っている！", text: "Listen! Find the Elder at the mountain temple! He knows about the mark!", emotion: "alarmed" },
     { speaker: "player", textJp: "何を言って—先生は？！", text: "What are you— what about you?!", emotion: "surprised" },
     { speaker: "sensei", textJp: "俺のことはいい。お前が生き延びろ。", text: "Forget about me. You need to survive.", emotion: "alarmed" },
 
-    // Door smashes open
+    // Door smashes — blood on shoji
     { type: "sfx", sound: "wood_splinter" },
     { type: "shake", intensity: 8, duration: 0.8 },
     { type: "bgSwap", to: "cutscene_shoji_blood", transition: "hardCut" },
