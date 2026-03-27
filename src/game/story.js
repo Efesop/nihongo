@@ -83,14 +83,14 @@ export const ROOM_DIALOGUE = {
     // ── Beat 2: The discovery — Sensei notices the mark ──
     { speaker: "sensei", textJp: "...待て。腕を見せろ。", text: "...Wait. Show me your arm.", emotion: "serious" },
     { speaker: "player", textJp: "え？なんで—", text: "Huh? Why—", emotion: "surprised" },
-    // Flash to close-up of the cursed arm
+    // Show arm as centered overlay (not full background)
+    { type: "musicChange", to: "music_story_tension", fade: 0.5 },
     { type: "sfx", sound: "tension_sting" },
-    { type: "bgSwap", to: "cutscene_sensei_arm", transition: "flash", duration: 0.2 },
-    { type: "pause", duration: 1.5 },
-    { speaker: "sensei", textJp: "...いつからある。この印は。", text: "...How long have you had this mark.", emotion: "serious" },
+    { type: "centerImage", image: "cutscene_sensei_arm", fade: 0.5, scale: 0.4 },
+    { type: "pause", duration: 0.8 },
+    { speaker: "sensei", textJp: "...この印は...まさか。", text: "...This mark... no. It can't be.", emotion: "serious" },
     { speaker: "player", textJp: "分からない...集中すると光るんです。", text: "I don't know... it glows when I focus." },
-    // Cut back to dojo
-    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
+    { type: "clearCenter" },
     { type: "sfx", sound: "heartbeat_tension" },
     { speaker: "sensei", textJp: "...", text: "..." },
     { speaker: "player", textJp: "先生？顔色が悪いですよ。大丈夫ですか？", text: "Sensei? You've gone pale. Are you alright?" },
@@ -100,25 +100,29 @@ export const ROOM_DIALOGUE = {
     { speaker: "sensei", textJp: "...説明している暇はない！信じろ！", text: "...No time to explain! Trust me!", emotion: "alarmed", condition: { flag: "departure_demand" } },
     { speaker: "sensei", textJp: "...お前は強い子だ。信じろ。", text: "...You've always been strong. Trust me.", emotion: "serious", condition: { flag: "departure_trust" } },
 
-    // Distant sound — something is wrong
-    { type: "sfx", sound: "glass_shatter" },
-    { type: "pause", duration: 0.8 },
+    // Glass shatters — make it VERY obvious
+    { speaker: "sensei", textJp: "...聞け。大事な話が—", text: "...Listen. There's something important—", emotion: "serious" },
     { type: "musicStop" },
-    { type: "pause", duration: 1.0 },
-    { speaker: "sensei", textJp: "...!", text: "...!", emotion: "alarmed" },
+    { type: "pause", duration: 0.5 },
+    { type: "sfx", sound: "glass_shatter" },
+    { type: "shake", intensity: 3, duration: 0.3 },
+    { type: "flash", color: "#ffffff", duration: 0.08 },
+    { type: "pause", duration: 1.5 },
+    // Total silence — then sensei reacts
+    { speaker: "sensei", textJp: "...！", text: "...!", emotion: "alarmed" },
+    { speaker: "player", textJp: "何の音？", text: "What was that sound?" },
+    { speaker: "sensei", textJp: "...来るな。窓の外を見るな。", text: "...Don't move. Don't look outside.", emotion: "alarmed" },
 
-    // Cut to exterior — shadows approaching
-    { type: "bgSwap", to: "bg_dojo_exterior_night", transition: "hardCut" },
+    // Cut to exterior — approaching shadows (auto-skips after 4s or click)
+    { type: "bgSwap", to: "cutscene_approaching_shadows", transition: "hardCut" },
     { type: "sfx", sound: "distant_footsteps" },
-    { type: "pause", duration: 2.0 },
-    { type: "overlay", image: "cutscene_approaching_shadows", fade: 1.5 },
-    { type: "pause", duration: 2.0 },
+    { type: "pause", duration: 4.0 },
 
-    // Cut back to dojo — panic
+    // Back to dojo — panic
     { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
-    { type: "sfx", sound: "wind_howl" },
-    { speaker: "sensei", textJp: "見つかった。", text: "They found us.", emotion: "alarmed" },
-    { speaker: "sensei", textJp: "聞け！山寺の長老を探せ！", text: "Listen! Find the Elder at the mountain temple!", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "見つかった。奴らだ。", text: "They found us. It's them.", emotion: "alarmed" },
+    { speaker: "player", textJp: "誰が—", text: "Who—" },
+    { speaker: "sensei", textJp: "聞け！山寺の長老を探せ！印のことを知っている！", text: "Listen! Find the Elder at the mountain temple! He knows about the mark!", emotion: "alarmed" },
     { speaker: "player", textJp: "何を言って—先生は？！", text: "What are you— what about you?!", emotion: "surprised" },
 
     // ── Beat 4: The door breaks ──
@@ -126,11 +130,11 @@ export const ROOM_DIALOGUE = {
     { type: "shake", intensity: 10, duration: 1.0 },
     { type: "flash", color: "#ff2200", duration: 0.15 },
     { type: "bgSwap", to: "cutscene_shoji_blood", transition: "flash", color: "#ffffff", duration: 0.1 },
-    { type: "pause", duration: 1.5 },
+    { type: "pause", duration: 2.0 },
 
     // ── Beat 5: Final words ──
     { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
-    { speaker: "sensei", textJp: "印を持つ者は...狙われる。", text: "Those who bear the mark... are hunted.", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "印を持つ者は...狩られる。", text: "Those who bear the mark... are hunted.", emotion: "alarmed" },
     { speaker: "sensei", textJp: "自分の足で立て。行け！！", text: "Stand on your own feet. GO!!", emotion: "alarmed" },
 
     // Hard blackout → combat begins

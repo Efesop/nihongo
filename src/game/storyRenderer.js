@@ -109,12 +109,16 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "flash") {
       s._flash = { color: line.color || "#ffffff", alpha: 1, duration: line.duration || 0.15 };
     } else if (line.type === "pause") {
-      // Timed pause — wait before advancing
+      // Timed pause — wait before advancing, but skippable with click
       if (!s._pauseTimer) {
         s._pauseTimer = line.duration || 1.0;
-        return; // don't advance yet
       }
       s._pauseTimer -= rawDt;
+      // Allow click/space to skip pause
+      if (g.input.storyAdvance) {
+        g.input.storyAdvance = false;
+        s._pauseTimer = 0;
+      }
       if (s._pauseTimer > 0) return; // still pausing
       s._pauseTimer = null; // done pausing
     } else if (line.type === "blackout") {
@@ -122,9 +126,15 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "overlay") {
       s._overlay = { key: line.image, alpha: 0, targetAlpha: 1, fadeSpeed: 1 / (line.fade || 1.0) };
     } else if (line.type === "charSwap") {
-      // Change which characters are shown
       if (line.left !== undefined) s._charOverrideLeft = line.left;
       if (line.right !== undefined) s._charOverrideRight = line.right;
+    } else if (line.type === "centerImage") {
+      // Show an image centered on screen (not as bg replacement)
+      s._centerImage = { key: line.image, alpha: 0, targetAlpha: 1, fadeSpeed: 1 / (line.fade || 0.3), scale: line.scale || 0.5 };
+    } else if (line.type === "clearCenter") {
+      s._centerImage = null;
+    } else if (line.type === "musicChange") {
+      crossfadeMusic(line.to, line.fade || 1.0);
     }
     // Auto-advance to next line (cinematic beats don't wait for click)
     s.index++;
@@ -140,6 +150,10 @@ export function updateStory(g, rawDt, callbacks) {
   // Update overlay fade
   if (s._overlay) {
     s._overlay.alpha = Math.min(s._overlay.targetAlpha, s._overlay.alpha + rawDt * s._overlay.fadeSpeed);
+  }
+  // Update center image fade
+  if (s._centerImage) {
+    s._centerImage.alpha = Math.min(s._centerImage.targetAlpha, s._centerImage.alpha + rawDt * s._centerImage.fadeSpeed);
   }
 
   // Entrance animation — block everything until characters are in position
@@ -741,6 +755,21 @@ export function renderStoryScene(ctx, g, W, H, font) {
       if (s.choiceTimer < 3 && s.choiceTimer > 0 && Math.floor(s.choiceTimer * 2) !== Math.floor((s.choiceTimer + 0.016) * 2)) {
         playSound("sfx_choice_tick");
       }
+    }
+  }
+
+  // ── Center image (e.g. arm close-up — centered, not full bg) ──
+  if (s._centerImage) {
+    const cImg = getImage(s._centerImage.key);
+    if (cImg) {
+      ctx.globalAlpha = s._centerImage.alpha;
+      const scale = s._centerImage.scale;
+      const cw = W * scale;
+      const ch = cw * (cImg.height / cImg.width);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(cImg, (W - cw) / 2, (H * 0.35 - ch / 2), cw, ch);
+      ctx.imageSmoothingEnabled = true;
+      ctx.globalAlpha = 1;
     }
   }
 
