@@ -184,9 +184,16 @@ async function _loadBatchParallel(names) {
 }
 
 async function _loadAllSounds() {
-  // All SFX + music + ambient loaded in parallel — much faster than sequential
+  // Load audio ONE AT A TIME to avoid blocking the main thread
+  // decodeAudioData is CPU-intensive and blocks RAF if done in parallel
   const allNames = [...SFX_NAMES, ...MUSIC_NAMES, ...AMBIENT_NAMES];
-  const mp3 = await _loadBatchParallel(allNames);
+  let mp3 = 0;
+  for (const name of allNames) {
+    const ok = await _loadMP3(name);
+    if (ok) mp3++;
+    // Yield to main thread between each decode
+    await new Promise(r => setTimeout(r, 5));
+  }
   console.log(`[audio] Loaded ${mp3}/${allNames.length} MP3s`);
   if (_wantsMusic) { _startMusicNow(); _startAmbientNow(); }
 }
