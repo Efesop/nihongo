@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html><head><title>Shamisen Test</title>
+<style>
+  body { background: #111; color: #eee; font-family: system-ui; display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 30px; }
+  h1 { color: #cc1a1a; font-size: 28px; }
+  .option { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 24px 40px; cursor: pointer; transition: all 0.2s; text-align: center; min-width: 320px; }
+  .option:hover { border-color: #cc1a1a; background: #221111; }
+  .option h2 { color: #cc1a1a; margin: 0 0 8px; font-size: 20px; }
+  .option p { color: #888; margin: 0; font-size: 13px; }
+  .playing { border-color: #cc1a1a !important; box-shadow: 0 0 20px rgba(204,26,26,0.3); }
+</style></head><body>
+<h1>Pick Your Shamisen</h1>
+<p style="color:#666; margin-bottom: 20px;">Click each to hear it. Pick your favourite.</p>
+
+<div class="option" onclick="play('v1', this)">
+  <h2>V1 — Two Bold Plucks</h2>
+  <p>Deep first note + higher resolving note. Clean, deliberate.</p>
+</div>
+
+<div class="option" onclick="play('v2', this)">
+  <h2>V2 — Taiko + Shamisen</h2>
+  <p>Deep taiko drum hit followed by sharp shamisen pluck. Impact.</p>
+</div>
+
+<div class="option" onclick="play('v3', this)">
+  <h2>V3 — Bending Note</h2>
+  <p>Low shamisen that bends upward. Dramatic, emotional, haunting.</p>
+</div>
+
+<script>
+let current = null;
+function play(v, el) {
+  if (current) { current.pause(); current = null; }
+  document.querySelectorAll('.option').forEach(e => e.classList.remove('playing'));
+  el.classList.add('playing');
+  current = new Audio(`/audio/game/shamisen_${v}.mp3`);
+  current.volume = 0.7;
+  current.play();
+  current.onended = () => el.classList.remove('playing');
+}
+</script>
+</body></html>
