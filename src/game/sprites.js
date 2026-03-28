@@ -30,7 +30,7 @@ const PLAYER_CORE = [
   ps("player", "/images/tinysenpai/idle.png"),
   // Cinematic cutscene images (small ~160KB each, needed for Room 5 story)
   gs("bg_dojo_exterior_night"), gs("cutscene_approaching_shadows"),
-  gs("cutscene_shoji_blood"), gs("cutscene_sensei_arm"),
+  gs("cutscene_shoji_blood"), gs("cutscene_sensei_arm"), gs("bg_dojo_night_blood"),
   gs("cutscene_arm_mark"), gs("cutscene_shoji_shattered"), gs("cutscene_hunters_approach"),
   // Title card art (dark anime style — chapter intros)
   gs("titlecard_dojo"), gs("titlecard_turning"), gs("titlecard_forest"),

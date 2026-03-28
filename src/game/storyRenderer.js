@@ -480,8 +480,19 @@ export function renderStoryScene(ctx, g, W, H, font) {
   // ── 3. Atmospheric particles ──
   // Switch to ceiling dust after shakes (debris falling)
   const particleType = s._shakeOccurred ? "ceilingDust" : (scene.particleType || "dust");
+  if (s._shakeOccurred && !s._particlesCleared) {
+    _particles.length = 0; // clear old embers so dust can spawn
+    s._particlesCleared = true;
+  }
   ensureParticles(particleType, W, H);
   drawParticles(ctx);
+
+  // Flickering warm light after shakes — disturbed lantern glow
+  if (s._shakeOccurred) {
+    const flicker = Math.sin(Date.now() * 0.006) * 0.04 + Math.sin(Date.now() * 0.017) * 0.03 + Math.sin(Date.now() * 0.031) * 0.02;
+    ctx.fillStyle = `rgba(180,80,20,${0.03 + flicker})`;
+    ctx.fillRect(0, 0, W, H);
+  }
 
   // ── 4. Scanlines ──
   ctx.fillStyle = "rgba(0,0,0,0.04)";

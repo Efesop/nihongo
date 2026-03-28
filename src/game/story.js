@@ -135,10 +135,10 @@ export const ROOM_DIALOGUE = {
     { speaker: "sensei", textJp: "影狩り — 何百年も印の力を追い求めてきた者たちだ。", text: "The Shadow Hunters. They've sought the mark's power for centuries.", emotion: "serious" },
 
     // ── ACT 3: The Attack ──
-    // Blood splatter on panels first (someone killed outside), NOT full destruction yet
+    // Blood appears on dojo panels (same room, characters stay visible)
     { type: "sfx", sound: "glass_shatter" },
     { type: "shake", intensity: 5, duration: 0.6 },
-    { type: "bgSwap", to: "cutscene_shoji_blood" },
+    { type: "bgSwap", to: "bg_dojo_night_blood" },
     { type: "sfx", sound: "blood_splatter" },
     { type: "pause", duration: 1.0 },
 
