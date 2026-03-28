@@ -139,8 +139,6 @@ export function updateStory(g, rawDt, callbacks) {
       }
     } else if (line.type === "sfx") {
       playSound(line.sound);
-      // Direct Audio fallback if WebAudio buffer not loaded yet
-      try { const a = new Audio(`/audio/game/${line.sound}.mp3`); a.volume = 0.5; a.play().catch(() => {}); } catch {}
     } else if (line.type === "musicStop") {
       stopMusic();
     } else if (line.type === "shake") {
@@ -350,7 +348,6 @@ function selectChoice(g, index, callbacks) {
     // Swap both characters to tea sprites + sip SFX
     s._allEmotion = "tea";
     playSound("sfx_tea_sip");
-    try { new Audio("/audio/game/sfx_tea_sip.mp3").play().catch(() => {}); } catch {}
 
     if (!isAngry) {
       // Drink tea, then sensei responds, then re-show choice
@@ -777,7 +774,9 @@ export function renderStoryScene(ctx, g, W, H, font) {
       ctx.imageSmoothingEnabled = false;
       const exitingLeft = isExiting && exitAnim.direction === "left";
       const exitingRight = isExiting && exitAnim.direction === "right";
-      const shouldFlip = (side === "left" && !exitingLeft) || exitingRight;
+      // Tea sprites already face the correct direction — don't flip
+      const isTea = emotion === "tea" || s._allEmotion === "tea";
+      const shouldFlip = !isTea && ((side === "left" && !exitingLeft) || exitingRight);
       if (shouldFlip) {
         // Face right — flip horizontally
         ctx.save();

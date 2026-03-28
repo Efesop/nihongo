@@ -316,12 +316,18 @@ export function render(g, ctx, isDesktop, font) {
       ctx.fillStyle = "#1a0e06";
       ctx.fillRect(plat.x, plat.y + 8, plat.w, 2);
     } else if (isForest && !plat.wall) {
-      // Forest contextual platform — use sprite based on size
+      // Forest contextual platform — tile sprite at fixed height, don't stretch
       const spriteKey = plat.w < 120 ? "platform_rock" : plat.w < 250 ? "platform_branch" : "platform_log";
       const img = getImage(spriteKey);
       if (img) {
         ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, plat.x, plat.y - img.height * (plat.w / img.width) + 14, plat.w, img.height * (plat.w / img.width));
+        // Fixed height (20px) — tile horizontally to fill platform width
+        const drawH = 20;
+        const tileW = img.width * (drawH / img.height); // maintain aspect ratio per tile
+        for (let tx = plat.x; tx < plat.x + plat.w; tx += tileW) {
+          const clipW = Math.min(tileW, plat.x + plat.w - tx);
+          ctx.drawImage(img, 0, 0, img.width * (clipW / tileW), img.height, tx, plat.y - 6, clipW, drawH);
+        }
         ctx.imageSmoothingEnabled = true;
       } else {
         // Fallback — brown wood-grain platform

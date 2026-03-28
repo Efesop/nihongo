@@ -57,14 +57,9 @@ export const ROOM_DIALOGUE = {
     // Choice happens here (after index 3) — training_push / training_rest / training_humor
     { speaker: "sensei", textJp: "いい心意気だ。限界は超えるためにある。", text: "Good spirit. Limits exist to be broken.", emotion: "amused", condition: { flag: "training_push" } },
     { speaker: "sensei", textJp: "...賢い判断だ。折れた刀は戦えん。", text: "...A wise choice. A broken blade can't fight.", emotion: "amused", condition: { flag: "training_rest" } },
-    // Tea drinking — sprites swap, sip SFX, escalating reactions per loop
-    { type: "allEmotion", emotion: "tea", condition: { flag: "training_humor" } },
-    { type: "sfx", sound: "sfx_tea_sip", condition: { flag: "training_humor" } },
-    { speaker: "system", textJp: "二人は黙って茶を飲む。", text: "They drink tea in silence.", condition: { flag: "training_humor" } },
-    { type: "pause", duration: 3.0, condition: { flag: "training_humor" } },
-    { type: "allEmotion", emotion: null, condition: { flag: "training_humor" } },
-    // Response escalates: amused → annoyed → furious (based on loop count handled by engine)
-    { speaker: "sensei", textJp: "...もう一杯か。まあいい。", text: "...Another cup? Fine.", emotion: "amused", condition: { flag: "training_humor" } },
+    // Tea: loops 1-2 handled by engine (floating text + sprite swap). Loop 3 = angry, plays this:
+    { speaker: "sensei", textJp: "茶は終わりだ！！全部飲みやがって！！", text: "THE TEA IS GONE!! You drank it ALL!!", emotion: "angry", condition: { flag: "training_humor" } },
+    { speaker: "sensei", textJp: "さあ登れ！今すぐ！", text: "Now CLIMB! RIGHT NOW!", emotion: "angry", condition: { flag: "training_humor" } },
     { speaker: "sensei", textJp: "壁は障害じゃない。道だ。飛び移れ。", text: "A wall isn't an obstacle. It's a path. Jump between them." },
   ],
 
