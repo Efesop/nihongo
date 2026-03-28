@@ -1272,8 +1272,14 @@ export function update(g, callbacks) {
   if (p.slashTimer > 0) p.slashTimer -= dt * 1000;
   if (p.slashTimer <= 0) {
     p.dashSlashing = false; p._piercing = false;
-    // After full 4-hit combo, brief recovery cooldown
-    if (p.slashCombo >= 4 && p.comboWindow > 0) { p._slashCooldown = 350; p.slashCombo = 0; p.comboWindow = 0; }
+    // Recovery cooldown after combos — scales with combo length
+    if (p.slashCombo >= 4 && p.comboWindow > 0) {
+      p._slashCooldown = 500; p.slashCombo = 0; p.comboWindow = 0; // long cooldown after full combo
+    } else if (p.slashCombo >= 2 && p.comboWindow > 0 && !p._hitEnemy) {
+      // Whiffed 2+ slashes (hit nothing) — punish wild swinging
+      p._slashCooldown = 300; p.slashCombo = 0; p.comboWindow = 0;
+    }
+    p._hitEnemy = false;
   }
 
   // Parry timer (used by renderer for parry sprite display)
@@ -1534,6 +1540,7 @@ export function update(g, callbacks) {
       const slashReach = combo === 4 ? SLASH_RANGE * 1.5 : SLASH_RANGE; // combo 4 has longer reach
       if (Math.abs(slashX - e.x) < (slashReach + ew) / 2 &&
           dy > -hitAbove && dy < hitBelow) {
+        p._hitEnemy = true; // track that slash connected (affects whiff cooldown)
         // Combo 4 pierces through enemies (don't mark as hit so it can hit the next one)
         if (!p._piercing) e._hitThisSlash = true;
 
