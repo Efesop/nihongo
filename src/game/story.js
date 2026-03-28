@@ -109,9 +109,13 @@ export const ROOM_DIALOGUE = {
     { type: "clearCenter" },
     { type: "sfx", sound: "heartbeat_tension" },
 
+    // Sensei steps away — processing what he saw (stage blocking)
+    { type: "charMove", char: "sensei", toX: 0.82, duration: 0.8 },
     { speaker: "sensei", textJp: "いつからあるんだ？", text: "How long have you had this?", emotion: "serious" },
     { speaker: "player", textJp: "ずっとです。最近明るくなってきました。", text: "Always. It's been getting brighter lately." },
     { speaker: "sensei", textJp: "この印...俺の師匠が死ぬ前に話してくれた。", text: "This mark... my master spoke of it. Before he died.", emotion: "serious" },
+    // Sensei turns back toward player — delivering the truth
+    { type: "charMove", char: "sensei", toX: 0.68, duration: 0.6 },
     { speaker: "sensei", textJp: "墨の呪いと呼ばれている。", text: "It's called 墨の呪い — the Ink Curse.", emotion: "serious" },
     { speaker: "player", textJp: "...呪い？", text: "...Curse?" },
     { speaker: "sensei", textJp: "今日お前がやったこと。全てが遅くなったあの瞬間。", text: "That thing you did today. When everything slowed down.", emotion: "serious" },

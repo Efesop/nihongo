@@ -181,6 +181,31 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "musicChange") {
       // null = fade out to silence (no new track)
       try { crossfadeMusic(line.to, line.fade || 1.0); } catch {}
+    } else if (line.type === "charMove") {
+      // Move a character to a new position during dialogue (stage blocking)
+      if (!s._charMove) {
+        const targetX = line.toX * g.W; // toX is 0-1 proportion of screen width
+        const charSide = line.char === "player" ? "left" : "right";
+        const currentX = charSide === "left" ? g.W * 0.32 : g.W * 0.72;
+        s._charMove = {
+          char: line.char || "sensei",
+          side: charSide,
+          startX: s[`_charPosX_${charSide}`] || currentX,
+          targetX,
+          timer: 0,
+          duration: line.duration || 1.0,
+        };
+      }
+      s._charMove.timer += rawDt;
+      if (s._charMove.timer >= s._charMove.duration) {
+        // Arrived — store final position for future drawChar calls
+        s[`_charPosX_${s._charMove.side}`] = s._charMove.targetX;
+        s._charMove = null;
+      } else if (!line.blocking) {
+        // Non-blocking — advance immediately, movement continues during next lines
+      } else {
+        return; // blocking — wait for arrival
+      }
     } else if (line.type === "characterExit") {
       // Animate a character running off screen
       if (!s._characterExit) {
@@ -722,8 +747,19 @@ export function renderStoryScene(ctx, g, W, H, font) {
     if (side === "right" && s._hideRight) return;
 
     // Position: centered in each half, with entrance slide-in
-    const finalX = side === "left" ? W * 0.32 : W * 0.72;
+    // Override with charMove target if character has been moved (stage blocking)
+    const baseX = s[`_charPosX_${side}`] || (side === "left" ? W * 0.32 : W * 0.72);
+    const finalX = baseX;
     const startX = side === "left" ? W * -0.1 : W * 1.1;
+
+    // During active charMove, interpolate position + use walk sprites
+    const isMoving = s._charMove && s._charMove.side === side;
+    if (isMoving) {
+      const moveT = Math.min(1, s._charMove.timer / s._charMove.duration);
+      const easeT = moveT * (2 - moveT); // easeOut
+      const moveX = s._charMove.startX + (s._charMove.targetX - s._charMove.startX) * easeT;
+      s[`_charPosX_${side}`] = moveX; // update stored position continuously
+    }
     // Check if this character should already be in place
     const charEntrance = scene.entrance?.[side === "left" ? "left" : "right"];
     const shouldAnimate = charEntrance !== "already_there" && charEntrance !== "fade_in";
@@ -745,16 +781,15 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
     // allEmotion overrides both characters (e.g. both drinking tea)
     const emotion = s._allEmotion || (isActive ? line.emotion : null);
-    // During walk-in entrance OR exit, use run sprites
-    const isWalking = (shouldAnimate && s.entrance?.active && entranceT < 1) || isExiting;
+    // During walk-in entrance, exit, OR stage blocking move, use walk sprites
+    const isWalking = (shouldAnimate && s.entrance?.active && entranceT < 1) || isExiting || isMoving;
     let sprite;
     if (isWalking) {
+      const animTimer = isExiting ? exitAnim.timer : isMoving ? s._charMove.timer : (s.entrance?.timer || 0);
       if (charKey === "player") {
-        const animTimer = isExiting ? exitAnim.timer : (s.entrance?.timer || 0);
         const runFrame = (Math.floor(animTimer * 8) % 4) + 1;
         sprite = getImage("run" + runFrame) || getImage("player");
       } else {
-        const animTimer = isExiting ? exitAnim.timer : (s.entrance?.timer || 0);
         const walkFrame = Math.floor(animTimer * 6) % 2 === 0 ? "walk1" : "walk2";
         sprite = getImage(`story_${charKey}_${walkFrame}`) || getCharSprite(charKey, emotion);
       }
@@ -837,7 +872,9 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
   // Speech bubble above the active character's head
   if (!isSystem && !isCutsceneBg && fullText) {
-    const speakerX = activeSide === "left" ? W * 0.32 : W * 0.72;
+    // Follow character position (including stage blocking movement)
+    const speakerSide = activeSide === "left" ? "left" : "right";
+    const speakerX = s[`_charPosX_${speakerSide}`] || (activeSide === "left" ? W * 0.32 : W * 0.72);
     const bubbleY = floorY - charH - 30;
     const bubbleMaxW = Math.min(280, W * 0.4);
 
