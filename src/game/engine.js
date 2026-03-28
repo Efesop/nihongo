@@ -1794,7 +1794,7 @@ export function update(g, callbacks) {
       }
       // Check if player reached exit zone (breakables must be destroyed first)
       const ez = g.objective.exitZone;
-      const breakablesLeft = (g.breakables || []).filter(b => !b.destroyed).length;
+      const breakablesLeft = (g.breakables || []).filter(b => !b.broken).length;
       if (ez && p.x > ez.x && p.x < ez.x + ez.w && g.roomState === "playing") {
         if (breakablesLeft > 0) {
           // Push player back — can't exit yet
