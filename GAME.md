@@ -102,7 +102,7 @@ All game code in `src/game/`:
 | Jump | -560 initial vy | W/Up/Space |
 | Wall jump | 1.6x horizontal | Jump while wall-sliding |
 | Wall slide | 100 max fall | Touch wall while airborne |
-| Dash | 700 px/s, 180ms | L/C, 500ms cooldown, i-frames |
+| Dash | 700 px/s, 230ms | L/C, 500ms cooldown, i-frames |
 
 ### Combat — 4-Hit Combo
 | Hit | Duration | Special |
@@ -113,6 +113,7 @@ All game code in `src/game/`:
 | 4th | 225ms | Piercing thrust (goes through enemies) |
 
 - **350ms combo window** between hits
+- **350ms cooldown** after full 4-hit combo (prevents spam)
 - **Slash range**: 75px horizontal
 - **Focus/Slow-mo**: Hold K/X/Shift → 25% time scale, drains meter
 
@@ -122,6 +123,26 @@ All game code in `src/game/`:
 - **Visibility**: 0-1 float (shadow=0.3×, crouch=0.4×, hidden=0, attacking+0.5)
 - **Noise**: Decays 2.0/s, spikes on slash (+0.8), run (+0.3/s), land (+0.5)
 - **Stealth kill**: Behind enemy + visibility<0.5 = instant silent kill, 3× score
+
+### Tutorial Enforcement (Rooms 0-4)
+Each tutorial room FORCES the skill it teaches:
+- **Room 0 (Slash)**: Crate blocks exit — must slash to pass. Exit rejected if breakables remain.
+- **Room 1 (Jump)**: Wide gaps between platforms — can't reach dummies without jumping.
+- **Room 2 (Dash-Slash)**: Shielded dummy blocks ALL normal attacks (including backstab). Only dash-slash works. Shows "DASH + SLASH!" hint on block.
+- **Room 3 (Wall Jump)**: Shaft geometry enforces wall jumping. No cheese path.
+- **Room 4 (Slow-Mo)**: Shuriken gauntlet — sensei throws projectiles too fast to dodge normally. Must use slow-mo.
+
+### Title Cards
+Dramatic crimson kanji calligraphy at major zone transitions (9 rooms). Uses "Yuji Boku" brush font from Google Fonts. Dark anime art backgrounds. Shamisen sting SFX. 3.2s hold, skippable after 0.8s. Defined in `TITLE_CARD_ROOMS` set in story.js.
+
+### Scene Image Editing
+Cutscene backgrounds created by editing existing bg images with Gemini API (send original + edit prompt). Blood, shadows, damage are added to the SAME room so characters stay visible. Each variant = ONE change from the original base image.
+
+### Exit Doors (Room 6+)
+After last kill in combat rooms, "open" roomState: music fades out over 2s, cyan exit glow appears at right edge. Player must run to exit to trigger room clear + star rating. Tutorial rooms (0-4) exempt.
+
+### Cinematic Beat System
+Story renderer supports: bgSwap, sfx, musicChange, musicStop, shake, pause, flash, blackout, persistentBlack, overlay, centerImage, clearCenter, charSwap, characterExit. Beats can have `condition` flags for choice-branched content.
 
 ---
 
