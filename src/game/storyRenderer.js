@@ -216,18 +216,18 @@ export function updateStory(g, rawDt, callbacks) {
   // Title card phase — dramatic kanji intro before everything
   if (s.titleCard && s.titleCard.active) {
     s.titleCard.timer += rawDt;
-    if (!s.titleCard.played) {
-      playSound("sfx_shamisen_sting");
+    // Play shamisen on first frame — try repeatedly until audio context is ready
+    if (!s.titleCard.played && s.titleCard.timer > 0.05) {
+      try { playSound("sfx_shamisen_sting"); } catch {}
       s.titleCard.played = true;
     }
-    // Allow click/space to skip after 1 second
-    if (s.titleCard.timer > 1.0 && g.input.storyAdvance) {
+    // Allow click/space to skip after 0.8 second
+    if (s.titleCard.timer > 0.8 && g.input.storyAdvance) {
       g.input.storyAdvance = false;
       s.titleCard.timer = s.titleCard.duration;
     }
     if (s.titleCard.timer >= s.titleCard.duration) {
       s.titleCard.active = false;
-      // Now start entrance animation
       s.entrance.active = true;
     }
     updateParticles(rawDt, g.W, g.H);
@@ -489,11 +489,13 @@ export function renderStoryScene(ctx, g, W, H, font) {
   }
 
   // ── 5. Title card OR scene label watermark ──
+  // Cinematic anime style: bold crimson kanji, no outline, instant appear, clean.
+  // Inspired by Demon Slayer / Blue Eye Samurai chapter cards.
   if (s.titleCard && s.titleCard.active) {
     const tc = s.titleCard;
     const t = tc.timer / tc.duration; // 0→1 progress
 
-    // Title card background image (dark anime art) — draw OVER the scene bg
+    // Title card background art (dark anime) — draw OVER the scene bg
     const tcKey = scene._titleCardImage;
     const tcImg = tcKey ? getImage(tcKey) : null;
     if (tcImg) {
@@ -505,84 +507,60 @@ export function renderStoryScene(ctx, g, W, H, font) {
       ctx.drawImage(tcImg, dx, dy, dw, dh);
     }
 
-    // Dark overlay — strong enough for calligraphy readability
-    ctx.fillStyle = `rgba(0,0,0,${0.6 + Math.sin(t * Math.PI) * 0.08})`;
+    // Dark overlay — cinematic
+    ctx.fillStyle = `rgba(0,0,0,0.5)`;
     ctx.fillRect(0, 0, W, H);
 
-    // Fade curve: quick fade in (0-15%), hold, quick fade out (85-100%)
-    const fadeIn = Math.min(1, t / 0.15);
+    // Fade: instant appear (fast fade in first 8%), hold, fade out last 15%
+    const fadeIn = Math.min(1, t / 0.08);
     const fadeOut = Math.min(1, (1 - t) / 0.15);
     const alpha = Math.min(fadeIn, fadeOut);
 
-    // Vertical Japanese calligraphy — big, centered, bold
+    // ── Vertical crimson kanji — bold, clean, no outline ──
     const kanji = scene.label || "";
     const kanjiChars = [...kanji];
-    const kanjiSize = Math.min(H * 0.25, W * 0.2);
+    const kanjiSize = Math.min(H * 0.28, W * 0.22);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    const totalKanjiH = kanjiChars.length * kanjiSize * 0.9;
-    const startY = (H - totalKanjiH) / 2;
+    const totalKanjiH = kanjiChars.length * kanjiSize * 0.85;
+    const startY = (H - totalKanjiH) / 2 - H * 0.02;
 
     for (let i = 0; i < kanjiChars.length; i++) {
-      const charDelay = i * 0.08;
-      const charAlpha = Math.max(0, Math.min(1, (t - charDelay) / 0.12)) * alpha;
-      const slideX = (1 - Math.min(1, (t - charDelay) / 0.2)) * 30;
-      const cy = startY + i * kanjiSize * 0.9;
+      const cy = startY + i * kanjiSize * 0.85;
 
       ctx.save();
-      ctx.globalAlpha = charAlpha;
+      ctx.globalAlpha = alpha;
       ctx.font = `900 ${kanjiSize}px "Noto Sans JP",serif`;
 
-      // Heavy black outline for maximum readability
-      ctx.strokeStyle = "rgba(0,0,0,0.9)";
-      ctx.lineWidth = kanjiSize * 0.06;
-      ctx.lineJoin = "round";
-      ctx.strokeText(kanjiChars[i], W / 2 + slideX, cy);
+      // Subtle dark shadow only — no outline, no glow
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fillText(kanjiChars[i], W / 2 + 2, cy + 2);
 
-      // Warm white fill with golden glow
-      ctx.fillStyle = "#f0e8d8";
-      ctx.shadowColor = "rgba(220,180,100,0.6)";
-      ctx.shadowBlur = 25;
-      ctx.fillText(kanjiChars[i], W / 2 + slideX, cy);
-      ctx.shadowBlur = 0;
+      // Bold crimson fill — clean, cinematic
+      ctx.fillStyle = "#cc1a1a";
+      ctx.fillText(kanjiChars[i], W / 2, cy);
 
       ctx.restore();
     }
 
-    // English subtitle — smaller, below kanji
+    // ── English subtitle — clean, spaced, below kanji ──
     const enLabel = scene.labelEn || "";
     if (enLabel) {
-      const enSize = Math.min(16, W * 0.025);
-      const enAlpha = Math.max(0, Math.min(1, (t - 0.2) / 0.15)) * alpha;
+      const enSize = Math.min(14, W * 0.02);
       ctx.save();
-      ctx.globalAlpha = enAlpha;
-      ctx.font = `300 ${enSize}px ${font}`;
-      ctx.letterSpacing = "4px";
-
-      // Shadow
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fillText(enLabel, W / 2 + 1, startY + totalKanjiH + kanjiSize * 0.5 + 1);
-
-      // Main text — muted gold
-      ctx.fillStyle = "rgba(200,170,120,0.8)";
-      ctx.fillText(enLabel, W / 2, startY + totalKanjiH + kanjiSize * 0.5);
+      ctx.globalAlpha = alpha * 0.85;
+      ctx.textAlign = "center";
+      ctx.font = `400 ${enSize}px ${font}`;
+      ctx.letterSpacing = "6px";
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fillText(enLabel, W / 2 + 1, startY + totalKanjiH + kanjiSize * 0.45 + 1);
+      ctx.fillStyle = "rgba(220,210,200,0.75)";
+      ctx.fillText(enLabel, W / 2, startY + totalKanjiH + kanjiSize * 0.45);
       ctx.letterSpacing = "0px";
+      ctx.textAlign = "left";
       ctx.restore();
     }
-
-    // Decorative line — thin horizontal rule under the text
-    const lineAlpha = Math.max(0, Math.min(1, (t - 0.15) / 0.1)) * alpha;
-    const lineW = Math.min(200, W * 0.25);
-    ctx.save();
-    ctx.globalAlpha = lineAlpha * 0.3;
-    ctx.strokeStyle = "#c8a878";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - lineW / 2, startY + totalKanjiH + kanjiSize * 0.8);
-    ctx.lineTo(W / 2 + lineW / 2, startY + totalKanjiH + kanjiSize * 0.8);
-    ctx.stroke();
-    ctx.restore();
 
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
@@ -1042,7 +1020,7 @@ export function initStoryState(g, roomIndex, lines) {
     choiceTimer: 0,
     sceneConfig: canvasConfig,
     // Title card phase — before entrance, big vertical kanji + shamisen sting
-    titleCard: showTitleCard ? { active: true, timer: 0, duration: 3.5, played: false } : null,
+    titleCard: showTitleCard ? { active: true, timer: 0, duration: 2.5, played: false } : null,
     // Entrance animation — characters walk in from offscreen (starts after title card)
     entrance: { active: !showTitleCard, timer: 0, duration: 1.5 },
   };
