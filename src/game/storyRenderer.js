@@ -238,13 +238,11 @@ export function updateStory(g, rawDt, callbacks) {
   // Entrance animation — block everything until characters are in position
   if (s.entrance && s.entrance.active) {
     s.entrance.timer += rawDt;
-    // Footstep sounds during walk-in (~4 steps per second)
+    // Footstep sounds during walk-in (softer + slower than gameplay, no double-play)
     s.entrance._stepTimer = (s.entrance._stepTimer || 0) + rawDt;
-    if (s.entrance._stepTimer > 0.25) {
+    if (s.entrance._stepTimer > 0.35) {
       s.entrance._stepTimer = 0;
-      playSound("footstep");
-      // Direct fallback if WebAudio buffer not loaded yet (early rooms)
-      try { const a = new Audio("/audio/game/footstep.mp3"); a.volume = 0.3; a.play().catch(() => {}); } catch {}
+      try { const a = new Audio("/audio/game/footstep.mp3"); a.volume = 0.12; a.play().catch(() => {}); } catch {}
     }
     if (s.entrance.timer >= s.entrance.duration) {
       s.entrance.active = false;
