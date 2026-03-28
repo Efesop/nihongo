@@ -314,13 +314,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     maintenanceKana.slice(0, 2 - kanaInQueue).forEach(ch => addKana(ch));
   }
 
-  // New item cap: max 3 new items per session (research: 3-5 optimal for complex items)
-  // Prevents sessions from becoming 60% new content instead of review-dominant
+  // New item cap: max 2 new items per session
+  // Each new item takes 3 slots (try-first + learn + same-session review)
+  // That's 6 of 10 cards for new content — remaining 4 for SRS review + specials
   let newItemCount = 0;
-  const MAX_NEW = 3;
+  const MAX_NEW = 2;
 
-  // Productive failure: quiz FIRST on unseen items, then reveal learn card
-  // Research: struggling before instruction → better outcomes (Kapur 2014)
+  // Productive failure: quiz FIRST, then learn card, then same-session review
+  // Research: Kapur 2014 (productive failure) + Pimsleur (graduated interval recall)
+  // Flow: try-first → [2 cards] → learn card → [3 cards] → quiz (3 exposures total)
   if (unseenKana.length > 0 && queue.length < sessionLength - 2 && newItemCount < MAX_NEW) {
     const maxNewKana = Math.min(2, MAX_NEW - newItemCount);
     const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, maxNewKana);
@@ -328,6 +330,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       usedKana.add(ch);
       queue.push({ type: "try-first-kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch] });
       queue.push({ type: "_delayed_learn_kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], delay: 2 });
+      // Same-session review: quiz the new item ~3 cards after the learn card
+      queue.push({ type: "_delayed_kana", item: ch, delay: 5 });
       newItemCount++;
     });
   }
@@ -337,6 +341,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       usedPhrases.add(np[0]);
       queue.push({ type: "try-first-phrase", item: np });
       queue.push({ type: "_delayed_learn_phrase", item: np, delay: 2 });
+      // Same-session review: quiz the new phrase ~3 cards after the learn card
+      queue.push({ type: "_delayed_phrase", item: np, delay: 5 });
       newItemCount++;
     }
   }
