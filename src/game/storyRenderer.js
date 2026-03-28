@@ -89,6 +89,14 @@ export function updateStory(g, rawDt, callbacks) {
   if (!s || !s.lines || s.lines.length === 0) return;
 
   // ═══ ALWAYS UPDATE EFFECTS (before any early returns) ═══
+  // Stage blocking — continue movement even while other lines play
+  if (s._charMove) {
+    s._charMove.timer += rawDt;
+    const moveT = Math.min(1, s._charMove.timer / s._charMove.duration);
+    const easeT = moveT * (2 - moveT);
+    s[`_charPosX_${s._charMove.side}`] = s._charMove.startX + (s._charMove.targetX - s._charMove.startX) * easeT;
+    if (moveT >= 1) s._charMove = null; // arrived
+  }
   // Flash, overlay, centerImage must fade even during beat processing
   if (s._flash) {
     s._flash.alpha -= rawDt / s._flash.duration;
@@ -182,30 +190,17 @@ export function updateStory(g, rawDt, callbacks) {
       // null = fade out to silence (no new track)
       try { crossfadeMusic(line.to, line.fade || 1.0); } catch {}
     } else if (line.type === "charMove") {
-      // Move a character to a new position during dialogue (stage blocking)
-      if (!s._charMove) {
-        const targetX = line.toX * g.W; // toX is 0-1 proportion of screen width
-        const charSide = line.char === "player" ? "left" : "right";
-        const currentX = charSide === "left" ? g.W * 0.32 : g.W * 0.72;
-        s._charMove = {
-          char: line.char || "sensei",
-          side: charSide,
-          startX: s[`_charPosX_${charSide}`] || currentX,
-          targetX,
-          timer: 0,
-          duration: line.duration || 1.0,
-        };
-      }
-      s._charMove.timer += rawDt;
-      if (s._charMove.timer >= s._charMove.duration) {
-        // Arrived — store final position for future drawChar calls
-        s[`_charPosX_${s._charMove.side}`] = s._charMove.targetX;
-        s._charMove = null;
-      } else if (!line.blocking) {
-        // Non-blocking — advance immediately, movement continues during next lines
-      } else {
-        return; // blocking — wait for arrival
-      }
+      // Start movement — animation runs in always-update section, non-blocking
+      const charSide = line.char === "player" ? "left" : "right";
+      const currentX = s[`_charPosX_${charSide}`] || (charSide === "left" ? g.W * 0.32 : g.W * 0.72);
+      s._charMove = {
+        char: line.char || "sensei",
+        side: charSide,
+        startX: currentX,
+        targetX: line.toX * g.W,
+        timer: 0,
+        duration: line.duration || 1.0,
+      };
     } else if (line.type === "characterExit") {
       // Animate a character running off screen
       if (!s._characterExit) {
@@ -752,14 +747,8 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const finalX = baseX;
     const startX = side === "left" ? W * -0.1 : W * 1.1;
 
-    // During active charMove, interpolate position + use walk sprites
+    // Check if this character is in a charMove animation (position updated in always-update)
     const isMoving = s._charMove && s._charMove.side === side;
-    if (isMoving) {
-      const moveT = Math.min(1, s._charMove.timer / s._charMove.duration);
-      const easeT = moveT * (2 - moveT); // easeOut
-      const moveX = s._charMove.startX + (s._charMove.targetX - s._charMove.startX) * easeT;
-      s[`_charPosX_${side}`] = moveX; // update stored position continuously
-    }
     // Check if this character should already be in place
     const charEntrance = scene.entrance?.[side === "left" ? "left" : "right"];
     const shouldAnimate = charEntrance !== "already_there" && charEntrance !== "fade_in";
@@ -870,53 +859,10 @@ export function renderStoryScene(ctx, g, W, H, font) {
     // During cutscene pauses, show just the image — no panel, no text
   } else {
 
-  // Speech bubble above the active character's head
-  if (!isSystem && !isCutsceneBg && fullText) {
-    // Follow character position (including stage blocking movement)
-    const speakerSide = activeSide === "left" ? "left" : "right";
-    const speakerX = s[`_charPosX_${speakerSide}`] || (activeSide === "left" ? W * 0.32 : W * 0.72);
-    const bubbleY = floorY - charH - 30;
-    const bubbleMaxW = Math.min(280, W * 0.4);
-
-    // Bubble background
-    ctx.save();
-    ctx.font = `13px "Noto Sans JP",sans-serif`;
-    const lines = wrapText(ctx, displayText, bubbleMaxW - 20);
-    const bubbleH = lines.length * 18 + 16;
-    const bubbleW = Math.min(bubbleMaxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + 24);
-    const bx = Math.max(10, Math.min(W - bubbleW - 10, speakerX - bubbleW / 2));
-    const by = bubbleY - bubbleH;
-
-    // Semi-transparent dark bubble
-    ctx.fillStyle = "rgba(6,6,14,0.85)";
-    ctx.beginPath();
-    ctx.roundRect(bx, by, bubbleW, bubbleH, 6);
-    ctx.fill();
-    // Border in speaker color
-    ctx.strokeStyle = char.color + "40";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    // Small triangle pointing down to character
-    ctx.fillStyle = "rgba(6,6,14,0.85)";
-    ctx.beginPath();
-    ctx.moveTo(speakerX - 6, by + bubbleH);
-    ctx.lineTo(speakerX + 6, by + bubbleH);
-    ctx.lineTo(speakerX, by + bubbleH + 8);
-    ctx.closePath();
-    ctx.fill();
-
-    // Text inside bubble
-    ctx.fillStyle = "#e8e4dc";
-    for (let i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i], bx + 12, by + 14 + i * 18);
-    }
-    ctx.restore();
-  }
-
-  // Slim bottom panel (name, JP text, line counter)
+  // Bottom dialogue panel (speech bubbles disabled for now)
   const panelGrad = ctx.createLinearGradient(0, panelY, 0, H);
-  panelGrad.addColorStop(0, "rgba(6,6,14,0.88)");
-  panelGrad.addColorStop(1, "rgba(6,6,14,0.95)");
+  panelGrad.addColorStop(0, "rgba(6,6,14,0.92)");
+  panelGrad.addColorStop(1, "rgba(6,6,14,0.98)");
   ctx.fillStyle = panelGrad;
   ctx.fillRect(0, panelY, W, panelH);
 
