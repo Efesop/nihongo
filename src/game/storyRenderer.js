@@ -243,6 +243,8 @@ export function updateStory(g, rawDt, callbacks) {
     if (s.entrance._stepTimer > 0.25) {
       s.entrance._stepTimer = 0;
       playSound("footstep");
+      // Direct fallback if WebAudio buffer not loaded yet (early rooms)
+      try { const a = new Audio("/audio/game/footstep.mp3"); a.volume = 0.3; a.play().catch(() => {}); } catch {}
     }
     if (s.entrance.timer >= s.entrance.duration) {
       s.entrance.active = false;
@@ -1022,7 +1024,7 @@ export function initStoryState(g, roomIndex, lines) {
     choiceTimer: 0,
     sceneConfig: canvasConfig,
     // Title card phase — before entrance, big vertical kanji + shamisen sting
-    titleCard: showTitleCard ? { active: true, timer: 0, duration: 2.5, played: false } : null,
+    titleCard: showTitleCard ? { active: true, timer: 0, duration: 3.2, played: false } : null,
     // Entrance animation — characters walk in from offscreen (starts after title card)
     entrance: { active: !showTitleCard, timer: 0, duration: 1.5 },
   };

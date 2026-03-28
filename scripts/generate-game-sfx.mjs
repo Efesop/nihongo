@@ -109,7 +109,7 @@ const SOUNDS = [
 
   // ────── CINEMATIC (Room 5 story) ──────
   ['sfx_running_footsteps', 'Quick footsteps running on wooden floor, Japanese sandals on polished wood, getting quieter as person runs away into distance, about 6-8 rapid steps fading, game cinematic sfx', 2.0, 0.5],
-  ['sfx_shamisen_sting', 'Dramatic Japanese shamisen pluck, two sharp resonant notes with deep reverb, epic chapter title reveal, traditional Japanese instrument sting, cinematic game sfx', 2.5, 0.6],
+  ['sfx_shamisen_sting', 'Heavy dramatic shamisen riff with deep bass drop underneath, two aggressive plucked notes on shamisen with 808 sub-bass hit, Japanese phonk style, dark and powerful, like an anime title card reveal moment, cinematic and epic, game sfx', 3.0, 0.7],
 ];
 
 const LOOPS = [
