@@ -57,7 +57,7 @@ export const ROOM_DIALOGUE = {
     // Choice happens here (after index 3) — training_push / training_rest / training_humor
     { speaker: "sensei", textJp: "いい心意気だ。限界は超えるためにある。", text: "Good spirit. Limits exist to be broken.", emotion: "amused", condition: { flag: "training_push" } },
     { speaker: "sensei", textJp: "...賢い判断だ。折れた刀は戦えん。", text: "...A wise choice. A broken blade can't fight.", emotion: "amused", condition: { flag: "training_rest" } },
-    { speaker: "sensei", textJp: "...お前は先延ばしにしているだけだ。でもいい。もう一杯だけだ。", text: "...You're stalling. But fine. One more cup.", emotion: "amused", condition: { flag: "training_humor" } },
+    { speaker: "sensei", textJp: "...茶は終わりだ！全部飲みやがって！さあ登れ！", text: "...The tea is GONE! You drank it ALL! Now CLIMB!", emotion: "angry", condition: { flag: "training_humor" } },
     { speaker: "sensei", textJp: "壁は障害じゃない。道だ。飛び移れ。", text: "A wall isn't an obstacle. It's a path. Jump between them." },
   ],
 

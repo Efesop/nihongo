@@ -336,6 +336,47 @@ function selectChoice(g, index, callbacks) {
   if (!s.choices || index >= s.choices.length) return;
   const choice = s.choices[index];
   playSound("sfx_choice_select");
+
+  // Tea loop — repeats up to 3 times with escalating responses
+  if (choice.flag === "training_humor") {
+    g._teaCount = (g._teaCount || 0) + 1;
+    const teaResponses = [
+      "...You're stalling. But fine. One more cup.",
+      "...Another cup? Seriously?",
+      "THERE'S NO TEA LEFT! You drank it ALL! Now CLIMB!",
+    ];
+    const response = teaResponses[Math.min(g._teaCount - 1, 2)];
+    const isAngry = g._teaCount >= 3;
+    // Show floating text response from sensei
+    g.floatingTexts.push({
+      x: g.W / 2 + (g.camera?.x || 0), y: (g.groundY || 300) - 80,
+      text: response, color: isAngry ? "#ff4444" : "#cc9933",
+      life: 2000, maxLife: 2000,
+    });
+    if (!isAngry) {
+      // Re-show the same choice after a brief pause
+      const savedChoices = s.choices;
+      s.choices = null;
+      s.choiceTimer = 0;
+      setTimeout(() => {
+        if (g.story) {
+          g.story.choices = savedChoices;
+          g.story.choiceIndex = 0;
+          g.story.choiceTimer = 8;
+          g.story._choiceAnim = 0;
+          playSound("sfx_choice_appear");
+        }
+      }, 1500);
+      return; // don't advance — wait for next choice
+    }
+    // 3rd time — set flag and advance (angry sensei response plays)
+    g.choices[choice.flag] = true;
+    s.choices = null;
+    s.choiceTimer = 0;
+    advanceStory(g, callbacks);
+    return;
+  }
+
   // Apply flag
   if (choice.flag) g.choices[choice.flag] = true;
   // Apply effect
