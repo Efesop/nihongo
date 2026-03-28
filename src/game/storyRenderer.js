@@ -1074,7 +1074,7 @@ export function initStoryState(g, roomIndex, lines) {
   const showTitleCard = TITLE_CARD_ROOMS.has(roomIndex) && canvasConfig.label;
 
   // Title card background art (dark anime style) — keyed by room
-  const TITLE_CARD_IMAGES = { 0: "titlecard_dojo", 5: "titlecard_turning", 8: "titlecard_forest", 10: "titlecard_encounter", 12: "titlecard_edo", 27: "titlecard_neon", 34: "titlecard_underground", 40: "titlecard_spirit", 47: "titlecard_return" };
+  const TITLE_CARD_IMAGES = { 0: "titlecard_dojo", 5: "titlecard_turning", 9: "titlecard_forest", 10: "titlecard_encounter", 12: "titlecard_edo", 27: "titlecard_neon", 34: "titlecard_underground", 40: "titlecard_spirit", 47: "titlecard_return" };
   if (showTitleCard && TITLE_CARD_IMAGES[roomIndex]) {
     canvasConfig._titleCardImage = TITLE_CARD_IMAGES[roomIndex];
     getImage(TITLE_CARD_IMAGES[roomIndex]); // trigger lazy-load

@@ -260,6 +260,7 @@ export const ROOM_DIALOGUE = {
     // Choice happens here (after index 11) — curse_accept_1 or curse_resist_1
     { speaker: "shadow", textJp: "...面白い。恐れないか。", text: "...Interesting. You're not afraid.", emotion: "bitter", condition: { flag: "curse_accept_1" } },
     { speaker: "shadow", textJp: "抑える？...無駄だ。でも面白い。", text: "Suppress it? ...Pointless. But interesting.", condition: { flag: "curse_resist_1" } },
+    { speaker: "shadow", textJp: "...慎重だな。先生に似ている。", text: "...Careful. You're like him.", condition: { flag: "curse_cautious" } },
     { speaker: "shadow", textJp: "...まあいい。生き延びろ。", text: "...Never mind. Just survive this." },
     { speaker: "shadow", textJp: "長老に辿り着けたら...続きを教えてやる。", text: "If you reach the Elder... I'll tell you the rest." },
   ],
@@ -487,6 +488,8 @@ export const ROOM_DIALOGUE = {
     { speaker: "player", textJp: "影。まだ戦うのか。", text: "Shadow. Are you still fighting?" },
     { speaker: "shadow", textJp: "全ての時代を見てきた。どこにも居場所がなかった。", text: "I've seen every era. I belonged in none of them.", emotion: "bitter" },
     { speaker: "shadow", textJp: "この力だけが...俺の唯一の存在理由だ。", text: "This power is... my only reason to exist." },
+    // Callback if player asked "What happened to you?" in Room 14
+    { speaker: "shadow", textJp: "...お前はあの時聞いたな。俺に何があったかと。誰も聞かなかった。", text: "...You asked me once. What happened to me. No one had ever asked.", emotion: "bitter", condition: { flag: "shadow_empathy_deep" } },
     { speaker: "player", textJp: "違う。お前の存在理由は先生との絆だ。力じゃない。", text: "No. Your reason to exist is your bond with Sensei. Not the power." },
     { speaker: "shadow", textJp: "...黙れ。", text: "...Shut up.", emotion: "angry" },
     // Choice: shadow_final_help or shadow_final_fight
@@ -564,17 +567,15 @@ export const ROOM_ENCOUNTERS = {
     { triggerX: 400, speaker: "player", textJp: "速く。もっと速く。", text: "Faster. Faster.", duration: 1500 },
     { triggerX: 1500, speaker: "player", textJp: "腕の印が...熱い。", text: "The mark on my arm... it's burning.", duration: 2000 },
   ],
-  // Room 9: Exhaustion setting in, but can't stop
+  // Room 9: Exhaustion + hope — the tower is the last obstacle before the temple
   9: [
     { triggerX: 200, speaker: "player", textJp: "塔だ。ここを越えれば...", text: "A tower. If I can get past this...", duration: 2000 },
-    { triggerX: 800, speaker: "player", textJp: "足が重い。でも止まれない。", text: "My legs are heavy. But I can't stop.", duration: 2000 },
+    { triggerX: 600, speaker: "player", textJp: "足が重い。でも止まれない。", text: "My legs are heavy. But I can't stop.", duration: 2000 },
+    { triggerX: 1200, speaker: "player", textJp: "山寺はもうすぐのはず...", text: "The mountain temple should be close...", duration: 2000 },
   ],
   // Room 10: Cornered — must fight
   10: [
     { triggerX: 300, speaker: "player", textJp: "囲まれた...！戦うしかない！", text: "Surrounded...! No choice but to fight!", duration: 2000 },
-  ],
-  9: [
-    { triggerX: 300, speaker: "player", textJp: "山寺はもうすぐのはず...", text: "The mountain temple should be close...", duration: 2000 },
   ],
   // Shadow watches from afar after his appearance
   11: [
@@ -694,7 +695,7 @@ export const ROOM_CHOICES = {
 export const TITLE_CARD_ROOMS = new Set([
   0,   // 道場 — THE DOJO (game opening)
   5,   // 転機 — THE TURNING POINT (inciting incident)
-  8,   // 森 — THE FOREST (first solo scene)
+  9,   // 塔 — THE TOWER (Act 1 climax)
   10,  // 出会い — THE ENCOUNTER (Shadow appears)
   12,  // 江戸 — EDO CASTLE TOWN (new era)
   27,  // 東京 — NEON TOKYO (biggest tonal shift)
@@ -770,7 +771,7 @@ export function getSceneConfig(roomIndex) {
     entrance: { left: 'already_there', right: 'already_there' },
   };
   // ── Forest solo scenes (6-9) ──
-  if (roomIndex <= 9) return {
+  if (roomIndex >= 6 && roomIndex <= 9) return {
     bgKey: 'bg_forest_story', gradientColors: ['#081a12', '#061210', '#040a08'],
     label: '森', labelEn: 'THE FOREST', particleType: 'leaves', groundLevel: 0.78,
     characters: { left: 'player', right: null },

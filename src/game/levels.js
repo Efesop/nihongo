@@ -246,8 +246,8 @@ export const ROOMS = [
       { x: 2000, y: 0, w: 800 },
     ],
     enemies: [
-      // Section 1: First pursuers
-      { type: "oni", x: 400, y: 0 },
+      // Section 1: First pursuers (give player space to breathe)
+      { type: "oni", x: 500, y: 0 },
       { type: "oni", x: 700, y: 0 },
       // Section 2: Ambush in the gully
       { type: "oni", x: 1200, y: 20 },
@@ -261,8 +261,10 @@ export const ROOMS = [
     playerStart: 80,
     deco: [
       { type: "lantern", x: 200 }, { type: "lantern", x: 600 },
-      { type: "lantern", x: 1300 }, { type: "lantern", x: 1800 },
-      { type: "lantern", x: 2400 }, { type: "torii", x: 1000 },
+      { type: "lantern", x: 1000 }, { type: "lantern", x: 1300 },
+      { type: "lantern", x: 1800 }, { type: "lantern", x: 2200 },
+      { type: "lantern", x: 2600 },
+      { type: "torii", x: 900 }, { type: "torii", x: 2100 },
     ],
     breakables: [
       { type: "crate", x: 360, y: 0, w: 40, h: 40 },
