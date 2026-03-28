@@ -593,8 +593,8 @@ export function update(g, callbacks) {
   if (p.comboWindow <= 0 && p.slashTimer <= 0) p.slashCombo = 0;
 
   // Slash cooldown after full 4-hit combo — brief recovery before next chain
-  if (p._slashCooldown > 0) { p._slashCooldown -= rawDt * 1000; g.input.slashPressed = false; }
-  if (g.input.slashPressed && p.slashTimer <= 0 && p._slashCooldown <= 0 && (p.slashCombo === 0 || p.comboWindow > 0)) {
+  if ((p._slashCooldown || 0) > 0) { p._slashCooldown -= rawDt * 1000; g.input.slashPressed = false; }
+  if (g.input.slashPressed && p.slashTimer <= 0 && !((p._slashCooldown || 0) > 0) && (p.slashCombo === 0 || p.comboWindow > 0)) {
     // Exit hide on attack
     if (p.hidden) { p.hidden = false; if (p.hideSpot) { p.hideSpot.occupied = false; p.hideSpot = null; } }
     p.noiseLevel = Math.min(1, p.noiseLevel + 0.8); // slash is loud
