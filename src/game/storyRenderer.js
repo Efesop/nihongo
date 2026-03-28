@@ -103,6 +103,18 @@ export function updateStory(g, rawDt, callbacks) {
   // ═══ CINEMATIC BEAT SYSTEM ═══
   // Non-dialogue lines execute instantly and auto-advance
   if (line.type && line.type !== "dialogue") {
+    // Check conditions on beats (e.g. shake only during defiant path)
+    if (line.condition) {
+      const flag = line.condition.flag;
+      const met = flag.startsWith("!") ? !g.choices[flag.slice(1)] : !!g.choices[flag];
+      if (!met) {
+        s.index++;
+        if (s.index >= s.lines.length) { g.story = null; g.gameState = "playing"; g._resumeFromStory = true; return; }
+        s.typedChars = 0; s.typingDone = false; s.timer = 0;
+        s._beatCooldown = 0.05;
+        return;
+      }
+    }
     // Process cinematic beat
     if (line.type === "bgSwap") {
       s.sceneConfig.bgKey = line.to;
@@ -148,6 +160,23 @@ export function updateStory(g, rawDt, callbacks) {
       s._centerImage = null;
     } else if (line.type === "musicChange") {
       try { crossfadeMusic(line.to, line.fade || 1.0); } catch {}
+    } else if (line.type === "characterExit") {
+      // Animate a character running off screen
+      if (!s._characterExit) {
+        s._characterExit = {
+          char: line.char || "player",
+          direction: line.direction || "left",
+          timer: 0,
+          duration: line.duration || 1.2,
+        };
+        playSound("sfx_running_footsteps");
+      }
+      s._characterExit.timer += rawDt;
+      if (s._characterExit.timer < s._characterExit.duration) return; // still animating
+      // Animation done — mark character as hidden
+      if (s._characterExit.char === "player") s._hideLeft = true;
+      else s._hideRight = true;
+      s._characterExit = null;
     }
     // Advance to next line — but WAIT one frame before processing next beat
     // This prevents multiple SFX/effects from stacking on the same frame
@@ -349,13 +378,18 @@ function advanceStory(g, callbacks) {
     s.timer = 0;
 
     // Check if this line triggers a choice
+    // Supports both single choice object and array of choices per room
     const roomChoices = ROOM_CHOICES[g._storyRoomIndex];
-    if (roomChoices && roomChoices.after === s.index) {
-      s.choices = roomChoices.options;
-      s.choiceIndex = 0;
-      s.choiceTimer = 8; // 8 second timer
-      s._choiceAnim = 0; // reset slide-in animation
-      playSound("sfx_choice_appear");
+    if (roomChoices) {
+      const choiceList = Array.isArray(roomChoices) ? roomChoices : [roomChoices];
+      const matchingChoice = choiceList.find(c => c.after === s.index);
+      if (matchingChoice) {
+        s.choices = matchingChoice.options;
+        s.choiceIndex = 0;
+        s.choiceTimer = 8; // 8 second timer
+        s._choiceAnim = 0; // reset slide-in animation
+        playSound("sfx_choice_appear");
+      }
     }
   }
 }
@@ -483,7 +517,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
     }
     // Try emotion variant first
     if (emotion) {
-      const emotionMap = { serious: "serious", amused: "amused", angry: "angry", bitter: "bitter", concerned: "concerned" };
+      const emotionMap = { serious: "serious", amused: "amused", angry: "angry", alarmed: "alarmed", bitter: "bitter", concerned: "concerned" };
       if (emotionMap[emotion]) {
         const img = getImage(`story_${charKey}_${emotionMap[emotion]}`);
         if (img) return img;
@@ -497,28 +531,44 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const charInfo = CHARACTERS[charKey];
     if (!charInfo) return;
 
+    // Character hidden after exit animation
+    if (side === "left" && s._hideLeft) return;
+    if (side === "right" && s._hideRight) return;
+
     // Position: centered in each half, with entrance slide-in
     const finalX = side === "left" ? W * 0.32 : W * 0.72;
     const startX = side === "left" ? W * -0.1 : W * 1.1;
     // Check if this character should already be in place
     const charEntrance = scene.entrance?.[side === "left" ? "left" : "right"];
     const shouldAnimate = charEntrance !== "already_there" && charEntrance !== "fade_in";
-    const x = shouldAnimate ? startX + (finalX - startX) * easeT : finalX;
+    let x = shouldAnimate ? startX + (finalX - startX) * easeT : finalX;
     // Fade-in for characters with fade entrance
     if (charEntrance === "fade_in" && entranceT < 1) {
       ctx.globalAlpha = Math.min(ctx.globalAlpha, easeT);
     }
+
+    // Character exit animation — override position to move off screen
+    const exitAnim = s._characterExit;
+    const isExiting = exitAnim && exitAnim.char === charKey;
+    if (isExiting) {
+      const exitT = Math.min(1, exitAnim.timer / exitAnim.duration);
+      const easeExitT = exitT * exitT; // easeIn — accelerates away
+      const exitX = exitAnim.direction === "left" ? W * -0.15 : W * 1.15;
+      x = finalX + (exitX - finalX) * easeExitT;
+    }
+
     const emotion = isActive ? line.emotion : null;
-    // During walk-in entrance, use walk sprites instead of idle
-    const isWalking = shouldAnimate && s.entrance?.active && entranceT < 1;
+    // During walk-in entrance OR exit, use run sprites
+    const isWalking = (shouldAnimate && s.entrance?.active && entranceT < 1) || isExiting;
     let sprite;
     if (isWalking) {
-      const walkFrame = Math.floor((s.entrance?.timer || 0) * 6) % 2 === 0 ? "walk1" : "walk2";
       if (charKey === "player") {
-        // Player uses actual gameplay run sprites for walking
-        const runFrame = (Math.floor((s.entrance?.timer || 0) * 8) % 4) + 1;
+        const animTimer = isExiting ? exitAnim.timer : (s.entrance?.timer || 0);
+        const runFrame = (Math.floor(animTimer * 8) % 4) + 1;
         sprite = getImage("run" + runFrame) || getImage("player");
       } else {
+        const animTimer = isExiting ? exitAnim.timer : (s.entrance?.timer || 0);
+        const walkFrame = Math.floor(animTimer * 6) % 2 === 0 ? "walk1" : "walk2";
         sprite = getImage(`story_${charKey}_${walkFrame}`) || getCharSprite(charKey, emotion);
       }
     } else {
@@ -536,18 +586,21 @@ export function renderStoryScene(ctx, g, W, H, font) {
       const drawY = floorY - drawH + (isActive ? bob : 0);
 
       // Flip player sprite to face right (sprites face left by default)
+      // During exit animation, face the exit direction instead
       ctx.imageSmoothingEnabled = false;
-      if (side === "left") {
-        // Player faces right — flip horizontally
+      const exitingLeft = isExiting && exitAnim.direction === "left";
+      const exitingRight = isExiting && exitAnim.direction === "right";
+      const shouldFlip = (side === "left" && !exitingLeft) || exitingRight;
+      if (shouldFlip) {
+        // Face right — flip horizontally
         ctx.save();
         ctx.translate(drawX + drawW, drawY);
         ctx.scale(-1, 1);
-        // Glow for active speaker
         if (isActive) { ctx.shadowColor = charInfo.color; ctx.shadowBlur = 20; }
         ctx.drawImage(sprite, 0, 0, drawW, drawH);
         ctx.restore();
       } else {
-        // NPC faces left (default sprite direction)
+        // Face left (default sprite direction)
         if (isActive) { ctx.shadowColor = charInfo.color; ctx.shadowBlur = 20; }
         ctx.drawImage(sprite, drawX, drawY, drawW, drawH);
       }

@@ -106,6 +106,9 @@ const SOUNDS = [
   ['fox_cry',           'Ethereal mystical fox spirit cry, supernatural kitsune howl, otherworldly and beautiful, game sfx', 1.0, 0.5],
   ['illusion_pop',      'Magical illusion clone disappearing poof, spirit dissolving into particles, game sfx', 0.4, 0.4],
   ['time_rift',         'Deep reality-tearing warp, dimensional rift opening, spacetime distortion bass rumble, game transition sfx', 1.5, 0.6],
+
+  // ────── CINEMATIC (Room 5 story) ──────
+  ['sfx_running_footsteps', 'Quick footsteps running on wooden floor, Japanese sandals on polished wood, getting quieter as person runs away into distance, about 6-8 rapid steps fading, game cinematic sfx', 2.0, 0.5],
 ];
 
 const LOOPS = [

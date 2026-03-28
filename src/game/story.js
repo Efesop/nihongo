@@ -70,69 +70,145 @@ export const ROOM_DIALOGUE = {
   ],
 
   // ═══ THE INCITING INCIDENT (Room 5) ═══
-  // Cinematic sequence: calm → discovery → panic → flight
-  // Uses the beat system for timed VFX, bg swaps, SFX
+  // Cinematic: calm → discovery → panic → argument → flight
+  // Sensei sees the mark for the FIRST TIME. HE connects it to slow-mo.
+  // Player thought time-bending was sensei's technique — it was the curse.
+  // Two choices: reaction to revelation + departure argument.
 
   5: [
-    // ── Beat 1: Calm aftermath of training ──
+    // ── ACT 1: Post-Training (Warm, Dry Humor) ──
     { speaker: "system", textJp: "修行の後 — 夕暮れの道場", text: "After training — the dojo at dusk" },
-    { speaker: "sensei", textJp: "...今日はよくやった。成長してる。", text: "...You did well today. You're improving.", emotion: "amused" },
-    { speaker: "player", textJp: "先生、褒めてくれるなんて珍しいですね。", text: "Sensei, it's rare for you to compliment me.", emotion: "surprised" },
-    { speaker: "sensei", textJp: "ふん。図に乗るなよ。", text: "Hmph. Don't let it go to your head.", emotion: "amused" },
+    { speaker: "sensei", textJp: "...今日は悪くなかった。何も落ちなかったし。", text: "...Not bad today. You didn't fall off anything.", emotion: "amused" },
+    { speaker: "player", textJp: "それ、褒めてます？", text: "Was that a compliment?" },
+    { speaker: "sensei", textJp: "...いや。", text: "...No.", emotion: "amused" },
+    { speaker: "player", textJp: "褒め言葉に聞こえましたけど。", text: "It really sounded like one." },
+    { speaker: "sensei", textJp: "なら耳も鍛えないとな。", text: "Then your hearing needs work too.", emotion: "serious" },
 
-    // ── Beat 2: The discovery — Sensei notices the mark ──
-    { speaker: "sensei", textJp: "...待て。腕を見せろ。", text: "...Wait. Show me your arm.", emotion: "serious" },
-    { speaker: "player", textJp: "え？なんで—", text: "Huh? Why—", emotion: "surprised" },
-    // Show arm — tension music starts, plays through entire scene
-    { type: "musicChange", to: "music_story_tension", fade: 1.0 },
-    { type: "centerImage", image: "cutscene_sensei_arm", fade: 0.5, scale: 0.25 },
-    { type: "pause", duration: 1.0 },
+    // ── ACT 2: The Discovery (Sensei sees mark for the first time) ──
+    { type: "pause", duration: 0.8 },
+    // The mark glows faintly — sensei catches it
+    { speaker: "sensei", textJp: "...何だ、今の？", text: "...What was that?", emotion: "serious" },
+    { speaker: "player", textJp: "え？", text: "Huh?" },
+    { speaker: "sensei", textJp: "腕だ。何か光っていた。", text: "Your arm. Something was glowing.", emotion: "serious" },
+    { speaker: "player", textJp: "ああ...これ？ずっとある印です。たまに光るんですよ。", text: "Oh... this? It's just a mark I've always had. It does that sometimes." },
+    { speaker: "sensei", textJp: "...見せろ。", text: "...Show me.", emotion: "serious" },
+
+    // Tension music + arm mark close-up (subtle, NOT dramatic)
+    { type: "musicChange", to: "music_story_tension", fade: 1.5 },
+    { type: "centerImage", image: "cutscene_arm_mark", fade: 0.5, scale: 0.18 },
+    { type: "pause", duration: 1.5 },
     { type: "sfx", sound: "tension_sting" },
-    { speaker: "sensei", textJp: "...この印は...まさか。", text: "...This mark... no. It can't be.", emotion: "serious" },
-    { speaker: "player", textJp: "分からない...集中すると光るんです。", text: "I don't know... it glows when I focus." },
+
+    { speaker: "sensei", textJp: "...", text: "...", emotion: "alarmed" },
+    { speaker: "player", textJp: "...先生？顔色が悪いですよ。", text: "...Sensei? You've gone pale." },
+
     { type: "clearCenter" },
-    { speaker: "sensei", textJp: "...", text: "..." },
     { type: "sfx", sound: "heartbeat_tension" },
-    { speaker: "player", textJp: "先生？顔色が悪いですよ。大丈夫ですか？", text: "Sensei? You've gone pale. Are you alright?" },
 
-    // ── Beat 3: The attack ──
-    // Tension music keeps playing — eerie atmosphere builds
-    { speaker: "sensei", textJp: "...説明している暇はない！信じろ！", text: "...No time to explain! Trust me!", emotion: "alarmed", condition: { flag: "departure_demand" } },
-    { speaker: "sensei", textJp: "...お前は強い子だ。信じろ。", text: "...You've always been strong. Trust me.", emotion: "serious", condition: { flag: "departure_trust" } },
-    { speaker: "sensei", textJp: "...聞け。大事な話が—", text: "...Listen. There's something important—", emotion: "serious" },
+    { speaker: "sensei", textJp: "いつからあるんだ？", text: "How long have you had this?", emotion: "serious" },
+    { speaker: "player", textJp: "ずっとです。前はほとんど見えなかったけど、最近は明るくなってきて。", text: "Always. It was barely visible before, but lately it's been getting brighter." },
+    { speaker: "sensei", textJp: "この印...古い文献で読んだことがある。", text: "This mark... I've read about it. In the old texts.", emotion: "serious" },
+    { speaker: "sensei", textJp: "墨の呪いと呼ばれている。", text: "It's called 墨の呪い — the Ink Curse.", emotion: "serious" },
+    { speaker: "player", textJp: "...呪い？", text: "...Curse?" },
+    { speaker: "sensei", textJp: "今日お前がやったこと。全てが遅くなったあの瞬間。", text: "That thing you did today. When everything slowed down.", emotion: "serious" },
+    { speaker: "player", textJp: "先生が教えてくれた集中法のことですか？", text: "The focus technique you taught me?" },
+    { speaker: "sensei", textJp: "俺が教えたのは呼吸法だ。意識の向け方だ。", text: "I taught you breathing. Awareness.", emotion: "serious" },
+    { speaker: "sensei", textJp: "時を曲げた力...あれは俺の教えじゃない。印の力だ。", text: "The time-bending... that wasn't me. That was the mark.", emotion: "serious" },
+    { speaker: "player", textJp: "...え？", text: "What...?", emotion: "surprised" },
 
-    // Glass shatters — tension music still playing
+    // ── CHOICE 1 triggers here: Player reacts to the revelation ──
+    // mark_concerned / mark_identity / mark_perceptive
+
+    // Conditional responses
+    { speaker: "sensei", textJp: "印そのものは命を奪わない。だが、それを狩る者たちは容赦がない。", text: "The mark itself won't kill you. But those who hunt it will.", emotion: "serious", condition: { flag: "mark_concerned" } },
+
+    { speaker: "sensei", textJp: "印がお前を選んだ。力はお前のものだ。", text: "The mark chose you. The power IS yours.", emotion: "serious", condition: { flag: "mark_identity" } },
+    { speaker: "sensei", textJp: "だがその代償は大きい。", text: "But it comes at a terrible cost.", emotion: "serious", condition: { flag: "mark_identity" } },
+
+    { speaker: "sensei", textJp: "...お前の成果が俺の教えを超えていた。", text: "...Your results were beyond what my teaching should have produced.", emotion: "serious", condition: { flag: "mark_perceptive" } },
+    { speaker: "sensei", textJp: "信じたくなかった。だが印を見た今...", text: "I didn't want to believe it. But now I've seen the mark...", emotion: "serious", condition: { flag: "mark_perceptive" } },
+
+    // Continue — all paths converge
+    { speaker: "sensei", textJp: "印は恵みであり呪いでもある。", text: "The mark is both a gift and a burden.", emotion: "serious" },
+    { speaker: "sensei", textJp: "時を操る力を与える...", text: "It grants power over time itself...", emotion: "serious" },
+    { speaker: "sensei", textJp: "...だがその印を持つ者は追われる。", text: "...but those who bear it are hunted.", emotion: "alarmed" },
+    { speaker: "player", textJp: "追われる？誰に？", text: "Hunted? By who?" },
+    { speaker: "sensei", textJp: "影狩りと名乗る者たちだ。", text: "They call themselves 影狩り — the Shadow Hunters.", emotion: "serious" },
+    { speaker: "sensei", textJp: "奴らは何百年も印の力を探し続けてきた。", text: "They've sought the mark's power for centuries.", emotion: "serious" },
+
+    // ── ACT 3: The Attack ──
     { type: "sfx", sound: "glass_shatter" },
-    { type: "shake", intensity: 4, duration: 0.5 },
-    { type: "pause", duration: 1.2 },
+    { type: "shake", intensity: 5, duration: 0.6 },
+    { type: "bgSwap", to: "cutscene_shoji_shattered" },
+    { type: "pause", duration: 1.0 },
+
+    { speaker: "player", textJp: "—？！", text: "—?!", emotion: "surprised" },
+
     { type: "sfx", sound: "wind_howl" },
-    { speaker: "sensei", textJp: "...！あの音...", text: "...! That sound...", emotion: "alarmed" },
-    { speaker: "player", textJp: "先生、何が—", text: "Sensei, what's—" },
+    { speaker: "sensei", textJp: "下がれ！", text: "Get back!", emotion: "alarmed" },
 
-    // Cut to exterior — approaching shadows
-    { type: "bgSwap", to: "cutscene_approaching_shadows" },
+    { type: "pause", duration: 0.5 },
+
+    { speaker: "player", textJp: "先生...壁の血は...？", text: "Sensei... is that blood? On the wall?" },
+    { speaker: "sensei", textJp: "見るな。聞け。", text: "Don't look. Listen to me.", emotion: "alarmed" },
+
+    // Hunters visible through broken panels
+    { type: "bgSwap", to: "cutscene_hunters_approach" },
     { type: "sfx", sound: "distant_footsteps" },
-    { type: "pause", duration: 3.5 },
+    { type: "pause", duration: 2.0 },
 
-    // Back to dojo — music escalates
-    { type: "bgSwap", to: "bg_dojo_night_story" },
+    // Back to dojo — music escalates to combat
+    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
     { type: "musicChange", to: "music_dojo_combat", fade: 0.5 },
-    { speaker: "sensei", textJp: "来た。追っ手だ。", text: "They're here. The hunters.", emotion: "alarmed" },
-    { speaker: "sensei", textJp: "聞け！山寺の長老を探せ！印のことを知っている！", text: "Listen! Find the Elder at the mountain temple! He knows about the mark!", emotion: "alarmed" },
-    { speaker: "player", textJp: "何を言って—先生は？！", text: "What are you— what about you?!", emotion: "surprised" },
-    { speaker: "sensei", textJp: "俺のことはいい。お前が生き延びろ。", text: "Forget about me. You need to survive.", emotion: "alarmed" },
 
-    // Door smashes — blood on shoji
+    { speaker: "sensei", textJp: "来た。影狩りだ。", text: "They've found us. The Shadow Hunters.", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "聞け — 山寺だ。長老を探せ。", text: "Listen carefully — the mountain temple. Find the Elder.", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "印のことを知っている。お前を助けられる。", text: "He knows about the mark. He can help you.", emotion: "alarmed" },
+    { speaker: "player", textJp: "何を？！先生はどうするんですか！", text: "What?! Sensei, what about YOU?!", emotion: "surprised" },
+    { speaker: "sensei", textJp: "誰かが食い止めなければ。", text: "Someone needs to hold them off.", emotion: "serious" },
+
+    // ── CHOICE 2 triggers here: Departure argument ──
+    // departure_defiant / departure_plea / departure_trust
+
+    // Defiant path — sensei gets ANGRY
+    { speaker: "player", textJp: "置いて行くわけないだろ！一緒に戦う！", text: "I'm NOT leaving! I'll fight them with you!", condition: { flag: "departure_defiant" } },
+    { speaker: "sensei", textJp: "この馬鹿者が！", text: "YOU FOOL!", emotion: "angry", condition: { flag: "departure_defiant" } },
+    { type: "shake", intensity: 3, duration: 0.3, condition: { flag: "departure_defiant" } },
+    { speaker: "sensei", textJp: "印の力を奪われれば全てが終わるんだ！", text: "If they take the mark's power, EVERYTHING is lost!", emotion: "angry", condition: { flag: "departure_defiant" } },
+    { speaker: "sensei", textJp: "今大事なのはお前だけだ。分かるか！", text: "You are the only one who matters now. Do you understand?!", emotion: "angry", condition: { flag: "departure_defiant" } },
+    { speaker: "player", textJp: "でも、俺は—", text: "But I can't just—", condition: { flag: "departure_defiant" } },
+    { speaker: "sensei", textJp: "...頼んでいるんじゃない。", text: "...This is not a request.", emotion: "serious", condition: { flag: "departure_defiant" } },
+    { type: "pause", duration: 1.0, condition: { flag: "departure_defiant" } },
+
+    // Plea path — quiet sadness with touch of humor
+    { speaker: "player", textJp: "一緒に来てください！二人なら—", text: "Come WITH me! We can both make it!", condition: { flag: "departure_plea" } },
+    { speaker: "sensei", textJp: "じゃあ誰が食い止める？考えろ。", text: "And who holds them off? Think.", emotion: "serious", condition: { flag: "departure_plea" } },
+    { speaker: "player", textJp: "先生...", text: "Sensei...", condition: { flag: "departure_plea" } },
+    { speaker: "sensei", textJp: "...そんな顔するな。今日は死なんよ。", text: "...Don't give me that look. I'm not dying today.", emotion: "amused", condition: { flag: "departure_plea" } },
+    { speaker: "sensei", textJp: "行け。", text: "Now go.", emotion: "serious", condition: { flag: "departure_plea" } },
+
+    // Trust path — bittersweet respect
+    { speaker: "player", textJp: "...分かりました。", text: "...I understand.", condition: { flag: "departure_trust" } },
+    { speaker: "sensei", textJp: "...いい子だ。お前は自分が思っているより強い。", text: "...Good. You've always been stronger than you know.", emotion: "serious", condition: { flag: "departure_trust" } },
+    { type: "pause", duration: 0.5, condition: { flag: "departure_trust" } },
+
+    // ── ACT 5: The Escape ──
+    // Door smashes in
     { type: "sfx", sound: "wood_splinter" },
     { type: "shake", intensity: 8, duration: 0.8 },
     { type: "bgSwap", to: "cutscene_shoji_blood", transition: "hardCut" },
-    { type: "pause", duration: 2.0 },
+    { type: "pause", duration: 1.5 },
 
-    // Final words
+    // Back to dojo — final words
     { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
     { speaker: "sensei", textJp: "行け！！今すぐ！！", text: "GO!! NOW!!", emotion: "alarmed" },
 
-    // Blackout → combat
+    // Player runs off screen with footsteps
+    { type: "characterExit", char: "player", direction: "left" },
+    { type: "pause", duration: 1.2 },
+    // Sensei alone — moment of weight before blackout
+
+    // Blackout → Room 6 combat
     { type: "blackout", duration: 0.8 },
   ],
 
@@ -501,14 +577,25 @@ export const ROOM_CHOICES = {
       { textJp: "...少し休みたい。", text: "...I need a moment.", flag: "training_rest" },
     ],
   },
-  // The turning point — how do you react to being sent away?
-  5: {
-    after: 9, // after "What's happening?!"
-    options: [
-      { textJp: "説明してください！", text: "Tell me what's happening!", flag: "departure_demand" },
-      { textJp: "...分かりました。信じます。", text: "...I understand. I trust you.", flag: "departure_trust" },
-    ],
-  },
+  // The turning point — two choices: reaction to mark + departure argument
+  5: [
+    {
+      after: 29, // after "What...?" — player reacts to the Ink Curse revelation
+      options: [
+        { textJp: "...危険なんですか？", text: "Is it... dangerous?", flag: "mark_concerned" },
+        { textJp: "じゃあ、あの力は...俺のものじゃない？", text: "So that power... isn't mine?", flag: "mark_identity" },
+        { textJp: "先生...修行中「使いすぎるな」って。気づいてたんですか。", text: "You suspected something. In training, you said 'don't overuse it.'", flag: "mark_perceptive" },
+      ],
+    },
+    {
+      after: 60, // after "Someone needs to hold them off" — player argues about leaving
+      options: [
+        { textJp: "置いて行くわけないだろ！", text: "I'm NOT leaving you!", flag: "departure_defiant" },
+        { textJp: "一緒に来てください！", text: "Come with me, Sensei!", flag: "departure_plea" },
+        { textJp: "...分かりました。", text: "...I understand.", flag: "departure_trust" },
+      ],
+    },
+  ],
   // Shadow's first encounter — embrace the curse?
   10: {
     after: 11,
@@ -732,7 +819,10 @@ export function getDefaultChoices() {
   return {
     // Prologue
     training_push: false, training_rest: false,
-    departure_demand: false, departure_trust: false,
+    // Room 5: Mark revelation
+    mark_concerned: false, mark_identity: false, mark_perceptive: false,
+    // Room 5: Departure argument
+    departure_defiant: false, departure_plea: false, departure_trust: false,
     // Act 1: Forest
     curse_accept_1: false, curse_resist_1: false,
     shadow_prove: false, shadow_empathy: false,

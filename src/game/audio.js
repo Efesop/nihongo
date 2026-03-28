@@ -49,6 +49,7 @@ const SFX_STORY = [
 const SFX_CINEMATIC = [
   "glass_shatter", "wood_splinter", "distant_footsteps",
   "heartbeat_tension", "wind_howl", "tension_sting",
+  "sfx_running_footsteps",
 ];
 const SFX_STEALTH = [
   "stealth_kill", "detection_suspicious", "detection_alert",

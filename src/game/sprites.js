@@ -31,6 +31,7 @@ const PLAYER_CORE = [
   // Cinematic cutscene images (small ~160KB each, needed for Room 5 story)
   gs("bg_dojo_exterior_night"), gs("cutscene_approaching_shadows"),
   gs("cutscene_shoji_blood"), gs("cutscene_sensei_arm"),
+  gs("cutscene_arm_mark"), gs("cutscene_shoji_shattered"), gs("cutscene_hunters_approach"),
   ps("run1", "/images/tinysenpai/run/1.png"), ps("run2", "/images/tinysenpai/run/2.png"),
   ps("run3", "/images/tinysenpai/run/3.png"), ps("run4", "/images/tinysenpai/run/4.png"),
   ps("slash1", "/images/tinysenpai/slash/1.png"), ps("slash2", "/images/tinysenpai/slash/2.png"),
@@ -49,6 +50,7 @@ const ZONE_SPRITES = {
     // Cinematic cutscene images (Room 5 Turning Point)
     gs("bg_dojo_exterior_night"), gs("cutscene_approaching_shadows"),
     gs("cutscene_shoji_blood"), gs("cutscene_door_break"), gs("cutscene_sensei_arm"),
+    gs("cutscene_arm_mark"), gs("cutscene_shoji_shattered"), gs("cutscene_hunters_approach"),
     gs("story_sensei_alarmed"), gs("story_player_looking_arm"),
     // Training dummies (dojo rooms 0-4)
     gs("dummy_idle"), gs("dummy_hit"), gs("dummy_dead"),
@@ -75,6 +77,7 @@ const ZONE_SPRITES = {
     ps("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png"),
     // Story characters for dojo scenes
     gs("story_sensei_idle"), gs("story_sensei_serious"), gs("story_sensei_amused"),
+    gs("story_sensei_angry"),
     gs("story_sensei_walk1"), gs("story_sensei_walk2"),
     gs("story_player_idle"), gs("story_player_surprised"), gs("story_player_determined"),
     // Portraits
