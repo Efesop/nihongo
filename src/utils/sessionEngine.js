@@ -543,8 +543,29 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // Append remaining specials
   while (si < specialItems.length) interleaved.push(specialItems[si++]);
 
+  // Safety filter: remove any exercise whose item is far from due
+  // Belt-and-suspenders — catches any code path that accidentally includes non-due items
+  const safeQueue = interleaved.filter(item => {
+    const t = item.type || "";
+    // Skip safety check for learn cards, try-first, specials (they don't have SRS schedules)
+    if (t.includes("learn") || t.includes("try-first") || t === "grammar-pattern" ||
+        t === "kana-pair" || t === "story" || t === "branch-convo" || t === "conversation" ||
+        t === "leech-review") return true;
+    // For phrase exercises: check if the phrase is due or close to due
+    if (t.startsWith("phrase-") && item.item && item.item[0]) {
+      const d = phrData[item.item[0]];
+      if (d && d.next && (d.next - now) > 2 * 86400000) return false; // more than 2 days away = skip
+    }
+    // For kana exercises: same check
+    if (t.startsWith("kana-") && typeof item.item === "string") {
+      const d = kanaData[item.item];
+      if (d && d.next && (d.next - now) > 2 * 86400000) return false;
+    }
+    return true;
+  });
+
   // Trim to session length
-  return interleaved.slice(0, sessionLength);
+  return safeQueue.slice(0, sessionLength);
 }
 
 /**
