@@ -2501,14 +2501,16 @@ function renderBackground(ctx, W, H, cx, g) {
     const bgImg = getImage(bgKey) || getImage("bg_forest");
 
     if (bgImg) {
-      const scaleW = W / bgImg.width;
-      const scaleH = H / bgImg.height;
+      // Overscale by shake padding so camera shake never reveals edges
+      const shakePad = 12;
+      const scaleW = (W + shakePad * 2) / bgImg.width;
+      const scaleH = (H + shakePad * 2) / bgImg.height;
       const bgScale = Math.max(scaleW, scaleH);
       const bgW = bgImg.width * bgScale;
       const bgH = bgImg.height * bgScale;
       const panRange = Math.max(0, bgW - W);
-      const panX = panRange > 0 ? -(cx / maxCx) * panRange : 0;
-      const panY = -(bgH - H) * 0.3;
+      const panX = (panRange > 0 ? -(cx / maxCx) * panRange : 0) - shakePad;
+      const panY = -(bgH - H) * 0.3 - shakePad;
       ctx.drawImage(bgImg, panX, panY, bgW, bgH);
       ctx.fillStyle = "rgba(5,8,15,0.2)";
       ctx.fillRect(0, 0, W, H);
