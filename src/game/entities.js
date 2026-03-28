@@ -264,10 +264,10 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       e.state = "chase";
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.7;
-      // Oni dodge — 25% chance to sidestep when player is mid-slash nearby
-      if (dist < 80 && player.slashTimer > 0 && !e._dodgeCooldown && Math.random() < 0.25) {
-        e.vx = -toPlayer * 300; // dodge backward
-        e._dodgeCooldown = 1200;
+      // Oni dodge — rare sidestep when player swings nearby (keeps them from being pure punching bags)
+      if (dist < 80 && player.slashTimer > 0 && !e._dodgeCooldown && Math.random() < 0.12) {
+        e.vx = -toPlayer * 200; // modest dodge backward
+        e._dodgeCooldown = 2000; // long cooldown — this is a rare surprise, not constant
         e.state = "cooldown";
         e.attackTimer = 400;
       } else if (dist < 65) {
@@ -301,12 +301,12 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
         e.throwAnim = 400;
         playRandom("ninja_throw");
       }
-      // Ninja backstep — dodge away when player gets close (can't just walk up and slash)
-      if (dist < 80 && !((e.y + 30) < player.y)) {
-        e.vx = -toPlayer * 250; // fast backstep
-        if (dist < 50 && !e._dodgeCooldown) {
-          e._dodgeCooldown = 800; // brief cooldown so they don't dodge infinitely
-          e.vx = -toPlayer * 400; // dodge burst
+      // Ninja backstep — retreats when player approaches (forces dash to close distance)
+      if (dist < 70 && !((e.y + 30) < player.y)) {
+        e.vx = -toPlayer * 160; // steady retreat (catchable with dash, not with walking)
+        if (dist < 40 && !e._dodgeCooldown) {
+          e._dodgeCooldown = 1200; // longer cooldown — one burst per encounter
+          e.vx = -toPlayer * 280; // dodge burst (still catchable with dash-slash)
         }
       }
     } else {

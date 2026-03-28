@@ -100,7 +100,8 @@ export function loadRoom(g, roomIndex) {
   g.camera.zoom = 1;
   g.camera.zoomTarget = 1;
   g.camera.lookAhead = 0;
-  g.slowMo.meter = 0; // starts EMPTY — must kill to earn slow-mo
+  // Tutorial rooms (0-4) start with full meter. Combat rooms start empty — must kill to earn.
+  g.slowMo.meter = roomIndex <= 4 ? g.slowMo.max : 0;
   g.slowMo.active = false;
   // Reset input flags so held keys from previous life don't carry over
   g.input.left = false;
@@ -246,7 +247,7 @@ export function update(g, callbacks) {
     const canSlowMo = g.slowMo.active ? g.slowMo.meter > 0 : g.slowMo.meter > 20;
     if (g.input.slowmo && canSlowMo) {
       g.slowMo.active = true;
-      g.slowMo.meter = Math.max(0, g.slowMo.meter - 40 * rawDt);
+      g.slowMo.meter = Math.max(0, g.slowMo.meter - 30 * rawDt); // ~3.3 sec at full
       g.time.scale = 0.25;
       if (g.slowMo.meter <= 0) g.slowMo.active = false;
     } else {
