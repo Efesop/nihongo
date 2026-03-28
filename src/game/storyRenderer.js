@@ -62,14 +62,23 @@ function updateParticles(dt, W, H) {
 }
 
 function drawParticles(ctx) {
-  const colors = { dust: "#aa996680", leaves: "#44aa4460", embers: "#ff662280", petals: "#ff88aa60", ceilingDust: "#ccbbaa50" };
+  const colors = { dust: "#aa996680", leaves: "#44aa4460", embers: "#ff662280", petals: "#ff88aa60", ceilingDust: "#ccbbaa" };
   for (const p of _particles) {
     const alpha = Math.sin((p.life / p.maxLife) * Math.PI);
-    ctx.globalAlpha = alpha * 0.5;
-    ctx.fillStyle = colors[p.type] || colors.dust;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    if (p.type === "ceilingDust") {
+      // Larger, more visible dust motes falling from ceiling
+      ctx.globalAlpha = alpha * 0.35;
+      ctx.fillStyle = colors.ceilingDust;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.fillStyle = colors[p.type] || colors.dust;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 }
@@ -487,10 +496,10 @@ export function renderStoryScene(ctx, g, W, H, font) {
   ensureParticles(particleType, W, H);
   drawParticles(ctx);
 
-  // Flickering warm light after shakes — disturbed lantern glow
+  // Subtle flickering after shakes — barely noticeable lantern disturbance
   if (s._shakeOccurred) {
-    const flicker = Math.sin(Date.now() * 0.006) * 0.04 + Math.sin(Date.now() * 0.017) * 0.03 + Math.sin(Date.now() * 0.031) * 0.02;
-    ctx.fillStyle = `rgba(180,80,20,${0.03 + flicker})`;
+    const flicker = Math.sin(Date.now() * 0.007) * 0.015 + Math.sin(Date.now() * 0.019) * 0.01;
+    ctx.fillStyle = `rgba(180,80,20,${0.015 + flicker})`;
     ctx.fillRect(0, 0, W, H);
   }
 

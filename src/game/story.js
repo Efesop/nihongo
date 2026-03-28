@@ -135,10 +135,11 @@ export const ROOM_DIALOGUE = {
     { speaker: "sensei", textJp: "影狩り — 何百年も印の力を追い求めてきた者たちだ。", text: "The Shadow Hunters. They've sought the mark's power for centuries.", emotion: "serious" },
 
     // ── ACT 3: The Attack ──
-    // Blood appears on dojo panels (same room, characters stay visible)
+    // Blood appears on panels + distant scream (same room, characters stay)
     { type: "sfx", sound: "glass_shatter" },
     { type: "shake", intensity: 5, duration: 0.6 },
     { type: "bgSwap", to: "bg_dojo_night_blood" },
+    { type: "sfx", sound: "sfx_distant_scream" },
     { type: "sfx", sound: "blood_splatter" },
     { type: "pause", duration: 1.0 },
 
@@ -150,13 +151,12 @@ export const ROOM_DIALOGUE = {
     { speaker: "player", textJp: "先生...壁の血は...？", text: "Sensei... is that blood? On the wall?" },
     { speaker: "sensei", textJp: "見るな。聞け。", text: "Don't look. Listen to me.", emotion: "alarmed" },
 
-    // Hunters visible through broken panels
-    { type: "bgSwap", to: "cutscene_hunters_approach" },
+    // Shadow silhouettes appear behind panels (same room, characters stay)
+    { type: "bgSwap", to: "bg_dojo_night_shadows" },
     { type: "sfx", sound: "distant_footsteps" },
     { type: "pause", duration: 2.0 },
 
-    // Back to dojo — music escalates to combat
-    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
+    // Music escalates to combat
     { type: "musicChange", to: "music_dojo_combat", fade: 0.5 },
 
     { speaker: "sensei", textJp: "来た。影狩りだ。", text: "They've found us. The Shadow Hunters.", emotion: "alarmed" },
