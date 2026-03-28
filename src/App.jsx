@@ -324,7 +324,7 @@ function AuthedApp({ user, getToken }){
     setD(prev=>{
       const cur=prev.phr[id]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
-      const result=fsrsUpdate(fsrsData,correct);
+      const result=fsrsUpdate(fsrsData,correct,responseMs);
       const newBox=stabilityToBox(result.stability);
       const errors=prev.errors||{};
       if(!correct){errors[id]=(errors[id]||0)+1;}
@@ -351,7 +351,7 @@ function AuthedApp({ user, getToken }){
     setD(prev=>{
       const cur=prev.kana[ch]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
-      const result=fsrsUpdate(fsrsData,correct);
+      const result=fsrsUpdate(fsrsData,correct,responseMs);
       const newBox=stabilityToBox(result.stability);
       const errors=prev.errors||{};
       if(!correct){errors[ch]=(errors[ch]||0)+1;}
