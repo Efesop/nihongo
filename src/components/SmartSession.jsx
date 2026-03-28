@@ -1191,16 +1191,44 @@ export default function SmartSession({
   // ═══ EXERCISE: GRAMMAR PATTERN ═══
   if (ex.type === "grammar-pattern") {
     const gp = ex.pattern;
+    // Find example phrases the user has learned that contain this pattern
+    const exPhraseIds = (gp.examples || []).filter(id => data.phr?.[id]);
+    const exPhrases = exPhraseIds.map(id => PHRASES.find(p => p[0] === id)).filter(Boolean).slice(0, 3);
     return withSenpai(<>
       <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontFamily: mono, color: "#4caf50", textTransform: "uppercase", marginBottom: 8 }}>Grammar Unlocked</div>
-        <div style={{ fontSize: 36, fontWeight: 800, color: c.a, marginBottom: 4 }}>{gp.pattern}</div>
-        <div style={{ fontSize: 16, color: c.tx, fontWeight: 600, marginBottom: 12 }}>{gp.meaning}</div>
-        <div style={{ fontSize: 14, color: c.tx, lineHeight: 1.7, marginBottom: 14 }}>{gp.explanation}</div>
-        <div style={{ padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>Example</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: c.tx }}>{gp.example}</div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 12 }}>
+          <div style={{ fontSize: 40, fontWeight: 800, color: c.a }}>{gp.pattern}</div>
+          <div style={{ fontSize: 18, color: c.tx, fontWeight: 600 }}>{gp.meaning}</div>
         </div>
+        <div style={{ fontSize: 14, color: c.tx, lineHeight: 1.7, marginBottom: 16 }}>{gp.explanation}</div>
+        {exPhrases.length > 0 && <>
+          <div style={{ fontSize: 11, fontFamily: mono, color: c.m, marginBottom: 8 }}>You already know these:</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {exPhrases.map(p => {
+              const segs = PHRASE_BREAKDOWNS[p[0]];
+              if (!segs) return null;
+              const gramCol = { particle: c.go, noun: "#5a9ec4", verb: "#4caf50", adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m, question: c.go };
+              return <div key={p[0]} style={{ padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "baseline", marginBottom: 6 }}>
+                  {segs.map((seg, i) => {
+                    const isTarget = seg[0] === gp.pattern || (gp.phrasePattern && seg[0].includes(gp.phrasePattern));
+                    return <span key={i} style={{
+                      display: "inline-flex", flexDirection: "column", alignItems: "center",
+                      padding: "4px 6px", borderRadius: 6,
+                      background: isTarget ? c.a + "20" : "transparent",
+                      border: isTarget ? "1px solid " + c.a + "55" : "1px solid transparent"
+                    }}>
+                      <span style={{ fontSize: isDesktop ? 20 : 17, fontWeight: isTarget ? 700 : 500, color: isTarget ? c.a : c.tx }}>{seg[0]}</span>
+                      <span style={{ fontSize: 9, color: gramCol[seg[3]] || c.m, fontFamily: mono }}>{seg[2]}</span>
+                    </span>;
+                  })}
+                </div>
+                <div style={{ fontSize: 12, color: c.m }}>{p[3]}</div>
+              </div>;
+            })}
+          </div>
+        </>}
       </div>
       <button onClick={() => { advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
