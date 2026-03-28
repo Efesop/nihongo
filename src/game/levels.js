@@ -34,7 +34,8 @@ export const ROOMS = [
   // ════════════════════════════════════════════════════
 
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
-  // Sensei waits in the dojo. Walk up → dialogue. Slash crate to reach exit.
+  // Early morning dojo. Warm lanterns, scrolls on walls. Sensei waits with tea.
+  // Walk through the dojo → talk to sensei → slash training posts → exit.
   {
     title: { jp: "修行", en: "Training" },
     theme: "dojo",
@@ -47,10 +48,16 @@ export const ROOMS = [
     ],
     shadows: [],
     playerStart: 80,
-    deco: [{ type: "lantern", x: 400 }, { type: "scroll", x: 200 }, { type: "weapon_rack", x: 900 }],
+    deco: [
+      { type: "lantern", x: 100 }, { type: "lantern", x: 500 }, { type: "lantern", x: 1000 },
+      { type: "scroll", x: 200 }, { type: "scroll", x: 800 },
+      { type: "weapon_rack", x: 350 },
+    ],
     breakables: [
-      { type: "bamboo", x: 900, y: 0, w: 40, h: 60, hp: 3 },
-      // Crate blocks the exit — MUST slash to pass
+      // Training targets — bamboo practice posts along the way
+      { type: "bamboo", x: 750, y: 0, w: 40, h: 60, hp: 2 },
+      { type: "bamboo", x: 900, y: 0, w: 40, h: 60, hp: 2 },
+      // Crate blocks exit — MUST slash to pass
       { type: "crate", x: 1060, y: 0, w: 35, h: 40, hp: 1 },
     ],
     objective: { type: "parkour", time: 120, exitX: 1100 },
@@ -62,33 +69,44 @@ export const ROOMS = [
   },
 
   // ── Room 1: "跳躍 Take Flight" — learn JUMP ──
-  // Wider gaps — MUST jump to reach dummies on elevated platforms.
+  // Elevated wooden training platforms — like balance beams at different heights.
+  // Dummies stand on each platform as targets. Must jump gaps to reach them.
   {
     title: { jp: "跳躍", en: "Take Flight" },
     theme: "dojo",
     platforms: [
+      // Ground level — starting area
       { x: 0, y: 0, w: 400 },
-      // Gap — must jump
-      { x: 550, y: -60, w: 250 },
-      // Bigger gap
-      { x: 950, y: -120, w: 200 },
-      // Final platform
-      { x: 1300, y: 0, w: 400 },
+      // First training platform — low wooden beam
+      { x: 550, y: -50, w: 280 },
+      // Second platform — higher, narrower
+      { x: 980, y: -110, w: 200 },
+      // Landing area — back to ground
+      { x: 1350, y: 0, w: 350 },
     ],
     enemies: [
-      { type: "dummy", x: 650, y: -60, passive: true },
-      { type: "dummy", x: 1050, y: -120, passive: true },
+      { type: "dummy", x: 680, y: -50, passive: true },
+      { type: "dummy", x: 1070, y: -110, passive: true },
     ],
     shadows: [],
     playerStart: 80,
-    deco: [{ type: "lantern", x: 300 }],
+    deco: [
+      { type: "lantern", x: 200 }, { type: "lantern", x: 850 }, { type: "lantern", x: 1500 },
+      { type: "scroll", x: 100 },
+      { type: "weapon_rack", x: 1450 },
+    ],
+    breakables: [
+      { type: "pot", x: 350, y: 0, w: 25, h: 30, hp: 1 },
+    ],
     tutorials: [
       { text: "↑ / W / Space to jump", trigger: "nearGap" },
     ],
   },
 
   // ── Room 2: "閃光 Phase Through" — learn DASH + DASH-SLASH ──
-  // Shielded dummy blocks normal slashes. MUST use dash+slash to kill.
+  // A long practice corridor with a shielded training dummy at the far end.
+  // Bamboo posts line the path for atmosphere. Torii gate marks the challenge.
+  // The dummy blocks ALL normal attacks — only dash+slash breaks through.
   {
     title: { jp: "閃光", en: "Phase Through" },
     theme: "dojo",
@@ -97,11 +115,20 @@ export const ROOMS = [
     ],
     enemies: [
       // Shielded dummy — deflects normal slash, only dash-slash works
-      { type: "dummy", x: 700, y: 0, passive: true, shielded: true },
+      { type: "dummy", x: 900, y: 0, passive: true, shielded: true },
     ],
     shadows: [],
     playerStart: 80,
-    deco: [{ type: "torii", x: 400 }],
+    deco: [
+      { type: "lantern", x: 150 }, { type: "lantern", x: 600 }, { type: "lantern", x: 1200 },
+      { type: "torii", x: 700 },
+      { type: "scroll", x: 300 },
+    ],
+    breakables: [
+      // Bamboo posts lining the dash corridor
+      { type: "bamboo", x: 350, y: 0, w: 30, h: 50, hp: 1 },
+      { type: "bamboo", x: 500, y: 0, w: 30, h: 50, hp: 1 },
+    ],
     tutorials: [
       { text: "L or C to dash forward", trigger: "start" },
       { text: "Slash DURING dash to break its guard!", trigger: "nearEnemy" },
@@ -109,48 +136,77 @@ export const ROOMS = [
   },
 
   // ── Room 3: "壁走 Wall Runner" — learn WALL JUMP ──
-  // Dummy is on top — ONLY reachable by wall jumping up the shaft.
+  // A vertical climbing tower inside the dojo. Two wooden pillars form a shaft.
+  // Must wall jump between them to reach the top training platform.
+  // Lanterns mounted at different heights light the way up.
   {
     title: { jp: "壁走", en: "Wall Runner" },
     theme: "dojo",
     platforms: [
+      // Ground
       { x: 0, y: 0, w: 500 },
+      // Step up to the shaft entrance
       { x: 400, y: -70, w: 160 },
-      // Wall shaft — must wall jump between these
+      // Wooden pillar shaft — wall jump between these
       { x: 500, y: -350, w: 35, h: 230, wall: true },
       { x: 635, y: -350, w: 35, h: 230, wall: true },
-      // Top platforms
+      // Top training area
       { x: 480, y: -360, w: 230 },
-      { x: 720, y: -360, w: 400 },
+      { x: 720, y: -360, w: 500 },
     ],
     enemies: [
-      { type: "dummy", x: 900, y: -360, passive: true },
+      { type: "dummy", x: 950, y: -360, passive: true },
     ],
     shadows: [],
     playerStart: 80,
-    deco: [{ type: "lantern", x: 570 }],
+    deco: [
+      { type: "lantern", x: 200 }, { type: "lantern", x: 560 },
+      { type: "lantern", x: 800 }, { type: "lantern", x: 1100 },
+      { type: "scroll", x: 100 },
+      { type: "weapon_rack", x: 850 },
+    ],
+    breakables: [
+      { type: "pot", x: 300, y: 0, w: 25, h: 30, hp: 1 },
+      { type: "pot", x: 780, y: -360, w: 25, h: 30, hp: 1 },
+    ],
     tutorials: [
       { text: "Jump into walls, press ↑ to wall jump!", trigger: "nearWall" },
     ],
   },
 
   // ── Room 4: "集中 Bullet Time" — learn SLOW-MO / FOCUS ──
-  // Shuriken gauntlet — projectiles too fast to dodge without slow-mo.
+  // The final test — a shuriken gauntlet. Launchers mounted on wooden frames
+  // fire across the practice corridor. Must activate slow-mo to see and dodge
+  // the projectiles. Dummy at the far end as the final target.
+  // This is sensei's most dangerous training exercise.
   {
     title: { jp: "集中", en: "Bullet Time" },
     theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 2000 },
+      // Small cover platforms to duck behind between launcher zones
+      { x: 450, y: -50, w: 80 },
+      { x: 800, y: -50, w: 80 },
+      { x: 1100, y: -50, w: 80 },
     ],
     enemies: [
-      // Dummy at the end — must pass through gauntlet to reach
       { type: "dummy", x: 1700, y: 0, passive: true },
     ],
     shadows: [],
     playerStart: 80,
-    deco: [{ type: "torii", x: 300 }],
+    deco: [
+      { type: "lantern", x: 100 }, { type: "lantern", x: 550 },
+      { type: "lantern", x: 950 }, { type: "lantern", x: 1400 }, { type: "lantern", x: 1800 },
+      { type: "torii", x: 250 },
+      { type: "scroll", x: 1600 },
+      { type: "weapon_rack", x: 1850 },
+    ],
+    breakables: [
+      { type: "pot", x: 350, y: 0, w: 25, h: 30, hp: 1 },
+      { type: "crate", x: 1500, y: 0, w: 35, h: 40, hp: 1 },
+    ],
     hazards: [
-      // Shuriken launchers — fire projectiles from the walls
+      // Shuriken launchers mounted on frames — fire across the corridor
       { type: "shuriken_launcher", x: 600, y: -40, direction: -1, interval: 1200, speed: 350 },
       { type: "shuriken_launcher", x: 900, y: -60, direction: -1, interval: 1000, speed: 400 },
       { type: "shuriken_launcher", x: 1200, y: -30, direction: -1, interval: 900, speed: 380 },
