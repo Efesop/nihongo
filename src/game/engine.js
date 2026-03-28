@@ -1018,8 +1018,8 @@ export function update(g, callbacks) {
         br.hp--;
         if (br.hp <= 0) {
           br.broken = true;
-          g.camera.shakeTimer = 80;
-          g.hitStop = Math.max(g.hitStop, 30); // brief hitstop for impact feel
+          g.camera.shakeTimer = 40; // subtle shake — not jarring for small breakables
+          g.hitStop = Math.max(g.hitStop, 20); // brief hitstop for impact feel
           const hitDir = dashHit ? p.facing : (p.x < bx + bw / 2 ? 1 : -1);
           g.score = (g.score || 0) + (br.type === "lantern" ? 50 : 25);
           g.floatingTexts.push({
