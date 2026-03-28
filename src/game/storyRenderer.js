@@ -666,7 +666,10 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const groundLevel = scene.groundLevel || 0.78; // match background floor level
   const floorY = Math.min(H * groundLevel, panelY - 5); // feet on background floor, above panel
   const charH = Math.min(110, H * 0.17); // proportional to backgrounds
-  const bob = 0; // no bobbing — characters stand still
+  // Subtle breathing/idle movement — characters feel alive
+  const elapsed = Date.now() * 0.001;
+  const breatheL = Math.sin(elapsed * 1.8) * 1.2; // gentle up/down for left character
+  const breatheR = Math.sin(elapsed * 1.5 + 1) * 1.2; // offset phase for right character
 
   // Determine who's in this scene
   // Hide characters during cutscene-only backgrounds (approaching shadows, blood on doors, etc.)
@@ -767,7 +770,8 @@ export function renderStoryScene(ctx, g, W, H, font) {
       const drawH = charH;
       const drawW = drawH * aspect;
       const drawX = x - drawW / 2;
-      const drawY = floorY - drawH + (isActive ? bob : 0);
+      const breathe = side === "left" ? breatheL : breatheR;
+      const drawY = floorY - drawH + breathe;
 
       // Flip player sprite to face right (sprites face left by default)
       // During exit animation, face the exit direction instead
@@ -826,15 +830,56 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
   // Ground line removed — characters stand on background floor naturally
 
-  // ── 9. Dialogue panel (hidden during cutscene-only shots) ──
+  // ── 9. Speech bubble above character + slim bottom panel ──
   if (isCutsceneBg && !line.text) {
     // During cutscene pauses, show just the image — no panel, no text
-    // (skip to effects rendering below)
   } else {
-  // panelY already defined above
+
+  // Speech bubble above the active character's head
+  if (!isSystem && !isCutsceneBg && fullText) {
+    const speakerX = activeSide === "left" ? W * 0.32 : W * 0.72;
+    const bubbleY = floorY - charH - 30;
+    const bubbleMaxW = Math.min(280, W * 0.4);
+
+    // Bubble background
+    ctx.save();
+    ctx.font = `13px "Noto Sans JP",sans-serif`;
+    const lines = wrapText(ctx, displayText, bubbleMaxW - 20);
+    const bubbleH = lines.length * 18 + 16;
+    const bubbleW = Math.min(bubbleMaxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + 24);
+    const bx = Math.max(10, Math.min(W - bubbleW - 10, speakerX - bubbleW / 2));
+    const by = bubbleY - bubbleH;
+
+    // Semi-transparent dark bubble
+    ctx.fillStyle = "rgba(6,6,14,0.85)";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bubbleW, bubbleH, 6);
+    ctx.fill();
+    // Border in speaker color
+    ctx.strokeStyle = char.color + "40";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Small triangle pointing down to character
+    ctx.fillStyle = "rgba(6,6,14,0.85)";
+    ctx.beginPath();
+    ctx.moveTo(speakerX - 6, by + bubbleH);
+    ctx.lineTo(speakerX + 6, by + bubbleH);
+    ctx.lineTo(speakerX, by + bubbleH + 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Text inside bubble
+    ctx.fillStyle = "#e8e4dc";
+    for (let i = 0; i < lines.length; i++) {
+      ctx.fillText(lines[i], bx + 12, by + 14 + i * 18);
+    }
+    ctx.restore();
+  }
+
+  // Slim bottom panel (name, JP text, line counter)
   const panelGrad = ctx.createLinearGradient(0, panelY, 0, H);
-  panelGrad.addColorStop(0, "rgba(6,6,14,0.92)");
-  panelGrad.addColorStop(1, "rgba(6,6,14,0.98)");
+  panelGrad.addColorStop(0, "rgba(6,6,14,0.88)");
+  panelGrad.addColorStop(1, "rgba(6,6,14,0.95)");
   ctx.fillStyle = panelGrad;
   ctx.fillRect(0, panelY, W, panelH);
 
