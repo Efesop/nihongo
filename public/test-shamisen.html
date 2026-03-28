@@ -1,42 +1,70 @@
 <!DOCTYPE html>
-<html><head><title>Shamisen Test</title>
+<html><head><title>Audio Test</title>
 <style>
-  body { background: #111; color: #eee; font-family: system-ui; display: flex; flex-direction: column; align-items: center; padding: 60px 20px; gap: 30px; }
-  h1 { color: #cc1a1a; font-size: 28px; }
-  .option { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 24px 40px; cursor: pointer; transition: all 0.2s; text-align: center; min-width: 320px; }
+  body { background: #111; color: #eee; font-family: system-ui; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; gap: 16px; }
+  h1 { color: #cc1a1a; font-size: 24px; margin-bottom: 4px; }
+  h2.section { color: #666; font-size: 14px; text-transform: uppercase; letter-spacing: 3px; margin-top: 24px; }
+  .option { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 18px 36px; cursor: pointer; transition: all 0.2s; text-align: center; min-width: 360px; }
   .option:hover { border-color: #cc1a1a; background: #221111; }
-  .option h2 { color: #cc1a1a; margin: 0 0 8px; font-size: 20px; }
-  .option p { color: #888; margin: 0; font-size: 13px; }
+  .option b { color: #cc1a1a; font-size: 16px; }
+  .option p { color: #888; margin: 4px 0 0; font-size: 12px; }
   .playing { border-color: #cc1a1a !important; box-shadow: 0 0 20px rgba(204,26,26,0.3); }
+  .stop { background: #331111; border: 1px solid #cc1a1a; border-radius: 8px; padding: 10px 30px; cursor: pointer; color: #cc1a1a; font-size: 14px; margin-top: 8px; }
 </style></head><body>
-<h1>Pick Your Shamisen</h1>
-<p style="color:#666; margin-bottom: 20px;">Click each to hear it. Pick your favourite.</p>
+<h1>Audio Test</h1>
 
-<div class="option" onclick="play('v1', this)">
-  <h2>V1 — Two Bold Plucks</h2>
-  <p>Deep first note + higher resolving note. Clean, deliberate.</p>
+<h2 class="section">Existing Music</h2>
+
+<div class="option" onclick="play('/audio/game/music_phonk.mp3', this)">
+  <b>Current Phonk Track</b>
+  <p>The phonk music already in the game</p>
 </div>
 
-<div class="option" onclick="play('v2', this)">
-  <h2>V2 — Taiko + Shamisen</h2>
-  <p>Deep taiko drum hit followed by sharp shamisen pluck. Impact.</p>
+<div class="option" onclick="play('/audio/game/music_phonk_battle.mp3', this)">
+  <b>Current Phonk Battle</b>
+  <p>The phonk battle music already in the game</p>
 </div>
 
-<div class="option" onclick="play('v3', this)">
-  <h2>V3 — Bending Note</h2>
-  <p>Low shamisen that bends upward. Dramatic, emotional, haunting.</p>
+<h2 class="section">New Phonk Shamisen Tracks</h2>
+
+<div class="option" onclick="play('/audio/game/phonk_shamisen_1.mp3', this)">
+  <b>Phonk 1 — Aggressive Shamisen</b>
+  <p>Fast shamisen melody over 808 bass + trap hi-hats. Drift edit energy.</p>
 </div>
+
+<div class="option" onclick="play('/audio/game/phonk_shamisen_2.mp3', this)">
+  <b>Phonk 2 — Dark Menacing</b>
+  <p>Slow heavy 808 with haunting shamisen. Villain entrance vibes.</p>
+</div>
+
+<div class="option" onclick="play('/audio/game/phonk_shamisen_3.mp3', this)">
+  <b>Phonk 3 — Bold Pluck Beat</b>
+  <p>Deliberate shamisen plucks over 808s. Like V1 sting as a full track.</p>
+</div>
+
+<h2 class="section">Title Card Stings</h2>
+
+<div class="option" onclick="play('/audio/game/shamisen_v1.mp3', this)">
+  <b>V1 — Two Bold Plucks ✓ (selected)</b>
+  <p>The one you picked. Deep + resolving.</p>
+</div>
+
+<button class="stop" onclick="stopAll()">Stop</button>
 
 <script>
 let current = null;
-function play(v, el) {
+function play(src, el) {
   if (current) { current.pause(); current = null; }
   document.querySelectorAll('.option').forEach(e => e.classList.remove('playing'));
   el.classList.add('playing');
-  current = new Audio(`/audio/game/shamisen_${v}.mp3`);
+  current = new Audio(src);
   current.volume = 0.7;
   current.play();
   current.onended = () => el.classList.remove('playing');
+}
+function stopAll() {
+  if (current) { current.pause(); current = null; }
+  document.querySelectorAll('.option').forEach(e => e.classList.remove('playing'));
 }
 </script>
 </body></html>
