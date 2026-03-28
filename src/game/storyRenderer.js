@@ -162,6 +162,9 @@ export function updateStory(g, rawDt, callbacks) {
       s._pauseTimer = null; // done pausing
     } else if (line.type === "blackout") {
       s._flash = { color: "#000000", alpha: 1, duration: line.duration || 0.5 };
+    } else if (line.type === "persistentBlack") {
+      // Stays fully black — doesn't fade. Used for audio-only endings.
+      s._persistentBlack = true;
     } else if (line.type === "overlay") {
       s._overlay = { key: line.image, alpha: 0, targetAlpha: 1, fadeSpeed: 1 / (line.fade || 1.0) };
     } else if (line.type === "charSwap") {
@@ -173,6 +176,7 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "clearCenter") {
       s._centerImage = null;
     } else if (line.type === "musicChange") {
+      // null = fade out to silence (no new track)
       try { crossfadeMusic(line.to, line.fade || 1.0); } catch {}
     } else if (line.type === "characterExit") {
       // Animate a character running off screen
@@ -996,6 +1000,11 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.globalAlpha = Math.max(0, s._flash.alpha);
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
+  }
+  // ── Persistent black (audio-only ending — stays fully black) ──
+  if (s._persistentBlack) {
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, H);
   }
 
   // ── Fade-out overlay (when story is ending) ──

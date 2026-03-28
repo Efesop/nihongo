@@ -203,21 +203,21 @@ export const ROOM_DIALOGUE = {
     { type: "sfx", sound: "sfx_running_footsteps" },
     { type: "pause", duration: 2.5 },
 
-    // Hunters break in — shoji panels shattered
+    // Hunters break in — enemies at the door, weapons drawn
     { type: "sfx", sound: "wood_splinter" },
     { type: "shake", intensity: 8, duration: 0.8 },
-    { type: "bgSwap", to: "cutscene_shoji_shattered", transition: "hardCut" },
+    { type: "bgSwap", to: "cutscene_hunters_approach", transition: "hardCut" },
     { type: "pause", duration: 1.5 },
 
     // Sensei's final moment — close-up, calm, shadows looming
-    // Emotional violin begins here, plays through the ending
-    { type: "musicStop" },
+    // Music fades out gradually, then violin begins
+    { type: "musicChange", to: null, fade: 2.0 },
     { type: "sfx", sound: "sfx_violin_farewell" },
     { type: "bgSwap", to: "cutscene_sensei_final", transition: "hardCut" },
     { type: "pause", duration: 3.5 },
 
-    // Fade to black — stays black for the remaining audio
-    { type: "blackout", duration: 30 },
+    // Persistent black — stays fully black for battle + fire audio
+    { type: "persistentBlack" },
     { type: "sfx", sound: "sfx_battle_clash" },
     { type: "pause", duration: 5.0 },
     // Battle fades... only fire remains. The dojo is burning.
