@@ -57,14 +57,14 @@ export const ROOM_DIALOGUE = {
     // Choice happens here (after index 3) — training_push / training_rest / training_humor
     { speaker: "sensei", textJp: "いい心意気だ。限界は超えるためにある。", text: "Good spirit. Limits exist to be broken.", emotion: "amused", condition: { flag: "training_push" } },
     { speaker: "sensei", textJp: "...賢い判断だ。折れた刀は戦えん。", text: "...A wise choice. A broken blade can't fight.", emotion: "amused", condition: { flag: "training_rest" } },
-    // Tea drinking sequence — BOTH characters swap to tea sprites simultaneously
+    // Tea drinking — sprites swap, sip SFX, escalating reactions per loop
     { type: "allEmotion", emotion: "tea", condition: { flag: "training_humor" } },
     { type: "sfx", sound: "sfx_tea_sip", condition: { flag: "training_humor" } },
     { speaker: "system", textJp: "二人は黙って茶を飲む。", text: "They drink tea in silence.", condition: { flag: "training_humor" } },
-    { type: "pause", duration: 4.0, condition: { flag: "training_humor" } },
+    { type: "pause", duration: 3.0, condition: { flag: "training_humor" } },
     { type: "allEmotion", emotion: null, condition: { flag: "training_humor" } },
-    { speaker: "sensei", textJp: "...茶は終わりだ。全部飲みやがって。", text: "...The tea is gone. You drank it ALL.", emotion: "serious", condition: { flag: "training_humor" } },
-    { speaker: "sensei", textJp: "さあ登れ！", text: "Now CLIMB!", emotion: "angry", condition: { flag: "training_humor" } },
+    // Response escalates: amused → annoyed → furious (based on loop count handled by engine)
+    { speaker: "sensei", textJp: "...もう一杯か。まあいい。", text: "...Another cup? Fine.", emotion: "amused", condition: { flag: "training_humor" } },
     { speaker: "sensei", textJp: "壁は障害じゃない。道だ。飛び移れ。", text: "A wall isn't an obstacle. It's a path. Jump between them." },
   ],
 
@@ -613,9 +613,11 @@ export const ROOM_ENCOUNTERS = {
 // Each choice has real gameplay consequences.
 // ═══════════════════════════════════════════════════════
 export const ROOM_CHOICES = {
-  // Training personality — how do you approach training?
+  // Training personality — tea option loops up to 3 times before sensei snaps
   3: {
-    after: 3, // after "A wall isn't an obstacle"
+    after: 3, // after "Huh?"
+    loopFlag: "training_humor", // re-show choice if this flag was picked
+    maxLoops: 3, // after 3 teas, sensei forces continue
     options: [
       { textJp: "もっと厳しく。", text: "Push me harder.", flag: "training_push" },
       { textJp: "...少し休みたい。", text: "...I need a moment.", flag: "training_rest" },

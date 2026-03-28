@@ -235,6 +235,7 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   }
   if (e.throwAnim > 0) e.throwAnim -= dt * 1000;
   if (e.alert > 0) e.alert -= dt * 1000;
+  if (e._dodgeCooldown > 0) e._dodgeCooldown -= dt * 1000;
 
   if (e.type === "oni") {
     // Passive enemies only react when player is very close
@@ -263,7 +264,13 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       e.state = "chase";
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.7;
-      if (dist < 65) {
+      // Oni dodge — 25% chance to sidestep when player is mid-slash nearby
+      if (dist < 80 && player.slashTimer > 0 && !e._dodgeCooldown && Math.random() < 0.25) {
+        e.vx = -toPlayer * 300; // dodge backward
+        e._dodgeCooldown = 1200;
+        e.state = "cooldown";
+        e.attackTimer = 400;
+      } else if (dist < 65) {
         // Windup telegraph — 300ms pause before attacking
         e.state = "windup"; e.windupTimer = 300;
         e.facing = toPlayer;
@@ -294,7 +301,14 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
         e.throwAnim = 400;
         playRandom("ninja_throw");
       }
-      if (dist < 100 && !((e.y + 30) < player.y)) e.vx = -toPlayer * 150; // don't retreat if elevated
+      // Ninja backstep — dodge away when player gets close (can't just walk up and slash)
+      if (dist < 80 && !((e.y + 30) < player.y)) {
+        e.vx = -toPlayer * 250; // fast backstep
+        if (dist < 50 && !e._dodgeCooldown) {
+          e._dodgeCooldown = 800; // brief cooldown so they don't dodge infinitely
+          e.vx = -toPlayer * 400; // dodge burst
+        }
+      }
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
