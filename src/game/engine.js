@@ -43,7 +43,10 @@ export function loadRoom(g, roomIndex) {
   preloadZone(theme);
   // Set ambient theme (no rain in dojo)
   setAmbientTheme(theme === "dojo" ? "dojo" : (roomIndex >= 15 ? "temple" : "forest"));
-  g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
+  g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }), ...(p.ceiling && { ceiling: true }), ...(p.oneWay && { oneWay: true }), ...(p.stair && { stair: true }) }));
+  // Doors — paired portals that player walks through
+  g.doors = (room.doors || []).map(d => ({ ...d, y: g.groundY + (d.y || 0), open: false, openTimer: 0 }));
+  g.doorTransition = null;
   g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive, shielded: e.shielded }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
@@ -766,6 +769,18 @@ export function update(g, callbacks) {
     }
   }
 
+  // ── Ceiling collision — block player's head from going through ──
+  for (const plat of g.platforms) {
+    if (!plat.ceiling) continue;
+    const headY = p.y;
+    const ceilBottom = plat.y + (plat.h || 16);
+    if (p.x + pw > plat.x && p.x - pw < plat.x + plat.w &&
+        headY < ceilBottom && headY > plat.y - 5 && p.vy < 0) {
+      p.y = ceilBottom;
+      p.vy = 0; // stop upward momentum
+    }
+  }
+
   // ── Moving platforms — update positions ──
   if (g.movingPlatforms) {
     for (const mp of g.movingPlatforms) {
@@ -990,6 +1005,66 @@ export function update(g, callbacks) {
     if (g._dialogueSlowMo) {
       g.time.scale = Math.max(g.time.scale, 0.6); // slightly slowed, not frozen
     }
+  }
+
+  // ── Door transitions — walk through doors between areas ──
+  if (g.doors && g.doors.length > 0) {
+    // Open doors when player is close
+    for (const door of g.doors) {
+      const dist = Math.abs(p.x - door.x);
+      door.open = dist < 40;
+      door.openTimer = door.open ? Math.min(1, (door.openTimer || 0) + rawDt * 5) : Math.max(0, (door.openTimer || 0) - rawDt * 5);
+    }
+
+    // Active door transition
+    if (g.doorTransition) {
+      const dt2 = g.doorTransition;
+      dt2.timer += rawDt;
+      if (dt2.phase === "entering") {
+        // Auto-walk player toward door
+        const dx = dt2.fromDoor.x - p.x;
+        p.vx = Math.sign(dx) * 150;
+        p.facing = Math.sign(dx);
+        if (Math.abs(dx) < 5 || dt2.timer > 0.5) {
+          dt2.phase = "black";
+          dt2.timer = 0;
+          p.vx = 0;
+        }
+      } else if (dt2.phase === "black") {
+        p.vx = 0;
+        if (dt2.timer > 0.3) {
+          // Teleport to paired door
+          p.x = dt2.toDoor.x + (dt2.toDoor.exitDir || 1) * 30;
+          dt2.phase = "exiting";
+          dt2.timer = 0;
+        }
+      } else if (dt2.phase === "exiting") {
+        // Auto-walk out of door
+        p.vx = (dt2.toDoor.exitDir || 1) * 150;
+        p.facing = dt2.toDoor.exitDir || 1;
+        if (dt2.timer > 0.4) {
+          g.doorTransition = null;
+        }
+      }
+    } else if (g.input.upPressed && g.roomState === "playing") {
+      // Check if player is at a door and pressing UP
+      for (const door of g.doors) {
+        if (Math.abs(p.x - door.x) < 30 && door.pairId) {
+          const target = g.doors.find(d => d.id === door.pairId);
+          if (target) {
+            g.doorTransition = { phase: "entering", timer: 0, fromDoor: door, toDoor: target };
+            playSound("footstep");
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Block normal input during door transition
+  if (g.doorTransition) {
+    g.input.slashPressed = false;
+    g.input.dashPressed = false;
+    g.input.jumpPressed = false;
   }
 
   // ── Breakable objects — slash, dash, or ground-pound to destroy ──

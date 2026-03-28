@@ -34,41 +34,68 @@ export const ROOMS = [
   // ════════════════════════════════════════════════════
 
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
-  // Early morning dojo. Warm lanterns, scrolls on walls. Sensei waits with tea.
-  // Walk through the dojo → talk to sensei → slash training posts → exit.
+  // Multi-room dojo interior: entry hall → main hall (through door) → training area
+  // Ceilings create enclosed rooms. Doors connect them. Sensei waits in the main hall.
   {
     title: { jp: "修行", en: "Training" },
     theme: "dojo",
     platforms: [
-      { x: 0, y: 0, w: 1200 },
+      // ── Section 1: Entry hall (enclosed, small) ──
+      { x: 0, y: 0, w: 400 },                         // floor
+      { x: 0, y: -110, w: 400, ceiling: true },        // ceiling
+      { x: 0, y: -110, w: 10, h: 110, wall: true },   // left wall
+      // gap at x:400 = door to main hall
+
+      // ── Section 2: Main training hall (larger, taller ceiling) ──
+      { x: 400, y: 0, w: 800 },                        // floor
+      { x: 400, y: -140, w: 800, ceiling: true },      // higher ceiling
+      // walls at door openings only
+
+      // ── Section 3: Exit corridor ──
+      { x: 1200, y: 0, w: 400 },                       // floor
+      { x: 1200, y: -110, w: 400, ceiling: true },     // ceiling
+      { x: 1590, y: -110, w: 10, h: 110, wall: true }, // right wall
+    ],
+    doors: [
+      // Door pair: entry hall → main hall
+      { id: "entry_to_hall", x: 380, pairId: "hall_from_entry", exitDir: 1 },
+      { id: "hall_from_entry", x: 420, pairId: "entry_to_hall", exitDir: 1 },
+      // Door pair: main hall → exit corridor
+      { id: "hall_to_exit", x: 1180, pairId: "exit_from_hall", exitDir: 1 },
+      { id: "exit_from_hall", x: 1220, pairId: "hall_to_exit", exitDir: -1 },
     ],
     enemies: [],
     npcs: [
-      { charKey: "sensei", x: 600, facing: -1, dialogueKey: 0, stayForever: true, triggerRange: 100 },
+      { charKey: "sensei", x: 700, facing: -1, dialogueKey: 0, stayForever: true, triggerRange: 100 },
     ],
     shadows: [],
     playerStart: 80,
     deco: [
-      // Warm dojo interior — lanterns, scrolls, weapons, architectural details
-      { type: "lantern", x: 100 }, { type: "lantern", x: 500 }, { type: "lantern", x: 1000 },
-      { type: "scroll", x: 180 }, { type: "scroll", x: 800 },
-      { type: "weapon_rack", x: 350 },
-      { type: "sliding_door", x: 50 }, { type: "sliding_door", x: 1150 },
-      { type: "incense", x: 650 },
-      { type: "cushion", x: 560 }, { type: "cushion", x: 620 },
-      { type: "beam", x: 300 }, { type: "beam", x: 600 }, { type: "beam", x: 900 },
+      // Entry hall
+      { type: "lantern", x: 100 }, { type: "scroll", x: 200 },
+      { type: "cushion", x: 150 }, { type: "incense", x: 300 },
+      // Main hall
+      { type: "lantern", x: 500 }, { type: "lantern", x: 750 }, { type: "lantern", x: 1000 },
+      { type: "weapon_rack", x: 550 }, { type: "weapon_rack", x: 950 },
+      { type: "scroll", x: 850 }, { type: "scroll", x: 650 },
+      { type: "beam", x: 500 }, { type: "beam", x: 700 }, { type: "beam", x: 900 }, { type: "beam", x: 1100 },
+      { type: "cushion", x: 660 }, { type: "cushion", x: 720 },
+      // Exit corridor
+      { type: "lantern", x: 1300 }, { type: "lantern", x: 1500 },
+      { type: "scroll", x: 1400 },
     ],
     breakables: [
-      // Training targets — bamboo practice posts along the way
-      { type: "bamboo", x: 750, y: 0, w: 40, h: 60, hp: 2 },
+      // Training targets in the main hall
+      { type: "bamboo", x: 800, y: 0, w: 40, h: 60, hp: 2 },
       { type: "bamboo", x: 900, y: 0, w: 40, h: 60, hp: 2 },
-      // Crate blocks exit — MUST slash to pass
-      { type: "crate", x: 1060, y: 0, w: 35, h: 40, hp: 1 },
+      { type: "pot", x: 1100, y: 0, w: 25, h: 30, hp: 1 },
+      // Crate blocks exit corridor — MUST slash
+      { type: "crate", x: 1460, y: 0, w: 35, h: 40, hp: 1 },
     ],
-    objective: { type: "parkour", time: 120, exitX: 1100 },
+    objective: { type: "parkour", time: 120, exitX: 1550 },
     tutorials: [
       { text: "← → to move    (A/D)", trigger: "start" },
-      { text: "Walk to Sensei to talk", trigger: "start" },
+      { text: "↑ near doors to enter", trigger: "start" },
       { text: "J or Z to slash!", trigger: "nearEnemy" },
     ],
   },

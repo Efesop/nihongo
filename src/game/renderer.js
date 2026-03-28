@@ -112,6 +112,68 @@ export function render(g, ctx, isDesktop, font) {
   // Decorations
   for (const d of g.decorations) renderDeco(ctx, d, g.groundY, g.time.elapsed);
 
+  // Doors — shoji panels that open/close
+  if (g.doors) {
+    for (const door of g.doors) {
+      const dy = door.y || g.groundY;
+      const openT = door.openTimer || 0;
+      const doorH = 90;
+      const doorW = 24;
+      const slideOffset = openT * doorW * 0.8; // panels slide apart
+
+      // Door frame
+      ctx.fillStyle = "#3a2a1a";
+      ctx.fillRect(door.x - doorW - 4, dy - doorH, 4, doorH);
+      ctx.fillRect(door.x + doorW, dy - doorH, 4, doorH);
+      ctx.fillRect(door.x - doorW - 4, dy - doorH, doorW * 2 + 8, 4);
+
+      // Left panel (slides left when open)
+      ctx.fillStyle = `rgba(200,195,180,${0.2 - openT * 0.1})`;
+      ctx.fillRect(door.x - doorW + 2 - slideOffset, dy - doorH + 4, doorW - 2, doorH - 4);
+      // Right panel (slides right when open)
+      ctx.fillRect(door.x + slideOffset, dy - doorH + 4, doorW - 2, doorH - 4);
+
+      // Grid lines on panels
+      ctx.strokeStyle = `rgba(60,50,35,${0.2 - openT * 0.1})`;
+      ctx.lineWidth = 0.5;
+      // Left panel grid
+      for (let i = 1; i < 3; i++) {
+        const px = door.x - doorW + 2 - slideOffset + i * (doorW / 3);
+        ctx.beginPath(); ctx.moveTo(px, dy - doorH + 4); ctx.lineTo(px, dy); ctx.stroke();
+      }
+      // Right panel grid
+      for (let i = 1; i < 3; i++) {
+        const px = door.x + slideOffset + i * (doorW / 3);
+        ctx.beginPath(); ctx.moveTo(px, dy - doorH + 4); ctx.lineTo(px, dy); ctx.stroke();
+      }
+
+      // "↑ ENTER" prompt when close and not in transition
+      if (openT > 0.5 && !g.doorTransition) {
+        ctx.fillStyle = `rgba(200,180,140,${0.5 + Math.sin(g.time.elapsed * 3) * 0.3})`;
+        ctx.font = "bold 10px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("↑", door.x, dy - doorH - 8);
+        ctx.textAlign = "left";
+      }
+    }
+  }
+
+  // Door transition blackout overlay
+  if (g.doorTransition) {
+    const dt2 = g.doorTransition;
+    let alpha = 0;
+    if (dt2.phase === "entering") alpha = Math.min(1, dt2.timer / 0.4);
+    else if (dt2.phase === "black") alpha = 1;
+    else if (dt2.phase === "exiting") alpha = Math.max(0, 1 - dt2.timer / 0.3);
+    if (alpha > 0) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform to screen space
+      ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
+  }
+
   // Platforms + walls
   const platPal = getTheme(g);
   for (const plat of g.platforms) {
@@ -197,6 +259,35 @@ export function render(g, ctx, isDesktop, font) {
       ctx.lineTo(arrowX + 5, arrowY + 2);
       ctx.closePath();
       ctx.fill();
+    } else if (plat.ceiling) {
+      // Ceiling — dark wooden planks overhead with shadow beneath
+      const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
+      grad.addColorStop(0, "#1a1208");
+      grad.addColorStop(1, "#0e0a04");
+      ctx.fillStyle = grad;
+      ctx.fillRect(plat.x, plat.y, plat.w, 14);
+      // Beam lines
+      ctx.fillStyle = "#2a1a0a";
+      for (let bx = plat.x; bx < plat.x + plat.w; bx += 40) {
+        ctx.fillRect(bx, plat.y, 1, 14);
+      }
+      // Bottom edge highlight
+      ctx.fillStyle = "#3a2a18";
+      ctx.fillRect(plat.x, plat.y + 13, plat.w, 1);
+      // Shadow gradient below ceiling
+      const shadow = ctx.createLinearGradient(plat.x, plat.y + 14, plat.x, plat.y + 40);
+      shadow.addColorStop(0, "rgba(0,0,0,0.3)");
+      shadow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = shadow;
+      ctx.fillRect(plat.x, plat.y + 14, plat.w, 26);
+    } else if (plat.stair) {
+      // Stair step — wooden block with edge detail
+      ctx.fillStyle = "#2a1a0e";
+      ctx.fillRect(plat.x, plat.y, plat.w, 10);
+      ctx.fillStyle = "#3a2a18";
+      ctx.fillRect(plat.x, plat.y, plat.w, 2);
+      ctx.fillStyle = "#1a0e06";
+      ctx.fillRect(plat.x, plat.y + 8, plat.w, 2);
     } else {
       // Standard thin platform
       const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
