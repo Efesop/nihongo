@@ -493,8 +493,20 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const tc = s.titleCard;
     const t = tc.timer / tc.duration; // 0→1 progress
 
-    // Dark overlay — heavier than normal vignette
-    ctx.fillStyle = `rgba(0,0,0,${0.55 + Math.sin(t * Math.PI) * 0.1})`;
+    // Title card background image (dark anime art) — draw OVER the scene bg
+    const tcKey = scene._titleCardImage;
+    const tcImg = tcKey ? getImage(tcKey) : null;
+    if (tcImg) {
+      const imgAspect = tcImg.width / tcImg.height;
+      const screenAspect = W / H;
+      let dw, dh, dx, dy;
+      if (screenAspect > imgAspect) { dw = W; dh = W / imgAspect; dx = 0; dy = (H - dh) / 2; }
+      else { dh = H; dw = H * imgAspect; dx = (W - dw) / 2; dy = 0; }
+      ctx.drawImage(tcImg, dx, dy, dw, dh);
+    }
+
+    // Dark overlay — strong enough for calligraphy readability
+    ctx.fillStyle = `rgba(0,0,0,${0.6 + Math.sin(t * Math.PI) * 0.08})`;
     ctx.fillRect(0, 0, W, H);
 
     // Fade curve: quick fade in (0-15%), hold, quick fade out (85-100%)
@@ -502,38 +514,37 @@ export function renderStoryScene(ctx, g, W, H, font) {
     const fadeOut = Math.min(1, (1 - t) / 0.15);
     const alpha = Math.min(fadeIn, fadeOut);
 
-    // Vertical Japanese calligraphy — big, centered
+    // Vertical Japanese calligraphy — big, centered, bold
     const kanji = scene.label || "";
-    const kanjiChars = [...kanji]; // split into individual characters
-    const kanjiSize = Math.min(H * 0.22, W * 0.18);
+    const kanjiChars = [...kanji];
+    const kanjiSize = Math.min(H * 0.25, W * 0.2);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Draw each kanji character vertically
     const totalKanjiH = kanjiChars.length * kanjiSize * 0.9;
     const startY = (H - totalKanjiH) / 2;
 
     for (let i = 0; i < kanjiChars.length; i++) {
-      // Staggered reveal — each character appears slightly after the previous
       const charDelay = i * 0.08;
       const charAlpha = Math.max(0, Math.min(1, (t - charDelay) / 0.12)) * alpha;
-
-      // Subtle slide-in from right
       const slideX = (1 - Math.min(1, (t - charDelay) / 0.2)) * 30;
+      const cy = startY + i * kanjiSize * 0.9;
 
       ctx.save();
       ctx.globalAlpha = charAlpha;
+      ctx.font = `900 ${kanjiSize}px "Noto Sans JP",serif`;
 
-      // Ink shadow
-      ctx.font = `bold ${kanjiSize}px "Noto Sans JP",serif`;
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillText(kanjiChars[i], W / 2 + slideX + 3, startY + i * kanjiSize * 0.9 + 3);
+      // Heavy black outline for maximum readability
+      ctx.strokeStyle = "rgba(0,0,0,0.9)";
+      ctx.lineWidth = kanjiSize * 0.06;
+      ctx.lineJoin = "round";
+      ctx.strokeText(kanjiChars[i], W / 2 + slideX, cy);
 
-      // Main calligraphy — warm white
+      // Warm white fill with golden glow
       ctx.fillStyle = "#f0e8d8";
-      ctx.shadowColor = "rgba(200,160,100,0.4)";
-      ctx.shadowBlur = 20;
-      ctx.fillText(kanjiChars[i], W / 2 + slideX, startY + i * kanjiSize * 0.9);
+      ctx.shadowColor = "rgba(220,180,100,0.6)";
+      ctx.shadowBlur = 25;
+      ctx.fillText(kanjiChars[i], W / 2 + slideX, cy);
       ctx.shadowBlur = 0;
 
       ctx.restore();
@@ -1011,6 +1022,13 @@ export function initStoryState(g, roomIndex, lines) {
 
   // Title card for major zone transitions (plays before dialogue)
   const showTitleCard = TITLE_CARD_ROOMS.has(roomIndex) && canvasConfig.label;
+
+  // Title card background art (dark anime style) — keyed by room
+  const TITLE_CARD_IMAGES = { 0: "titlecard_dojo", 5: "titlecard_turning", 8: "titlecard_forest", 10: "titlecard_encounter", 12: "titlecard_edo", 27: "titlecard_neon", 34: "titlecard_underground", 40: "titlecard_spirit", 47: "titlecard_return" };
+  if (showTitleCard && TITLE_CARD_IMAGES[roomIndex]) {
+    canvasConfig._titleCardImage = TITLE_CARD_IMAGES[roomIndex];
+    getImage(TITLE_CARD_IMAGES[roomIndex]); // trigger lazy-load
+  }
 
   g.story = {
     lines,

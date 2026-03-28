@@ -32,6 +32,10 @@ const PLAYER_CORE = [
   gs("bg_dojo_exterior_night"), gs("cutscene_approaching_shadows"),
   gs("cutscene_shoji_blood"), gs("cutscene_sensei_arm"),
   gs("cutscene_arm_mark"), gs("cutscene_shoji_shattered"), gs("cutscene_hunters_approach"),
+  // Title card art (dark anime style — chapter intros)
+  gs("titlecard_dojo"), gs("titlecard_turning"), gs("titlecard_forest"),
+  gs("titlecard_encounter"), gs("titlecard_edo"), gs("titlecard_neon"),
+  gs("titlecard_underground"), gs("titlecard_spirit"), gs("titlecard_return"),
   ps("run1", "/images/tinysenpai/run/1.png"), ps("run2", "/images/tinysenpai/run/2.png"),
   ps("run3", "/images/tinysenpai/run/3.png"), ps("run4", "/images/tinysenpai/run/4.png"),
   ps("slash1", "/images/tinysenpai/slash/1.png"), ps("slash2", "/images/tinysenpai/slash/2.png"),
