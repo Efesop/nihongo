@@ -41,7 +41,10 @@ export const ROOMS = [
     platforms: [
       { x: 0, y: 0, w: 1600 },
     ],
-    enemies: [],
+    enemies: [
+      // One passive dummy — teaches slash targeting on an actual enemy (not just breakables)
+      { type: "dummy", x: 1100, y: 0, passive: true },
+    ],
     npcs: [
       { charKey: "sensei", x: 750, facing: -1, dialogueKey: 0, stayForever: true, triggerRange: 100 },
     ],
@@ -67,7 +70,7 @@ export const ROOMS = [
       // Crate blocks exit — MUST slash
       { type: "crate", x: 1480, y: 0, w: 35, h: 40, hp: 1 },
     ],
-    objective: { type: "parkour", time: 120, exitX: 1550 },
+    // killAll — must slash the dummy + breakables to clear
     tutorials: [
       { text: "← → to move    (A/D)", trigger: "start" },
       { text: "J or Z to slash!", trigger: "nearEnemy" },
@@ -113,16 +116,21 @@ export const ROOMS = [
   },
 
   // ── Room 2: "閃光 Phase Through" — learn DASH + DASH-SLASH ──
-  // A long practice corridor. Bamboo posts line the path. Torii gate marks the challenge.
-  // The shielded dummy blocks ALL normal attacks — only dash+slash breaks through.
+  // Step 1: Practice dashing past normal dummies (safe introduction)
+  // Step 2: Face the shielded dummy that REQUIRES dash-slash (twist)
+  // Follows 4-step: introduce dash → practice → twist (shield) → conclude
   {
     title: { jp: "閃光", en: "Phase Through" },
     theme: "dojo",
     platforms: [
-      { x: 0, y: 0, w: 1400 },
+      { x: 0, y: 0, w: 1600 },
     ],
     enemies: [
-      { type: "dummy", x: 900, y: 0, passive: true, shielded: true },
+      // Normal dummies first — practice dashing through them
+      { type: "dummy", x: 400, y: 0, passive: true },
+      { type: "dummy", x: 650, y: 0, passive: true },
+      // THEN the shielded dummy — must use dash+slash (the twist)
+      { type: "dummy", x: 1100, y: 0, passive: true, shielded: true },
     ],
     shadows: [],
     playerStart: 80,
@@ -225,8 +233,8 @@ export const ROOMS = [
     ],
     hazards: [
       // Sensei throws shurikens — just 2 launchers, slower, more time to react
-      { type: "shuriken_launcher", x: 1800, y: -35, direction: -1, interval: 2000, speed: 250 },
-      { type: "shuriken_launcher", x: 1800, y: -65, direction: -1, interval: 2500, speed: 280 },
+      { type: "shuriken_launcher", x: 1800, y: -35, direction: -1, interval: 2000, speed: 250, offset: 0 },
+      { type: "shuriken_launcher", x: 1800, y: -65, direction: -1, interval: 2500, speed: 280, offset: 1200 },
     ],
     tutorials: [
       { text: "Hold K / X / Shift for slow-motion!", trigger: "shurikens" },
@@ -298,9 +306,9 @@ export const ROOMS = [
     enemies: [
       // FIRST: One ninja alone on a branch — isolated introduction
       { type: "ninja", x: 420, y: -70 },
-      // THEN: Oni on ground + ninja on branch (combination)
-      { type: "oni", x: 1100, y: 0 },
-      { type: "ninja", x: 1300, y: -80 },
+      // THEN: Oni + ninja on SAME branch — they cover each other
+      { type: "oni", x: 1250, y: -80 },
+      { type: "ninja", x: 1350, y: -80 },
       // Final ground enemy
       { type: "oni", x: 1650, y: 0 },
     ],
@@ -339,9 +347,9 @@ export const ROOMS = [
       // Ground — oni guards
       { type: "oni", x: 250, y: 0 },
       { type: "oni", x: 450, y: 0 },
-      // Upper path — ninja + samurai guarding the summit
+      // Upper path — ninja pair (samurai saved for Room 9, no 2 new things at once)
       { type: "ninja", x: 900, y: -210 },
-      { type: "samurai", x: 1150, y: -210 },
+      { type: "ninja", x: 1150, y: -210 },
     ],
     shadows: [],
     playerStart: 60,
@@ -453,8 +461,8 @@ export const ROOMS = [
         [{ type: "oni", x: 400, y: 0 }, { type: "oni", x: 800, y: 0 }, { type: "oni", x: 1200, y: 0 }],
         // Wave 2: mix — ninja forces dodging + oni pressure
         [{ type: "oni", x: 300, y: 0 }, { type: "ninja", x: 700, y: 0 }, { type: "oni", x: 1000, y: 0 }, { type: "ninja", x: 1400, y: 0 }],
-        // Wave 3: samurai-led — must use dash-slash
-        [{ type: "samurai", x: 500, y: 0 }, { type: "ninja", x: 900, y: 0 }, { type: "samurai", x: 1300, y: 0 }],
+        // Wave 3: samurai + ninja — tests all tactics without being unfair
+        [{ type: "samurai", x: 500, y: 0 }, { type: "ninja", x: 800, y: 0 }, { type: "samurai", x: 1200, y: 0 }, { type: "ninja", x: 1500, y: 0 }],
       ],
     },
     platforms: [
