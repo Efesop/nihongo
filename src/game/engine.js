@@ -1841,9 +1841,23 @@ export function update(g, callbacks) {
         g.lastKillCam = null;
         g.time.scale = 1;
         g.camera.zoomTarget = 1;
-        clearRoom(g, callbacks);
+        // Tutorial rooms (0-4): clear immediately. Combat rooms: "open" state with exit door.
+        if (g.currentRoom <= 4) {
+          clearRoom(g, callbacks);
+        } else {
+          g.roomState = "open";
+          g.objective.exitZone = { x: g.levelW - 100, w: 60 };
+          // Fade music out over 2 seconds
+          try { crossfadeMusic(null, 2.0); } catch {}
+        }
       }
     } else {
+      clearRoom(g, callbacks);
+    }
+  } else if (g.roomState === "open") {
+    // All enemies dead — player must run to the exit door
+    const ez = g.objective.exitZone;
+    if (ez && p.x > ez.x && p.x < ez.x + ez.w) {
       clearRoom(g, callbacks);
     }
   } else if (g.roomState === "cleared") {

@@ -870,8 +870,8 @@ export function render(g, ctx, isDesktop, font) {
   }
   ctx.globalAlpha = 1;
 
-  // ── Parkour exit zone — glowing vertical beam of light ──
-  if (g.objective && g.objective.type === "parkour" && g.objective.exitZone) {
+  // ── Exit zone — glowing vertical beam (parkour mode OR "open" state after clearing) ──
+  if (g.objective && g.objective.exitZone && (g.objective.type === "parkour" || g.roomState === "open")) {
     const ez = g.objective.exitZone;
     const pulse = 0.6 + Math.sin(g.time.elapsed * 4) * 0.2;
     // Vertical beam

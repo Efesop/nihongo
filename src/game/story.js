@@ -54,9 +54,10 @@ export const ROOM_DIALOGUE = {
     { speaker: "player", textJp: "...斬り返す？", text: "...Cut my way out?" },
     { speaker: "sensei", textJp: "壁を登れ。", text: "Climb the wall.", emotion: "serious" },
     { speaker: "player", textJp: "え？", text: "Huh?" },
-    // Choice happens here (after index 3) — training_push or training_rest
+    // Choice happens here (after index 3) — training_push / training_rest / training_humor
     { speaker: "sensei", textJp: "いい心意気だ。限界は超えるためにある。", text: "Good spirit. Limits exist to be broken.", emotion: "amused", condition: { flag: "training_push" } },
     { speaker: "sensei", textJp: "...賢い判断だ。折れた刀は戦えん。", text: "...A wise choice. A broken blade can't fight.", emotion: "amused", condition: { flag: "training_rest" } },
+    { speaker: "sensei", textJp: "...お前は先延ばしにしているだけだ。でもいい。もう一杯だけだ。", text: "...You're stalling. But fine. One more cup.", emotion: "amused", condition: { flag: "training_humor" } },
     { speaker: "sensei", textJp: "壁は障害じゃない。道だ。飛び移れ。", text: "A wall isn't an obstacle. It's a path. Jump between them." },
   ],
 
@@ -590,6 +591,7 @@ export const ROOM_CHOICES = {
     options: [
       { textJp: "もっと厳しく。", text: "Push me harder.", flag: "training_push" },
       { textJp: "...少し休みたい。", text: "...I need a moment.", flag: "training_rest" },
+      { textJp: "...先にお茶もう一杯いいですか？", text: "Can I have more tea first?", flag: "training_humor" },
     ],
   },
   // The turning point — two choices: reaction to mark + departure argument
@@ -617,14 +619,16 @@ export const ROOM_CHOICES = {
     options: [
       { textJp: "力を受け入れる。", text: "Accept the power.", flag: "curse_accept_1", effect: { slowMoBonus: 30 } },
       { textJp: "印を抑え込む。", text: "Suppress the mark.", flag: "curse_resist_1", effect: null },
+      { textJp: "まず理解したい。", text: "I need to understand it first.", flag: "curse_cautious", effect: { slowMoBonus: 15 } },
     ],
   },
-  // Shadow's gate — prove yourself or appeal to empathy?
+  // Shadow's gate — prove yourself, appeal to empathy, or ask about his past?
   14: {
     after: 1, // after "I'm not backing down"
     options: [
       { textJp: "証明してやる。", text: "I'll prove myself.", flag: "shadow_prove" },
       { textJp: "試す必要はない。", text: "You don't need to test me.", flag: "shadow_empathy" },
+      { textJp: "お前に何があった？", text: "What happened to you?", flag: "shadow_empathy_deep" },
     ],
   },
   // Confrontation — help Shadow or do your duty?
@@ -850,14 +854,14 @@ export function getSceneConfig(roomIndex) {
 export function getDefaultChoices() {
   return {
     // Prologue
-    training_push: false, training_rest: false,
+    training_push: false, training_rest: false, training_humor: false,
     // Room 5: Mark revelation
     mark_concerned: false, mark_identity: false, mark_perceptive: false,
     // Room 5: Departure argument
     departure_defiant: false, departure_plea: false, departure_trust: false,
     // Act 1: Forest
-    curse_accept_1: false, curse_resist_1: false,
-    shadow_prove: false, shadow_empathy: false,
+    curse_accept_1: false, curse_resist_1: false, curse_cautious: false,
+    shadow_prove: false, shadow_empathy: false, shadow_empathy_deep: false,
     shadow_help: false, shadow_duty: false,
     // Act 2: Edo (original Act 2 choices kept for backward compat)
     final_aggressive: false, final_compassionate: false, final_talk: false,
