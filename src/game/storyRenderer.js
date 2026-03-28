@@ -685,12 +685,13 @@ export function renderStoryScene(ctx, g, W, H, font) {
   // Emotion variants — try story sprite first, fallback to base
   const getCharSprite = (charKey, emotion) => {
     if (charKey === "player") {
-      // Player always uses the ACTUAL in-game sprite for consistency
+      // Tea emotion uses the tea sprite instead of gameplay sprite
+      if (emotion === "tea") return getImage("story_player_tea") || getImage("player");
       return getImage("player");
     }
     // Try emotion variant first
     if (emotion) {
-      const emotionMap = { serious: "serious", amused: "amused", angry: "angry", alarmed: "alarmed", bitter: "bitter", concerned: "concerned" };
+      const emotionMap = { serious: "serious", amused: "amused", angry: "angry", alarmed: "alarmed", bitter: "bitter", concerned: "concerned", tea: "tea" };
       if (emotionMap[emotion]) {
         const img = getImage(`story_${charKey}_${emotionMap[emotion]}`);
         if (img) return img;

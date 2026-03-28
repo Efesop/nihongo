@@ -50,7 +50,7 @@ const SFX_CINEMATIC = [
   "glass_shatter", "wood_splinter", "distant_footsteps",
   "heartbeat_tension", "wind_howl", "tension_sting",
   "sfx_running_footsteps", "sfx_shamisen_sting", "sfx_distant_scream", "sfx_army_approach",
-  "sfx_battle_clash", "sfx_fire_burning", "sfx_violin_farewell",
+  "sfx_battle_clash", "sfx_fire_burning", "sfx_violin_farewell", "sfx_tea_sip",
 ];
 const SFX_STEALTH = [
   "stealth_kill", "detection_suspicious", "detection_alert",
