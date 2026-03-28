@@ -281,15 +281,20 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       e.state = "chase";
       e.attackTimer -= dt * 1000;
       if (e.attackTimer <= 0) {
+        // Elevated ninjas throw downward at player + faster rate
+        const elevated = (e.y + 30) < player.y;
+        const throwVY = elevated ? 150 : 0;
+        const throwSpeed = elevated ? 500 : 450;
         projectiles.push({
-          x: e.x, y: e.y + 24, vx: toPlayer * 450, vy: 0,
+          x: e.x, y: e.y + 24, vx: toPlayer * throwSpeed, vy: throwVY,
           type: "shuriken", timer: 3000, rotation: 0, trail: [],
+          gravity: elevated, // arrows/shurikens from above have gravity arc
         });
-        e.attackTimer = 900;
+        e.attackTimer = elevated ? 650 : 900; // elevated = faster throws
         e.throwAnim = 400;
         playRandom("ninja_throw");
       }
-      if (dist < 100) e.vx = -toPlayer * 150;
+      if (dist < 100 && !((e.y + 30) < player.y)) e.vx = -toPlayer * 150; // don't retreat if elevated
     } else {
       e.state = "patrol";
       if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;

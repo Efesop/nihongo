@@ -1554,9 +1554,15 @@ export function update(g, callbacks) {
             killEnemy(g, e, p, callbacks);
             if (isAirSlash) { p.vy = JUMP_FORCE * 0.6; p.grounded = false; } // air slash bounce
           } else {
-            // Frontal block — sparks, no damage, pushes player back
+            // Frontal block — sparks, no damage, pushes player back + COUNTER-ATTACK
             e.blocking = true;
             e.blockTimer = 500;
+            // Samurai counter-attacks after blocking — punishes slash spam
+            if (e.type === "samurai") {
+              e.state = "attack";
+              e.attackTimer = 400; // short windup before counter-strike
+              e.windupTimer = 300;
+            }
             g.hitStop = 80;
             g.camera.shakeTimer = 100;
             playSound("samurai_block");

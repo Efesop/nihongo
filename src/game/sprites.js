@@ -91,6 +91,8 @@ const ZONE_SPRITES = {
   ],
   forest: [
     ps("bg_forest", "/images/forest.png"), gs("bg_forest_story"), gs("bg_temple_story"),
+    // Contextual platform sprites
+    gs("platform_branch"), gs("platform_rock"), gs("platform_log"), gs("wall_cliff"),
     // Archer
     ...["idle","alert","draw_bow","fire","retreat","dazed","hit","kneel","dead","kb_back"].map(s => gs(`archer_${s}`)),
     // Brute

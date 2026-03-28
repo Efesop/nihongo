@@ -182,14 +182,40 @@ export function render(g, ctx, isDesktop, font) {
     const bgK = (roomData && roomData.theme === "dojo") ? "bg_dojo" : "bg_forest";
     const hasBg = !!getImage(bgK);
     const accent = hasBg ? "#3a8a5a" : platPal.platAccent;
+    const isForest = roomData && (roomData.theme === "forest" || roomData.theme === "temple");
 
     if (plat.wall) {
-      // Solid climbable wall — stone/brick texture
+      // Solid climbable wall
       const h = plat.h || 100;
       const w = plat.w;
       const wx = plat.x;
       const wy = plat.y;
 
+      // Forest walls: use cliff sprite if available
+      if (isForest) {
+        const cliffImg = getImage("wall_cliff");
+        if (cliffImg) {
+          ctx.imageSmoothingEnabled = false;
+          // Tile the cliff sprite vertically to fill the wall height
+          const tileW = w;
+          const tileH = cliffImg.height * (w / cliffImg.width);
+          for (let ty = wy; ty < wy + h; ty += tileH) {
+            const drawH = Math.min(tileH, wy + h - ty);
+            ctx.drawImage(cliffImg, 0, 0, cliffImg.width, cliffImg.height * (drawH / tileH), wx, ty, tileW, drawH);
+          }
+          ctx.imageSmoothingEnabled = true;
+          // Scratch marks for wall-jump hint
+          ctx.strokeStyle = "#88aa6630";
+          ctx.lineWidth = 1;
+          for (let sy = wy + 20; sy < wy + h - 20; sy += 30) {
+            ctx.beginPath(); ctx.moveTo(wx + 3, sy); ctx.lineTo(wx + w * 0.4, sy + 10); ctx.stroke();
+          }
+        } else {
+          // Fallback to rock fill
+          ctx.fillStyle = "#1a1e18";
+          ctx.fillRect(wx, wy, w, h);
+        }
+      } else {
       // Base fill — dark stone
       const wallGrad = ctx.createLinearGradient(wx, wy, wx + w, wy);
       wallGrad.addColorStop(0, hasBg ? "#141e18" : "#16162a");
@@ -259,6 +285,7 @@ export function render(g, ctx, isDesktop, font) {
       ctx.lineTo(arrowX + 5, arrowY + 2);
       ctx.closePath();
       ctx.fill();
+      } // close non-forest wall else block
     } else if (plat.ceiling) {
       // Ceiling — dark wooden planks overhead with shadow beneath
       const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
@@ -288,6 +315,24 @@ export function render(g, ctx, isDesktop, font) {
       ctx.fillRect(plat.x, plat.y, plat.w, 2);
       ctx.fillStyle = "#1a0e06";
       ctx.fillRect(plat.x, plat.y + 8, plat.w, 2);
+    } else if (isForest && !plat.wall) {
+      // Forest contextual platform — use sprite based on size
+      const spriteKey = plat.w < 120 ? "platform_rock" : plat.w < 250 ? "platform_branch" : "platform_log";
+      const img = getImage(spriteKey);
+      if (img) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, plat.x, plat.y - img.height * (plat.w / img.width) + 14, plat.w, img.height * (plat.w / img.width));
+        ctx.imageSmoothingEnabled = true;
+      } else {
+        // Fallback — brown wood-grain platform
+        const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
+        grad.addColorStop(0, "#2a1a0e");
+        grad.addColorStop(1, "#1a0e06");
+        ctx.fillStyle = grad;
+        ctx.fillRect(plat.x, plat.y, plat.w, 14);
+        ctx.fillStyle = "#3a2a18";
+        ctx.fillRect(plat.x, plat.y, plat.w, 2);
+      }
     } else {
       // Standard thin platform
       const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
