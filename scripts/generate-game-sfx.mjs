@@ -109,7 +109,7 @@ const SOUNDS = [
 
   // ────── CINEMATIC (Room 5 story) ──────
   ['sfx_running_footsteps', 'Quick footsteps running on wooden floor, Japanese sandals on polished wood, getting quieter as person runs away into distance, about 6-8 rapid steps fading, game cinematic sfx', 2.0, 0.5],
-  ['sfx_shamisen_sting', 'A short memorable Japanese shamisen musical phrase, like an anime chapter title intro. Starts with one bold low shamisen pluck that resonates, followed by a quick ascending three-note shamisen melody, ending on a held high note with deep reverb. Dark atmosphere, slight 808 bass underneath the first note. The melody should feel like a signature motif, recognizable and cinematic. Like a Demon Slayer episode title reveal. About 3 to 4 seconds total.', 4.0, 0.7],
+  ['sfx_shamisen_sting', 'Single powerful shamisen pluck, one deep resonant note that rings out and slowly fades with natural reverb. Just ONE note, no melody, no strumming, no chord. The note should feel heavy and cinematic, like a blade being drawn. Deep and dark. Let the single note breathe and decay naturally into silence. Japanese traditional instrument. Cinematic game sound effect.', 3.5, 0.8],
 ];
 
 const LOOPS = [
