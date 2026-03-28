@@ -198,19 +198,20 @@ export const ROOM_DIALOGUE = {
     { type: "characterExit", char: "player", direction: "left" },
     { type: "pause", duration: 0.8 },
 
+    // Hunters break in — enemies at the door, weapons drawn (hold longer)
+    { type: "sfx", sound: "wood_splinter" },
+    { type: "shake", intensity: 8, duration: 0.8 },
+    { type: "bgSwap", to: "cutscene_hunters_approach", transition: "hardCut" },
+    { type: "sfx", sound: "sfx_army_approach" },
+    { type: "pause", duration: 3.0 },
+
     // Player escaping — seen through open door running into moonlit forest
     { type: "bgSwap", to: "cutscene_escape", transition: "hardCut" },
     { type: "sfx", sound: "sfx_running_footsteps" },
     { type: "pause", duration: 2.5 },
 
-    // Hunters break in — enemies at the door, weapons drawn
-    { type: "sfx", sound: "wood_splinter" },
-    { type: "shake", intensity: 8, duration: 0.8 },
-    { type: "bgSwap", to: "cutscene_hunters_approach", transition: "hardCut" },
-    { type: "pause", duration: 1.5 },
-
-    // Sensei's final moment — close-up, calm, shadows looming
-    // Music fades out gradually, then violin begins
+    // Sensei's final moment — he knows what's coming
+    // Music fades out, violin begins
     { type: "musicChange", to: null, fade: 2.0 },
     { type: "sfx", sound: "sfx_violin_farewell" },
     { type: "bgSwap", to: "cutscene_sensei_final", transition: "hardCut" },
