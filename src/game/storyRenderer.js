@@ -216,9 +216,10 @@ export function updateStory(g, rawDt, callbacks) {
   // Title card phase — dramatic kanji intro before everything
   if (s.titleCard && s.titleCard.active) {
     s.titleCard.timer += rawDt;
-    // Play shamisen on first frame — try repeatedly until audio context is ready
+    // Play shamisen — direct Audio fallback if WebAudio buffer not loaded
     if (!s.titleCard.played && s.titleCard.timer > 0.05) {
-      try { playSound("sfx_shamisen_sting"); } catch {}
+      playSound("sfx_shamisen_sting");
+      try { const a = new Audio("/audio/game/sfx_shamisen_sting.mp3"); a.volume = 0.6; a.play().catch(() => {}); } catch {}
       s.titleCard.played = true;
     }
     // Allow click/space to skip after 0.8 second
@@ -511,12 +512,12 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.fillStyle = `rgba(0,0,0,0.5)`;
     ctx.fillRect(0, 0, W, H);
 
-    // Fade: instant appear (fast fade in first 8%), hold, fade out last 15%
-    const fadeIn = Math.min(1, t / 0.08);
-    const fadeOut = Math.min(1, (1 - t) / 0.15);
+    // Fade: instant appear, text stays visible until screen fades at very end
+    const fadeIn = Math.min(1, t / 0.06);
+    const fadeOut = Math.min(1, (1 - t) / 0.08); // very fast fade at the end only
     const alpha = Math.min(fadeIn, fadeOut);
 
-    // ── Vertical crimson kanji — bold, clean, no outline ──
+    // ── Vertical crimson kanji — brush calligraphy font, cinematic ──
     const kanji = scene.label || "";
     const kanjiChars = [...kanji];
     const kanjiSize = Math.min(H * 0.28, W * 0.22);
@@ -531,13 +532,14 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.font = `900 ${kanjiSize}px "Noto Sans JP",serif`;
+      // Yuji Boku = Japanese brush calligraphy font, falls back to serif
+      ctx.font = `${kanjiSize}px "Yuji Boku",serif`;
 
-      // Subtle dark shadow only — no outline, no glow
-      ctx.fillStyle = "rgba(0,0,0,0.4)";
-      ctx.fillText(kanjiChars[i], W / 2 + 2, cy + 2);
+      // Subtle dark shadow for depth
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillText(kanjiChars[i], W / 2 + 3, cy + 3);
 
-      // Bold crimson fill — clean, cinematic
+      // Bold crimson — clean, cinematic
       ctx.fillStyle = "#cc1a1a";
       ctx.fillText(kanjiChars[i], W / 2, cy);
 
