@@ -141,7 +141,6 @@ export const ROOM_DIALOGUE = {
     { type: "pause", duration: 2.5 },
 
     { speaker: "sensei", textJp: "...！", text: "...!", emotion: "alarmed" },
-    { speaker: "player", textJp: "先生、あの影は—", text: "Sensei, those shadows—" },
 
     // 2. Blood splatters on panels + scream (someone killed outside)
     { type: "sfx", sound: "glass_shatter" },
@@ -208,13 +207,15 @@ export const ROOM_DIALOGUE = {
     // Player escaping — seen through open door running into moonlit forest
     { type: "bgSwap", to: "cutscene_escape", transition: "hardCut" },
     { type: "sfx", sound: "sfx_running_footsteps" },
-    { type: "pause", duration: 2.5 },
+    { type: "pause", duration: 1.5 },
+    { speaker: "system", textJp: "...すみません、先生。", text: "...I'm sorry, Sensei." },
 
     // Sensei's final moment — he knows what's coming
-    // Music fades out, violin begins
+    // Music fades, beat of silence, THEN violin
     { type: "musicChange", to: null, fade: 2.0 },
-    { type: "sfx", sound: "sfx_violin_farewell" },
     { type: "bgSwap", to: "cutscene_sensei_final", transition: "hardCut" },
+    { type: "pause", duration: 0.8 },
+    { type: "sfx", sound: "sfx_violin_farewell" },
     { type: "pause", duration: 3.5 },
 
     // Persistent black — stays fully black for battle + fire audio
