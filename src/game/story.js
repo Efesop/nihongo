@@ -646,6 +646,23 @@ export const ROOM_CHOICES = {
 };
 
 // ═══════════════════════════════════════════════════════
+// TITLE CARDS — dramatic calligraphy intro for major locations/acts
+// Plays BEFORE dialogue: freeze frame → vertical kanji → shamisen sting → fade
+// Only at major zone transitions. Rare = special.
+// ═══════════════════════════════════════════════════════
+export const TITLE_CARD_ROOMS = new Set([
+  0,   // 道場 — THE DOJO (game opening)
+  5,   // 転機 — THE TURNING POINT (inciting incident)
+  8,   // 森 — THE FOREST (first solo scene)
+  10,  // 出会い — THE ENCOUNTER (Shadow appears)
+  12,  // 江戸 — EDO CASTLE TOWN (new era)
+  27,  // 東京 — NEON TOKYO (biggest tonal shift)
+  34,  // 地下 — THE UNDERGROUND (nightclub infiltration)
+  40,  // 霊界 — SPIRIT REALM (final act)
+  47,  // 帰還 — THE RETURN (epilogue)
+]);
+
+// ═══════════════════════════════════════════════════════
 // STORY TRIGGERS — which rooms get pre-room story screens
 // Only substantial multi-character dialogue gets a story screen.
 // Single thoughts/reactions → in-game encounters (no interruption).

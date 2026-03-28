@@ -4,7 +4,7 @@
 // Katana Zero-style: characters in scene, typing animation, voice blips, choices.
 
 import { getImage } from "./sprites.js";
-import { CHARACTERS, getSceneConfig, ROOM_CHOICES } from "./story.js";
+import { CHARACTERS, getSceneConfig, ROOM_CHOICES, TITLE_CARD_ROOMS } from "./story.js";
 import { playVoiceBlip, playSound, stopMusic, crossfadeMusic } from "./audio.js";
 
 // ── Text wrapping helper ──
@@ -212,6 +212,27 @@ export function updateStory(g, rawDt, callbacks) {
   }
 
   // (Effects updated at top of function — before any early returns)
+
+  // Title card phase — dramatic kanji intro before everything
+  if (s.titleCard && s.titleCard.active) {
+    s.titleCard.timer += rawDt;
+    if (!s.titleCard.played) {
+      playSound("sfx_shamisen_sting");
+      s.titleCard.played = true;
+    }
+    // Allow click/space to skip after 1 second
+    if (s.titleCard.timer > 1.0 && g.input.storyAdvance) {
+      g.input.storyAdvance = false;
+      s.titleCard.timer = s.titleCard.duration;
+    }
+    if (s.titleCard.timer >= s.titleCard.duration) {
+      s.titleCard.active = false;
+      // Now start entrance animation
+      s.entrance.active = true;
+    }
+    updateParticles(rawDt, g.W, g.H);
+    return;
+  }
 
   // Entrance animation — block everything until characters are in position
   if (s.entrance && s.entrance.active) {
@@ -467,8 +488,96 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.fillRect(0, y, W, 2);
   }
 
-  // ── 5. Scene label (watermark) ──
-  if (scene.label) {
+  // ── 5. Title card OR scene label watermark ──
+  if (s.titleCard && s.titleCard.active) {
+    const tc = s.titleCard;
+    const t = tc.timer / tc.duration; // 0→1 progress
+
+    // Dark overlay — heavier than normal vignette
+    ctx.fillStyle = `rgba(0,0,0,${0.55 + Math.sin(t * Math.PI) * 0.1})`;
+    ctx.fillRect(0, 0, W, H);
+
+    // Fade curve: quick fade in (0-15%), hold, quick fade out (85-100%)
+    const fadeIn = Math.min(1, t / 0.15);
+    const fadeOut = Math.min(1, (1 - t) / 0.15);
+    const alpha = Math.min(fadeIn, fadeOut);
+
+    // Vertical Japanese calligraphy — big, centered
+    const kanji = scene.label || "";
+    const kanjiChars = [...kanji]; // split into individual characters
+    const kanjiSize = Math.min(H * 0.22, W * 0.18);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Draw each kanji character vertically
+    const totalKanjiH = kanjiChars.length * kanjiSize * 0.9;
+    const startY = (H - totalKanjiH) / 2;
+
+    for (let i = 0; i < kanjiChars.length; i++) {
+      // Staggered reveal — each character appears slightly after the previous
+      const charDelay = i * 0.08;
+      const charAlpha = Math.max(0, Math.min(1, (t - charDelay) / 0.12)) * alpha;
+
+      // Subtle slide-in from right
+      const slideX = (1 - Math.min(1, (t - charDelay) / 0.2)) * 30;
+
+      ctx.save();
+      ctx.globalAlpha = charAlpha;
+
+      // Ink shadow
+      ctx.font = `bold ${kanjiSize}px "Noto Sans JP",serif`;
+      ctx.fillStyle = "rgba(0,0,0,0.6)";
+      ctx.fillText(kanjiChars[i], W / 2 + slideX + 3, startY + i * kanjiSize * 0.9 + 3);
+
+      // Main calligraphy — warm white
+      ctx.fillStyle = "#f0e8d8";
+      ctx.shadowColor = "rgba(200,160,100,0.4)";
+      ctx.shadowBlur = 20;
+      ctx.fillText(kanjiChars[i], W / 2 + slideX, startY + i * kanjiSize * 0.9);
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+    }
+
+    // English subtitle — smaller, below kanji
+    const enLabel = scene.labelEn || "";
+    if (enLabel) {
+      const enSize = Math.min(16, W * 0.025);
+      const enAlpha = Math.max(0, Math.min(1, (t - 0.2) / 0.15)) * alpha;
+      ctx.save();
+      ctx.globalAlpha = enAlpha;
+      ctx.font = `300 ${enSize}px ${font}`;
+      ctx.letterSpacing = "4px";
+
+      // Shadow
+      ctx.fillStyle = "rgba(0,0,0,0.5)";
+      ctx.fillText(enLabel, W / 2 + 1, startY + totalKanjiH + kanjiSize * 0.5 + 1);
+
+      // Main text — muted gold
+      ctx.fillStyle = "rgba(200,170,120,0.8)";
+      ctx.fillText(enLabel, W / 2, startY + totalKanjiH + kanjiSize * 0.5);
+      ctx.letterSpacing = "0px";
+      ctx.restore();
+    }
+
+    // Decorative line — thin horizontal rule under the text
+    const lineAlpha = Math.max(0, Math.min(1, (t - 0.15) / 0.1)) * alpha;
+    const lineW = Math.min(200, W * 0.25);
+    ctx.save();
+    ctx.globalAlpha = lineAlpha * 0.3;
+    ctx.strokeStyle = "#c8a878";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - lineW / 2, startY + totalKanjiH + kanjiSize * 0.8);
+    ctx.lineTo(W / 2 + lineW / 2, startY + totalKanjiH + kanjiSize * 0.8);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    return; // title card covers everything — don't render characters/dialogue
+  } else if (scene.label && !(s.titleCard)) {
+    // Normal watermark for rooms without title cards
     ctx.textAlign = "center";
     ctx.fillStyle = "rgba(255,255,255,0.05)";
     ctx.font = `${Math.min(36, W * 0.05)}px "Noto Sans JP",sans-serif`;
@@ -900,6 +1009,9 @@ export function initStoryState(g, roomIndex, lines) {
     entrance: sceneConfig.entrance || {},
   };
 
+  // Title card for major zone transitions (plays before dialogue)
+  const showTitleCard = TITLE_CARD_ROOMS.has(roomIndex) && canvasConfig.label;
+
   g.story = {
     lines,
     index: 0,
@@ -911,8 +1023,10 @@ export function initStoryState(g, roomIndex, lines) {
     choiceIndex: 0,
     choiceTimer: 0,
     sceneConfig: canvasConfig,
-    // Entrance animation — characters walk in from offscreen
-    entrance: { active: true, timer: 0, duration: 1.5 },
+    // Title card phase — before entrance, big vertical kanji + shamisen sting
+    titleCard: showTitleCard ? { active: true, timer: 0, duration: 3.5, played: false } : null,
+    // Entrance animation — characters walk in from offscreen (starts after title card)
+    entrance: { active: !showTitleCard, timer: 0, duration: 1.5 },
   };
   g._storyRoomIndex = roomIndex;
   g.gameState = "story";
