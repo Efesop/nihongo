@@ -139,6 +139,8 @@ export function updateStory(g, rawDt, callbacks) {
       }
     } else if (line.type === "sfx") {
       playSound(line.sound);
+      // Direct Audio fallback if WebAudio buffer not loaded yet
+      try { const a = new Audio(`/audio/game/${line.sound}.mp3`); a.volume = 0.5; a.play().catch(() => {}); } catch {}
     } else if (line.type === "musicStop") {
       stopMusic();
     } else if (line.type === "shake") {
@@ -170,6 +172,9 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "charSwap") {
       if (line.left !== undefined) s._charOverrideLeft = line.left;
       if (line.right !== undefined) s._charOverrideRight = line.right;
+    } else if (line.type === "allEmotion") {
+      // Override emotion for ALL characters (e.g. both drinking tea)
+      s._allEmotion = line.emotion || null;
     } else if (line.type === "centerImage") {
       // Show an image centered on screen (not as bg replacement)
       s._centerImage = { key: line.image, alpha: 0, targetAlpha: 1, fadeSpeed: 1 / (line.fade || 0.3), scale: line.scale || 0.5 };
@@ -731,7 +736,8 @@ export function renderStoryScene(ctx, g, W, H, font) {
       x = finalX + (exitX - finalX) * easeExitT;
     }
 
-    const emotion = isActive ? line.emotion : null;
+    // allEmotion overrides both characters (e.g. both drinking tea)
+    const emotion = s._allEmotion || (isActive ? line.emotion : null);
     // During walk-in entrance OR exit, use run sprites
     const isWalking = (shouldAnimate && s.entrance?.active && entranceT < 1) || isExiting;
     let sprite;

@@ -34,24 +34,12 @@ export const ROOMS = [
   // ════════════════════════════════════════════════════
 
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
-  // Open dojo training hall. Doors connect sections. No ceilings (bg already shows interior).
-  // Clean, not cluttered. Sensei waits near the middle.
+  // Simple open dojo floor. Sensei waits near the middle. No doors (bg is one open room).
   {
     title: { jp: "修行", en: "Training" },
     theme: "dojo",
     platforms: [
-      // One continuous dojo floor with door transitions between sections
-      { x: 0, y: 0, w: 500 },         // entry area
-      { x: 550, y: 0, w: 600 },       // main training hall
-      { x: 1200, y: 0, w: 400 },      // exit area
-    ],
-    doors: [
-      // Door pair: entry → main hall
-      { id: "entry_out", x: 480, pairId: "hall_in", exitDir: 1 },
-      { id: "hall_in", x: 570, pairId: "entry_out", exitDir: 1 },
-      // Door pair: main hall → exit
-      { id: "hall_out", x: 1130, pairId: "exit_in", exitDir: 1 },
-      { id: "exit_in", x: 1220, pairId: "hall_out", exitDir: 1 },
+      { x: 0, y: 0, w: 1600 },
     ],
     enemies: [],
     npcs: [
@@ -82,7 +70,6 @@ export const ROOMS = [
     objective: { type: "parkour", time: 120, exitX: 1550 },
     tutorials: [
       { text: "← → to move    (A/D)", trigger: "start" },
-      { text: "↑ near doors to enter", trigger: "start" },
       { text: "J or Z to slash!", trigger: "nearEnemy" },
     ],
   },
