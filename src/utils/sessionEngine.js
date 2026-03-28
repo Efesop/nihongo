@@ -387,14 +387,17 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // Phrase build (fill-in-the-blank at segment level) — ALWAYS include 1 if eligible
   // Teaches particles and key words, not just whole phrases
   if (phrasesLearned >= 3 && queue.length < sessionLength) {
-    // Pick a learned phrase with 3+ segments (so blanking one is meaningful)
+    // Pick a learned phrase with 3+ segments, not already in queue
     const buildCandidates = PHRASES.filter(p => {
       const d = phrData[p[0]];
       const segs = PHRASE_BREAKDOWNS[p[0]];
-      return d && d.box >= 1 && segs && segs.length >= 3;
+      if (!d || d.box < 1 || !segs || segs.length < 3 || usedPhrases.has(p[0])) return false;
+      // Prefer due or close-to-due items
+      return now >= (d.next || 0) || (d.next - now) < 3 * 86400000;
     });
     if (buildCandidates.length > 0) {
       const p = shuffle(buildCandidates)[0];
+      usedPhrases.add(p[0]);
       const segs = PHRASE_BREAKDOWNS[p[0]];
       // Prefer blanking particles and key nouns/verbs — not copulas or question markers
       const blankable = segs
@@ -416,9 +419,14 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
-  // Reverse/production — ALWAYS include 1 if eligible
+  // Reverse/production — include 1 if eligible AND due (or close to due)
   if (queue.length < sessionLength) {
-    const productionPhrases = PHRASES.filter(p => (phrData[p[0]]?.box || 0) >= 2 && !usedPhrases.has(p[0]));
+    const productionPhrases = PHRASES.filter(p => {
+      const d = phrData[p[0]];
+      if (!d || d.box < 2 || usedPhrases.has(p[0])) return false;
+      // Must be due or due within 3 days — don't pull items far ahead of schedule
+      return now >= (d.next || 0) || (d.next - now) < 3 * 86400000;
+    });
     if (productionPhrases.length > 0) {
       const p = shuffle(productionPhrases)[0];
       usedPhrases.add(p[0]);
@@ -426,7 +434,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
   if (queue.length < sessionLength) {
-    const productionKana = ALL_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 2 && !usedKana.has(ch));
+    const productionKana = ALL_KANA.filter(ch => {
+      const d = kanaData[ch];
+      if (!d || d.box < 2 || usedKana.has(ch)) return false;
+      return now >= (d.next || 0) || (d.next - now) < 3 * 86400000;
+    });
     if (productionKana.length > 0) {
       const ch = shuffle(productionKana)[0];
       usedKana.add(ch);
