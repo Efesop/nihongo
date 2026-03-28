@@ -153,8 +153,9 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const errorCount = errors[ch] || 0;
     const adjusted = box + difficultyMod;
 
-    // Leech treatment: 5+ errors → show mnemonic + breakdown instead of quiz
-    if (errorCount >= 5 && Math.random() < 0.5) {
+    // Leech treatment: 5+ errors → ALWAYS show mnemonic + breakdown, not quiz
+    // Don't keep quizzing items they've failed 5+ times — treat them differently
+    if (errorCount >= 5) {
       return { type: "leech-review", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], errorCount, isKana: true };
     }
 
@@ -163,11 +164,18 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (weak === "listen" && adjusted >= 1) return { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
     if (weak === "production" && adjusted >= 2) return { type: "kana-reverse", item: ch, romaji: ROMAJI[ch] };
 
-    // Default progression
-    if (adjusted <= 2) return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
+    // Default progression — introduce production earlier
+    if (adjusted <= 1) return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
     const r = Math.random();
-    if (r > 0.6) return { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
-    if (r > 0.3) return { type: "kana-reverse", item: ch, romaji: ROMAJI[ch] };
+    if (adjusted <= 2) {
+      // Box 2: 50% visual, 30% listen, 20% reverse (production starts here)
+      if (r > 0.70) return { type: "kana-reverse", item: ch, romaji: ROMAJI[ch] };
+      if (r > 0.50) return { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
+      return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
+    }
+    // Box 3+: 45% listen, 45% reverse, 10% visual (production-heavy)
+    if (r > 0.55) return { type: "kana-listen", item: ch, romaji: ROMAJI[ch] };
+    if (r > 0.10) return { type: "kana-reverse", item: ch, romaji: ROMAJI[ch] };
     return { type: "kana-visual", item: ch, romaji: ROMAJI[ch] };
   }
 
@@ -176,8 +184,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const errorCount = errors[p[0]] || 0;
     const adjusted = box + difficultyMod;
 
-    // Leech treatment
-    if (errorCount >= 5 && Math.random() < 0.5) {
+    // Leech treatment: ALWAYS treat, don't quiz (threshold higher for phrases — they're harder)
+    if (errorCount >= 7) {
       return { type: "leech-review", item: p, errorCount, isKana: false };
     }
 
@@ -296,33 +304,40 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   shuffle(recentKana).slice(0, 1).forEach(ch => addKana(ch));
   shuffle(recentPhrases).slice(0, 1).forEach(p => addPhrase(p));
 
-  // Maintenance kana — only if very few kana in queue AND pick from HIGH box items (not recently learned)
+  // Maintenance kana — only if very few kana in queue, pick DUE high-box items (not non-due)
   const kanaInQueue = queue.filter(q => q.type?.startsWith("kana-") || q.type === "learn-card" || q.type === "try-first-kana").length;
   if (kanaInQueue < 2) {
-    const maintenanceKana = shuffle(ALL_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 3 && !usedKana.has(ch)));
+    const maintenanceKana = shuffle(ALL_KANA.filter(ch => {
+      const d = kanaData[ch];
+      return d && d.box >= 3 && !usedKana.has(ch) && now >= (d.next || 0);
+    }));
     maintenanceKana.slice(0, 2 - kanaInQueue).forEach(ch => addKana(ch));
   }
 
+  // New item cap: max 3 new items per session (research: 3-5 optimal for complex items)
+  // Prevents sessions from becoming 60% new content instead of review-dominant
+  let newItemCount = 0;
+  const MAX_NEW = 3;
+
   // Productive failure: quiz FIRST on unseen items, then reveal learn card
-  // Research: struggling before instruction → better outcomes (Finding #16)
-  if (unseenKana.length > 0 && queue.length < sessionLength - 2) {
-    const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, 2);
+  // Research: struggling before instruction → better outcomes (Kapur 2014)
+  if (unseenKana.length > 0 && queue.length < sessionLength - 2 && newItemCount < MAX_NEW) {
+    const maxNewKana = Math.min(2, MAX_NEW - newItemCount);
+    const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, maxNewKana);
     newKana.forEach(ch => {
       usedKana.add(ch);
-      // First: a "try first" quiz — user sees the character, tries to guess
       queue.push({ type: "try-first-kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch] });
-      // Then: the learn card reveals the answer + mnemonic (delayed 2-3 cards later)
       queue.push({ type: "_delayed_learn_kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], delay: 2 });
+      newItemCount++;
     });
   }
-  if (unseenPhrases.length > 0 && queue.length < sessionLength - 1) {
+  if (unseenPhrases.length > 0 && queue.length < sessionLength - 1 && newItemCount < MAX_NEW) {
     const np = unseenPhrases.find(p => !usedPhrases.has(p[0]));
     if (np) {
       usedPhrases.add(np[0]);
-      // First: situation prompt — "what would you say?"
       queue.push({ type: "try-first-phrase", item: np });
-      // Then: learn card with full breakdown (delayed 2-3 cards later)
       queue.push({ type: "_delayed_learn_phrase", item: np, delay: 2 });
+      newItemCount++;
     }
   }
 
@@ -393,7 +408,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       const segs = PHRASE_BREAKDOWNS[p[0]];
       if (!d || d.box < 1 || !segs || segs.length < 3 || usedPhrases.has(p[0])) return false;
       // Prefer due or close-to-due items
-      return now >= (d.next || 0) || (d.next - now) < 3 * 86400000;
+      return now >= (d.next || 0) || (d.next - now) < 86400000;
     });
     if (buildCandidates.length > 0) {
       const p = shuffle(buildCandidates)[0];
@@ -425,7 +440,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       const d = phrData[p[0]];
       if (!d || d.box < 2 || usedPhrases.has(p[0])) return false;
       // Must be due or due within 3 days — don't pull items far ahead of schedule
-      return now >= (d.next || 0) || (d.next - now) < 3 * 86400000;
+      return now >= (d.next || 0) || (d.next - now) < 86400000;
     });
     if (productionPhrases.length > 0) {
       const p = shuffle(productionPhrases)[0];
@@ -437,7 +452,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const productionKana = ALL_KANA.filter(ch => {
       const d = kanaData[ch];
       if (!d || d.box < 2 || usedKana.has(ch)) return false;
-      return now >= (d.next || 0) || (d.next - now) < 3 * 86400000;
+      return now >= (d.next || 0) || (d.next - now) < 86400000;
     });
     if (productionKana.length > 0) {
       const ch = shuffle(productionKana)[0];

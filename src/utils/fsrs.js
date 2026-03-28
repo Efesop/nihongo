@@ -85,7 +85,14 @@ function nextInterval(stability, requestRetention = DEFAULT_PARAMS.requestRetent
  */
 export function fsrsUpdate(itemData, correct, responseTime = null) {
   const now = Date.now();
-  const rating = correct ? 3 : 1; // Simplified: correct=Good, wrong=Again
+  // Use response time to distinguish Hard/Good/Easy instead of binary
+  // Fast correct (<3s) = Easy(4), normal = Good(3), slow correct (>8s) = Hard(2), wrong = Again(1)
+  let rating = 1; // Again (wrong)
+  if (correct) {
+    if (responseTime && responseTime < 3000) rating = 4;      // Easy — knew it instantly
+    else if (responseTime && responseTime > 8000) rating = 2;  // Hard — got it but struggled
+    else rating = 3;                                            // Good — normal recall
+  }
 
   if (!itemData || !itemData.stability) {
     // New item — first review
