@@ -592,7 +592,9 @@ export function update(g, callbacks) {
   if (p.comboWindow > 0) p.comboWindow -= rawDt * 1000;
   if (p.comboWindow <= 0 && p.slashTimer <= 0) p.slashCombo = 0;
 
-  if (g.input.slashPressed && p.slashTimer <= 0 && (p.slashCombo === 0 || p.comboWindow > 0)) {
+  // Slash cooldown after full 4-hit combo — brief recovery before next chain
+  if (p._slashCooldown > 0) { p._slashCooldown -= rawDt * 1000; g.input.slashPressed = false; }
+  if (g.input.slashPressed && p.slashTimer <= 0 && p._slashCooldown <= 0 && (p.slashCombo === 0 || p.comboWindow > 0)) {
     // Exit hide on attack
     if (p.hidden) { p.hidden = false; if (p.hideSpot) { p.hideSpot.occupied = false; p.hideSpot = null; } }
     p.noiseLevel = Math.min(1, p.noiseLevel + 0.8); // slash is loud
@@ -905,6 +907,15 @@ export function update(g, callbacks) {
         continue;
       }
 
+      // Funny response when player slashes near sensei
+      if (npc.charKey === "sensei" && p.slashTimer > 0 && Math.abs(p.x - npc.x) < 80 && !npc._slashResponse) {
+        npc._slashResponse = true;
+        const quips = ["Don't test me.", "I taught you that move.", "Save it for the enemy.", "...Really?"];
+        const quip = quips[Math.floor(Math.random() * quips.length)];
+        g.floatingTexts.push({ x: npc.x, y: npc.y - 30, text: quip, color: "#cc9933", life: 1500, maxLife: 1500 });
+        setTimeout(() => { npc._slashResponse = false; }, 3000);
+      }
+
       // Proximity dialogue trigger
       if (!npc.triggered && npc.dialogueKey !== null) {
         const dist = Math.abs(p.x - npc.x);
@@ -1177,7 +1188,11 @@ export function update(g, callbacks) {
 
   // Slash timer
   if (p.slashTimer > 0) p.slashTimer -= dt * 1000;
-  if (p.slashTimer <= 0) { p.dashSlashing = false; p._piercing = false; }
+  if (p.slashTimer <= 0) {
+    p.dashSlashing = false; p._piercing = false;
+    // After full 4-hit combo, brief recovery cooldown
+    if (p.slashCombo >= 4 && p.comboWindow > 0) { p._slashCooldown = 350; p.slashCombo = 0; p.comboWindow = 0; }
+  }
 
   // Parry timer (used by renderer for parry sprite display)
   if (p.parryTimer > 0) p.parryTimer -= dt * 1000;
@@ -1777,10 +1792,21 @@ export function update(g, callbacks) {
       if (g.objective.countdown <= 0 && g.roomState === "playing") {
         killPlayer(g, callbacks); // time's up = death
       }
-      // Check if player reached exit zone
+      // Check if player reached exit zone (breakables must be destroyed first)
       const ez = g.objective.exitZone;
+      const breakablesLeft = (g.breakables || []).filter(b => !b.destroyed).length;
       if (ez && p.x > ez.x && p.x < ez.x + ez.w && g.roomState === "playing") {
-        clearRoom(g, callbacks);
+        if (breakablesLeft > 0) {
+          // Push player back — can't exit yet
+          p.x = ez.x - 5;
+          if (!g._exitBlockedHint) {
+            g.floatingTexts.push({ x: ez.x, y: g.groundY - 60, text: "Slash the targets first!", color: "#ffcc44", life: 1500, maxLife: 1500 });
+            g._exitBlockedHint = true;
+            setTimeout(() => { g._exitBlockedHint = false; }, 2000);
+          }
+        } else {
+          clearRoom(g, callbacks);
+        }
       }
     } else if (objType === "survive") {
       const obj = g.objective;

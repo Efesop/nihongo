@@ -175,22 +175,24 @@ export const ROOMS = [
   },
 
   // ── Room 4: "集中 Bullet Time" — learn SLOW-MO / FOCUS ──
-  // The final test — a shuriken gauntlet. Launchers mounted on wooden frames
-  // fire across the practice corridor. Must activate slow-mo to see and dodge
-  // the projectiles. Dummy at the far end as the final target.
-  // This is sensei's most dangerous training exercise.
+  // Sensei throws shurikens from the far end — his final test.
+  // Must use slow-mo to see and dodge. Dummy at the end to kill.
   {
     title: { jp: "集中", en: "Bullet Time" },
     theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 2000 },
-      // Small cover platforms to duck behind between launcher zones
+      // Cover ledges between shuriken zones
       { x: 450, y: -50, w: 80 },
       { x: 800, y: -50, w: 80 },
       { x: 1100, y: -50, w: 80 },
     ],
     enemies: [
       { type: "dummy", x: 1700, y: 0, passive: true },
+    ],
+    npcs: [
+      // Sensei at the far end — throws shurikens at the player as training
+      { charKey: "sensei", x: 1850, facing: -1, stayForever: true },
     ],
     shadows: [],
     playerStart: 80,
@@ -206,10 +208,10 @@ export const ROOMS = [
       { type: "crate", x: 1500, y: 0, w: 35, h: 40, hp: 1 },
     ],
     hazards: [
-      // Shuriken launchers mounted on frames — fire across the corridor
-      { type: "shuriken_launcher", x: 600, y: -40, direction: -1, interval: 1200, speed: 350 },
-      { type: "shuriken_launcher", x: 900, y: -60, direction: -1, interval: 1000, speed: 400 },
-      { type: "shuriken_launcher", x: 1200, y: -30, direction: -1, interval: 900, speed: 380 },
+      // Sensei throws shurikens from the far end at different heights/speeds
+      { type: "shuriken_launcher", x: 1800, y: -30, direction: -1, interval: 1400, speed: 320 },
+      { type: "shuriken_launcher", x: 1800, y: -55, direction: -1, interval: 1100, speed: 370 },
+      { type: "shuriken_launcher", x: 1800, y: -80, direction: -1, interval: 900, speed: 350 },
     ],
     tutorials: [
       { text: "Hold K / X / Shift for slow-motion!", trigger: "shurikens" },

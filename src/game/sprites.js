@@ -82,9 +82,10 @@ const ZONE_SPRITES = {
     ps("ninja_kb_seated", "/images/ninja/ninja-knockback-seated.png"),
     // Story characters for dojo scenes
     gs("story_sensei_idle"), gs("story_sensei_serious"), gs("story_sensei_amused"),
-    gs("story_sensei_angry"),
+    gs("story_sensei_angry"), gs("story_sensei_throw"), gs("story_sensei_tea"),
     gs("story_sensei_walk1"), gs("story_sensei_walk2"),
     gs("story_player_idle"), gs("story_player_surprised"), gs("story_player_determined"),
+    gs("story_player_tea"),
     // Portraits
     gs("portrait_sensei"), gs("portrait_sensei_v2"), gs("portrait_player"),
   ],
