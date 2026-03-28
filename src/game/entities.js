@@ -99,6 +99,7 @@ export function makeEnemy(type, x, platformY, opts = {}) {
     dazed: 0,
     _hitThisSlash: false,
     passive: opts.passive || false, // tutorial: doesn't attack until player is close
+    shielded: opts.shielded || false, // blocks normal slash, only dash-slash works
     windupTimer: 0, // telegraph before attacking
     // ── Stealth detection ──
     detection: "unaware",  // "unaware" → "suspicious" → "alert"

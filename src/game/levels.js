@@ -34,8 +34,7 @@ export const ROOMS = [
   // ════════════════════════════════════════════════════
 
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
-  // Sensei waits in the dojo. Walk up to him → dialogue triggers.
-  // After dialogue, slash the training post to clear the room.
+  // Sensei waits in the dojo. Walk up → dialogue. Slash crate to reach exit.
   {
     title: { jp: "修行", en: "Training" },
     theme: "dojo",
@@ -51,26 +50,33 @@ export const ROOMS = [
     deco: [{ type: "lantern", x: 400 }, { type: "scroll", x: 200 }, { type: "weapon_rack", x: 900 }],
     breakables: [
       { type: "bamboo", x: 900, y: 0, w: 40, h: 60, hp: 3 },
+      // Crate blocks the exit — MUST slash to pass
+      { type: "crate", x: 1060, y: 0, w: 35, h: 40, hp: 1 },
     ],
     objective: { type: "parkour", time: 120, exitX: 1100 },
     tutorials: [
       { text: "← → to move    (A/D)", trigger: "start" },
       { text: "Walk to Sensei to talk", trigger: "start" },
+      { text: "J or Z to slash!", trigger: "nearEnemy" },
     ],
   },
 
   // ── Room 1: "跳躍 Take Flight" — learn JUMP ──
+  // Wider gaps — MUST jump to reach dummies on elevated platforms.
   {
     title: { jp: "跳躍", en: "Take Flight" },
     theme: "dojo",
     platforms: [
-      { x: 0, y: 0, w: 500 },
-      { x: 600, y: -60, w: 250 },
+      { x: 0, y: 0, w: 400 },
+      // Gap — must jump
+      { x: 550, y: -60, w: 250 },
+      // Bigger gap
       { x: 950, y: -120, w: 200 },
-      { x: 1200, y: 0, w: 500 },
+      // Final platform
+      { x: 1300, y: 0, w: 400 },
     ],
     enemies: [
-      { type: "dummy", x: 700, y: -60, passive: true },
+      { type: "dummy", x: 650, y: -60, passive: true },
       { type: "dummy", x: 1050, y: -120, passive: true },
     ],
     shadows: [],
@@ -82,6 +88,7 @@ export const ROOMS = [
   },
 
   // ── Room 2: "閃光 Phase Through" — learn DASH + DASH-SLASH ──
+  // Shielded dummy blocks normal slashes. MUST use dash+slash to kill.
   {
     title: { jp: "閃光", en: "Phase Through" },
     theme: "dojo",
@@ -89,28 +96,30 @@ export const ROOMS = [
       { x: 0, y: 0, w: 1400 },
     ],
     enemies: [
-      { type: "dummy", x: 700, y: 0, passive: true },
+      // Shielded dummy — deflects normal slash, only dash-slash works
+      { type: "dummy", x: 700, y: 0, passive: true, shielded: true },
     ],
     shadows: [],
     playerStart: 80,
     deco: [{ type: "torii", x: 400 }],
     tutorials: [
       { text: "L or C to dash forward", trigger: "start" },
-      { text: "Slash DURING dash to phase through!", trigger: "nearEnemy" },
+      { text: "Slash DURING dash to break its guard!", trigger: "nearEnemy" },
     ],
   },
 
   // ── Room 3: "壁走 Wall Runner" — learn WALL JUMP ──
+  // Dummy is on top — ONLY reachable by wall jumping up the shaft.
   {
     title: { jp: "壁走", en: "Wall Runner" },
     theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 500 },
       { x: 400, y: -70, w: 160 },
-      // Wall shaft
+      // Wall shaft — must wall jump between these
       { x: 500, y: -350, w: 35, h: 230, wall: true },
       { x: 635, y: -350, w: 35, h: 230, wall: true },
-      // Top exit
+      // Top platforms
       { x: 480, y: -360, w: 230 },
       { x: 720, y: -360, w: 400 },
     ],
@@ -126,26 +135,29 @@ export const ROOMS = [
   },
 
   // ── Room 4: "集中 Bullet Time" — learn SLOW-MO / FOCUS ──
+  // Shuriken gauntlet — projectiles too fast to dodge without slow-mo.
   {
     title: { jp: "集中", en: "Bullet Time" },
     theme: "dojo",
     platforms: [
       { x: 0, y: 0, w: 2000 },
-      { x: 500, y: -100, w: 160 },
-      { x: 900, y: -110, w: 160 },
-      { x: 1300, y: -100, w: 160 },
     ],
     enemies: [
-      { type: "dummy", x: 580, y: -100, passive: true },
-      { type: "dummy", x: 980, y: -110, passive: true },
-      { type: "dummy", x: 1380, y: -100, passive: true },
+      // Dummy at the end — must pass through gauntlet to reach
+      { type: "dummy", x: 1700, y: 0, passive: true },
     ],
     shadows: [],
     playerStart: 80,
-    deco: [{ type: "torii", x: 700 }],
+    deco: [{ type: "torii", x: 300 }],
+    hazards: [
+      // Shuriken launchers — fire projectiles from the walls
+      { type: "shuriken_launcher", x: 600, y: -40, direction: -1, interval: 1200, speed: 350 },
+      { type: "shuriken_launcher", x: 900, y: -60, direction: -1, interval: 1000, speed: 400 },
+      { type: "shuriken_launcher", x: 1200, y: -30, direction: -1, interval: 900, speed: 380 },
+    ],
     tutorials: [
       { text: "Hold K / X / Shift for slow-motion!", trigger: "shurikens" },
-      { text: "Kills in slow-mo = 1.5x score!", trigger: "nearEnemy" },
+      { text: "Slow time to dodge the shurikens!", trigger: "start" },
     ],
   },
 

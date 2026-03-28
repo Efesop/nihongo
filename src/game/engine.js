@@ -44,7 +44,7 @@ export function loadRoom(g, roomIndex) {
   // Set ambient theme (no rain in dojo)
   setAmbientTheme(theme === "dojo" ? "dojo" : (roomIndex >= 15 ? "temple" : "forest"));
   g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }) }));
-  g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive }));
+  g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive, shielded: e.shielded }));
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
   // NPCs — friendly characters for in-world story encounters
@@ -874,6 +874,22 @@ export function update(g, callbacks) {
             Math.abs((p.y + TILE * SCALE) - h.y) < 10) {
           killPlayer(g, callbacks);
         }
+      } else if (h.type === "shuriken_launcher") {
+        // Periodically fires shurikens — forces slow-mo to dodge
+        h.timer += rawDt * 1000;
+        const interval = h.interval || 1500;
+        if (h.timer >= interval) {
+          h.timer -= interval;
+          const spd = h.speed || 300;
+          const dir = h.direction || -1;
+          g.projectiles.push({
+            x: h.x, y: h.y,
+            vx: spd * dir,
+            timer: 4000,
+            rotation: 0,
+          });
+          playSound("shuriken", { volume: 0.3 });
+        }
       }
     }
   }
@@ -1427,9 +1443,10 @@ export function update(g, callbacks) {
         // Dash-slash bypasses all blocks (counts as backstab)
         const isDashSlash = p.dashSlashing;
 
-        if ((e.type === "samurai" || (e.type === "brute" && e.state !== "exhausted")) && !isDashSlash) {
+        if ((e.type === "samurai" || (e.type === "brute" && e.state !== "exhausted") || e.shielded) && !isDashSlash) {
           // Samurai/Brute: blocks frontal attacks. Must backstab or dash-slash.
-          const attackFromBehind = (p.x < e.x && e.facing > 0) || (p.x > e.x && e.facing < 0);
+          // Shielded enemies block ALL normal attacks (no backstab) — forces dash-slash
+          const attackFromBehind = !e.shielded && ((p.x < e.x && e.facing > 0) || (p.x > e.x && e.facing < 0));
           if (attackFromBehind) {
             // Backstab — instant kill regardless of HP
             playSound("backstab", { volume: 0.8 });
@@ -1459,7 +1476,7 @@ export function update(g, callbacks) {
             }
             g.floatingTexts.push({
               x: (p.x + e.x) / 2, y: Math.min(p.y, e.y) - 15,
-              text: "BLOCKED!", color: "#88bbff", life: 800, maxLife: 800,
+              text: e.shielded ? "DASH + SLASH!" : "BLOCKED!", color: e.shielded ? "#ffcc44" : "#88bbff", life: 800, maxLife: 800,
             });
           }
         } else {
