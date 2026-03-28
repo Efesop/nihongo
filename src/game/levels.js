@@ -34,63 +34,50 @@ export const ROOMS = [
   // ════════════════════════════════════════════════════
 
   // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
-  // Multi-room dojo interior: entry hall → main hall (through door) → training area
-  // Ceilings create enclosed rooms. Doors connect them. Sensei waits in the main hall.
+  // Open dojo training hall. Doors connect sections. No ceilings (bg already shows interior).
+  // Clean, not cluttered. Sensei waits near the middle.
   {
     title: { jp: "修行", en: "Training" },
     theme: "dojo",
     platforms: [
-      // ── Section 1: Entry hall (enclosed, small) ──
-      { x: 0, y: 0, w: 400 },                         // floor
-      { x: 0, y: -110, w: 400, ceiling: true },        // ceiling
-      { x: 0, y: -110, w: 10, h: 110, wall: true },   // left wall
-      // gap at x:400 = door to main hall
-
-      // ── Section 2: Main training hall (larger, taller ceiling) ──
-      { x: 400, y: 0, w: 800 },                        // floor
-      { x: 400, y: -140, w: 800, ceiling: true },      // higher ceiling
-      // walls at door openings only
-
-      // ── Section 3: Exit corridor ──
-      { x: 1200, y: 0, w: 400 },                       // floor
-      { x: 1200, y: -110, w: 400, ceiling: true },     // ceiling
-      { x: 1590, y: -110, w: 10, h: 110, wall: true }, // right wall
+      // One continuous dojo floor with door transitions between sections
+      { x: 0, y: 0, w: 500 },         // entry area
+      { x: 550, y: 0, w: 600 },       // main training hall
+      { x: 1200, y: 0, w: 400 },      // exit area
     ],
     doors: [
-      // Door pair: entry hall → main hall
-      { id: "entry_to_hall", x: 380, pairId: "hall_from_entry", exitDir: 1 },
-      { id: "hall_from_entry", x: 420, pairId: "entry_to_hall", exitDir: 1 },
-      // Door pair: main hall → exit corridor
-      { id: "hall_to_exit", x: 1180, pairId: "exit_from_hall", exitDir: 1 },
-      { id: "exit_from_hall", x: 1220, pairId: "hall_to_exit", exitDir: -1 },
+      // Door pair: entry → main hall
+      { id: "entry_out", x: 480, pairId: "hall_in", exitDir: 1 },
+      { id: "hall_in", x: 570, pairId: "entry_out", exitDir: 1 },
+      // Door pair: main hall → exit
+      { id: "hall_out", x: 1130, pairId: "exit_in", exitDir: 1 },
+      { id: "exit_in", x: 1220, pairId: "hall_out", exitDir: 1 },
     ],
     enemies: [],
     npcs: [
-      { charKey: "sensei", x: 700, facing: -1, dialogueKey: 0, stayForever: true, triggerRange: 100 },
+      { charKey: "sensei", x: 750, facing: -1, dialogueKey: 0, stayForever: true, triggerRange: 100 },
     ],
     shadows: [],
     playerStart: 80,
     deco: [
-      // Entry hall
-      { type: "lantern", x: 100 }, { type: "scroll", x: 200 },
-      { type: "cushion", x: 150 }, { type: "incense", x: 300 },
-      // Main hall
-      { type: "lantern", x: 500 }, { type: "lantern", x: 750 }, { type: "lantern", x: 1000 },
-      { type: "weapon_rack", x: 550 }, { type: "weapon_rack", x: 950 },
-      { type: "scroll", x: 850 }, { type: "scroll", x: 650 },
-      { type: "beam", x: 500 }, { type: "beam", x: 700 }, { type: "beam", x: 900 }, { type: "beam", x: 1100 },
-      { type: "cushion", x: 660 }, { type: "cushion", x: 720 },
-      // Exit corridor
-      { type: "lantern", x: 1300 }, { type: "lantern", x: 1500 },
-      { type: "scroll", x: 1400 },
+      // Entry area — sparse, welcoming
+      { type: "lantern", x: 100 }, { type: "lantern", x: 400 },
+      { type: "scroll", x: 250 },
+      // Main hall — training space
+      { type: "lantern", x: 650 }, { type: "lantern", x: 900 }, { type: "lantern", x: 1050 },
+      { type: "weapon_rack", x: 600 },
+      { type: "scroll", x: 800 },
+      { type: "cushion", x: 710 }, { type: "cushion", x: 760 },
+      // Exit area
+      { type: "lantern", x: 1350 },
+      { type: "scroll", x: 1450 },
     ],
     breakables: [
       // Training targets in the main hall
-      { type: "bamboo", x: 800, y: 0, w: 40, h: 60, hp: 2 },
-      { type: "bamboo", x: 900, y: 0, w: 40, h: 60, hp: 2 },
-      { type: "pot", x: 1100, y: 0, w: 25, h: 30, hp: 1 },
-      // Crate blocks exit corridor — MUST slash
-      { type: "crate", x: 1460, y: 0, w: 35, h: 40, hp: 1 },
+      { type: "bamboo", x: 850, y: 0, w: 40, h: 60, hp: 2 },
+      { type: "bamboo", x: 950, y: 0, w: 40, h: 60, hp: 2 },
+      // Crate blocks exit — MUST slash
+      { type: "crate", x: 1480, y: 0, w: 35, h: 40, hp: 1 },
     ],
     objective: { type: "parkour", time: 120, exitX: 1550 },
     tutorials: [
@@ -250,10 +237,9 @@ export const ROOMS = [
       { type: "crate", x: 1500, y: 0, w: 35, h: 40, hp: 1 },
     ],
     hazards: [
-      // Sensei throws shurikens from the far end at different heights/speeds
-      { type: "shuriken_launcher", x: 1800, y: -30, direction: -1, interval: 1400, speed: 320 },
-      { type: "shuriken_launcher", x: 1800, y: -55, direction: -1, interval: 1100, speed: 370 },
-      { type: "shuriken_launcher", x: 1800, y: -80, direction: -1, interval: 900, speed: 350 },
+      // Sensei throws shurikens — just 2 launchers, slower, more time to react
+      { type: "shuriken_launcher", x: 1800, y: -35, direction: -1, interval: 2000, speed: 250 },
+      { type: "shuriken_launcher", x: 1800, y: -65, direction: -1, interval: 2500, speed: 280 },
     ],
     tutorials: [
       { text: "Hold K / X / Shift for slow-motion!", trigger: "shurikens" },

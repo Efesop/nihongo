@@ -760,7 +760,7 @@ export function update(g, callbacks) {
       if (!wasGrounded && p.vy > 300) {
         spawnDust(g, p.x, p.y + TILE * SCALE);
         playSound("land", { volume: Math.min(1, p.vy / 600) });
-        if (p.vy > 500) g.camera.shakeTimer = 50;
+        // Landing shake removed — caused bg flicker. Dust + sound is enough.
         p.noiseLevel = Math.min(1, p.noiseLevel + 0.5); // landing is noisy
       }
       p.vy = 0;
@@ -1032,9 +1032,14 @@ export function update(g, callbacks) {
         }
       } else if (dt2.phase === "black") {
         p.vx = 0;
+        p.vy = 0;
         if (dt2.timer > 0.3) {
-          // Teleport to paired door
+          // Teleport to paired door position
           p.x = dt2.toDoor.x + (dt2.toDoor.exitDir || 1) * 30;
+          // Match Y to target door's ground level
+          if (dt2.toDoor.y) p.y = dt2.toDoor.y - TILE * SCALE;
+          p.vy = 0;
+          p.grounded = true;
           dt2.phase = "exiting";
           dt2.timer = 0;
         }
@@ -1046,13 +1051,16 @@ export function update(g, callbacks) {
           g.doorTransition = null;
         }
       }
-    } else if (g.input.upPressed && g.roomState === "playing") {
-      // Check if player is at a door and pressing UP
+    } else if (g.input.jumpPressed && g.roomState === "playing" && p.grounded && !p.dead && Math.abs(p.vx) < 20) {
+      // Check if player is at a door and pressing UP while standing still
       for (const door of g.doors) {
-        if (Math.abs(p.x - door.x) < 30 && door.pairId) {
+        if (Math.abs(p.x - door.x) < 25 && door.pairId) {
           const target = g.doors.find(d => d.id === door.pairId);
           if (target) {
             g.doorTransition = { phase: "entering", timer: 0, fromDoor: door, toDoor: target };
+            g.input.jumpPressed = false; // suppress jump
+            g.input.up = false;
+            p.vy = 0; // cancel any jump velocity
             playSound("footstep");
             break;
           }
@@ -1060,11 +1068,10 @@ export function update(g, callbacks) {
       }
     }
   }
-  // Block normal input during door transition
+  // Block normal input during door transition / cancel on death
   if (g.doorTransition) {
-    g.input.slashPressed = false;
-    g.input.dashPressed = false;
-    g.input.jumpPressed = false;
+    if (p.dead) { g.doorTransition = null; }
+    else { g.input.slashPressed = false; g.input.dashPressed = false; g.input.jumpPressed = false; }
   }
 
   // ── Breakable objects — slash, dash, or ground-pound to destroy ──
@@ -1093,8 +1100,8 @@ export function update(g, callbacks) {
         br.hp--;
         if (br.hp <= 0) {
           br.broken = true;
-          g.camera.shakeTimer = 40; // subtle shake — not jarring for small breakables
-          g.hitStop = Math.max(g.hitStop, 20); // brief hitstop for impact feel
+          // No camera shake for breakables — causes bg flicker. Hitstop only.
+          g.hitStop = Math.max(g.hitStop, 15);
           const hitDir = dashHit ? p.facing : (p.x < bx + bw / 2 ? 1 : -1);
           g.score = (g.score || 0) + (br.type === "lantern" ? 50 : 25);
           g.floatingTexts.push({
