@@ -224,258 +224,323 @@ export const ROOMS = [
   // The player has been forced out. They're being hunted.
   // ════════════════════════════════════════════════════
 
-  // ── Room 5: "逃走 Flight" — First forest room after escaping the dojo ──
-  // Edge of the forest — moonlit path, scattered debris from the dojo attack.
-  // Introduces breakable debris kills: crates/lanterns near enemies.
-  // The player just ran from the burning dojo. Pursuers are close behind.
+  // ── Room 5: "逃走 Flight" — Desperate sprint through the forest edge ──
+  // Just escaped the burning dojo. Run through moonlit forest path.
+  // Section 1: Forest edge with basic pursuers + debris kills
+  // Section 2: Drops into a gully, more enemies, must fight uphill
+  // Section 3: Open dash to escape
   {
     title: { jp: "逃走", en: "Flight" },
     theme: "forest",
     platforms: [
-      // Forest floor — uneven terrain with a small rise
-      { x: 0, y: 0, w: 800 },
-      { x: 800, y: -15, w: 600 },
-      { x: 1400, y: 0, w: 600 },
+      // Section 1: Forest edge path
+      { x: 0, y: 0, w: 900 },
+      // Drop into gully
+      { x: 900, y: 40, w: 200 },
+      // Section 2: Lower gully path — uphill fight
+      { x: 1100, y: 20, w: 500 },
+      { x: 1600, y: 0, w: 400 },
+      // Elevated root/rock to jump over
+      { x: 1850, y: -60, w: 150 },
+      // Section 3: Final sprint
+      { x: 2000, y: 0, w: 800 },
     ],
     enemies: [
-      { type: "oni", x: 500, y: 0 },
-      { type: "oni", x: 1050, y: -15 },
-      { type: "oni", x: 1600, y: 0 },
+      // Section 1: First pursuers
+      { type: "oni", x: 400, y: 0 },
+      { type: "oni", x: 700, y: 0 },
+      // Section 2: Ambush in the gully
+      { type: "oni", x: 1200, y: 20 },
+      { type: "ninja", x: 1450, y: 20 },
+      { type: "oni", x: 1700, y: 0 },
+      // Section 3: Final pursuers
+      { type: "oni", x: 2300, y: 0 },
+      { type: "ninja", x: 2550, y: 0 },
     ],
     shadows: [],
     playerStart: 80,
     deco: [
-      { type: "lantern", x: 150 }, { type: "lantern", x: 700 },
-      { type: "lantern", x: 1200 }, { type: "lantern", x: 1800 },
-      { type: "torii", x: 400 },
+      { type: "lantern", x: 200 }, { type: "lantern", x: 600 },
+      { type: "lantern", x: 1300 }, { type: "lantern", x: 1800 },
+      { type: "lantern", x: 2400 }, { type: "torii", x: 1000 },
     ],
     breakables: [
-      { type: "crate", x: 460, y: 0, w: 40, h: 40 },
-      { type: "lantern", x: 1020, y: -15, w: 28, h: 36 },
-      { type: "crate", x: 1560, y: 0, w: 40, h: 40 },
-      { type: "pot", x: 1850, y: 0, w: 25, h: 30 },
+      { type: "crate", x: 360, y: 0, w: 40, h: 40 },
+      { type: "lantern", x: 670, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1160, y: 20, w: 40, h: 40 },
+      { type: "lantern", x: 1660, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 2200, y: 0, w: 25, h: 30 },
+      { type: "bamboo", x: 2700, y: 0, w: 40, h: 60 },
     ],
   },
 
-  // ── Room 6: "天空 Sky Path" — Forest canopy, jumping between thick branches ──
-  // Ancient trees with massive branches at different heights. Moonlight
-  // filtering through the canopy. Enemies patrol the branches.
+  // ── Room 6: "天空 Sky Path" — Multi-layered canopy combat ──
+  // Three vertical layers: forest floor, mid-branches, high canopy.
+  // Enemies on every level. Must clear each layer while navigating up.
+  // Ninja snipers on high branches throw shurikens down.
   {
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
     platforms: [
-      // Forest floor
-      { x: 0, y: 0, w: 500 },
-      // Thick tree branches at various heights
-      { x: 400, y: -70, w: 280 },
-      { x: 750, y: -140, w: 220 },
-      { x: 1000, y: -70, w: 280 },
-      // Ground clears again
-      { x: 1350, y: 0, w: 500 },
-      // High branch lookout
-      { x: 1650, y: -90, w: 200 },
+      // Ground level — forest floor
+      { x: 0, y: 0, w: 700 },
+      { x: 900, y: 0, w: 400 },
+      { x: 1500, y: 0, w: 600 },
+      // Mid-branches (thick tree limbs)
+      { x: 350, y: -80, w: 300 },
+      { x: 800, y: -100, w: 250 },
+      { x: 1200, y: -80, w: 280 },
+      { x: 1700, y: -90, w: 250 },
+      // High canopy
+      { x: 500, y: -180, w: 200 },
+      { x: 900, y: -200, w: 180 },
+      { x: 1350, y: -190, w: 220 },
+      // Final stretch back to ground
+      { x: 2100, y: 0, w: 400 },
     ],
     enemies: [
-      { type: "oni", x: 350, y: 0 },
-      { type: "oni", x: 530, y: -70 },
-      { type: "ninja", x: 850, y: -140 },
-      { type: "oni", x: 1100, y: -70 },
-      { type: "oni", x: 1550, y: 0 },
+      // Ground patrol
+      { type: "oni", x: 300, y: 0 },
+      { type: "oni", x: 1000, y: 0 },
+      { type: "oni", x: 1700, y: 0 },
+      // Mid-branch fighters
+      { type: "oni", x: 500, y: -80 },
+      { type: "ninja", x: 1300, y: -80 },
+      // High canopy — ninja snipers
+      { type: "ninja", x: 600, y: -180 },
+      { type: "ninja", x: 1000, y: -200 },
+      // Final guard
+      { type: "samurai", x: 2300, y: 0 },
     ],
     shadows: [],
     playerStart: 60,
     deco: [
-      { type: "lantern", x: 200 }, { type: "lantern", x: 650 },
-      { type: "lantern", x: 1100 }, { type: "lantern", x: 1700 },
-      { type: "torii", x: 1400 },
+      { type: "lantern", x: 150 }, { type: "lantern", x: 550 },
+      { type: "lantern", x: 1000 }, { type: "lantern", x: 1500 },
+      { type: "lantern", x: 2000 }, { type: "torii", x: 1600 },
     ],
     breakables: [
-      { type: "lantern", x: 500, y: -70, w: 28, h: 36 },
-      { type: "crate", x: 820, y: -140, w: 35, h: 35 },
-      { type: "lantern", x: 1480, y: 0, w: 28, h: 36 },
-      { type: "pot", x: 1060, y: -70, w: 25, h: 30 },
+      { type: "lantern", x: 450, y: -80, w: 28, h: 36 },
+      { type: "crate", x: 870, y: -100, w: 35, h: 35 },
+      { type: "pot", x: 1250, y: -80, w: 25, h: 30 },
+      { type: "lantern", x: 1770, y: -90, w: 28, h: 36 },
+      { type: "bamboo", x: 2150, y: 0, w: 40, h: 60 },
     ],
   },
 
-  // ── Room 7: "登城 Ascent" — Cliff face climb, rock walls and ledges ──
-  // A natural cliff with rock outcroppings. Must wall-jump up a narrow
-  // crevice to reach the upper forest path where enemies wait.
+  // ── Room 7: "登城 Ascent" — Multi-stage cliff climb ──
+  // Two wall-jump shafts separated by combat areas.
+  // Section 1: Ground clearing → first shaft climb
+  // Section 2: Mid-cliff combat ledge
+  // Section 3: Second shaft → summit battle with samurai
   {
     title: { jp: "登城", en: "Ascent" },
     theme: "forest",
     platforms: [
-      // Forest floor at base of cliff
-      { x: 0, y: 0, w: 550 },
-      // Rock ledges leading to the wall shaft
-      { x: 400, y: -70, w: 160 },
-      { x: 520, y: -140, w: 160 },
-      // Rock wall shaft — wall jump between cliff faces
-      { x: 540, y: -380, w: 35, h: 170, wall: true },
-      { x: 675, y: -380, w: 35, h: 170, wall: true },
-      // Upper forest path
-      { x: 520, y: -390, w: 230 },
-      { x: 760, y: -390, w: 500 },
-      { x: 1310, y: -390, w: 300 },
-      // Lower clearing
-      { x: 760, y: 0, w: 300 },
+      // Ground level
+      { x: 0, y: 0, w: 600 },
+      { x: 600, y: 0, w: 200 },
+      // First shaft walls
+      { x: 450, y: -70, w: 160 },
+      { x: 520, y: -350, w: 35, h: 220, wall: true },
+      { x: 655, y: -350, w: 35, h: 220, wall: true },
+      // Mid-cliff combat ledge
+      { x: 500, y: -360, w: 300 },
+      { x: 820, y: -360, w: 400 },
+      // Second shaft walls (higher)
+      { x: 1100, y: -620, w: 35, h: 200, wall: true },
+      { x: 1235, y: -620, w: 35, h: 200, wall: true },
+      // Summit
+      { x: 1080, y: -630, w: 230 },
+      { x: 1320, y: -630, w: 500 },
     ],
     enemies: [
+      // Ground guards
       { type: "oni", x: 300, y: 0 },
-      { type: "ninja", x: 900, y: -390 },
-      { type: "oni", x: 1050, y: -390 },
-      { type: "oni", x: 1200, y: -390 },
-      { type: "samurai", x: 1450, y: -390 },
+      { type: "oni", x: 650, y: 0 },
+      // Mid-cliff — ninja ambush
+      { type: "ninja", x: 700, y: -360 },
+      { type: "oni", x: 900, y: -360 },
+      { type: "ninja", x: 1050, y: -360 },
+      // Summit — elite guards
+      { type: "samurai", x: 1500, y: -630 },
+      { type: "ninja", x: 1650, y: -630 },
+      { type: "samurai", x: 1750, y: -630 },
     ],
     shadows: [],
     playerStart: 60,
     deco: [
-      { type: "lantern", x: 200 }, { type: "lantern", x: 620 },
-      { type: "lantern", x: 900 }, { type: "lantern", x: 1400 },
+      { type: "lantern", x: 200 }, { type: "lantern", x: 580 },
+      { type: "lantern", x: 750 }, { type: "lantern", x: 1150 },
+      { type: "lantern", x: 1500 }, { type: "lantern", x: 1700 },
     ],
     breakables: [
       { type: "bamboo", x: 200, y: 0, w: 50, h: 60 },
-      { type: "bamboo", x: 350, y: 0, w: 50, h: 60 },
-      { type: "crate", x: 850, y: -390, w: 40, h: 40 },
-      { type: "pot", x: 1150, y: -390, w: 25, h: 30 },
+      { type: "crate", x: 650, y: -360, w: 40, h: 40 },
+      { type: "pot", x: 1000, y: -360, w: 25, h: 30 },
+      { type: "lantern", x: 1400, y: -630, w: 28, h: 36 },
     ],
   },
 
-  // ── Room 8: "屋根走 Rooftop Run" — Sprint across forest canopy, timed ──
-  // Branches and wooden platforms between trees. Must reach the far end
-  // before time runs out. Spikes on the ground below — don't fall.
+  // ── Room 8: "屋根走 Rooftop Run" — Extended canopy sprint ──
+  // Longer parkour course through the treetops. 22 seconds.
+  // More platforms, tighter jumps, enemies that force split-second decisions.
+  // Spike pits below — falling is death.
   {
     title: { jp: "屋根走", en: "Rooftop Run" },
     theme: "forest",
-    objective: { type: "parkour", time: 18, exitX: 2540 },
+    objective: { type: "parkour", time: 22, exitX: 3200 },
     platforms: [
-      // Starting tree
       { x: 0, y: 0, w: 300 },
-      // Branch hops — ascending through the canopy
       { x: 380, y: -30, w: 200 },
-      { x: 660, y: -60, w: 220 },
-      { x: 960, y: -30, w: 200 },
-      // Wooden bridge between trees
-      { x: 1220, y: 0, w: 280 },
-      // More branches, higher
-      { x: 1560, y: -50, w: 180 },
-      { x: 1820, y: -100, w: 200 },
-      { x: 2080, y: -50, w: 200 },
-      // Landing tree
-      { x: 2350, y: 0, w: 300 },
+      { x: 660, y: -70, w: 180 },
+      { x: 920, y: -40, w: 200 },
+      { x: 1200, y: -80, w: 160 },
+      { x: 1440, y: -40, w: 200 },
+      { x: 1720, y: 0, w: 250 },
+      { x: 2040, y: -60, w: 180 },
+      { x: 2300, y: -100, w: 200 },
+      { x: 2580, y: -50, w: 180 },
+      { x: 2840, y: 0, w: 200 },
+      { x: 3100, y: 0, w: 250 },
     ],
     enemies: [
       { type: "oni", x: 480, y: -30 },
-      { type: "oni", x: 1060, y: -30 },
-      { type: "ninja", x: 1920, y: -100 },
+      { type: "ninja", x: 1020, y: -40 },
+      { type: "oni", x: 1540, y: -40 },
+      { type: "ninja", x: 2140, y: -60 },
+      { type: "oni", x: 2680, y: -50 },
     ],
     shadows: [],
     playerStart: 50,
     deco: [
-      { type: "lantern", x: 150 }, { type: "lantern", x: 750 },
-      { type: "lantern", x: 1350 }, { type: "lantern", x: 2000 },
-      { type: "torii", x: 1450 },
+      { type: "lantern", x: 150 }, { type: "lantern", x: 800 },
+      { type: "lantern", x: 1500 }, { type: "lantern", x: 2200 },
+      { type: "lantern", x: 2900 }, { type: "torii", x: 1800 },
     ],
     hazards: [
       { type: "spikes", x: 280, y: 0, w: 80 },
-      { type: "spikes", x: 1130, y: 0, w: 70 },
+      { type: "spikes", x: 1100, y: 0, w: 80 },
+      { type: "spikes", x: 1920, y: 0, w: 100 },
+      { type: "spikes", x: 2720, y: 0, w: 80 },
     ],
     breakables: [
       { type: "pot", x: 460, y: -30, w: 25, h: 30 },
-      { type: "lantern", x: 1020, y: -30, w: 28, h: 36 },
-      { type: "bamboo", x: 2400, y: 0, w: 40, h: 60 },
+      { type: "lantern", x: 1400, y: -40, w: 28, h: 36 },
+      { type: "crate", x: 2260, y: -100, w: 35, h: 35 },
     ],
   },
 
-  // ── Room 9: "塔 The Tower" — Abandoned forest watchtower ──
-  // A crumbling wooden watchtower deep in the forest. Climb the interior
-  // walls, fight through guards on each level. Falling platforms make
-  // the upper sections treacherous.
+  // ── Room 9: "塔 The Tower" — Three-story abandoned watchtower ──
+  // Massive vertical level. Three floors connected by wall-jump shafts.
+  // Each floor has a combat encounter. Falling platforms on upper floors.
+  // The biggest, hardest room in Act 1.
   {
     title: { jp: "塔", en: "The Tower" },
     theme: "forest",
     platforms: [
-      // Tower base
-      { x: 0, y: 0, w: 450 },
-      // First ledge
-      { x: 380, y: -80, w: 160 },
-      // Tower walls — wall jump shaft
-      { x: 420, y: -420, w: 35, h: 280, wall: true },
-      { x: 555, y: -420, w: 35, h: 280, wall: true },
-      // Mid-tower platform
-      { x: 455, y: -250, w: 120 },
-      // Top of tower
-      { x: 400, y: -430, w: 230 },
-      // Upper walkway extending from tower
-      { x: 650, y: -380, w: 500 },
-      // Far platform — lookout post
-      { x: 1200, y: -320, w: 300 },
+      // Ground floor
+      { x: 0, y: 0, w: 700 },
+      { x: 350, y: -80, w: 160 },
+      // First shaft (ground → floor 2)
+      { x: 420, y: -380, w: 35, h: 240, wall: true },
+      { x: 555, y: -380, w: 35, h: 240, wall: true },
+      { x: 455, y: -220, w: 120 },
+      // Floor 2 — combat area
+      { x: 380, y: -390, w: 280 },
+      { x: 680, y: -390, w: 500 },
+      { x: 1200, y: -350, w: 200 },
+      // Second shaft (floor 2 → floor 3)
+      { x: 1300, y: -620, w: 35, h: 180, wall: true },
+      { x: 1435, y: -620, w: 35, h: 180, wall: true },
+      // Floor 3 — rooftop
+      { x: 1280, y: -630, w: 230 },
+      { x: 1520, y: -630, w: 500 },
+      { x: 700, y: 0, w: 200 },
     ],
     enemies: [
+      // Ground floor
       { type: "oni", x: 250, y: 0 },
-      { type: "ninja", x: 490, y: -250 },
-      { type: "samurai", x: 520, y: -430 },
-      { type: "ninja", x: 850, y: -380 },
-      { type: "oni", x: 1050, y: -380 },
-      { type: "samurai", x: 1350, y: -320 },
+      { type: "oni", x: 500, y: 0 },
+      // Floor 2
+      { type: "ninja", x: 550, y: -390 },
+      { type: "oni", x: 800, y: -390 },
+      { type: "ninja", x: 1000, y: -390 },
+      { type: "samurai", x: 1280, y: -350 },
+      // Floor 3 — elite
+      { type: "samurai", x: 1600, y: -630 },
+      { type: "ninja", x: 1750, y: -630 },
+      { type: "samurai", x: 1900, y: -630 },
     ],
     shadows: [],
     playerStart: 60,
     deco: [
-      { type: "lantern", x: 150 }, { type: "lantern", x: 510 },
-      { type: "lantern", x: 800 }, { type: "lantern", x: 1300 },
-      { type: "weapon_rack", x: 700 },
+      { type: "lantern", x: 150 }, { type: "lantern", x: 500 },
+      { type: "lantern", x: 750 }, { type: "lantern", x: 1100 },
+      { type: "lantern", x: 1400 }, { type: "lantern", x: 1700 },
+      { type: "weapon_rack", x: 850 }, { type: "weapon_rack", x: 1600 },
     ],
     hazards: [
-      { type: "falling", x: 700, y: -380, w: 100 },
-      { type: "falling", x: 900, y: -380, w: 100 },
+      { type: "falling", x: 750, y: -390, w: 100 },
+      { type: "falling", x: 950, y: -390, w: 100 },
+      { type: "falling", x: 1600, y: -630, w: 100 },
     ],
     breakables: [
-      { type: "crate", x: 470, y: -250, w: 35, h: 35 },
-      { type: "lantern", x: 750, y: -380, w: 28, h: 36 },
-      { type: "pot", x: 1100, y: -380, w: 25, h: 30 },
+      { type: "crate", x: 450, y: -220, w: 35, h: 35 },
+      { type: "lantern", x: 700, y: -390, w: 28, h: 36 },
+      { type: "pot", x: 1050, y: -390, w: 25, h: 30 },
+      { type: "crate", x: 1550, y: -630, w: 40, h: 40 },
     ],
   },
 
-  // ── Room 10: "忍道 Ninja Gauntlet" — Forest shrine clearing, wave survival ──
-  // An ancient shrine clearing in the forest. Torii gates mark the sacred
-  // ground. Three waves of enemies attack. Fire jets guard the shrine.
-  // This is where Shadow first appears in the story.
+  // ── Room 10: "忍道 Ninja Gauntlet" — Sacred shrine clearing, wave survival ──
+  // Ancient forest shrine. Torii gates form a perimeter. Three waves of
+  // enemies attack from all sides. Fire jets guard the inner shrine.
+  // After clearing, Shadow appears for the first story encounter.
+  // Harder waves: more enemies, faster spawns, elite final wave.
   {
     title: { jp: "忍道", en: "Ninja Gauntlet" },
     theme: "forest",
     objective: {
       type: "survive",
       waves: [
-        [{ type: "ninja", x: 400, y: -120 }, { type: "oni", x: 700, y: 0 }, { type: "ninja", x: 1000, y: -130 }],
-        [{ type: "ninja", x: 500, y: -100 }, { type: "ninja", x: 900, y: -120 }, { type: "oni", x: 1200, y: 0 }, { type: "oni", x: 1500, y: 0 }],
-        [{ type: "ninja", x: 600, y: -130 }, { type: "ninja", x: 1100, y: -110 }, { type: "samurai", x: 800, y: 0 }, { type: "ninja", x: 1400, y: -120 }],
+        // Wave 1: scouts — ninjas from the trees
+        [{ type: "ninja", x: 400, y: -120 }, { type: "ninja", x: 800, y: 0 }, { type: "oni", x: 1200, y: 0 }, { type: "ninja", x: 1600, y: -130 }],
+        // Wave 2: assault — mixed force
+        [{ type: "oni", x: 300, y: 0 }, { type: "ninja", x: 600, y: -100 }, { type: "oni", x: 900, y: 0 }, { type: "ninja", x: 1200, y: -120 }, { type: "oni", x: 1500, y: 0 }, { type: "ninja", x: 1800, y: -110 }],
+        // Wave 3: elite hunters — samurai-led
+        [{ type: "samurai", x: 500, y: 0 }, { type: "ninja", x: 800, y: -130 }, { type: "samurai", x: 1100, y: 0 }, { type: "ninja", x: 1400, y: -110 }, { type: "samurai", x: 1700, y: 0 }],
       ],
     },
     platforms: [
-      // Shrine clearing — wide open ground
-      { x: 0, y: 0, w: 2500 },
-      // Elevated stone platforms (shrine steps/pillars)
-      { x: 300, y: -120, w: 160 },
-      { x: 700, y: -100, w: 160 },
-      { x: 1100, y: -130, w: 160 },
-      { x: 1500, y: -110, w: 160 },
-      { x: 1900, y: -120, w: 160 },
+      // Shrine clearing — wide arena
+      { x: 0, y: 0, w: 2800 },
+      // Stone shrine platforms at varying heights
+      { x: 350, y: -120, w: 180 },
+      { x: 750, y: -100, w: 180 },
+      { x: 1150, y: -140, w: 180 },
+      { x: 1550, y: -110, w: 180 },
+      { x: 1950, y: -130, w: 180 },
+      { x: 2350, y: -100, w: 180 },
     ],
     enemies: [
-      { type: "oni", x: 300, y: 0 },
+      // Initial ground patrol
+      { type: "oni", x: 400, y: 0 },
+      { type: "oni", x: 1200, y: 0 },
     ],
     shadows: [],
     playerStart: 50,
     deco: [
-      { type: "torii", x: 100 }, { type: "torii", x: 600 },
-      { type: "torii", x: 1200 }, { type: "torii", x: 1800 },
+      { type: "torii", x: 100 }, { type: "torii", x: 700 },
+      { type: "torii", x: 1300 }, { type: "torii", x: 1900 }, { type: "torii", x: 2500 },
       { type: "lantern", x: 400 }, { type: "lantern", x: 1000 },
       { type: "lantern", x: 1600 }, { type: "lantern", x: 2200 },
     ],
     hazards: [
       { type: "firejet", x: 600, y: 0, w: 30, h: 80, onTime: 1200, offTime: 2000, offset: 0 },
-      { type: "firejet", x: 1200, y: 0, w: 30, h: 80, onTime: 1200, offTime: 2000, offset: 1000 },
-      { type: "spikes", x: 1850, y: 0, w: 96 },
+      { type: "firejet", x: 1400, y: 0, w: 30, h: 80, onTime: 1200, offTime: 2000, offset: 1000 },
+      { type: "firejet", x: 2000, y: 0, w: 30, h: 80, onTime: 1200, offTime: 2000, offset: 500 },
+      { type: "spikes", x: 2100, y: 0, w: 96 },
     ],
     breakables: [
       { type: "lantern", x: 550, y: 0, w: 28, h: 36 },

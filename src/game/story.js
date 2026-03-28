@@ -542,16 +542,36 @@ export const ROOM_DIALOGUE = {
 // Used for short thoughts, reactions, and environmental storytelling.
 // ═══════════════════════════════════════════════════════
 export const ROOM_ENCOUNTERS = {
-  // Rooms 6-7: Player fleeing, processing what happened
+  // Room 5: First moments alone — shock, adrenaline
+  5: [
+    { triggerX: 200, speaker: "player", textJp: "止まるな。走れ。", text: "Don't stop. Run.", duration: 1500 },
+    { triggerX: 800, speaker: "player", textJp: "...先生、無事でいて。", text: "...Sensei, please be safe.", duration: 2000 },
+    { triggerX: 1400, speaker: "player", textJp: "後ろから来てる...！", text: "They're behind me...!", duration: 1500 },
+  ],
+  // Room 6: Processing what happened, getting deeper into forest
   6: [
     { triggerX: 200, speaker: "player", textJp: "道場が...先生が...", text: "The dojo... Sensei...", duration: 2000 },
-    { triggerX: 1000, speaker: "player", textJp: "追手だ。先生の言う通りだった。", text: "Pursuers. Sensei was right.", duration: 2000 },
+    { triggerX: 800, speaker: "player", textJp: "上に行くしかない。", text: "Only way is up.", duration: 1500 },
+    { triggerX: 1400, speaker: "player", textJp: "追手だ。先生の言う通りだった。", text: "Pursuers. Sensei was right.", duration: 2000 },
   ],
+  // Room 7: Pushing forward, using sensei's training
   7: [
     { triggerX: 200, speaker: "player", textJp: "壁を登れ。先生がそう教えた。", text: "Climb the walls. That's what Sensei taught me.", duration: 2500 },
+    { triggerX: 800, speaker: "player", textJp: "...訓練通りだ。", text: "...Just like training.", duration: 1500 },
   ],
+  // Room 8: The mark is reacting — urgency
   8: [
+    { triggerX: 400, speaker: "player", textJp: "速く。もっと速く。", text: "Faster. Faster.", duration: 1500 },
     { triggerX: 1500, speaker: "player", textJp: "腕の印が...熱い。", text: "The mark on my arm... it's burning.", duration: 2000 },
+  ],
+  // Room 9: Exhaustion setting in, but can't stop
+  9: [
+    { triggerX: 200, speaker: "player", textJp: "塔だ。ここを越えれば...", text: "A tower. If I can get past this...", duration: 2000 },
+    { triggerX: 800, speaker: "player", textJp: "足が重い。でも止まれない。", text: "My legs are heavy. But I can't stop.", duration: 2000 },
+  ],
+  // Room 10: Cornered — must fight
+  10: [
+    { triggerX: 300, speaker: "player", textJp: "囲まれた...！戦うしかない！", text: "Surrounded...! No choice but to fight!", duration: 2000 },
   ],
   9: [
     { triggerX: 300, speaker: "player", textJp: "山寺はもうすぐのはず...", text: "The mountain temple should be close...", duration: 2000 },
