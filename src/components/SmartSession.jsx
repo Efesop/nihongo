@@ -9,6 +9,7 @@ import PhraseSegments from "./PhraseSegments.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
+import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -1206,6 +1207,100 @@ export default function SmartSession({
     </>);
   }
 
+  // ═══ EXERCISE: PHRASE BUILD (fill-in-the-blank at segment level) ═══
+  if (ex.type === "phrase-build") {
+    const p = ex.item;
+    const segments = PHRASE_BREAKDOWNS[p[0]];
+    const blankIdx = ex.blankIdx;
+    const blankSeg = segments[blankIdx];
+    if (!segments || !blankSeg) { advance(true); return null; }
+
+    if (!choiceAnswer) {
+      // Build distractors from same grammar type across all phrases
+      const sameType = [];
+      for (const [, segs] of Object.entries(PHRASE_BREAKDOWNS)) {
+        for (const seg of segs) {
+          if (seg[3] === blankSeg[3] && seg[0] !== blankSeg[0] && !sameType.includes(seg[0])) {
+            sameType.push(seg[0]);
+          }
+        }
+      }
+      const choices = shuffle([blankSeg[0], ...shuffle(sameType).slice(0, 3)]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
+    // Build the phrase with a blank
+    const gramCol = { particle: c.go, noun: "#5a9ec4", verb: "#4caf50", adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m, question: c.go };
+    return withSenpai(<>
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: "#9c27b0", textTransform: "uppercase", marginBottom: 8 }}>Build the phrase</div>
+        <div style={{ fontSize: 13, color: c.m, marginBottom: 12 }}>{p[3]}</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 8 }}>
+          {segments.map((seg, i) => {
+            if (i === blankIdx) {
+              const showAnswer = answered;
+              return <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+                <div style={{
+                  padding: "8px 14px", borderRadius: 8, fontSize: isDesktop ? 24 : 20, fontWeight: 700,
+                  background: showAnswer ? (choiceAnswer.correct ? "#4caf5018" : c.rs) : c.s2,
+                  border: "2px dashed " + (showAnswer ? (choiceAnswer.correct ? "#4caf50" : c.a) : c.a),
+                  color: showAnswer ? (choiceAnswer.correct ? "#4caf50" : c.a) : c.a,
+                  minWidth: 40, textAlign: "center"
+                }}>
+                  {showAnswer ? blankSeg[0] : "?"}
+                </div>
+                <div style={{ fontSize: 10, color: gramCol[blankSeg[3]] || c.m, fontFamily: mono, marginTop: 2 }}>{blankSeg[2]}</div>
+              </div>;
+            }
+            return <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+              <div style={{ padding: "8px 10px", fontSize: isDesktop ? 24 : 20, fontWeight: 600, color: c.tx }}>{seg[0]}</div>
+              {answered && <div style={{ fontSize: 10, color: gramCol[seg[3]] || c.m, fontFamily: mono, marginTop: 2 }}>{seg[2]}</div>}
+            </div>;
+          })}
+        </div>
+        {!answered && <div style={{ fontSize: 12, color: c.m, fontStyle: "italic", marginTop: 4 }}>
+          Fill in the missing <span style={{ color: gramCol[blankSeg[3]] || c.a, fontWeight: 600 }}>{blankSeg[3]}</span>
+        </div>}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {choiceAnswer.choices.map((choice, i) => {
+          const isCorrect = choice === blankSeg[0];
+          const isSelected = choiceAnswer.selected === choice;
+          let bg = "transparent", border = c.b, col = c.tx;
+          if (answered && isCorrect) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
+          // Find the meaning of this choice from breakdowns
+          let choiceMeaning = "";
+          if (answered) {
+            for (const [, segs] of Object.entries(PHRASE_BREAKDOWNS)) {
+              const found = segs.find(s => s[0] === choice);
+              if (found) { choiceMeaning = found[2]; break; }
+            }
+          }
+          return <button key={i} onClick={() => {
+            if (answered) return;
+            const ok = choice === blankSeg[0];
+            setChoiceAnswer({ ...choiceAnswer, selected: choice, correct: ok });
+            setFb(ok ? "ok" : "no");
+            setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            reviewPhr(p[0], ok, "phrase-build", getResponseMs());
+            if (ok) speakPhrase(p[0], p[1]);
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 20, fontWeight: 600, textAlign: "left", transition: "all .2s" }}>
+            {choice}
+            {answered && choiceMeaning && <span style={{ fontSize: 12, color: c.m, fontWeight: 400, marginLeft: 8 }}>({choiceMeaning})</span>}
+          </button>;
+        })}
+      </div>
+      {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button onClick={() => speakPhrase(p[0], p[1])}
+          style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: 14 }}>🔊 hear again</button>
+        <button onClick={() => advance(choiceAnswer.correct)}
+          style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+      </div>}
+    </>);
+  }
+
   // ═══ EXERCISE: KANA REVERSE (see romaji → pick character) ═══
   if (ex.type === "kana-reverse") {
     if (!choiceAnswer) {
@@ -1291,8 +1386,34 @@ export default function SmartSession({
         })}
       </div>
       {answered && <>
+        {/* Show both phrases with segment breakdowns, highlighting differences */}
         <div style={{ ...card, padding: "14px 16px", marginTop: 12, borderLeft: "3px solid #ff9800" }}>
-          <div style={{ fontSize: 13, color: c.tx, lineHeight: 1.6 }}>{pair.hint}</div>
+          {phrases.map((p, pi) => {
+            const segs = PHRASE_BREAKDOWNS[p[0]];
+            if (!segs) return null;
+            const otherSegs = PHRASE_BREAKDOWNS[phrases[1 - pi][0]];
+            const otherTexts = otherSegs ? otherSegs.map(s => s[0]) : [];
+            return <div key={pi} style={{ marginBottom: pi === 0 ? 12 : 0 }}>
+              <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>{p[3]}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "baseline" }}>
+                {segs.map((seg, si) => {
+                  const isDiff = !otherTexts.includes(seg[0]);
+                  return <span key={si} style={{
+                    fontSize: 18, fontWeight: isDiff ? 700 : 500,
+                    color: isDiff ? "#ff9800" : c.tx,
+                    background: isDiff ? "#ff980015" : "transparent",
+                    padding: isDiff ? "2px 6px" : "2px 2px",
+                    borderRadius: isDiff ? 6 : 0,
+                    borderBottom: isDiff ? "2px solid #ff9800" : "none"
+                  }}>
+                    {seg[0]}
+                    <span style={{ fontSize: 9, color: isDiff ? "#ff9800" : c.m, display: "block", fontWeight: 400, fontFamily: mono }}>{seg[2]}</span>
+                  </span>;
+                })}
+              </div>
+            </div>;
+          })}
+          <div style={{ fontSize: 13, color: c.tx, lineHeight: 1.6, marginTop: 10, paddingTop: 10, borderTop: "1px solid " + c.b }}>{pair.hint}</div>
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button onClick={() => speakPhraseWithEnglish(target[0], target[1], target[3])}

@@ -6,6 +6,7 @@ import { CONVERSATIONS } from "../data/conversations.js";
 import { CONFUSED_PAIRS } from "../data/confusedPairs.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { getUnlockedPatterns } from "../data/grammarPatterns.js";
+import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 
 // All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -380,6 +381,38 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (unlocked.length > 0) {
       const gp = unlocked[Math.floor(Math.random() * unlocked.length)];
       queue.push({ type: "grammar-pattern", pattern: gp });
+    }
+  }
+
+  // Phrase build (fill-in-the-blank at segment level) — ALWAYS include 1 if eligible
+  // Teaches particles and key words, not just whole phrases
+  if (phrasesLearned >= 3 && queue.length < sessionLength) {
+    // Pick a learned phrase with 3+ segments (so blanking one is meaningful)
+    const buildCandidates = PHRASES.filter(p => {
+      const d = phrData[p[0]];
+      const segs = PHRASE_BREAKDOWNS[p[0]];
+      return d && d.box >= 1 && segs && segs.length >= 3;
+    });
+    if (buildCandidates.length > 0) {
+      const p = shuffle(buildCandidates)[0];
+      const segs = PHRASE_BREAKDOWNS[p[0]];
+      // Prefer blanking particles and key nouns/verbs — not copulas or question markers
+      const blankable = segs
+        .map((seg, i) => ({ seg, i }))
+        .filter(({ seg }) => {
+          const t = seg[3];
+          // Blank particles (は, を, が, で, の) and content words (nouns, verbs)
+          // Skip copulas (です), question markers (か), expressions, suffixes
+          return t === "particle" || t === "noun" || t === "verb" || t === "counter";
+        })
+        .filter(({ seg }) => {
+          // Skip trivially easy ones like です, か, します
+          return !["です", "か", "します", "ですか"].includes(seg[0]);
+        });
+      if (blankable.length > 0) {
+        const pick = blankable[Math.floor(Math.random() * blankable.length)];
+        queue.push({ type: "phrase-build", item: p, blankIdx: pick.i });
+      }
     }
   }
 

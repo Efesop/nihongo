@@ -345,7 +345,7 @@ function AuthedApp({ user, getToken }){
 
   // Map exercise types to skill dimensions
   const SKILL_MAP={"kana-visual":"visual","kana-listen":"listen","kana-reverse":"production","kana-pair":"visual",
-    "phrase-scenario":"visual","phrase-listen":"listen","phrase-production":"production","phrase-reverse":"production"};
+    "phrase-scenario":"visual","phrase-listen":"listen","phrase-production":"production","phrase-reverse":"production","phrase-build":"production","phrase-pair":"visual"};
 
   const updateKanaSRS=(ch,correct,exerciseType,responseMs)=>{
     setD(prev=>{
