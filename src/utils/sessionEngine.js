@@ -627,7 +627,28 @@ export function matchRomaji(input, target) {
  * Get distractors for multiple choice (phrases from different category preferred)
  */
 export function getDistractors(correct, count = 3) {
-  const sameCat = PHRASES.filter(p => p[4] === correct[4] && p[0] !== correct[0]);
-  const others = PHRASES.filter(p => p[4] !== correct[4] && p[0] !== correct[0]);
-  return shuffle([...sameCat, ...others]).slice(0, count);
+  // Score distractors by structural similarity — shared segments make harder choices
+  // Research: minimal pairs force deeper processing → stronger memory traces
+  const correctSegs = PHRASE_BREAKDOWNS[correct[0]];
+  const correctWords = correctSegs ? correctSegs.map(s => s[0]) : [];
+
+  const candidates = PHRASES.filter(p => p[0] !== correct[0]).map(p => {
+    const segs = PHRASE_BREAKDOWNS[p[0]];
+    const words = segs ? segs.map(s => s[0]) : [];
+    // Count shared segments (particles, nouns, verbs etc.)
+    const shared = correctWords.filter(w => words.includes(w) && !["です", "か"].includes(w)).length;
+    // Bonus for same category (similar context makes it harder)
+    const catBonus = p[4] === correct[4] ? 1 : 0;
+    // Bonus for similar length (same number of segments)
+    const lenBonus = segs && correctSegs && Math.abs(segs.length - correctSegs.length) <= 1 ? 1 : 0;
+    return { p, score: shared * 3 + catBonus + lenBonus };
+  });
+
+  // Sort by similarity score (highest first), then pick top candidates
+  candidates.sort((a, b) => b.score - a.score);
+
+  // Take the most similar ones, but shuffle among top candidates for variety
+  const topPool = candidates.slice(0, Math.max(count * 3, 9));
+  const picked = shuffle(topPool).slice(0, count);
+  return picked.map(c => c.p);
 }
