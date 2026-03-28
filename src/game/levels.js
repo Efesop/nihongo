@@ -49,9 +49,14 @@ export const ROOMS = [
     shadows: [],
     playerStart: 80,
     deco: [
+      // Warm dojo interior — lanterns, scrolls, weapons, architectural details
       { type: "lantern", x: 100 }, { type: "lantern", x: 500 }, { type: "lantern", x: 1000 },
-      { type: "scroll", x: 200 }, { type: "scroll", x: 800 },
+      { type: "scroll", x: 180 }, { type: "scroll", x: 800 },
       { type: "weapon_rack", x: 350 },
+      { type: "sliding_door", x: 50 }, { type: "sliding_door", x: 1150 },
+      { type: "incense", x: 650 },
+      { type: "cushion", x: 560 }, { type: "cushion", x: 620 },
+      { type: "beam", x: 300 }, { type: "beam", x: 600 }, { type: "beam", x: 900 },
     ],
     breakables: [
       // Training targets — bamboo practice posts along the way
@@ -94,6 +99,9 @@ export const ROOMS = [
       { type: "lantern", x: 200 }, { type: "lantern", x: 850 }, { type: "lantern", x: 1500 },
       { type: "scroll", x: 100 },
       { type: "weapon_rack", x: 1450 },
+      { type: "beam", x: 250 }, { type: "beam", x: 750 }, { type: "beam", x: 1200 },
+      { type: "sliding_door", x: 50 },
+      { type: "cushion", x: 1550 },
     ],
     breakables: [
       { type: "pot", x: 350, y: 0, w: 25, h: 30, hp: 1 },
@@ -104,9 +112,8 @@ export const ROOMS = [
   },
 
   // ── Room 2: "閃光 Phase Through" — learn DASH + DASH-SLASH ──
-  // A long practice corridor with a shielded training dummy at the far end.
-  // Bamboo posts line the path for atmosphere. Torii gate marks the challenge.
-  // The dummy blocks ALL normal attacks — only dash+slash breaks through.
+  // A long practice corridor. Bamboo posts line the path. Torii gate marks the challenge.
+  // The shielded dummy blocks ALL normal attacks — only dash+slash breaks through.
   {
     title: { jp: "閃光", en: "Phase Through" },
     theme: "dojo",
@@ -114,7 +121,6 @@ export const ROOMS = [
       { x: 0, y: 0, w: 1400 },
     ],
     enemies: [
-      // Shielded dummy — deflects normal slash, only dash-slash works
       { type: "dummy", x: 900, y: 0, passive: true, shielded: true },
     ],
     shadows: [],
@@ -122,7 +128,10 @@ export const ROOMS = [
     deco: [
       { type: "lantern", x: 150 }, { type: "lantern", x: 600 }, { type: "lantern", x: 1200 },
       { type: "torii", x: 700 },
-      { type: "scroll", x: 300 },
+      { type: "scroll", x: 300 }, { type: "scroll", x: 1100 },
+      { type: "beam", x: 200 }, { type: "beam", x: 500 }, { type: "beam", x: 800 }, { type: "beam", x: 1100 },
+      { type: "sliding_door", x: 50 }, { type: "sliding_door", x: 1350 },
+      { type: "incense", x: 400 },
     ],
     breakables: [
       // Bamboo posts lining the dash corridor
@@ -162,8 +171,11 @@ export const ROOMS = [
     deco: [
       { type: "lantern", x: 200 }, { type: "lantern", x: 560 },
       { type: "lantern", x: 800 }, { type: "lantern", x: 1100 },
-      { type: "scroll", x: 100 },
+      { type: "scroll", x: 100 }, { type: "scroll", x: 900 },
       { type: "weapon_rack", x: 850 },
+      { type: "beam", x: 250 }, { type: "beam", x: 560 },
+      { type: "sliding_door", x: 50 },
+      { type: "incense", x: 350 },
     ],
     breakables: [
       { type: "pot", x: 300, y: 0, w: 25, h: 30, hp: 1 },
@@ -200,8 +212,11 @@ export const ROOMS = [
       { type: "lantern", x: 100 }, { type: "lantern", x: 550 },
       { type: "lantern", x: 950 }, { type: "lantern", x: 1400 }, { type: "lantern", x: 1800 },
       { type: "torii", x: 250 },
-      { type: "scroll", x: 1600 },
+      { type: "scroll", x: 1600 }, { type: "scroll", x: 400 },
       { type: "weapon_rack", x: 1850 },
+      { type: "beam", x: 300 }, { type: "beam", x: 700 }, { type: "beam", x: 1100 }, { type: "beam", x: 1500 },
+      { type: "sliding_door", x: 50 },
+      { type: "incense", x: 1700 },
     ],
     breakables: [
       { type: "pot", x: 350, y: 0, w: 25, h: 30, hp: 1 },

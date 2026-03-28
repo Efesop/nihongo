@@ -2708,6 +2708,107 @@ function renderDeco(ctx, d, groundY, elapsed) {
     ctx.font = "14px monospace";
     ctx.textAlign = "center";
     ctx.fillText(kanji, d.x, groundY - 68);
+  } else if (d.type === "scroll") {
+    // Hanging wall scroll with calligraphy
+    ctx.fillStyle = "#2a2218";
+    ctx.fillRect(d.x - 2, groundY - 95, 4, 55);
+    // Scroll paper
+    ctx.fillStyle = "#e8dcc8";
+    ctx.fillRect(d.x - 10, groundY - 90, 20, 45);
+    ctx.fillStyle = "#d4c8b0";
+    ctx.fillRect(d.x - 10, groundY - 90, 20, 2);
+    ctx.fillRect(d.x - 10, groundY - 47, 20, 2);
+    // Calligraphy brush strokes
+    const kanji = ["道", "武", "心", "忍", "気"][Math.floor(hash(d.x, 1) * 5)];
+    ctx.fillStyle = "#1a1008";
+    ctx.font = "16px serif";
+    ctx.textAlign = "center";
+    ctx.fillText(kanji, d.x, groundY - 62);
+    // Wooden dowels top and bottom
+    ctx.fillStyle = "#4a3828";
+    ctx.fillRect(d.x - 12, groundY - 92, 24, 3);
+    ctx.fillRect(d.x - 12, groundY - 46, 24, 3);
+  } else if (d.type === "weapon_rack") {
+    // Wooden weapon display stand
+    ctx.fillStyle = "#3a2a1a";
+    // Vertical posts
+    ctx.fillRect(d.x - 18, groundY - 75, 4, 75);
+    ctx.fillRect(d.x + 14, groundY - 75, 4, 75);
+    // Horizontal bars
+    ctx.fillStyle = "#4a3828";
+    ctx.fillRect(d.x - 20, groundY - 70, 40, 3);
+    ctx.fillRect(d.x - 20, groundY - 45, 40, 3);
+    // Katana on upper rack (angled)
+    ctx.save();
+    ctx.translate(d.x, groundY - 63);
+    ctx.rotate(-0.15);
+    ctx.fillStyle = "#888899";
+    ctx.fillRect(-14, -1, 28, 2); // blade
+    ctx.fillStyle = "#332211";
+    ctx.fillRect(-16, -2, 5, 4); // handle
+    ctx.restore();
+    // Shorter weapon on lower rack
+    ctx.save();
+    ctx.translate(d.x, groundY - 38);
+    ctx.rotate(0.1);
+    ctx.fillStyle = "#777788";
+    ctx.fillRect(-10, -1, 20, 2);
+    ctx.fillStyle = "#332211";
+    ctx.fillRect(-12, -2, 5, 4);
+    ctx.restore();
+  } else if (d.type === "incense") {
+    // Incense burner with smoke wisps
+    ctx.fillStyle = "#554433";
+    ctx.fillRect(d.x - 6, groundY - 12, 12, 12);
+    ctx.fillStyle = "#665544";
+    ctx.fillRect(d.x - 8, groundY - 14, 16, 4);
+    // Smoke wisps rising
+    const t = elapsed * 0.8 + d.x * 0.1;
+    for (let i = 0; i < 3; i++) {
+      const wy = groundY - 20 - i * 12 - (t * 8 % 40);
+      const wx = d.x + Math.sin(t * 2 + i * 1.5) * 4;
+      const alpha = Math.max(0, 0.2 - i * 0.06);
+      ctx.fillStyle = `rgba(180,170,160,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(wx, wy, 3 + i, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (d.type === "cushion") {
+    // Zabuton floor cushion
+    ctx.fillStyle = "#6a2233";
+    ctx.fillRect(d.x - 10, groundY - 5, 20, 5);
+    ctx.fillStyle = "#7a3344";
+    ctx.fillRect(d.x - 9, groundY - 6, 18, 2);
+  } else if (d.type === "sliding_door") {
+    // Shoji sliding door frame
+    ctx.fillStyle = "#3a2a1a";
+    ctx.fillRect(d.x - 25, groundY - 95, 4, 95);
+    ctx.fillRect(d.x + 21, groundY - 95, 4, 95);
+    ctx.fillRect(d.x - 25, groundY - 95, 50, 3);
+    // Paper panels
+    ctx.fillStyle = "rgba(200,195,180,0.15)";
+    ctx.fillRect(d.x - 21, groundY - 92, 42, 88);
+    // Grid lines
+    ctx.strokeStyle = "rgba(60,50,35,0.3)";
+    ctx.lineWidth = 0.5;
+    for (let i = 1; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(d.x - 21 + i * 14, groundY - 92);
+      ctx.lineTo(d.x - 21 + i * 14, groundY - 4);
+      ctx.stroke();
+    }
+    for (let i = 1; i < 4; i++) {
+      ctx.beginPath();
+      ctx.moveTo(d.x - 21, groundY - 92 + i * 22);
+      ctx.lineTo(d.x + 21, groundY - 92 + i * 22);
+      ctx.stroke();
+    }
+  } else if (d.type === "beam") {
+    // Wooden ceiling beam (horizontal)
+    ctx.fillStyle = "#3a2818";
+    ctx.fillRect(d.x - 30, groundY - 100, 60, 6);
+    ctx.fillStyle = "#2a1a0a";
+    ctx.fillRect(d.x - 30, groundY - 94, 60, 2);
   }
 }
 
