@@ -30,14 +30,18 @@ const _particles = [];
 function ensureParticles(type, W, H) {
   if (_particles.length >= 20) return;
   for (let i = _particles.length; i < 20; i++) {
+    const vy = type === "embers" ? -(10 + Math.random() * 30)
+      : type === "leaves" ? (8 + Math.random() * 15)
+      : type === "ceilingDust" ? (5 + Math.random() * 12)
+      : -(3 + Math.random() * 8);
     _particles.push({
       x: Math.random() * W,
-      y: Math.random() * H * 0.8,
-      vx: (Math.random() - 0.3) * 15,
-      vy: type === "embers" ? -(10 + Math.random() * 30) : (type === "leaves" ? (8 + Math.random() * 15) : -(3 + Math.random() * 8)),
+      y: type === "ceilingDust" ? Math.random() * H * 0.15 : Math.random() * H * 0.8,
+      vx: (Math.random() - 0.5) * (type === "ceilingDust" ? 8 : 15),
+      vy,
       size: type === "leaves" ? 3 + Math.random() * 3 : 2 + Math.random() * 2,
       life: Math.random(),
-      maxLife: 3 + Math.random() * 4,
+      maxLife: type === "ceilingDust" ? 2 + Math.random() * 3 : 3 + Math.random() * 4,
       type,
     });
   }
@@ -51,14 +55,14 @@ function updateParticles(dt, W, H) {
     p.y += p.vy * dt;
     if (p.life > p.maxLife || p.y < -20 || p.y > H + 20 || p.x < -20 || p.x > W + 20) {
       p.x = Math.random() * W;
-      p.y = p.type === "embers" ? H + 10 : (p.type === "leaves" ? -10 : H * 0.3 + Math.random() * H * 0.5);
+      p.y = p.type === "embers" ? H + 10 : p.type === "leaves" ? -10 : p.type === "ceilingDust" ? Math.random() * H * 0.1 : H * 0.3 + Math.random() * H * 0.5;
       p.life = 0;
     }
   }
 }
 
 function drawParticles(ctx) {
-  const colors = { dust: "#aa996680", leaves: "#44aa4460", embers: "#ff662280", petals: "#ff88aa60" };
+  const colors = { dust: "#aa996680", leaves: "#44aa4460", embers: "#ff662280", petals: "#ff88aa60", ceilingDust: "#ccbbaa50" };
   for (const p of _particles) {
     const alpha = Math.sin((p.life / p.maxLife) * Math.PI);
     ctx.globalAlpha = alpha * 0.5;
@@ -131,6 +135,7 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "shake") {
       g.camera.shakeTimer = (line.duration || 0.5) * 1000;
       g._cinematicShakeIntensity = line.intensity || 5;
+      s._shakeOccurred = true; // enables flickering light + ceiling dust
     } else if (line.type === "flash") {
       s._flash = { color: line.color || "#ffffff", alpha: 1, duration: line.duration || 0.15 };
     } else if (line.type === "pause") {
@@ -442,15 +447,18 @@ export function renderStoryScene(ctx, g, W, H, font) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // ── 2. Vignette ──
+  // ── 2. Vignette (flickers after shake events) ──
+  const flickerAmount = s._shakeOccurred ? Math.sin(Date.now() * 0.008) * 0.08 + Math.sin(Date.now() * 0.013) * 0.04 : 0;
   const vGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.2, W / 2, H / 2, W * 0.7);
   vGrad.addColorStop(0, "transparent");
-  vGrad.addColorStop(1, "rgba(0,0,0,0.6)");
+  vGrad.addColorStop(1, `rgba(0,0,0,${0.6 + flickerAmount})`);
   ctx.fillStyle = vGrad;
   ctx.fillRect(0, 0, W, H);
 
   // ── 3. Atmospheric particles ──
-  ensureParticles(scene.particleType || "dust", W, H);
+  // Switch to ceiling dust after shakes (debris falling)
+  const particleType = s._shakeOccurred ? "ceilingDust" : (scene.particleType || "dust");
+  ensureParticles(particleType, W, H);
   drawParticles(ctx);
 
   // ── 4. Scanlines ──
@@ -747,98 +755,84 @@ export function renderStoryScene(ctx, g, W, H, font) {
 
   } // end dialogue panel conditional
 
-  // ── 13. Choice boxes (polished with slide-in + better styling) ──
+  // ── 13. Choices — centered, clean text, no boxes ──
   if (s.choices && s.typingDone) {
     const choices = s.choices;
-    const choiceItemH = 46;
-    const choiceGap = 6;
+    const choiceItemH = 36;
+    const choiceGap = 10;
     const totalChoiceH = choices.length * choiceItemH + (choices.length - 1) * choiceGap;
-    const choiceY = panelY - 16 - totalChoiceH;
-    const choiceW = Math.min(420, W * 0.55);
-    const choiceX = W - choiceW - 30;
+    const choiceY = panelY - 20 - totalChoiceH;
 
-    // Slide-in animation based on how long choices have been visible
-    s._choiceAnim = Math.min(1, (s._choiceAnim || 0) + 0.06); // ~200ms
-    const slideT = 1 - Math.pow(1 - s._choiceAnim, 3); // easeOutCubic
+    // Slide-in animation
+    s._choiceAnim = Math.min(1, (s._choiceAnim || 0) + 0.06);
+    const slideT = 1 - Math.pow(1 - s._choiceAnim, 3);
 
     for (let i = 0; i < choices.length; i++) {
       const rawY = choiceY + i * (choiceItemH + choiceGap);
-      // Staggered slide: each choice slides in slightly after the previous
       const itemT = Math.max(0, Math.min(1, slideT * 3 - i * 0.3));
-      const slideOffset = (1 - itemT) * 40; // slide up from 40px below
+      const slideOffset = (1 - itemT) * 30;
       const cy = rawY + slideOffset;
-      const itemAlpha = itemT;
       const isHighlighted = (s.choiceIndex || 0) === i;
 
       ctx.save();
-      ctx.globalAlpha = itemAlpha;
+      ctx.globalAlpha = itemT;
+      ctx.textAlign = "center";
 
-      // Box background with rounded corners
-      const r = 6;
-      ctx.beginPath();
-      ctx.roundRect(choiceX, cy, choiceW, choiceItemH - 2, r);
-      ctx.fillStyle = isHighlighted ? "rgba(255,255,255,0.10)" : "rgba(6,6,14,0.88)";
-      ctx.fill();
+      // Choice text — centered on screen, clean with text shadow
+      const fontSize = Math.min(15, W * 0.022);
+      ctx.font = `${isHighlighted ? "bold " : ""}${fontSize}px "Noto Sans JP",sans-serif`;
+      const label = `${i + 1}.  ${choices[i].text || ""}`;
 
-      // Border
-      ctx.strokeStyle = isHighlighted ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.08)";
-      ctx.lineWidth = isHighlighted ? 2 : 1;
-      ctx.stroke();
+      // Text shadow for readability
+      ctx.fillStyle = "rgba(0,0,0,0.8)";
+      ctx.fillText(label, W / 2 + 1, cy + choiceItemH / 2 + 1);
 
-      // Subtle glow for highlighted
+      // Main text
+      ctx.fillStyle = isHighlighted ? "#ffffff" : "rgba(200,195,185,0.7)";
       if (isHighlighted) {
-        ctx.shadowColor = "rgba(255,255,255,0.4)";
-        ctx.shadowBlur = 12;
+        ctx.shadowColor = "rgba(255,255,255,0.5)";
+        ctx.shadowBlur = 10;
+      }
+      ctx.fillText(label, W / 2, cy + choiceItemH / 2);
+      ctx.shadowBlur = 0;
+
+      // Subtle underline for highlighted
+      if (isHighlighted) {
+        const textW = ctx.measureText(label).width;
+        ctx.strokeStyle = "rgba(200,60,40,0.7)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(W / 2 - textW / 2, cy + choiceItemH / 2 + 8);
+        ctx.lineTo(W / 2 + textW / 2, cy + choiceItemH / 2 + 8);
         ctx.stroke();
-        ctx.shadowBlur = 0;
       }
 
-      // Number badge (rounded square)
-      const badgeX = choiceX + 10;
-      const badgeY = cy + 10;
-      const badgeSize = choiceItemH - 22;
-      ctx.beginPath();
-      ctx.roundRect(badgeX, badgeY, badgeSize, badgeSize, 4);
-      ctx.fillStyle = isHighlighted ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)";
-      ctx.fill();
-      ctx.font = `bold 14px ${font}`;
-      ctx.fillStyle = isHighlighted ? "#ffffff" : "#ffffff70";
-      ctx.textAlign = "center";
-      ctx.fillText(`${i + 1}`, badgeX + badgeSize / 2, badgeY + badgeSize / 2 + 5);
       ctx.textAlign = "left";
-
-      // Choice text
-      ctx.font = `14px "Noto Sans JP",sans-serif`;
-      ctx.fillStyle = isHighlighted ? "#f0ece4" : "#c0bdb5";
-      ctx.fillText(choices[i].text || "", choiceX + badgeSize + 22, cy + choiceItemH / 2 + 5);
-
       ctx.restore();
     }
 
-    // Timer bar — integrated below last choice
+    // Timer bar — centered below choices
     if (s.choiceTimer > 0) {
       const progress = Math.max(0, s.choiceTimer / 8);
-      const lastChoiceBottom = choiceY + choices.length * (choiceItemH + choiceGap) - choiceGap;
-      const barY = lastChoiceBottom + 6;
-      const barH = 3;
+      const barW = Math.min(300, W * 0.4);
+      const barX = (W - barW) / 2;
+      const barY = choiceY + totalChoiceH + 10;
+      const barH = 2;
 
-      // Background track
       ctx.fillStyle = "rgba(255,255,255,0.06)";
       ctx.beginPath();
-      ctx.roundRect(choiceX, barY, choiceW, barH, 2);
+      ctx.roundRect(barX, barY, barW, barH, 1);
       ctx.fill();
 
-      // Fill — color shifts from blue to yellow to red
       let barColor;
       if (progress > 0.5) barColor = `rgba(80,140,255,${0.6 + progress * 0.4})`;
       else if (progress > 0.25) barColor = `rgba(255,200,50,0.8)`;
       else barColor = `rgba(255,60,40,0.9)`;
       ctx.fillStyle = barColor;
       ctx.beginPath();
-      ctx.roundRect(choiceX, barY, choiceW * progress, barH, 2);
+      ctx.roundRect(barX, barY, barW * progress, barH, 1);
       ctx.fill();
 
-      // Tick sound in last 3 seconds
       if (s.choiceTimer < 3 && s.choiceTimer > 0 && Math.floor(s.choiceTimer * 2) !== Math.floor((s.choiceTimer + 0.016) * 2)) {
         playSound("sfx_choice_tick");
       }

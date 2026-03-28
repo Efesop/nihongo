@@ -37,8 +37,8 @@ export const ROOM_DIALOGUE = {
 
   1: [
     { speaker: "sensei", textJp: "足元を見るな。上を見ろ。", text: "Stop looking at your feet. Look up.", emotion: "serious" },
-    { speaker: "player", textJp: "高すぎませんか？", text: "Isn't that too high?", emotion: "surprised" },
-    { speaker: "sensei", textJp: "高すぎるかどうかは、跳んでから決めろ。", text: "You don't get to decide it's too high until after you've jumped.", emotion: "serious" },
+    { speaker: "player", textJp: "結構な高さですね...", text: "That's... quite a jump.", emotion: "surprised" },
+    { speaker: "sensei", textJp: "跳んでから判断しろ。", text: "Jump first. Judge later.", emotion: "serious" },
     { speaker: "sensei", textJp: "何度落ちてもいい。恥じるな。", text: "Fall as many times as you need to. There's no shame in it.", emotion: "amused" },
   ],
 
@@ -86,7 +86,8 @@ export const ROOM_DIALOGUE = {
 
     // ── ACT 2: The Discovery (Sensei sees mark for the first time) ──
     { type: "pause", duration: 0.8 },
-    // The mark glows faintly — sensei catches it
+    // The mark glows faintly — subtle SFX cue so player hears what sensei reacts to
+    { type: "sfx", sound: "tension_sting" },
     { speaker: "sensei", textJp: "...何だ、今の？", text: "...What was that?", emotion: "serious" },
     { speaker: "player", textJp: "え？", text: "Huh?" },
     { speaker: "sensei", textJp: "腕だ。何か光っていた。", text: "Your arm. Something was glowing.", emotion: "serious" },
@@ -106,8 +107,8 @@ export const ROOM_DIALOGUE = {
     { type: "sfx", sound: "heartbeat_tension" },
 
     { speaker: "sensei", textJp: "いつからあるんだ？", text: "How long have you had this?", emotion: "serious" },
-    { speaker: "player", textJp: "ずっとです。前はほとんど見えなかったけど、最近は明るくなってきて。", text: "Always. It was barely visible before, but lately it's been getting brighter." },
-    { speaker: "sensei", textJp: "この印...古い文献で読んだことがある。", text: "This mark... I've read about it. In the old texts.", emotion: "serious" },
+    { speaker: "player", textJp: "ずっとです。最近明るくなってきました。", text: "Always. It's been getting brighter lately." },
+    { speaker: "sensei", textJp: "この印...俺の師匠が死ぬ前に話してくれた。", text: "This mark... my master spoke of it. Before he died.", emotion: "serious" },
     { speaker: "sensei", textJp: "墨の呪いと呼ばれている。", text: "It's called 墨の呪い — the Ink Curse.", emotion: "serious" },
     { speaker: "player", textJp: "...呪い？", text: "...Curse?" },
     { speaker: "sensei", textJp: "今日お前がやったこと。全てが遅くなったあの瞬間。", text: "That thing you did today. When everything slowed down.", emotion: "serious" },
@@ -129,25 +130,22 @@ export const ROOM_DIALOGUE = {
     { speaker: "sensei", textJp: "信じたくなかった。だが印を見た今...", text: "I didn't want to believe it. But now I've seen the mark...", emotion: "serious", condition: { flag: "mark_perceptive" } },
 
     // Continue — all paths converge
-    { speaker: "sensei", textJp: "印は恵みであり呪いでもある。", text: "The mark is both a gift and a burden.", emotion: "serious" },
-    { speaker: "sensei", textJp: "時を操る力を与える...", text: "It grants power over time itself...", emotion: "serious" },
-    { speaker: "sensei", textJp: "...だがその印を持つ者は追われる。", text: "...but those who bear it are hunted.", emotion: "alarmed" },
+    { speaker: "sensei", textJp: "印は時を操る力を与える...だがその印を持つ者は追われる。", text: "The mark grants power over time... but those who bear it are hunted.", emotion: "serious" },
     { speaker: "player", textJp: "追われる？誰に？", text: "Hunted? By who?" },
-    { speaker: "sensei", textJp: "影狩りと名乗る者たちだ。", text: "They call themselves 影狩り — the Shadow Hunters.", emotion: "serious" },
-    { speaker: "sensei", textJp: "奴らは何百年も印の力を探し続けてきた。", text: "They've sought the mark's power for centuries.", emotion: "serious" },
+    { speaker: "sensei", textJp: "影狩り — 何百年も印の力を追い求めてきた者たちだ。", text: "The Shadow Hunters. They've sought the mark's power for centuries.", emotion: "serious" },
 
     // ── ACT 3: The Attack ──
+    // Blood splatter on panels first (someone killed outside), NOT full destruction yet
     { type: "sfx", sound: "glass_shatter" },
     { type: "shake", intensity: 5, duration: 0.6 },
-    { type: "bgSwap", to: "cutscene_shoji_shattered" },
+    { type: "bgSwap", to: "cutscene_shoji_blood" },
+    { type: "sfx", sound: "blood_splatter" },
     { type: "pause", duration: 1.0 },
 
     { speaker: "player", textJp: "—？！", text: "—?!", emotion: "surprised" },
 
     { type: "sfx", sound: "wind_howl" },
     { speaker: "sensei", textJp: "下がれ！", text: "Get back!", emotion: "alarmed" },
-
-    { type: "pause", duration: 0.5 },
 
     { speaker: "player", textJp: "先生...壁の血は...？", text: "Sensei... is that blood? On the wall?" },
     { speaker: "sensei", textJp: "見るな。聞け。", text: "Don't look. Listen to me.", emotion: "alarmed" },
@@ -193,10 +191,10 @@ export const ROOM_DIALOGUE = {
     { type: "pause", duration: 0.5, condition: { flag: "departure_trust" } },
 
     // ── ACT 5: The Escape ──
-    // Door smashes in
+    // Door smashes in — NOW show full destruction
     { type: "sfx", sound: "wood_splinter" },
     { type: "shake", intensity: 8, duration: 0.8 },
-    { type: "bgSwap", to: "cutscene_shoji_blood", transition: "hardCut" },
+    { type: "bgSwap", to: "cutscene_shoji_shattered", transition: "hardCut" },
     { type: "pause", duration: 1.5 },
 
     // Back to dojo — final words
@@ -580,7 +578,7 @@ export const ROOM_CHOICES = {
   // The turning point — two choices: reaction to mark + departure argument
   5: [
     {
-      after: 29, // after "What...?" — player reacts to the Ink Curse revelation
+      after: 30, // after "What...?" — player reacts to the Ink Curse revelation
       options: [
         { textJp: "...危険なんですか？", text: "Is it... dangerous?", flag: "mark_concerned" },
         { textJp: "じゃあ、あの力は...俺のものじゃない？", text: "So that power... isn't mine?", flag: "mark_identity" },
@@ -588,7 +586,7 @@ export const ROOM_CHOICES = {
       ],
     },
     {
-      after: 60, // after "Someone needs to hold them off" — player argues about leaving
+      after: 58, // after "Someone needs to hold them off" — player argues about leaving
       options: [
         { textJp: "置いて行くわけないだろ！", text: "I'm NOT leaving you!", flag: "departure_defiant" },
         { textJp: "一緒に来てください！", text: "Come with me, Sensei!", flag: "departure_plea" },
