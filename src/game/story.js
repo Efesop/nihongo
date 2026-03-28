@@ -135,7 +135,15 @@ export const ROOM_DIALOGUE = {
     { speaker: "sensei", textJp: "影狩り — 何百年も印の力を追い求めてきた者たちだ。", text: "The Shadow Hunters. They've sought the mark's power for centuries.", emotion: "serious" },
 
     // ── ACT 3: The Attack ──
-    // Blood appears on panels + distant scream (same room, characters stay)
+    // 1. Shadows appear behind panels first (something's outside)
+    { type: "sfx", sound: "sfx_army_approach" },
+    { type: "bgSwap", to: "bg_dojo_night_shadows" },
+    { type: "pause", duration: 2.5 },
+
+    { speaker: "sensei", textJp: "...！", text: "...!", emotion: "alarmed" },
+    { speaker: "player", textJp: "先生、あの影は—", text: "Sensei, those shadows—" },
+
+    // 2. Blood splatters on panels + scream (someone killed outside)
     { type: "sfx", sound: "glass_shatter" },
     { type: "shake", intensity: 5, duration: 0.6 },
     { type: "bgSwap", to: "bg_dojo_night_blood" },
@@ -147,14 +155,6 @@ export const ROOM_DIALOGUE = {
 
     { type: "sfx", sound: "wind_howl" },
     { speaker: "sensei", textJp: "下がれ！", text: "Get back!", emotion: "alarmed" },
-
-    { speaker: "player", textJp: "先生...壁の血は...？", text: "Sensei... is that blood? On the wall?" },
-    { speaker: "sensei", textJp: "見るな。聞け。", text: "Don't look. Listen to me.", emotion: "alarmed" },
-
-    // Shadow silhouettes appear behind panels (same room, characters stay)
-    { type: "bgSwap", to: "bg_dojo_night_shadows" },
-    { type: "sfx", sound: "distant_footsteps" },
-    { type: "pause", duration: 2.0 },
 
     // Music escalates to combat
     { type: "musicChange", to: "music_dojo_combat", fade: 0.5 },
@@ -191,23 +191,31 @@ export const ROOM_DIALOGUE = {
     { type: "pause", duration: 0.5, condition: { flag: "departure_trust" } },
 
     // ── ACT 5: The Escape ──
-    // Door smashes in — NOW show full destruction
-    { type: "sfx", sound: "wood_splinter" },
-    { type: "shake", intensity: 8, duration: 0.8 },
-    { type: "bgSwap", to: "cutscene_shoji_shattered", transition: "hardCut" },
-    { type: "pause", duration: 1.5 },
-
-    // Back to dojo — final words
-    { type: "bgSwap", to: "bg_dojo_night_story", transition: "hardCut" },
+    { type: "bgSwap", to: "bg_dojo_night_blood" },
     { speaker: "sensei", textJp: "行け！！今すぐ！！", text: "GO!! NOW!!", emotion: "alarmed" },
 
     // Player runs off screen with footsteps
     { type: "characterExit", char: "player", direction: "left" },
-    { type: "pause", duration: 1.2 },
-    // Sensei alone — moment of weight before blackout
+    { type: "pause", duration: 0.8 },
 
-    // Blackout → Room 6 combat
+    // Player escaping — seen through open door running into moonlit forest
+    { type: "bgSwap", to: "cutscene_escape", transition: "hardCut" },
+    { type: "sfx", sound: "sfx_running_footsteps" },
+    { type: "pause", duration: 2.5 },
+
+    // Sensei's final moment — close-up, calm, shadows looming
+    { type: "bgSwap", to: "cutscene_sensei_final", transition: "hardCut" },
+    { type: "sfx", sound: "sfx_army_approach" },
+    { type: "pause", duration: 3.0 },
+
+    // Blackout — we HEAR the battle we never see
+    { type: "musicStop" },
     { type: "blackout", duration: 0.8 },
+    { type: "sfx", sound: "sfx_battle_clash" },
+    { type: "pause", duration: 5.0 },
+    // Battle fades... only fire remains. The dojo is burning.
+    { type: "sfx", sound: "sfx_fire_burning" },
+    { type: "pause", duration: 5.0 },
   ],
 
   // ═══ ACT 1: THE FOREST (Rooms 6-9) ═══
