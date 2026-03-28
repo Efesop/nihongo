@@ -100,7 +100,7 @@ export function loadRoom(g, roomIndex) {
   g.camera.zoom = 1;
   g.camera.zoomTarget = 1;
   g.camera.lookAhead = 0;
-  g.slowMo.meter = g.slowMo.max;
+  g.slowMo.meter = 0; // starts EMPTY — must kill to earn slow-mo
   g.slowMo.active = false;
   // Reset input flags so held keys from previous life don't carry over
   g.input.left = false;
@@ -252,7 +252,7 @@ export function update(g, callbacks) {
     } else {
       g.slowMo.active = false;
       g.time.scale = 1;
-      g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + 15 * rawDt);
+      // No passive regen — kills are the ONLY way to gain slow-mo
     }
     if (!wasSlowMo && g.slowMo.active) playSound("slowmoOn");
     if (wasSlowMo && !g.slowMo.active) playSound("slowmoOff");
@@ -2283,8 +2283,8 @@ function killEnemy(g, e, p, callbacks) {
   g.score += killScore;
   callbacks.setScore(g.score);
   callbacks.setMaxCombo(g.maxCombo);
-  // Combo 3 gets double slow-mo refill
-  const meterRefill = combo === 3 ? 40 : 20;
+  // Kills fuel slow-mo — each kill gives ~25% of max. Chain kills give more.
+  const meterRefill = combo >= 3 ? g.slowMo.max * 0.35 : g.slowMo.max * 0.25;
   g.slowMo.meter = Math.min(g.slowMo.max, g.slowMo.meter + meterRefill);
   playSound("kill", { playbackRate: e.type === "oni" ? 0.8 : e.type === "ninja" ? 1.2 : 1.0 });
   playSound("blood_splatter", { volume: 0.5 });

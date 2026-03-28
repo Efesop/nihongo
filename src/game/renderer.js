@@ -3063,22 +3063,29 @@ function renderHUD(ctx, g, W, isDesktop, font) {
     ctx.fillText(`x${g.combo} CHAIN`, 16, 74);
   }
 
+  // Ink Curse meter — fueled by kills, spent on slow-mo
   const mW = 100, mH = 8, mX = W - mW - 16, mY = 20;
   ctx.fillStyle = "#1a1a2e";
   ctx.fillRect(mX, mY, mW, mH);
   const fill = g.slowMo.meter / g.slowMo.max;
-  ctx.fillStyle = g.slowMo.active ? "#b8a0ff" : "#6e3080";
+  // Meter color: empty=dark, has meter=purple glow, active=bright
+  const meterPulse = fill > 0.2 ? 0.7 + Math.sin(g.time.elapsed * 4) * 0.3 : 0.5;
+  ctx.fillStyle = g.slowMo.active ? `rgba(184,160,255,${meterPulse})` : fill > 0 ? "#6e3080" : "#2a1a30";
   ctx.fillRect(mX, mY, mW * fill, mH);
-  if (g.slowMo.active) {
+  // Glow when meter is available
+  if (fill > 0.2 && !g.slowMo.active) {
+    ctx.shadowColor = "#8844cc";
+    ctx.shadowBlur = 8;
     ctx.fillRect(mX, mY, mW * fill, mH);
+    ctx.shadowBlur = 0;
   }
   ctx.strokeStyle = "#3a3a5a";
   ctx.lineWidth = 1;
   ctx.strokeRect(mX, mY, mW, mH);
   ctx.font = `9px ${font}`;
-  ctx.fillStyle = "#9b8ecf";
+  ctx.fillStyle = fill > 0.2 ? "#bb99ee" : "#5a4a6a";
   ctx.textAlign = "right";
-  ctx.fillText("FOCUS", mX - 6, mY + 8);
+  ctx.fillText("墨", mX - 6, mY + 8); // 墨 = ink (the curse)
 
   const p = g.player;
   if (p.dashCooldown > 0) {
