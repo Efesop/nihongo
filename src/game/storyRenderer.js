@@ -98,10 +98,10 @@ export function updateStory(g, rawDt, callbacks) {
     s[`_charPosX_${s._charMove.side}`] = s._charMove.startX + (s._charMove.targetX - s._charMove.startX) * easeT;
     // Soft footstep sounds during walk — use short step SFX (not a long running loop)
     s._charMove._stepTimer = (s._charMove._stepTimer || 0) + rawDt;
-    if (s._charMove._stepTimer > 0.5) {
+    if (s._charMove._stepTimer > 0.45) {
       s._charMove._stepTimer = 0;
       const steps = ["step1", "step2", "step3"];
-      playSound(steps[Math.floor(Math.random() * steps.length)], { volume: 0.15, playbackRate: 0.55 });
+      playSound(steps[Math.floor(Math.random() * steps.length)], { volume: 0.35, playbackRate: 0.8 });
     }
     if (moveT >= 1) s._charMove = null; // arrived
   }
@@ -789,7 +789,8 @@ export function renderStoryScene(ctx, g, W, H, font) {
         const runFrame = (Math.floor(animTimer * 8) % 4) + 1;
         sprite = getImage("run" + runFrame) || getImage("player");
       } else {
-        const walkFrame = Math.floor(animTimer * 6) % 2 === 0 ? "walk1" : "walk2";
+        // Slow walk cycle — 1 full step per second (deliberate, not frantic mouth-flapping)
+        const walkFrame = Math.floor(animTimer * 1.5) % 2 === 0 ? "walk1" : "walk2";
         sprite = getImage(`story_${charKey}_${walkFrame}`) || getCharSprite(charKey, emotion);
       }
     } else {

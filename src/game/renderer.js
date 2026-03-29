@@ -1705,7 +1705,7 @@ const ENEMY_SPRITE_MAP = {
   },
   ninja: {
     idle:    { key: "ninja_idle", R: false },
-    patrol:  { frames: ["ninja_walk1", "ninja_walk2"], R: false },
+    patrol:  { frames: [{ key: "ninja_walk1", R: false }, { key: "ninja_walk2", R: true }] },
     chase:   { key: "ninja_idle", R: false },
     alert:   { key: "ninja_alert", R: false },
     throw:   { key: "ninja_throw", R: false },
@@ -1866,7 +1866,10 @@ function _getEnemySpriteForState(e, elapsed) {
   const stateEntry = map[e.state];
   if (stateEntry && stateEntry.frames) {
     const frameIdx = Math.floor(elapsed * 4) % stateEntry.frames.length;
-    return { key: stateEntry.frames[frameIdx], R: stateEntry.R };
+    const frame = stateEntry.frames[frameIdx];
+    // Support per-frame R overrides: frame can be string or {key, R}
+    if (typeof frame === "object") return { key: frame.key, R: frame.R };
+    return { key: frame, R: stateEntry.R };
   }
 
   return stateEntry || map.idle;
