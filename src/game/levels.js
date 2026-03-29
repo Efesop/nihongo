@@ -263,6 +263,7 @@ export const ROOMS = [
   {
     title: { jp: "逃走", en: "Flight" },
     theme: "forest",
+    bg: { far: "bg_forest_far", mid: "bg_forest_mid", near: "bg_forest_near" },
     platforms: [
       // Long forest path — sprint through, no floating platforms
       { x: 0, y: 0, w: 3200 },
@@ -297,6 +298,7 @@ export const ROOMS = [
   {
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
+    bg: { far: "bg_forest_far", mid: "bg_forest_mid", near: "bg_forest_near" },
     platforms: [
       // Longer forest floor with gaps requiring jumps
       { x: 0, y: 0, w: 1000 },

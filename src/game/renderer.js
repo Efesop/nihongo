@@ -193,7 +193,7 @@ export function render(g, ctx, isDesktop, font) {
 
       // Forest walls: use cliff sprite if available
       if (isForest) {
-        const cliffImg = getImage("wall_cliff");
+        const cliffImg = getImage("tile_forest_wall") || getImage("wall_cliff");
         if (cliffImg) {
           ctx.imageSmoothingEnabled = false;
           // Tile the cliff sprite vertically to fill the wall height
@@ -316,29 +316,28 @@ export function render(g, ctx, isDesktop, font) {
       ctx.fillStyle = "#1a0e06";
       ctx.fillRect(plat.x, plat.y + 8, plat.w, 2);
     } else if (isForest && !plat.wall) {
-      // Forest platform — procedural bark/moss texture, no sprite tiling
-      const pH = 16;
-      // Base: dark wood
-      const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + pH);
-      grad.addColorStop(0, "#2a1e12");
-      grad.addColorStop(0.5, "#1e1408");
-      grad.addColorStop(1, "#140e06");
-      ctx.fillStyle = grad;
-      ctx.fillRect(plat.x, plat.y, plat.w, pH);
-      // Top edge — mossy green highlight
-      ctx.fillStyle = "#2a4a28";
-      ctx.fillRect(plat.x, plat.y, plat.w, 2);
-      ctx.fillStyle = "#1e3a1c";
-      ctx.fillRect(plat.x, plat.y + 2, plat.w, 1);
-      // Bark lines — horizontal grain
-      ctx.fillStyle = "#1a0e0480";
-      for (let bx = plat.x + 15; bx < plat.x + plat.w; bx += 25 + (hash(bx, plat.y) * 15)) {
-        ctx.fillRect(bx, plat.y + 4, 8 + hash(bx, plat.y + 1) * 12, 1);
+      // Forest platform — tileset sprite, stretched to platform height
+      const tileKey = plat.y < (g.groundY - 30) ? "tile_forest_branch" : "tile_forest_ground";
+      const tile = getImage(tileKey);
+      if (tile) {
+        ctx.imageSmoothingEnabled = false;
+        // Scale tile to match platform height (16px), tile horizontally
+        const drawH = 20;
+        const scaleX = drawH / tile.height;
+        const tileW = tile.width * scaleX;
+        for (let tx = plat.x; tx < plat.x + plat.w; tx += tileW) {
+          const clipSrcW = Math.min(tile.width, (plat.x + plat.w - tx) / scaleX);
+          const clipDrawW = clipSrcW * scaleX;
+          ctx.drawImage(tile, 0, 0, clipSrcW, tile.height, tx, plat.y - 4, clipDrawW, drawH);
+        }
+        ctx.imageSmoothingEnabled = true;
+      } else {
+        // Procedural fallback
+        ctx.fillStyle = "#2a1e12";
+        ctx.fillRect(plat.x, plat.y, plat.w, 16);
+        ctx.fillStyle = "#2a4a28";
+        ctx.fillRect(plat.x, plat.y, plat.w, 2);
       }
-      // Side edges
-      ctx.fillStyle = "#1a0e0440";
-      ctx.fillRect(plat.x, plat.y, 1, pH);
-      ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, pH);
     } else {
       // Standard thin platform
       const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
