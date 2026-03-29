@@ -583,8 +583,13 @@ export function update(g, callbacks) {
       p.grounded = false;
       spawnDust(g, p.x, p.y + TILE * SCALE);
       playSound("jump");
+    } else if (p.wallSliding && (p._wallSlideTime || 0) < 500 && !p._wallRunning && !p._wallRunCooldown) {
+      // WALL RUN — double-tap jump (within 500ms of grabbing wall) → run up → auto-backflip
+      p._wallRunning = true;
+      p._wallRunTimer = 0;
+      playSound("wall_grab", { playbackRate: 1.3 });
     } else if (p.wallSliding) {
-      // Wall jump — launch away, track which wall we left
+      // Wall jump — launch away (only if past the 500ms wall-run window)
       p.vy = JUMP_FORCE * 0.9;
       p.vx = -p.wallDir * MOVE_SPEED * 1.6;
       p.facing = -p.wallDir;
@@ -1318,19 +1323,11 @@ export function update(g, callbacks) {
       }
     }
   }
-  // ═══ WALL RUN — double-tap Up/W while on wall → run up → auto-backflip ═══
-  // Track wall slide time — allows activation within first 500ms of sliding
+  // Track wall slide time — wall run only available in first 500ms of sliding
   if (p.wallSliding) {
     p._wallSlideTime = (p._wallSlideTime || 0) + rawDt * 1000;
   } else {
     p._wallSlideTime = 0;
-  }
-  // Double-tap Up/W detection: if jumpPressed fires while already wall sliding (within 500ms grace)
-  // The first jump got them TO the wall, the second tap triggers wall run
-  if (p.wallSliding && g.input.jumpPressed && p._wallSlideTime < 500 && !p._wallRunning && !p._wallRunCooldown) {
-    p._wallRunning = true;
-    p._wallRunTimer = 0;
-    g.input.jumpPressed = false; // consume so wall jump doesn't also fire
   }
   if (p._wallRunning) {
     p._wallRunTimer += rawDt * 1000;
