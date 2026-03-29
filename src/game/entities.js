@@ -306,12 +306,15 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
         e.throwAnim = 400;
         playRandom("ninja_throw");
       }
-      // Ninja backstep — retreats when player approaches (forces dash to close distance)
-      if (dist < 70 && !((e.y + 30) < player.y)) {
-        e.vx = -toPlayer * 160; // steady retreat (catchable with dash, not with walking)
-        if (dist < 40 && !e._dodgeCooldown) {
-          e._dodgeCooldown = 1200; // longer cooldown — one burst per encounter
-          e.vx = -toPlayer * 280; // dodge burst (still catchable with dash-slash)
+      // Ninja backstep — retreats when player approaches
+      if (e._dodgeCooldown > 0) {
+        // During dodge cooldown: keep retreating slowly (no flipping)
+        e.vx = -e.facing * 80;
+      } else if (dist < 70 && !((e.y + 30) < player.y)) {
+        e.vx = -toPlayer * 160;
+        if (dist < 40) {
+          e._dodgeCooldown = 800;
+          e.vx = -toPlayer * 280;
         }
       }
     } else {

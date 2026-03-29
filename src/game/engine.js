@@ -566,13 +566,33 @@ export function update(g, callbacks) {
       p.grounded = false;
       spawnDust(g, p.x, p.y + TILE * SCALE);
       playSound("jump");
+    } else if (p._wallRunning) {
+      // BACKFLIP off wall — powerful launch with spin
+      p._wallRunning = false;
+      p._backflipping = true;
+      p._backflipTimer = 500; // 500ms backflip duration
+      p.vy = JUMP_FORCE * 1.2; // higher than normal wall-jump
+      p.vx = -p.wallDir * MOVE_SPEED * 1.3;
+      p.facing = -p.wallDir;
+      p.wallSliding = false;
+      p.wallJumpCooldown = 300;
+      p.invincible = Math.max(p.invincible, 200); // brief i-frames during backflip
+      playSound("jump", { playbackRate: 1.3 });
+      // Backflip particles — dramatic
+      for (let i = 0; i < 8; i++) {
+        g.particles.push({
+          x: p.x + p.wallDir * 15, y: p.y + rnd(0, TILE * SCALE),
+          vx: -p.wallDir * rnd(50, 150), vy: rnd(-100, -30),
+          life: 300, maxLife: 300, color: i < 4 ? "#ffffff" : "#aaaaff", size: rndInt(1, 3),
+        });
+      }
     } else if (p.wallSliding) {
       // Wall jump — launch away, track which wall we left
       p.vy = JUMP_FORCE * 0.9;
       p.vx = -p.wallDir * MOVE_SPEED * 1.6;
       p.facing = -p.wallDir;
       const halfW = TILE * SCALE * 0.5;
-      p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // x of wall we jumped from
+      p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW;
       p.wallSliding = false;
       p.wallJumpCooldown = 200;
       playSound("wall_launch");
@@ -1301,9 +1321,44 @@ export function update(g, callbacks) {
       }
     }
   }
+  // ═══ WALL RUN — hold direction toward wall while sliding to run UP ═══
+  const holdingTowardWall = (p.wallDir === 1 && g.input.right) || (p.wallDir === -1 && g.input.left);
+  if (p.wallSliding && holdingTowardWall && !p._wallRunning) {
+    p._wallRunning = true;
+    p._wallRunTimer = 0;
+  }
+  if (p._wallRunning) {
+    p._wallRunTimer += rawDt * 1000;
+    // Run up the wall for up to 400ms
+    if (p._wallRunTimer < 400 && p.wallSliding) {
+      p.vy = -350; // run upward
+      // Wall run particles — footstep dust on wall
+      if (Math.random() < dt * 15) {
+        g.particles.push({
+          x: p.x + p.wallDir * pw, y: p.y + TILE * SCALE - 5,
+          vx: -p.wallDir * rnd(20, 60), vy: rnd(-20, 10),
+          life: 200, maxLife: 200, color: "#aa9977", size: rndInt(1, 3),
+        });
+      }
+    } else {
+      // Wall run expired — auto-backflip
+      if (p.wallSliding) {
+        g.input.jumpPressed = true; // trigger the backflip jump
+      }
+      p._wallRunning = false;
+    }
+  }
+  if (!p.wallSliding) p._wallRunning = false;
+
+  // Backflip timer — during backflip, player can attack at angle
+  if (p._backflipTimer > 0) {
+    p._backflipTimer -= rawDt * 1000;
+    if (p._backflipTimer <= 0) p._backflipping = false;
+  }
+
   // Wall-slide effects
   if (p.wallSliding && !wasWallSliding) playSound("wall_grab");
-  if (p.wallSliding && p.vy > 0 && Math.random() < dt * 12) {
+  if (p.wallSliding && p.vy > 0 && !p._wallRunning && Math.random() < dt * 12) {
     g.particles.push({
       x: p.x + p.wallDir * pw, y: p.y + rnd(20, TILE * SCALE),
       vx: -p.wallDir * rnd(15, 40), vy: rnd(-30, -5),
@@ -1333,6 +1388,10 @@ export function update(g, callbacks) {
   // Player state machine
   if (p.dashTimer > 0) {
     p.state = "dash";
+  } else if (p._backflipping) {
+    p.state = "backflip";
+  } else if (p._wallRunning) {
+    p.state = "wall_run";
   } else if (p.slashTimer > 0) {
     const progress = 1 - p.slashTimer / (p.slashDuration || SLASH_DURATION);
     p.state = progress < 0.2 ? "slash1" : progress < 0.85 ? "slash2" : "slash3";
@@ -1579,10 +1638,11 @@ export function update(g, callbacks) {
       const combo = p.slashCombo;
       const isAirSlash = !p.grounded && !p.wallSliding;
       // Vertical reach: air slash has more reach below, combo 2 reaches above
-      // Combo 4: narrow but long (piercing thrust)
-      const hitAbove = isAirSlash ? 20 : (combo === 1 ? 30 : combo === 2 ? 70 : combo === 4 ? 25 : 60);
-      const hitBelow = isAirSlash ? 80 : (combo === 1 ? 30 : combo === 2 ? 20 : combo === 4 ? 25 : 60);
-      const slashReach = combo === 4 ? SLASH_RANGE * 1.5 : SLASH_RANGE; // combo 4 has longer reach
+      // Backflip slash: massive reach in all directions (spinning attack)
+      const isBackflip = p._backflipping;
+      const hitAbove = isBackflip ? 80 : (isAirSlash ? 20 : (combo === 1 ? 30 : combo === 2 ? 70 : combo === 4 ? 25 : 60));
+      const hitBelow = isBackflip ? 80 : (isAirSlash ? 80 : (combo === 1 ? 30 : combo === 2 ? 20 : combo === 4 ? 25 : 60));
+      const slashReach = isBackflip ? SLASH_RANGE * 1.8 : (combo === 4 ? SLASH_RANGE * 1.5 : SLASH_RANGE);
       if (Math.abs(slashX - e.x) < (slashReach + ew) / 2 &&
           dy > -hitAbove && dy < hitBelow) {
         p._hitThisSlash = true; // this specific slash connected (whiff detection)
@@ -2380,7 +2440,9 @@ function killEnemy(g, e, p, callbacks) {
     { jp: "一撃", en: "ichigeki", color: "#ffaa44" },
   ];
   // Special context-aware kill text
-  if (p.dashSlashing) {
+  if (p._backflipping) {
+    g.floatingTexts.push({ x: e.x, y: e.y - 20, text: "翻斬 honzan", color: "#ff44cc", life: 900, maxLife: 900 });
+  } else if (p.dashSlashing) {
     g.floatingTexts.push({ x: e.x, y: e.y - 20, text: "閃光 senkou", color: "#cc44ff", life: 900, maxLife: 900 });
   } else if (!p.grounded) {
     g.floatingTexts.push({ x: e.x, y: e.y - 20, text: "空斬 kūzan", color: "#44aaff", life: 900, maxLife: 900 });

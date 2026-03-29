@@ -1522,6 +1522,29 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
+  // Wall run — use wall cling sprite but moving upward
+  if (p.state === "wall_run") {
+    const img = getImage("wall_cling") || getImage("wallslide");
+    if (img) {
+      const crop = CROPS.wallslide;
+      const wallFacing = -p.wallDir;
+      if (crop.R ? (wallFacing < 0) : (wallFacing > 0)) ctx.scale(-1, 1);
+      ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
+      ctx.restore();
+      return;
+    }
+  }
+
+  // Backflip — rotate the player sprite for spinning effect
+  if (p.state === "backflip") {
+    const flipProgress = 1 - (p._backflipTimer || 0) / 500; // 0→1
+    const rotation = flipProgress * Math.PI * 2 * p.facing; // full 360 spin
+    ctx.rotate(rotation);
+    // Use jump sprite during backflip
+    const img = getImage("jump2") || getImage("jump1");
+    if (drawSpriteFrame(ctx, img, "jump2", s, p.facing)) { ctx.restore(); return; }
+  }
+
   if (p.state === "dash") {
     // Use slash-through sprite during dash-slash, regular dash otherwise
     if (p.dashSlashing) {
