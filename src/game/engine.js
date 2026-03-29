@@ -344,6 +344,12 @@ export function update(g, callbacks) {
   const room = (g._rooms || [])[g.currentRoom];
   const roomTheme = room?.theme || "forest";
   const noRain = roomTheme === "dojo" || roomTheme === "nightclub" || roomTheme === "neonTokyo" || room?.noRain;
+  // For bg rooms, compute actual ground level from platforms (not engine groundY which doesn't match)
+  const _isBgRoom = g.levelW <= g.W;
+  const _rainGroundY = (_isBgRoom && g.platforms.length > 0)
+    ? Math.max(...g.platforms.filter(p => !p.wall).map(p => p.y))
+    : g.groundY;
+  const _rainGroundPlat = _isBgRoom ? g.platforms.find(p => !p.wall && p.y === _rainGroundY) : null;
   if (!noRain) {
     const wind = g._wind || 0;
     for (let i = 0; i < 6; i++) {
@@ -369,9 +375,10 @@ export function update(g, callbacks) {
       em.y += em.vy * dt;
       // Splash when hitting platforms, player, or ground
       let splashed = false;
-      // Check platform surfaces
+      // Check platform surfaces — rain splashes on all platforms
       for (const plat of g.platforms) {
-        if (!plat.wall && em.x > plat.x && em.x < plat.x + plat.w &&
+        if (plat.wall) continue;
+        if (em.x > plat.x && em.x < plat.x + plat.w &&
             em.y > plat.y && em.y < plat.y + 8) {
           em.life = 0;
           splashed = true;
@@ -399,15 +406,18 @@ export function update(g, callbacks) {
           });
         }
       }
-      // Splash on ground
-      if (!splashed && em.y > g.groundY) {
+      // Splash on ground — use actual ground platform Y in bg rooms
+      if (!splashed && em.y > _rainGroundY) {
         em.life = 0;
-        for (let j = 0; j < 3; j++) {
-          g.particles.push({
-            x: em.x + rnd(-3, 3), y: g.groundY,
-            vx: rnd(-35, 35), vy: rnd(-50, -15),
-            life: 180, maxLife: 180, color: j === 0 ? "#bbccee" : "#99aacc", size: rnd(1, 2),
-          });
+        // In bg rooms, only splash within ground platform bounds (not inside walls)
+        if (!_rainGroundPlat || (em.x > _rainGroundPlat.x && em.x < _rainGroundPlat.x + _rainGroundPlat.w)) {
+          for (let j = 0; j < 3; j++) {
+            g.particles.push({
+              x: em.x + rnd(-3, 3), y: _rainGroundY,
+              vx: rnd(-35, 35), vy: rnd(-50, -15),
+              life: 180, maxLife: 180, color: j === 0 ? "#bbccee" : "#99aacc", size: rnd(1, 2),
+            });
+          }
         }
       }
     } else {

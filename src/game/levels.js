@@ -266,24 +266,24 @@ export const ROOMS = [
     background: "room_forest_05",
     platforms: [
       // PERCENTAGE coords (pct:true) — scale with viewport. User-positioned via editor.
-      { x: 0.05, y: 0.85, w: 0.91, pct: true },    // ground floor
-      { x: 0.32, y: 0.48, w: 0.39, pct: true },     // mid bridge
-      { x: 0.05, y: 0.26, w: 0.24, pct: true },     // upper left ledge
-      { x: 0.68, y: 0.24, w: 0.28, pct: true },     // upper right platform
+      { x: 0.049, y: 0.869, w: 0.888, pct: true },   // ground floor
+      { x: 0.321, y: 0.509, w: 0.390, pct: true },   // mid bridge
+      { x: 0.050, y: 0.281, w: 0.240, pct: true },   // upper left ledge
+      { x: 0.682, y: 0.280, w: 0.280, pct: true },   // upper right platform
     ],
     enemies: [
-      // Ground: 3 oni + 1 ninja (pct coords for bg rooms)
-      { type: "oni", x: 0.25, y: 0.79 },
-      { type: "oni", x: 0.50, y: 0.79 },
-      { type: "oni", x: 0.75, y: 0.79 },
+      // Ground: 2 oni spaced apart + 1 ninja on right
+      { type: "oni", x: 0.20, y: 0.80 },
+      { type: "oni", x: 0.55, y: 0.80 },
+      { type: "oni", x: 0.78, y: 0.80 },
       // Bridge: 1 oni
-      { type: "oni", x: 0.45, y: 0.42 },
+      { type: "oni", x: 0.45, y: 0.44 },
       // Upper left: 1 oni
-      { type: "oni", x: 0.12, y: 0.20 },
+      { type: "oni", x: 0.12, y: 0.21 },
       // Upper right: ninja throws down
-      { type: "ninja", x: 0.80, y: 0.18 },
+      { type: "ninja", x: 0.78, y: 0.21 },
       // Ground right: ninja crossfire
-      { type: "ninja", x: 0.86, y: 0.79 },
+      { type: "ninja", x: 0.82, y: 0.80 },
     ],
     shadows: [],
     playerStart: 250,

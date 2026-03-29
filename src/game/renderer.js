@@ -2749,15 +2749,23 @@ function renderBackground(ctx, W, H, cx, g) {
     ctx.globalAlpha = 1;
 
     // ── Ground-level puddles with rain ripples ──
+    // In bg rooms, use actual ground platform Y (not engine groundY which doesn't match)
+    const isBgRoom = g.levelW <= W;
+    const floorPlat = isBgRoom ? g.platforms.reduce((a, b) => (!a.wall && !b.wall && b.y > a.y) ? b : a, g.platforms[0]) : null;
+    const floorY = floorPlat ? floorPlat.y : groundY;
+    const floorMinX = floorPlat ? floorPlat.x : 0;
+    const floorMaxX = floorPlat ? floorPlat.x + floorPlat.w : W;
     for (let i = 0; i < 6; i++) {
       const px = ((i * 317 + 100) % (W + 200)) - cx * 0.95 % (W + 200);
       const pw = 25 + hash(i, 42) * 30;
       if (px < -pw || px > W + pw) continue;
+      // Skip puddles outside the ground platform (inside walls)
+      if (isBgRoom && (px < floorMinX + 10 || px > floorMaxX - 10)) continue;
       // Dark puddle ellipse
       ctx.globalAlpha = 0.25;
       ctx.fillStyle = "#1a2a30";
       ctx.beginPath();
-      ctx.ellipse(px, groundY + 6, pw, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(px, floorY + 6, pw, 4, 0, 0, Math.PI * 2);
       ctx.fill();
       // Expanding ripple rings
       const ripplePhase = (t * 2 + i * 1.3) % 1.5;
@@ -2767,7 +2775,7 @@ function renderBackground(ctx, W, H, cx, g) {
         ctx.strokeStyle = "#5588aa";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.ellipse(px + hash(i, 7) * 10 - 5, groundY + 6, r, r * 0.3, 0, 0, Math.PI * 2);
+        ctx.ellipse(px + hash(i, 7) * 10 - 5, floorY + 6, r, r * 0.3, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
       // Second ripple offset in time
@@ -2778,19 +2786,19 @@ function renderBackground(ctx, W, H, cx, g) {
         ctx.strokeStyle = "#5588aa";
         ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.ellipse(px + hash(i, 9) * 8 - 4, groundY + 6, r2, r2 * 0.3, 0, 0, Math.PI * 2);
+        ctx.ellipse(px + hash(i, 9) * 8 - 4, floorY + 6, r2, r2 * 0.3, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
     }
     ctx.globalAlpha = 1;
 
     // Fog at ground level blending into platforms
-    const fogGrad = ctx.createLinearGradient(0, groundY - 40, 0, groundY + 14);
+    const fogGrad = ctx.createLinearGradient(0, floorY - 40, 0, floorY + 14);
     fogGrad.addColorStop(0, "rgba(8,12,18,0)");
     fogGrad.addColorStop(0.5, "rgba(8,12,18,0.6)");
     fogGrad.addColorStop(1, "rgba(6,8,12,0.95)");
     ctx.fillStyle = fogGrad;
-    ctx.fillRect(0, groundY - 40, W, 54);
+    ctx.fillRect(0, floorY - 40, W, 54);
 
   } else {
     // ── Fallback: procedural background (theme-aware) ──
