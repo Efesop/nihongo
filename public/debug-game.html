@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html><head>
+<title>Game Debug</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a14; color: #eee; font-family: monospace; overflow: hidden; }
+  #controls { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(0,0,0,0.8); padding: 6px 12px; display: flex; gap: 8px; align-items: center; font-size: 11px; }
+  #controls button { background: #222; color: #aaa; border: 1px solid #444; padding: 3px 8px; cursor: pointer; font-size: 10px; }
+  #controls button:hover { background: #333; color: #fff; }
+  #controls select { background: #222; color: #aaa; border: 1px solid #444; padding: 2px; font-size: 10px; }
+  #controls span { color: #666; }
+  #info { position: fixed; bottom: 0; left: 0; z-index: 100; background: rgba(0,0,0,0.7); padding: 4px 8px; font-size: 10px; color: #666; }
+  canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
+</style>
+</head><body>
+<div id="controls">
+  <span>ROOM:</span>
+  <select id="roomSelect"></select>
+  <button onclick="skipToRoom()">GO</button>
+  <span>|</span>
+  <button onclick="toggleDebug()">F2: Collision</button>
+  <button onclick="toggleInvincible()">GOD MODE</button>
+  <button onclick="fillMeter()">FILL METER</button>
+  <button onclick="killAll()">KILL ALL</button>
+  <span id="roomInfo"></span>
+</div>
+<div id="info">Debug page — game module only, no auth. Press F2 for collision overlay.</div>
+<p style="color:#444; text-align:center; margin-top:40vh;">
+  This debug page requires the game module to be importable standalone.<br>
+  Currently the game is embedded in the React app with Clerk auth.<br><br>
+  <b>To test:</b> Use the live site (tinysenpai.com) and add these debug hotkeys:<br>
+  F2 = collision overlay | F3 = skip to next room | F4 = god mode
+</p>
+<script>
+// This page exists as a reference for debug hotkeys.
+// The actual game runs inside the React app.
+// Debug features are built INTO the game engine:
+// F2 = toggle collision overlay
+// Future: F3 = skip room, F4 = god mode, F5 = fill meter
+</script>
+</body></html>

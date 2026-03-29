@@ -239,8 +239,31 @@ export function update(g, callbacks) {
 
   // Skip slow-mo handling during death (death sequence controls time.scale)
   // Also skip during lastKillCam (cinematic controls time.scale)
-  // Debug collision overlay toggle (F2)
+  // ═══ DEBUG HOTKEYS (F2-F5) ═══
   if (g.input._toggleDebug) { g._debugCollision = !g._debugCollision; g.input._toggleDebug = false; }
+  if (g.input._skipRoom) {
+    // F3: Skip to next room immediately
+    g.input._skipRoom = false;
+    if (g.currentRoom < 49) {
+      for (const e of g.enemies) e.dead = true; // kill all enemies
+      clearRoom(g, callbacks);
+    }
+  }
+  if (g.input._godMode) {
+    // F4: Toggle invincibility
+    g.input._godMode = false;
+    g._godModeActive = !g._godModeActive;
+    g.floatingTexts.push({ x: g.W / 2 + (g.camera?.x || 0), y: (g.groundY || 300) - 100,
+      text: g._godModeActive ? "GOD MODE ON" : "GOD MODE OFF",
+      color: g._godModeActive ? "#ffdd44" : "#ff4444", life: 1500, maxLife: 1500 });
+  }
+  if (g.input._fillMeter) {
+    // F5: Fill slow-mo meter
+    g.input._fillMeter = false;
+    g.slowMo.meter = g.slowMo.max;
+  }
+  // God mode: prevent player death
+  if (g._godModeActive && g.player) { g.player.dead = false; }
 
   const isDeath = g.player && g.player.dead;
   const isKillCam = g.roomState === "lastKillCam";
