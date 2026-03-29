@@ -1452,6 +1452,9 @@ const CROPS = {
   parry:         { ...F, R: false },
   land_heavy:    { ...F, R: false },
   slash_through: { ...F, R: true },
+  wall_run:      { ...F, R: false },
+  wall_run2:     { ...F, R: false },
+  backflip:      { ...F, R: false },
 };
 
 // Helper: draw a sprite image with crop and flip
@@ -1522,11 +1525,12 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
-  // Wall run — use wall cling sprite but moving upward
+  // Wall run — alternate between two wall run sprites
   if (p.state === "wall_run") {
-    const img = getImage("wall_cling") || getImage("wallslide");
+    const runFrame = (p._wallRunTimer || 0) > 100 ? "wall_run" : "wall_run2";
+    const img = getImage(runFrame) || getImage("wall_cling") || getImage("wallslide");
     if (img) {
-      const crop = CROPS.wallslide;
+      const crop = CROPS[runFrame] || CROPS.wallslide;
       const wallFacing = -p.wallDir;
       if (crop.R ? (wallFacing < 0) : (wallFacing > 0)) ctx.scale(-1, 1);
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
@@ -1535,14 +1539,14 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
-  // Backflip — rotate the player sprite for spinning effect
+  // Backflip — use dedicated backflip sprite with rotation
   if (p.state === "backflip") {
     const flipProgress = 1 - (p._backflipTimer || 0) / 500; // 0→1
     const rotation = flipProgress * Math.PI * 2 * p.facing; // full 360 spin
     ctx.rotate(rotation);
-    // Use jump sprite during backflip
-    const img = getImage("jump2") || getImage("jump1");
-    if (drawSpriteFrame(ctx, img, "jump2", s, p.facing)) { ctx.restore(); return; }
+    const img = getImage("backflip") || getImage("jump2") || getImage("jump1");
+    const cropKey = getImage("backflip") ? "backflip" : "jump2";
+    if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
   }
 
   if (p.state === "dash") {
