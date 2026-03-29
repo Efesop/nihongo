@@ -47,7 +47,19 @@ export function render(g, ctx, isDesktop, font) {
     ctx.translate(-W / 2, -H / 2);
   }
 
-  renderBackground(ctx, W, H, cx, g);
+  // Room background image — if exists, replaces ALL procedural background rendering
+  const roomData = (g._rooms || [])[g.currentRoom];
+  const roomBgKey = roomData?.background;
+  const roomBgImg = roomBgKey ? getImage(roomBgKey) : null;
+  if (roomBgImg) {
+    // Draw scene image covering the full viewport
+    ctx.drawImage(roomBgImg, 0, 0, W, H);
+    // Subtle darkening for readability
+    ctx.fillStyle = "rgba(0,0,0,0.1)";
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    renderBackground(ctx, W, H, cx, g);
+  }
 
   // Ambient particles (behind world objects)
   for (const em of g.embers) {
@@ -174,11 +186,22 @@ export function render(g, ctx, isDesktop, font) {
     }
   }
 
-  // Platforms + walls
+  // Platforms + walls — skip visual rendering when room has a scene background
+  // (collision still works, just invisible — the background image shows the level)
+  const hasRoomBg = !!roomBgImg;
   const platPal = getTheme(g);
   for (const plat of g.platforms) {
+    if (hasRoomBg && !g._debugCollision) continue; // invisible — bg shows platforms
+    // Debug mode: draw semi-transparent collision zones
+    if (hasRoomBg && g._debugCollision) {
+      ctx.fillStyle = plat.wall ? "rgba(255,100,100,0.3)" : "rgba(100,255,100,0.3)";
+      ctx.fillRect(plat.x, plat.y, plat.w, plat.h || 16);
+      ctx.strokeStyle = plat.wall ? "#ff4444" : "#44ff44";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(plat.x, plat.y, plat.w, plat.h || 16);
+      continue; // skip normal platform rendering
+    }
     if (plat.x + (plat.w || 0) < cx - 50 || plat.x > cx + W + 50) continue;
-    const roomData = (g._rooms || [])[g.currentRoom];
     const bgK = (roomData && roomData.theme === "dojo") ? "bg_dojo" : "bg_forest";
     const hasBg = !!getImage(bgK);
     const accent = hasBg ? "#3a8a5a" : platPal.platAccent;

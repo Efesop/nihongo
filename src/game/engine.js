@@ -239,6 +239,9 @@ export function update(g, callbacks) {
 
   // Skip slow-mo handling during death (death sequence controls time.scale)
   // Also skip during lastKillCam (cinematic controls time.scale)
+  // Debug collision overlay toggle (F2)
+  if (g.input._toggleDebug) { g._debugCollision = !g._debugCollision; g.input._toggleDebug = false; }
+
   const isDeath = g.player && g.player.dead;
   const isKillCam = g.roomState === "lastKillCam";
   if (!isDeath && !isKillCam) {
@@ -1788,9 +1791,14 @@ export function update(g, callbacks) {
   // Slow-mo: camera follows more slowly for cinematic feel
   const baseCamSmooth = g.slowMo.active ? 0.05 : 0.001;
   const camSmooth = 1 - Math.pow(baseCamSmooth, rawDt);
-  const targetCX = p.x - g.W / 2 + g.camera.lookAhead + (isDesktop ? SIDEBAR_W / 2 : 0);
-  const camTarget = clamp(targetCX, 0, Math.max(0, g.levelW - g.W));
-  g.camera.x = lerp(g.camera.x, camTarget, camSmooth);
+  // Single-screen rooms: lock camera. Scrolling rooms: follow player.
+  if (g.levelW <= g.W) {
+    g.camera.x = 0; // fixed camera — entire room visible
+  } else {
+    const targetCX = p.x - g.W / 2 + g.camera.lookAhead + (isDesktop ? SIDEBAR_W / 2 : 0);
+    const camTarget = clamp(targetCX, 0, Math.max(0, g.levelW - g.W));
+    g.camera.x = lerp(g.camera.x, camTarget, camSmooth);
+  }
   // Zoom: lerp toward target zoom
   g.camera.zoom = lerp(g.camera.zoom, g.camera.zoomTarget, 1 - Math.pow(0.001, rawDt));
   // Slow-mo: slight zoom out for more visibility

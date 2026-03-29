@@ -256,39 +256,36 @@ export const ROOMS = [
   // - Max platform height: y:-100 (stay on screen)
   // - Follow 4-step: introduce → develop → twist → conclude
 
-  // ── Room 5: "逃走 Flight" — ESCAPE (basics only) ──
-  // Identity: The panic room. First real combat. Oni ONLY.
-  // Skills: Move, slash, jump. No advanced skills needed yet.
-  // Principle: Simple scenario to apply tutorial skills. Don't overwhelm.
+  // ── Room 5: "逃走 Flight" — SINGLE-SCREEN SCENE ──
+  // First real combat. Scene background IS the level.
+  // Collision rectangles match the visual surfaces in the art.
+  // Camera locked — whole room visible. Player sees the puzzle.
   {
     title: { jp: "逃走", en: "Flight" },
     theme: "forest",
-    bg: { far: "bg_forest_far", mid: "bg_forest_mid", near: "bg_forest_near" },
+    background: "room_forest_05", // scene image IS the level
     platforms: [
-      // Long forest path — sprint through, no floating platforms
-      { x: 0, y: 0, w: 3200 },
+      // Invisible collision matching the art:
+      // Ground path across the bottom
+      { x: 0, y: 0, w: 960 },
+      // Rock ledge on the left (visible in bg art)
+      { x: 30, y: -80, w: 160 },
+      // Tree branch on the right (visible in bg art)
+      { x: 650, y: -90, w: 250 },
     ],
     enemies: [
-      // Oni only — spaced to teach combat rhythm. More enemies = longer fight.
-      { type: "oni", x: 500, y: 0 },
-      { type: "oni", x: 900, y: 0 },
-      { type: "oni", x: 1300, y: 0 },
-      { type: "oni", x: 1700, y: 0 },
-      { type: "oni", x: 2100, y: 0 },
-      { type: "oni", x: 2500, y: 0 },
-      { type: "oni", x: 2900, y: 0 },
+      // Ground: oni patrol
+      { type: "oni", x: 350, y: 0 },
+      { type: "oni", x: 600, y: 0 },
+      // Branch: ninja on the tree (forces jump to reach)
+      { type: "ninja", x: 750, y: -90 },
+      // Ground: final enemy
+      { type: "oni", x: 880, y: 0 },
     ],
     shadows: [],
-    playerStart: 80,
-    deco: [
-      { type: "lantern", x: 300 }, { type: "lantern", x: 700 },
-      { type: "lantern", x: 1100 }, { type: "lantern", x: 1500 },
-    ],
-    breakables: [
-      { type: "bamboo", x: 400, y: 0, w: 40, h: 60, hp: 1 },
-      { type: "crate", x: 800, y: 0, w: 40, h: 40, hp: 1 },
-      { type: "bamboo", x: 1200, y: 0, w: 40, h: 60, hp: 1 },
-    ],
+    playerStart: 50,
+    deco: [], // no deco needed — lanterns are in the background image
+    breakables: [],
   },
 
   // ── Room 6: "天空 Sky Path" — NINJA INTRODUCTION ──

@@ -93,6 +93,8 @@ const ZONE_SPRITES = {
     ps("bg_forest", "/images/forest.png"), gs("bg_forest_story"), gs("bg_temple_story"),
     // Parallax background layers
     gs("bg_forest_far"), gs("bg_forest_mid"), gs("bg_forest_near"),
+    // Scene backgrounds (single-screen rooms)
+    gs("room_forest_05"),
     // Platform tileset sprites
     gs("tile_forest_ground"), gs("tile_forest_branch"), gs("tile_forest_wall"),
     // Legacy contextual sprites (kept for compatibility)

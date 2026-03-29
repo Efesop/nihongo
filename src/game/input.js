@@ -15,6 +15,7 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "KeyJ" || e.code === "KeyZ") { inp.slash = true; inp.slashPressed = true; e.preventDefault(); }
     if (e.code === "KeyK" || e.code === "KeyX" || e.code === "ShiftLeft" || e.code === "ShiftRight") { inp.slowmo = true; e.preventDefault(); }
     if (e.code === "KeyL" || e.code === "KeyC") { inp.dash = true; inp.dashPressed = true; e.preventDefault(); }
+    if (e.code === "F2") { inp._toggleDebug = true; e.preventDefault(); }
     // Story mode inputs (story overlay OR in-world NPC dialogue)
     const inStory = gameRef.current?.gameState === "story";
     const inDialogue = !!gameRef.current?.activeDialogue;
