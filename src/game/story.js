@@ -110,12 +110,12 @@ export const ROOM_DIALOGUE = {
     { type: "sfx", sound: "heartbeat_tension" },
 
     // Sensei steps away — processing what he saw (stage blocking)
-    { type: "charMove", char: "sensei", toX: 0.82, duration: 0.8 },
+    { type: "charMove", char: "sensei", toX: 0.76, duration: 3.0 },
     { speaker: "sensei", textJp: "いつからあるんだ？", text: "How long have you had this?", emotion: "serious" },
     { speaker: "player", textJp: "ずっとです。最近明るくなってきました。", text: "Always. It's been getting brighter lately." },
     { speaker: "sensei", textJp: "この印...俺の師匠が死ぬ前に話してくれた。", text: "This mark... my master spoke of it. Before he died.", emotion: "serious" },
     // Sensei turns back toward player — delivering the truth
-    { type: "charMove", char: "sensei", toX: 0.68, duration: 0.6 },
+    { type: "charMove", char: "sensei", toX: 0.70, duration: 2.5 },
     { speaker: "sensei", textJp: "墨の呪いと呼ばれている。", text: "It's called 墨の呪い — the Ink Curse.", emotion: "serious" },
     { speaker: "player", textJp: "...呪い？", text: "...Curse?" },
     { speaker: "sensei", textJp: "今日お前がやったこと。全てが遅くなったあの瞬間。", text: "That thing you did today. When everything slowed down.", emotion: "serious" },
@@ -221,17 +221,18 @@ export const ROOM_DIALOGUE = {
     // Music fades, beat of silence, THEN violin
     { type: "musicChange", to: null, fade: 2.0 },
     { type: "bgSwap", to: "cutscene_sensei_final", transition: "hardCut" },
-    { type: "pause", duration: 0.8 },
+    { type: "pause", duration: 0.8, unskippable: true },
     { type: "sfx", sound: "sfx_violin_farewell" },
-    { type: "pause", duration: 3.5 },
+    { type: "pause", duration: 3.5, unskippable: true },
 
     // Persistent black — stays fully black for battle + fire audio
+    // These pauses are unskippable — let the audio breathe
     { type: "persistentBlack" },
     { type: "sfx", sound: "sfx_battle_clash" },
-    { type: "pause", duration: 5.0 },
+    { type: "pause", duration: 5.0, unskippable: true },
     // Battle fades... only fire remains. The dojo is burning.
     { type: "sfx", sound: "sfx_fire_burning" },
-    { type: "pause", duration: 5.0 },
+    { type: "pause", duration: 5.0, unskippable: true },
   ],
 
   // ═══ ACT 1: THE FOREST (Rooms 6-9) ═══

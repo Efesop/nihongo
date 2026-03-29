@@ -96,11 +96,12 @@ export function updateStory(g, rawDt, callbacks) {
     const moveT = Math.min(1, s._charMove.timer / s._charMove.duration);
     const easeT = moveT * (2 - moveT);
     s[`_charPosX_${s._charMove.side}`] = s._charMove.startX + (s._charMove.targetX - s._charMove.startX) * easeT;
-    // Soft footstep sounds during walk — quieter, slower interval for story mood
+    // Soft footstep sounds during walk — use short step SFX (not a long running loop)
     s._charMove._stepTimer = (s._charMove._stepTimer || 0) + rawDt;
-    if (s._charMove._stepTimer > 0.55) {
+    if (s._charMove._stepTimer > 0.5) {
       s._charMove._stepTimer = 0;
-      try { const a = new Audio("/audio/game/sfx_running_footsteps.mp3"); a.volume = 0.08; a.playbackRate = 0.7; a.play().catch(() => {}); } catch {}
+      const steps = ["step1", "step2", "step3"];
+      playSound(steps[Math.floor(Math.random() * steps.length)], { volume: 0.15, playbackRate: 0.55 });
     }
     if (moveT >= 1) s._charMove = null; // arrived
   }
@@ -163,15 +164,17 @@ export function updateStory(g, rawDt, callbacks) {
     } else if (line.type === "flash") {
       s._flash = { color: line.color || "#ffffff", alpha: 1, duration: line.duration || 0.15 };
     } else if (line.type === "pause") {
-      // Timed pause — wait before advancing, but skippable with click
+      // Timed pause — wait before advancing
       if (!s._pauseTimer) {
         s._pauseTimer = line.duration || 1.0;
       }
       s._pauseTimer -= rawDt;
-      // Allow click/space to skip pause
-      if (g.input.storyAdvance) {
+      // Allow click/space to skip pause (unless unskippable — e.g. cinematic audio moments)
+      if (g.input.storyAdvance && !line.unskippable) {
         g.input.storyAdvance = false;
         s._pauseTimer = 0;
+      } else if (line.unskippable) {
+        g.input.storyAdvance = false; // consume the input so it doesn't stack
       }
       if (s._pauseTimer > 0) return; // still pausing
       s._pauseTimer = null; // done pausing
