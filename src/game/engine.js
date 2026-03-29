@@ -486,6 +486,14 @@ export function update(g, callbacks) {
   // ── Player movement ──
   const moveDir = (g.input.left ? -1 : 0) + (g.input.right ? 1 : 0);
 
+  // Wall run — press Dash while wall sliding → run up → auto-backflip
+  if (g.input.dashPressed && p.wallSliding && !p._wallRunning && !p._wallRunCooldown) {
+    p._wallRunning = true;
+    p._wallRunTimer = 0;
+    g.input.dashPressed = false; // consume so normal dash doesn't fire
+    playSound("wall_grab", { playbackRate: 1.3 });
+  }
+
   // Dash
   if (g.input.dashPressed && p.dashCooldown <= 0 && p.dashTimer <= 0) {
     p.dashTimer = DASH_DURATION;
@@ -583,13 +591,8 @@ export function update(g, callbacks) {
       p.grounded = false;
       spawnDust(g, p.x, p.y + TILE * SCALE);
       playSound("jump");
-    } else if (p.wallSliding && (p._wallSlideTime || 0) < 500 && !p._wallRunning && !p._wallRunCooldown) {
-      // WALL RUN — double-tap jump (within 500ms of grabbing wall) → run up → auto-backflip
-      p._wallRunning = true;
-      p._wallRunTimer = 0;
-      playSound("wall_grab", { playbackRate: 1.3 });
     } else if (p.wallSliding) {
-      // Wall jump — launch away (only if past the 500ms wall-run window)
+      // Wall jump — launch away from wall
       p.vy = JUMP_FORCE * 0.9;
       p.vx = -p.wallDir * MOVE_SPEED * 1.6;
       p.facing = -p.wallDir;
@@ -1323,12 +1326,7 @@ export function update(g, callbacks) {
       }
     }
   }
-  // Track wall slide time — wall run only available in first 500ms of sliding
-  if (p.wallSliding) {
-    p._wallSlideTime = (p._wallSlideTime || 0) + rawDt * 1000;
-  } else {
-    p._wallSlideTime = 0;
-  }
+  // Wall run cooldown — prevent re-triggering immediately after a backflip
   if (p._wallRunning) {
     p._wallRunTimer += rawDt * 1000;
     // Short wall run — 200ms burst upward, then auto-backflip
