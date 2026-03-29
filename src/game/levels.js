@@ -256,35 +256,38 @@ export const ROOMS = [
   // - Max platform height: y:-100 (stay on screen)
   // - Follow 4-step: introduce → develop → twist → conclude
 
-  // ── Room 5: "逃走 Flight" — SINGLE-SCREEN SCENE ──
-  // First real combat. Scene background IS the level.
-  // Collision rectangles match the visual surfaces in the art.
-  // Camera locked — whole room visible. Player sees the puzzle.
+  // ── Room 5: "逃走 Flight" — SINGLE-SCREEN MULTI-FLOOR PUZZLE ──
+  // 3 floors: ground, mid bridge, upper ledges. Enemies cover each other.
+  // Ninja on upper-right throws DOWN. Must plan approach.
+  // Background art has exact surfaces matching these collision zones.
   {
     title: { jp: "逃走", en: "Flight" },
     theme: "forest",
-    background: "room_forest_05", // scene image IS the level
+    background: "room_forest_05",
     platforms: [
-      // Invisible collision matching the art:
-      // Ground path across the bottom
-      { x: 0, y: 0, w: 960 },
-      // Rock ledge on the left (visible in bg art)
-      { x: 30, y: -80, w: 160 },
-      // Tree branch on the right (visible in bg art)
-      { x: 650, y: -90, w: 250 },
+      // GROUND FLOOR — stone floor (adjusted to match visual ground in bg)
+      { x: 0, y: 0, w: 880 },
+      // MID BRIDGE — broken stone beam, center (lowered to match visual)
+      { x: 260, y: -105, w: 340 },
+      // UPPER LEFT — stone ledge from left wall
+      { x: 20, y: -195, w: 190 },
+      // UPPER RIGHT — wooden platform/balcony
+      { x: 670, y: -200, w: 230 },
     ],
     enemies: [
-      // Ground: oni patrol
-      { type: "oni", x: 350, y: 0 },
-      { type: "oni", x: 600, y: 0 },
-      // Branch: ninja on the tree (forces jump to reach)
-      { type: "ninja", x: 750, y: -90 },
-      // Ground: final enemy
-      { type: "oni", x: 880, y: 0 },
+      // Ground floor: 2 oni patrol (handle first)
+      { type: "oni", x: 200, y: 0 },
+      { type: "oni", x: 700, y: 0 },
+      // Mid bridge: 1 oni guards the route up
+      { type: "oni", x: 420, y: -120 },
+      // Upper left: 1 oni (reached via mid bridge jump)
+      { type: "oni", x: 100, y: -210 },
+      // Upper right: ninja throws shurikens DOWN at ground (the tactical problem)
+      { type: "ninja", x: 780, y: -220 },
     ],
     shadows: [],
     playerStart: 50,
-    deco: [], // no deco needed — lanterns are in the background image
+    deco: [],
     breakables: [],
   },
 

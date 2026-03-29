@@ -1,0 +1,1 @@
+{"detail":{"type":"validation_error","code":"text_too_long","message":"Invalid text length received for text 'Intense close combat battle sounds. Katana swords  ...', expected a maximum number of 450 characters but received 477 characters.","status":"invalid_text_length","request_id":"4ae74a528ff406a7b658956a8ac3316d","param":"text"}}

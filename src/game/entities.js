@@ -281,7 +281,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       e.vx = e.facing * 50;
     }
   } else if (e.type === "ninja") {
-    if (dist > 20 && playerVisible) e.facing = toPlayer;
+    // Don't flip facing during dodge cooldown (prevents rapid flipping)
+    if (dist > 20 && playerVisible && !e._dodgeCooldown) e.facing = toPlayer;
     e.vx = 0;
     if (dist < e.alertRange && playerVisible) {
       if (e.state === "patrol") { e.alert = 400; playRandom("ninja_alert", { volume: 0.4 }); }
