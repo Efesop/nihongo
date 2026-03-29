@@ -316,29 +316,29 @@ export function render(g, ctx, isDesktop, font) {
       ctx.fillStyle = "#1a0e06";
       ctx.fillRect(plat.x, plat.y + 8, plat.w, 2);
     } else if (isForest && !plat.wall) {
-      // Forest contextual platform — tile sprite at fixed height, don't stretch
-      const spriteKey = plat.w < 120 ? "platform_rock" : plat.w < 250 ? "platform_branch" : "platform_log";
-      const img = getImage(spriteKey);
-      if (img) {
-        ctx.imageSmoothingEnabled = false;
-        // Fixed height (20px) — tile horizontally to fill platform width
-        const drawH = 20;
-        const tileW = img.width * (drawH / img.height); // maintain aspect ratio per tile
-        for (let tx = plat.x; tx < plat.x + plat.w; tx += tileW) {
-          const clipW = Math.min(tileW, plat.x + plat.w - tx);
-          ctx.drawImage(img, 0, 0, img.width * (clipW / tileW), img.height, tx, plat.y - 6, clipW, drawH);
-        }
-        ctx.imageSmoothingEnabled = true;
-      } else {
-        // Fallback — brown wood-grain platform
-        const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);
-        grad.addColorStop(0, "#2a1a0e");
-        grad.addColorStop(1, "#1a0e06");
-        ctx.fillStyle = grad;
-        ctx.fillRect(plat.x, plat.y, plat.w, 14);
-        ctx.fillStyle = "#3a2a18";
-        ctx.fillRect(plat.x, plat.y, plat.w, 2);
+      // Forest platform — procedural bark/moss texture, no sprite tiling
+      const pH = 16;
+      // Base: dark wood
+      const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + pH);
+      grad.addColorStop(0, "#2a1e12");
+      grad.addColorStop(0.5, "#1e1408");
+      grad.addColorStop(1, "#140e06");
+      ctx.fillStyle = grad;
+      ctx.fillRect(plat.x, plat.y, plat.w, pH);
+      // Top edge — mossy green highlight
+      ctx.fillStyle = "#2a4a28";
+      ctx.fillRect(plat.x, plat.y, plat.w, 2);
+      ctx.fillStyle = "#1e3a1c";
+      ctx.fillRect(plat.x, plat.y + 2, plat.w, 1);
+      // Bark lines — horizontal grain
+      ctx.fillStyle = "#1a0e0480";
+      for (let bx = plat.x + 15; bx < plat.x + plat.w; bx += 25 + (hash(bx, plat.y) * 15)) {
+        ctx.fillRect(bx, plat.y + 4, 8 + hash(bx, plat.y + 1) * 12, 1);
       }
+      // Side edges
+      ctx.fillStyle = "#1a0e0440";
+      ctx.fillRect(plat.x, plat.y, 1, pH);
+      ctx.fillRect(plat.x + plat.w - 1, plat.y, 1, pH);
     } else {
       // Standard thin platform
       const grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + 14);

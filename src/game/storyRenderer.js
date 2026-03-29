@@ -365,6 +365,15 @@ function selectChoice(g, index, callbacks) {
     g._teaCount = (g._teaCount || 0) + 1;
     const isAngry = g._teaCount >= 3;
 
+    if (isAngry) {
+      // 3rd time — sensei SNAPS immediately. No tea, straight to angry dialogue.
+      g.choices[choice.flag] = true;
+      s.choices = null;
+      s.choiceTimer = 0;
+      advanceStory(g, callbacks);
+      return;
+    }
+
     // Swap both characters to tea sprites + sip SFX
     s._allEmotion = "tea";
     playSound("sfx_tea_sip");
@@ -396,14 +405,6 @@ function selectChoice(g, index, callbacks) {
       }, 4000);
       return;
     }
-    // 3rd time — sensei SNAPS. Set flag and advance to angry dialogue.
-    setTimeout(() => { if (g.story) g.story._allEmotion = null; }, 2000);
-    g.choices[choice.flag] = true;
-    s.choices = null;
-    s.choiceTimer = 0;
-    // Small delay before advancing so tea sprites show briefly
-    setTimeout(() => { if (g.story) advanceStory(g, callbacks); }, 2500);
-    return;
   }
 
   // Apply flag

@@ -264,15 +264,18 @@ export const ROOMS = [
     title: { jp: "逃走", en: "Flight" },
     theme: "forest",
     platforms: [
-      // Continuous forest floor — no floating platforms
-      { x: 0, y: 0, w: 1800 },
+      // Long forest path — sprint through, no floating platforms
+      { x: 0, y: 0, w: 3200 },
     ],
     enemies: [
-      // Oni only — just slash. Spaced out so player learns combat rhythm.
+      // Oni only — spaced to teach combat rhythm. More enemies = longer fight.
       { type: "oni", x: 500, y: 0 },
       { type: "oni", x: 900, y: 0 },
       { type: "oni", x: 1300, y: 0 },
-      { type: "oni", x: 1600, y: 0 },
+      { type: "oni", x: 1700, y: 0 },
+      { type: "oni", x: 2100, y: 0 },
+      { type: "oni", x: 2500, y: 0 },
+      { type: "oni", x: 2900, y: 0 },
     ],
     shadows: [],
     playerStart: 80,
@@ -295,22 +298,26 @@ export const ROOMS = [
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
     platforms: [
-      // Forest floor
-      { x: 0, y: 0, w: 800 },
-      { x: 1000, y: 0, w: 800 },
-      // Tree branches — thick limbs, low enough to stay on screen
-      { x: 350, y: -70, w: 200 },  // branch near first ninja (ALONE — introduction)
-      { x: 1200, y: -80, w: 250 }, // branch with ninja + oni below (combination)
-      { x: 1600, y: -60, w: 200 }, // final branch
+      // Longer forest floor with gaps requiring jumps
+      { x: 0, y: 0, w: 1000 },
+      { x: 1200, y: 0, w: 1000 },
+      { x: 2400, y: 0, w: 800 },
+      // Tree branches — thick limbs at varying positions
+      { x: 400, y: -70, w: 220 },   // first ninja (ALONE — introduction)
+      { x: 1500, y: -80, w: 280 },  // oni + ninja together (combination)
+      { x: 2600, y: -70, w: 220 },  // final ninja (test what you learned)
     ],
     enemies: [
-      // FIRST: One ninja alone on a branch — isolated introduction
-      { type: "ninja", x: 420, y: -70 },
-      // THEN: Oni + ninja on SAME branch — they cover each other
-      { type: "oni", x: 1250, y: -80 },
-      { type: "ninja", x: 1350, y: -80 },
-      // Final ground enemy
-      { type: "oni", x: 1650, y: 0 },
+      // Section 1: One ninja alone on branch — isolated introduction
+      { type: "ninja", x: 480, y: -70 },
+      { type: "oni", x: 800, y: 0 },
+      // Section 2: Oni + ninja on same branch — cover each other
+      { type: "oni", x: 1550, y: -80 },
+      { type: "ninja", x: 1700, y: -80 },
+      { type: "oni", x: 1900, y: 0 },
+      // Section 3: Final test — ninja on branch, oni below
+      { type: "ninja", x: 2680, y: -70 },
+      { type: "oni", x: 2800, y: 0 },
     ],
     shadows: [],
     playerStart: 60,
