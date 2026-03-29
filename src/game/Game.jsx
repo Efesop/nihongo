@@ -86,7 +86,8 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
     }
     loadRoom(g, startRoom);
     // Debug: skip story trigger when jumping to a specific room via ?room=N
-    if (_dr) { g.story = null; g.gameState = "playing"; }
+    // Debug: skip ALL story/title-card + god mode for ?room=N
+    if (_dr) { g.story = null; g.gameState = "playing"; g._storyTriggers = {}; g._godModeActive = true; }
     return g;
   }, []);
 

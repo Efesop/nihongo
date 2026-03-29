@@ -87,6 +87,7 @@ export function loadRoom(g, roomIndex) {
   }
   g.levelW = Math.max(...g.platforms.map(p => p.x + p.w));
   g.player = makePlayer(g.groundY, room.playerStart || 100);
+  g.player.invincible = 2000; // 2 second spawn protection
   g.particles = [];
   g.slashEffects = [];
   g.projectiles = [];
@@ -263,7 +264,7 @@ export function update(g, callbacks) {
     g.slowMo.meter = g.slowMo.max;
   }
   // God mode: prevent player death
-  if (g._godModeActive && g.player) { g.player.dead = false; }
+  if (g._godModeActive && g.player) { g.player.dead = false; g.player.invincible = 999; }
 
   const isDeath = g.player && g.player.dead;
   const isKillCam = g.roomState === "lastKillCam";

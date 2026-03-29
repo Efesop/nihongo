@@ -265,30 +265,39 @@ export const ROOMS = [
     theme: "forest",
     background: "room_forest_05",
     platforms: [
-      // GROUND FLOOR — stone floor (adjusted to match visual ground in bg)
-      { x: 0, y: 0, w: 880 },
-      // MID BRIDGE — broken stone beam, center (lowered to match visual)
-      { x: 260, y: -105, w: 340 },
-      // UPPER LEFT — stone ledge from left wall
-      { x: 20, y: -195, w: 190 },
-      // UPPER RIGHT — wooden platform/balcony
-      { x: 670, y: -200, w: 230 },
+      // Collision positions calculated from image pixel analysis:
+      // Ground visual at 76% from top → offset -14 from groundY
+      { x: 0, y: -14, w: 920 },
+      // Bridge visual at 48% from top → offset -217, spans 28%-65% width
+      { x: 285, y: -217, w: 376 },
+      // Upper left visual at 26% from top → offset -375, spans 2%-22% width
+      { x: 20, y: -375, w: 203 },
+      // Upper right visual at 22% from top → offset -404, spans 70%-98% width
+      { x: 711, y: -404, w: 284 },
     ],
     enemies: [
-      // Ground floor: 2 oni patrol (handle first)
-      { type: "oni", x: 200, y: 0 },
-      { type: "oni", x: 700, y: 0 },
-      // Mid bridge: 1 oni guards the route up
-      { type: "oni", x: 420, y: -120 },
-      // Upper left: 1 oni (reached via mid bridge jump)
-      { type: "oni", x: 100, y: -210 },
-      // Upper right: ninja throws shurikens DOWN at ground (the tactical problem)
-      { type: "ninja", x: 780, y: -220 },
+      // Ground floor: 3 oni patrol (y matches ground platform at -14)
+      { type: "oni", x: 250, y: -14 },
+      { type: "oni", x: 500, y: -14 },
+      { type: "oni", x: 750, y: -14 },
+      // Mid bridge: 1 oni (y matches bridge at -217)
+      { type: "oni", x: 450, y: -217 },
+      // Upper left: 1 oni (y matches ledge at -375)
+      { type: "oni", x: 120, y: -375 },
+      // Upper right: ninja (y matches platform at -404)
+      { type: "ninja", x: 800, y: -404 },
+      // Ground right: ninja crossfire
+      { type: "ninja", x: 860, y: -14 },
     ],
     shadows: [],
-    playerStart: 50,
+    playerStart: 250,
     deco: [],
-    breakables: [],
+    breakables: [
+      // Throwable pots near enemies — environmental kills possible
+      { type: "pot", x: 350, y: -14, w: 25, h: 30, hp: 1 },
+      { type: "lantern", x: 650, y: -14, w: 28, h: 36 },
+      { type: "pot", x: 80, y: -375, w: 25, h: 30, hp: 1 },
+    ],
   },
 
   // ── Room 6: "天空 Sky Path" — NINJA INTRODUCTION ──

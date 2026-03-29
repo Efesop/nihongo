@@ -33,6 +33,8 @@ const PLAYER_CORE = [
   gs("cutscene_shoji_blood"), gs("cutscene_sensei_arm"), gs("bg_dojo_night_blood"), gs("bg_dojo_night_shadows"),
   gs("cutscene_escape"), gs("cutscene_sensei_final"),
   gs("cutscene_arm_mark"), gs("cutscene_shoji_shattered"), gs("cutscene_hunters_approach"),
+  // Room scene backgrounds (single-screen rooms — must load early)
+  gs("room_forest_05"),
   // Title card art (dark anime style — chapter intros)
   gs("titlecard_dojo"), gs("titlecard_turning"), gs("titlecard_forest"),
   gs("titlecard_encounter"), gs("titlecard_edo"), gs("titlecard_neon"),
