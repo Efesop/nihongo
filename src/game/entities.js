@@ -132,7 +132,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   }
 
   const dx = player.x - e.x;
-  const dist = Math.abs(dx);
+  const dy = player.y - e.y;
+  const dist = Math.sqrt(dx * dx + dy * dy); // true 2D distance (not just horizontal)
   const toPlayer = dx > 0 ? 1 : -1;
 
   // ── Stealth detection system ──

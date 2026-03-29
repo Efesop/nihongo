@@ -43,11 +43,26 @@ export function loadRoom(g, roomIndex) {
   preloadZone(theme);
   // Set ambient theme (no rain in dojo)
   setAmbientTheme(theme === "dojo" ? "dojo" : (roomIndex >= 15 ? "temple" : "forest"));
-  g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }), ...(p.ceiling && { ceiling: true }), ...(p.oneWay && { oneWay: true }), ...(p.stair && { stair: true }) }));
+  // Rooms with background images use PERCENTAGE coordinates (0-1) that scale with viewport
+  // Regular rooms use absolute pixel offsets from groundY
+  if (room.background && room.platforms[0]?.pct) {
+    g.platforms = room.platforms.map(p => ({
+      x: p.x * g.W, y: p.y * g.H, w: p.w * g.W, h: p.h ? p.h * g.H : 16,
+      ...(p.wall && { wall: true }), ...(p.ceiling && { ceiling: true }),
+      ...(p.oneWay && { oneWay: true }), ...(p.stair && { stair: true }),
+      _pct: true, // flag for debug export
+    }));
+  } else {
+    g.platforms = room.platforms.map(p => ({ x: p.x, y: g.groundY + p.y, w: p.w, h: p.h || 16, ...(p.wall && { wall: true }), ...(p.ceiling && { ceiling: true }), ...(p.oneWay && { oneWay: true }), ...(p.stair && { stair: true }) }));
+  }
   // Doors — paired portals that player walks through
   g.doors = (room.doors || []).map(d => ({ ...d, y: g.groundY + (d.y || 0), open: false, openTimer: 0 }));
   g.doorTransition = null;
-  g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive, shielded: e.shielded }));
+  if (room.background && room.platforms[0]?.pct) {
+    g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x * g.W, e.y * g.H, { passive: e.passive, shielded: e.shielded }));
+  } else {
+    g.enemies = room.enemies.map(e => makeEnemy(e.type, e.x, g.groundY + (e.y || 0), { passive: e.passive, shielded: e.shielded }));
+  }
   g.decorations = (room.deco || []).map(d => ({ type: d.type, x: d.x, y: g.groundY }));
   g.shadows = (room.shadows || []).map(s => ({ x: s.x, w: s.w, y: g.groundY }));
   // NPCs — friendly characters for in-world story encounters

@@ -20,11 +20,17 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "F3") { inp._skipRoom = true; e.preventDefault(); }
     if (e.code === "F4") { inp._godMode = true; e.preventDefault(); }
     if (e.code === "F5") { inp._fillMeter = true; e.preventDefault(); }
-    // Export platform data in debug mode
+    // Export platform data in debug mode — outputs percentage coords for bg rooms
     if (e.code === "KeyE" && gameRef.current?._debugCollision) {
       const g = gameRef.current;
-      const json = g.platforms.map((p, i) => `      { x: ${Math.round(p.x)}, y: ${Math.round(p.y - g.groundY)}, w: ${Math.round(p.w)}${p.h > 16 ? ', h: '+Math.round(p.h) : ''}${p.wall ? ', wall: true' : ''} },`).join('\n');
-      console.log('═══ PLATFORM DATA (paste into levels.js) ═══\n    platforms: [\n' + json + '\n    ],');
+      const isPct = g.platforms[0]?._pct;
+      const json = g.platforms.map((p, i) => {
+        if (isPct) {
+          return `      { x: ${(p.x/g.W).toFixed(3)}, y: ${(p.y/g.H).toFixed(3)}, w: ${(p.w/g.W).toFixed(3)}, pct: true },`;
+        }
+        return `      { x: ${Math.round(p.x)}, y: ${Math.round(p.y - g.groundY)}, w: ${Math.round(p.w)} },`;
+      }).join('\n');
+      console.log('═══ PLATFORM DATA ═══\n    platforms: [\n' + json + '\n    ],');
       e.preventDefault();
     }
     // Story mode inputs (story overlay OR in-world NPC dialogue)

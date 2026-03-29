@@ -265,29 +265,25 @@ export const ROOMS = [
     theme: "forest",
     background: "room_forest_05",
     platforms: [
-      // Collision positions calculated from image pixel analysis:
-      // Ground visual at 76% from top → offset -14 from groundY
-      { x: 0, y: -14, w: 920 },
-      // Bridge visual at 48% from top → offset -217, spans 28%-65% width
-      { x: 285, y: -217, w: 376 },
-      // Upper left visual at 26% from top → offset -375, spans 2%-22% width
-      { x: 20, y: -375, w: 203 },
-      // Upper right visual at 22% from top → offset -404, spans 70%-98% width
-      { x: 711, y: -404, w: 284 },
+      // PERCENTAGE coords (pct:true) — scale with viewport. User-positioned via editor.
+      { x: 0.05, y: 0.85, w: 0.91, pct: true },    // ground floor
+      { x: 0.32, y: 0.48, w: 0.39, pct: true },     // mid bridge
+      { x: 0.05, y: 0.26, w: 0.24, pct: true },     // upper left ledge
+      { x: 0.68, y: 0.24, w: 0.28, pct: true },     // upper right platform
     ],
     enemies: [
-      // Ground floor: 3 oni patrol (y matches ground platform at -14)
-      { type: "oni", x: 250, y: -14 },
-      { type: "oni", x: 500, y: -14 },
-      { type: "oni", x: 750, y: -14 },
-      // Mid bridge: 1 oni (y matches bridge at -217)
-      { type: "oni", x: 450, y: -217 },
-      // Upper left: 1 oni (y matches ledge at -375)
-      { type: "oni", x: 120, y: -375 },
-      // Upper right: ninja (y matches platform at -404)
-      { type: "ninja", x: 800, y: -404 },
+      // Ground: 3 oni + 1 ninja (pct coords for bg rooms)
+      { type: "oni", x: 0.25, y: 0.79 },
+      { type: "oni", x: 0.50, y: 0.79 },
+      { type: "oni", x: 0.75, y: 0.79 },
+      // Bridge: 1 oni
+      { type: "oni", x: 0.45, y: 0.42 },
+      // Upper left: 1 oni
+      { type: "oni", x: 0.12, y: 0.20 },
+      // Upper right: ninja throws down
+      { type: "ninja", x: 0.80, y: 0.18 },
       // Ground right: ninja crossfire
-      { type: "ninja", x: 860, y: -14 },
+      { type: "ninja", x: 0.86, y: 0.79 },
     ],
     shadows: [],
     playerStart: 250,
