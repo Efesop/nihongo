@@ -584,22 +584,7 @@ export function update(g, callbacks) {
       spawnDust(g, p.x, p.y + TILE * SCALE);
       playSound("jump");
     } else if (p._wallRunning) {
-      // Cancel wall run → regular wall jump (auto-backflip happens if they DON'T press jump)
-      p._wallRunning = false;
-      p._wallRunCooldown = 300;
-      p.vy = JUMP_FORCE * 0.9;
-      p.vx = -p.wallDir * MOVE_SPEED * 1.6;
-      p.facing = -p.wallDir;
-      p.wallSliding = false;
-      p.wallJumpCooldown = 200;
-      playSound("wall_launch");
-      for (let i = 0; i < 4; i++) {
-        g.particles.push({
-          x: p.x + p.wallDir * 15, y: p.y + rnd(10, TILE * SCALE - 10),
-          vx: -p.wallDir * rnd(30, 80), vy: rnd(-50, 50),
-          life: 200, maxLife: 200, color: "#888888", size: rndInt(1, 3),
-        });
-      }
+      // Committed to wall run → backflip, ignore jump input
     } else if (p.wallSliding) {
       // Wall jump — launch away, track which wall we left
       p.vy = JUMP_FORCE * 0.9;
@@ -1335,11 +1320,10 @@ export function update(g, callbacks) {
       }
     }
   }
-  // ═══ WALL RUN — hold direction toward wall while sliding to run UP ═══
-  // Hold toward wall = wall run (short burst up → auto-backflip with slow-mo)
-  // Tap jump while sliding = simple wall jump (no run, no backflip)
-  const holdingTowardWall = (p.wallDir === 1 && g.input.right) || (p.wallDir === -1 && g.input.left);
-  if (p.wallSliding && holdingTowardWall && !p._wallRunning && !p._wallRunCooldown) {
+  // ═══ WALL RUN — jump at wall while holding UP to run up → auto-backflip ═══
+  // Must be FIRST wall contact (not already sliding) + holding Up/W/Space
+  // If you hit wall without holding Up, you just wall slide normally
+  if (p.wallSliding && !wasWallSliding && g.input.up && !p._wallRunning && !p._wallRunCooldown) {
     p._wallRunning = true;
     p._wallRunTimer = 0;
   }
