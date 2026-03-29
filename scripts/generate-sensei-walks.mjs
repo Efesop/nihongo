@@ -22,9 +22,9 @@ const REF = { inlineData: { mimeType: 'image/png', data: refData } };
 
 const SPRITES = [
   ['story_sensei_walk1',
-    'Generate a new sprite of this EXACT same character taking a STEP with his LEFT LEG FORWARD and RIGHT LEG BEHIND. This is a mid-stride walking pose. His left foot should be clearly in FRONT of his body and his right foot clearly BEHIND. He is walking calmly. Same calm facial expression — mouth CLOSED. Staff in same hand. CRITICAL: The leg positions must be CLEARLY VISIBLE and DIFFERENT from a standing pose. Same cone straw hat, white beard, gray robes, wooden staff, same chibi pixel art style. Gray #808080 background. Facing left.'],
+    `Edit this EXACT image to show the character mid-step. ONLY change his legs: move his LEFT LEG forward and RIGHT LEG back in a walking stride. Keep EVERYTHING else pixel-perfect identical — same cone straw hat, same white beard, same dark gray robes, same wooden staff in same hand, same calm closed-mouth face, same colors, same art style, same proportions, same background color. The ONLY change is leg positions showing a walking stride. Gray #808080 background. Facing left.`],
   ['story_sensei_walk2',
-    'Generate a new sprite of this EXACT same character taking a STEP with his RIGHT LEG FORWARD and LEFT LEG BEHIND. This is the OPPOSITE stride from walk1. His right foot should be clearly in FRONT of his body and his left foot clearly BEHIND. He is walking calmly. Same calm facial expression — mouth CLOSED. Staff in same hand. CRITICAL: The leg positions must be CLEARLY VISIBLE and OPPOSITE to the other walk frame. Same cone straw hat, white beard, gray robes, wooden staff, same chibi pixel art style. Gray #808080 background. Facing left.'],
+    `Edit this EXACT image to show the character mid-step in the OPPOSITE stride. ONLY change his legs: move his RIGHT LEG forward and LEFT LEG back. Keep EVERYTHING else pixel-perfect identical — same cone straw hat, same white beard, same dark gray robes, same wooden staff in same hand, same calm closed-mouth face, same colors, same art style, same proportions, same background color. The ONLY change is leg positions showing the opposite walking stride from walk1. Gray #808080 background. Facing left.`],
 ];
 
 async function generateSprite(filename, prompt) {
@@ -32,7 +32,7 @@ async function generateSprite(filename, prompt) {
   process.stdout.write(`  ${filename}: generating...`);
 
   const parts = [
-    { text: 'Here is the IDLE pose of this character. Generate a WALKING version of this SAME character. He must look IDENTICAL — same hat, beard, robes, staff, art style. The ONLY difference is the walking leg position. Keep his face CALM and RELAXED (mouth closed, no shock or alarm):' },
+    { text: 'Here is a chibi pixel art character. I need you to create a WALKING version. You MUST keep the character looking EXACTLY the same — same hat, beard, robes, staff, face, colors, proportions, pixel art style. Do NOT change the art style or colors. The ONLY thing that changes is the leg position:' },
     REF,
     { text: prompt },
   ];

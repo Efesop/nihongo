@@ -1452,8 +1452,9 @@ const CROPS = {
   parry:         { ...F, R: false },
   land_heavy:    { ...F, R: false },
   slash_through: { ...F, R: true },
-  wall_run:      { ...F, R: false },
-  wall_run2:     { ...F, R: false },
+  wall_climb1:   { ...F, R: false },
+  wall_climb2:   { ...F, R: false },
+  wall_pushoff:  { ...F, R: false },
   backflip:      { ...F, R: false },
 };
 
@@ -1525,13 +1526,15 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
-  // Wall run — alternate between two wall run sprites
+  // Wall run — climb sprites facing INTO the wall
   if (p.state === "wall_run") {
-    const runFrame = (p._wallRunTimer || 0) > 100 ? "wall_run" : "wall_run2";
-    const img = getImage(runFrame) || getImage("wall_cling") || getImage("wallslide");
+    // Alternate climb frames every 100ms for running-up-wall animation
+    const climbFrame = Math.floor((p._wallRunTimer || 0) / 100) % 2 === 0 ? "wall_climb1" : "wall_climb2";
+    const img = getImage(climbFrame) || getImage("wall_cling") || getImage("wallslide");
     if (img) {
-      const crop = CROPS[runFrame] || CROPS.wallslide;
-      const wallFacing = -p.wallDir;
+      const crop = CROPS[climbFrame] || CROPS.wallslide;
+      // Face INTO the wall (not away) — wallDir points toward wall
+      const wallFacing = p.wallDir;
       if (crop.R ? (wallFacing < 0) : (wallFacing > 0)) ctx.scale(-1, 1);
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
       ctx.restore();
@@ -1539,14 +1542,23 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
-  // Backflip — use dedicated backflip sprite with rotation
+  // Backflip — push-off then spinning flip
   if (p.state === "backflip") {
     const flipProgress = 1 - (p._backflipTimer || 0) / 500; // 0→1
-    const rotation = flipProgress * Math.PI * 2 * p.facing; // full 360 spin
-    ctx.rotate(rotation);
-    const img = getImage("backflip") || getImage("jump2") || getImage("jump1");
-    const cropKey = getImage("backflip") ? "backflip" : "jump2";
-    if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
+    if (flipProgress < 0.2) {
+      // Push-off phase — use wall_pushoff sprite, no rotation yet
+      const img = getImage("wall_pushoff") || getImage("jump2") || getImage("jump1");
+      const cropKey = getImage("wall_pushoff") ? "wall_pushoff" : "jump2";
+      if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
+    } else {
+      // Flip phase — spinning backflip
+      const spinProgress = (flipProgress - 0.2) / 0.8; // 0→1 within flip phase
+      const rotation = spinProgress * Math.PI * 2 * p.facing;
+      ctx.rotate(rotation);
+      const img = getImage("backflip") || getImage("jump2") || getImage("jump1");
+      const cropKey = getImage("backflip") ? "backflip" : "jump2";
+      if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
+    }
   }
 
   if (p.state === "dash") {

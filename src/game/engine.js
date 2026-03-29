@@ -487,9 +487,13 @@ export function update(g, callbacks) {
   const moveDir = (g.input.left ? -1 : 0) + (g.input.right ? 1 : 0);
 
   // Wall run — press Dash while wall sliding → run up → auto-backflip
-  if (g.input.dashPressed && p.wallSliding && !p._wallRunning && !p._wallRunCooldown) {
+  // Grace buffer: if dash was pressed within 200ms and player is now wall sliding, trigger wall run
+  if (g.input.dashPressed) p._dashPressTime = g.time.elapsed;
+  const dashRecent = (g.time.elapsed - (p._dashPressTime || 0)) < 0.2;
+  if ((g.input.dashPressed || dashRecent) && p.wallSliding && !p._wallRunning && !p._wallRunCooldown) {
     p._wallRunning = true;
     p._wallRunTimer = 0;
+    p._dashPressTime = 0; // consume the grace buffer
     g.input.dashPressed = false; // consume so normal dash doesn't fire
     playSound("wall_grab", { playbackRate: 1.3 });
   }
@@ -1329,9 +1333,10 @@ export function update(g, callbacks) {
   // Wall run cooldown — prevent re-triggering immediately after a backflip
   if (p._wallRunning) {
     p._wallRunTimer += rawDt * 1000;
-    // Short wall run — 200ms burst upward, then auto-backflip
-    if (p._wallRunTimer < 200 && p.wallSliding) {
-      p.vy = -280; // moderate upward speed (not too high)
+    // Wall run — 350ms burst upward, then auto-backflip
+    if (p._wallRunTimer < 350 && p.wallSliding) {
+      p.vy = -260; // steady upward speed
+      p.facing = p.wallDir; // face INTO the wall during climb
       // Wall run particles — footstep dust on wall
       if (Math.random() < dt * 15) {
         g.particles.push({
@@ -1340,7 +1345,7 @@ export function update(g, callbacks) {
           life: 200, maxLife: 200, color: "#aa9977", size: rndInt(1, 3),
         });
       }
-    } else if (p.wallSliding || p._wallRunTimer >= 200) {
+    } else if (p.wallSliding || p._wallRunTimer >= 350) {
       // Auto-backflip — no jump press needed
       p._wallRunning = false;
       p._wallRunCooldown = 500; // prevent immediate re-trigger
@@ -1367,7 +1372,9 @@ export function update(g, callbacks) {
       }
     }
   }
-  if (!p.wallSliding && p._wallRunning) p._wallRunning = false;
+  // Cancel wall run only if lost wall contact AND timer isn't within the run window
+  // (small grace: wall contact can briefly flicker during upward movement)
+  if (!p.wallSliding && p._wallRunning && p._wallRunTimer > 80) p._wallRunning = false;
   // Wall run cooldown decay
   if (p._wallRunCooldown > 0) p._wallRunCooldown -= rawDt * 1000;
   // Backflip slow-mo decay

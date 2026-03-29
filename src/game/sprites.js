@@ -70,7 +70,8 @@ const PLAYER_CORE = [
   ps("death1", "/images/tinysenpai/death/hit.png"), ps("death2", "/images/tinysenpai/death/fallen.png"),
   ps("wall_cling", "/images/tinysenpai/wall-cling.png"), ps("parry", "/images/tinysenpai/parry.png"),
   ps("land_heavy", "/images/tinysenpai/land-heavy.png"), ps("slash_through", "/images/tinysenpai/slash-through.png"),
-  ps("wall_run", "/images/tinysenpai/wall-run.png"), ps("wall_run2", "/images/tinysenpai/wall-run2.png"),
+  ps("wall_climb1", "/images/tinysenpai/wall-climb1.png"), ps("wall_climb2", "/images/tinysenpai/wall-climb2.png"),
+  ps("wall_pushoff", "/images/tinysenpai/wall-run2.png"),
   ps("backflip", "/images/tinysenpai/backflip.png"),
 ];
 
