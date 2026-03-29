@@ -228,6 +228,9 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   e.frameTimer += dt * 1000;
   if (e.frameTimer > 250) { e.frame = (e.frame + 1) % 2; e.frameTimer = 0; }
 
+  // Spawn delay — enemies don't detect player for first 1.5 seconds
+  if (e._spawnDelay > 0) { e._spawnDelay -= dt * 1000; return; }
+
   // Block timer
   if (e.blockTimer > 0) {
     e.blockTimer -= dt * 1000;

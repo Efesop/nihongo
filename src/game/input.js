@@ -20,6 +20,13 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "F3") { inp._skipRoom = true; e.preventDefault(); }
     if (e.code === "F4") { inp._godMode = true; e.preventDefault(); }
     if (e.code === "F5") { inp._fillMeter = true; e.preventDefault(); }
+    // Export platform data in debug mode
+    if (e.code === "KeyE" && gameRef.current?._debugCollision) {
+      const g = gameRef.current;
+      const json = g.platforms.map((p, i) => `      { x: ${Math.round(p.x)}, y: ${Math.round(p.y - g.groundY)}, w: ${Math.round(p.w)}${p.h > 16 ? ', h: '+Math.round(p.h) : ''}${p.wall ? ', wall: true' : ''} },`).join('\n');
+      console.log('═══ PLATFORM DATA (paste into levels.js) ═══\n    platforms: [\n' + json + '\n    ],');
+      e.preventDefault();
+    }
     // Story mode inputs (story overlay OR in-world NPC dialogue)
     const inStory = gameRef.current?.gameState === "story";
     const inDialogue = !!gameRef.current?.activeDialogue;
@@ -49,12 +56,72 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "KeyL" || e.code === "KeyC") inp.dash = false;
   };
 
+  // ═══ COLLISION EDITOR — mouse drag/resize platforms in debug mode (F2) ═══
+  const onMouseDown = (e) => {
+    const g = gameRef.current;
+    if (!g || !g._debugCollision) return;
+    const rect = e.target.getBoundingClientRect();
+    const mx = e.clientX - rect.left + (g.camera?.x || 0);
+    const my = e.clientY - rect.top + (g.camera?.y || 0);
+    // Find which platform was clicked
+    for (let i = 0; i < g.platforms.length; i++) {
+      const p = g.platforms[i];
+      const ph = p.h || 16;
+      if (mx >= p.x && mx <= p.x + p.w && my >= p.y && my <= p.y + ph) {
+        // Check if clicking near right edge (resize) or body (move)
+        const nearRight = mx > p.x + p.w - 15;
+        g._editPlatform = { index: i, mode: nearRight ? 'resize' : 'move', startMX: mx, startMY: my, origX: p.x, origY: p.y, origW: p.w };
+        e.preventDefault();
+        return;
+      }
+    }
+    // Click on empty space: deselect
+    g._editPlatform = null;
+  };
+  const onMouseMove = (e) => {
+    const g = gameRef.current;
+    if (!g || !g._editPlatform) return;
+    const rect = e.target.getBoundingClientRect();
+    const mx = e.clientX - rect.left + (g.camera?.x || 0);
+    const my = e.clientY - rect.top + (g.camera?.y || 0);
+    const ep = g._editPlatform;
+    const p = g.platforms[ep.index];
+    if (ep.mode === 'move') {
+      p.x = ep.origX + (mx - ep.startMX);
+      p.y = ep.origY + (my - ep.startMY);
+    } else if (ep.mode === 'resize') {
+      p.w = Math.max(30, ep.origW + (mx - ep.startMX));
+    }
+  };
+  const onMouseUp = (e) => {
+    const g = gameRef.current;
+    if (!g) return;
+    if (g._editPlatform) {
+      // Log updated platform data on release
+      const p = g.platforms[g._editPlatform.index];
+      console.log(`Platform ${g._editPlatform.index}: { x: ${Math.round(p.x)}, y: ${Math.round(p.y - g.groundY)}, w: ${Math.round(p.w)} }`);
+    }
+    if (g._editPlatform) g._editPlatform = null;
+  };
+
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
+  // Mouse events on canvas for collision editor
+  const canvas = document.querySelector('canvas');
+  if (canvas) {
+    canvas.addEventListener("mousedown", onMouseDown);
+    canvas.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("mouseup", onMouseUp);
+  }
 
   return () => {
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
+    if (canvas) {
+      canvas.removeEventListener("mousedown", onMouseDown);
+      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseup", onMouseUp);
+    }
   };
 }
 

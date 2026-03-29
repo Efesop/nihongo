@@ -192,14 +192,25 @@ export function render(g, ctx, isDesktop, font) {
   const platPal = getTheme(g);
   for (const plat of g.platforms) {
     if (hasRoomBg && !g._debugCollision) continue; // invisible — bg shows platforms
-    // Debug mode: draw semi-transparent collision zones
+    // Debug mode: interactive collision editor
     if (hasRoomBg && g._debugCollision) {
-      ctx.fillStyle = plat.wall ? "rgba(255,100,100,0.3)" : "rgba(100,255,100,0.3)";
-      ctx.fillRect(plat.x, plat.y, plat.w, plat.h || 16);
-      ctx.strokeStyle = plat.wall ? "#ff4444" : "#44ff44";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(plat.x, plat.y, plat.w, plat.h || 16);
-      continue; // skip normal platform rendering
+      const isSelected = g._editPlatform && g._editPlatform.index === g.platforms.indexOf(plat);
+      const ph = plat.h || 16;
+      // Fill
+      ctx.fillStyle = isSelected ? "rgba(255,255,100,0.4)" : (plat.wall ? "rgba(255,100,100,0.3)" : "rgba(100,255,100,0.3)");
+      ctx.fillRect(plat.x, plat.y, plat.w, ph);
+      // Border
+      ctx.strokeStyle = isSelected ? "#ffff44" : (plat.wall ? "#ff4444" : "#44ff44");
+      ctx.lineWidth = isSelected ? 2 : 1;
+      ctx.strokeRect(plat.x, plat.y, plat.w, ph);
+      // Resize handle (right edge)
+      ctx.fillStyle = isSelected ? "#ffff00" : "#44ff4488";
+      ctx.fillRect(plat.x + plat.w - 8, plat.y, 8, ph);
+      // Label: platform index + position
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "9px monospace";
+      ctx.fillText(`${g.platforms.indexOf(plat)}: y=${Math.round(plat.y - g.groundY)} w=${Math.round(plat.w)}`, plat.x + 4, plat.y + 12);
+      continue;
     }
     if (plat.x + (plat.w || 0) < cx - 50 || plat.x > cx + W + 50) continue;
     const bgK = (roomData && roomData.theme === "dojo") ? "bg_dojo" : "bg_forest";

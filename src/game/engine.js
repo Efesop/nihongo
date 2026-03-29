@@ -88,6 +88,8 @@ export function loadRoom(g, roomIndex) {
   g.levelW = Math.max(...g.platforms.map(p => p.x + p.w));
   g.player = makePlayer(g.groundY, room.playerStart || 100);
   g.player.invincible = 2000; // 2 second spawn protection
+  // Brief delay before enemies can detect player (gives time to assess the room)
+  for (const e of g.enemies) { e._spawnDelay = 1500; }
   g.particles = [];
   g.slashEffects = [];
   g.projectiles = [];
