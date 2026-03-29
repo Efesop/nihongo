@@ -1705,7 +1705,7 @@ const ENEMY_SPRITE_MAP = {
   },
   ninja: {
     idle:    { key: "ninja_idle", R: false },
-    patrol:  { frames: [{ key: "ninja_walk1", R: false }, { key: "ninja_walk2", R: true }] },
+    patrol:  { frames: ["ninja_walk1", "ninja_walk2"], R: false },
     chase:   { key: "ninja_idle", R: false },
     alert:   { key: "ninja_alert", R: false },
     throw:   { key: "ninja_throw", R: false },
