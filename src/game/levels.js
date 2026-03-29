@@ -270,6 +270,9 @@ export const ROOMS = [
       { x: 0.321, y: 0.509, w: 0.390, pct: true },   // mid bridge
       { x: 0.050, y: 0.281, w: 0.240, pct: true },   // upper left ledge
       { x: 0.682, y: 0.280, w: 0.280, pct: true },   // upper right platform
+      // Invisible walls — stop player walking into background stone walls
+      { x: 0.000, y: 0.000, w: 0.050, h: 1.0, wall: true, pct: true },  // left wall
+      { x: 0.937, y: 0.000, w: 0.063, h: 1.0, wall: true, pct: true },  // right wall
     ],
     enemies: [
       // Ground: 2 oni spaced apart + 1 ninja on right

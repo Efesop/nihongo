@@ -90,11 +90,18 @@ export function updateStory(g, rawDt, callbacks) {
 
   // ═══ ALWAYS UPDATE EFFECTS (before any early returns) ═══
   // Stage blocking — continue movement even while other lines play
+  // Walks play at their own pace — dialogue skipping doesn't rush them
   if (s._charMove) {
     s._charMove.timer += rawDt;
     const moveT = Math.min(1, s._charMove.timer / s._charMove.duration);
     const easeT = moveT * (2 - moveT);
     s[`_charPosX_${s._charMove.side}`] = s._charMove.startX + (s._charMove.targetX - s._charMove.startX) * easeT;
+    // Footstep sounds during walk
+    s._charMove._stepTimer = (s._charMove._stepTimer || 0) + rawDt;
+    if (s._charMove._stepTimer > 0.32) {
+      s._charMove._stepTimer = 0;
+      try { const a = new Audio("/audio/game/footstep.mp3"); a.volume = 0.15; a.play().catch(() => {}); } catch {}
+    }
     if (moveT >= 1) s._charMove = null; // arrived
   }
   // Flash, overlay, centerImage must fade even during beat processing
@@ -199,7 +206,7 @@ export function updateStory(g, rawDt, callbacks) {
         startX: currentX,
         targetX: line.toX * g.W,
         timer: 0,
-        duration: line.duration || 1.0,
+        duration: line.duration || 2.5, // slow walks build tension
       };
     } else if (line.type === "characterExit") {
       // Animate a character running off screen
@@ -687,10 +694,9 @@ export function renderStoryScene(ctx, g, W, H, font) {
   const groundLevel = scene.groundLevel || 0.78; // match background floor level
   const floorY = Math.min(H * groundLevel, panelY - 5); // feet on background floor, above panel
   const charH = Math.min(110, H * 0.17); // proportional to backgrounds
-  // Subtle breathing/idle movement — characters feel alive
-  const elapsed = Date.now() * 0.001;
-  const breatheL = Math.sin(elapsed * 1.8) * 1.2; // gentle up/down for left character
-  const breatheR = Math.sin(elapsed * 1.5 + 1) * 1.2; // offset phase for right character
+  // No breathing bob — characters stand perfectly still
+  const breatheL = 0;
+  const breatheR = 0;
 
   // Determine who's in this scene
   // Hide characters during cutscene-only backgrounds (approaching shadows, blood on doors, etc.)
