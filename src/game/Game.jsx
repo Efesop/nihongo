@@ -15,9 +15,10 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const canvasRef = useRef(null);
   const gameRef = useRef(null);
   const rafRef = useRef(null);
-  const startRoomRef = useRef(0); // which room to start from (for continue)
-  const resumeFromStoryRef = useRef(false); // survives StrictMode double-mount
-  const [screen, setScreen] = useState("menu");
+  const _dr = new URLSearchParams(window.location.search).get('room');
+  const startRoomRef = useRef(_dr ? parseInt(_dr) : 0);
+  const resumeFromStoryRef = useRef(false);
+  const [screen, setScreen] = useState(_dr ? "playing" : "menu");
   const [hasSave, setHasSave] = useState(() => !!loadSave());
   const [score, setScore] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
@@ -52,7 +53,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       score: 0, combo: 0, comboTimer: 0, maxCombo: 0,
       hitStop: 0, flashTimer: 0, cleared: false,
       // Room system
-      currentRoom: 0, roomTimer: 0, roomStars: [],
+      currentRoom: _dr ? parseInt(_dr) : 0, roomTimer: 0, roomStars: [],
       deaths: 0, totalTime: 0,
       roomState: "playing",
       roomClearTimer: 0,
@@ -84,6 +85,8 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       g.totalTime = save.totalTime || 0;
     }
     loadRoom(g, startRoom);
+    // Debug: skip story trigger when jumping to a specific room via ?room=N
+    if (_dr) { g.story = null; g.gameState = "playing"; }
     return g;
   }, []);
 

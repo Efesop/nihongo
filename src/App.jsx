@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useUser, useAuth, useClerk, SignIn, SignUp } from "@clerk/clerk-react";
+import { useUser as _useUser, useAuth as _useAuth, useClerk as _useClerk, SignIn, SignUp } from "@clerk/clerk-react";
+
+// Dev mode: mock Clerk hooks on localhost so game loads without auth
+const isLocalDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const mockUser = { id: "dev_user", firstName: "Dev", fullName: "Dev User", imageUrl: "" };
+const useUser = isLocalDev ? () => ({ user: mockUser, isLoaded: true }) : _useUser;
+const useAuth = isLocalDev ? () => ({ getToken: async () => "dev_token" }) : _useAuth;
+const useClerk = isLocalDev ? () => ({ signOut: () => {} }) : _useClerk;
 import Game from "./game/Game.jsx";
 import SmartSession from "./components/SmartSession.jsx";
 
@@ -65,7 +72,9 @@ export default function App(){
 
 function AuthedApp({ user, getToken }){
   const { signOut } = useClerk();
-  const [tab,setTab]=useState("kana");
+  // ?room=N auto-opens game tab at that room
+  const _debugRoom = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('room') : null;
+  const [tab,setTab]=useState(_debugRoom ? "game" : "kana");
   const [d,setD]=useState(null);
   const [loaded,setLoaded]=useState(false);
   const [theme,setTheme]=useState(()=>localStorage.getItem("nihongo-theme")||"dark");

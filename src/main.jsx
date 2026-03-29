@@ -4,6 +4,8 @@ import { ClerkProvider } from '@clerk/clerk-react'
 import App from './App.jsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+// Dev mode: if on localhost without valid Clerk key, bypass auth
+const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
 const clerkAppearance = {
   variables: {
@@ -34,11 +36,15 @@ const clerkAppearance = {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ClerkProvider
-      publishableKey={PUBLISHABLE_KEY}
-      appearance={clerkAppearance}
-    >
+    {isLocalDev ? (
       <App />
-    </ClerkProvider>
+    ) : (
+      <ClerkProvider
+        publishableKey={PUBLISHABLE_KEY}
+        appearance={clerkAppearance}
+      >
+        <App />
+      </ClerkProvider>
+    )}
   </React.StrictMode>
 )
