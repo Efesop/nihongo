@@ -286,21 +286,28 @@ export function update(g, callbacks) {
   const isDeath = g.player && g.player.dead;
   const isKillCam = g.roomState === "lastKillCam";
   if (!isDeath && !isKillCam) {
-    // Slow-mo — require 20% meter to START (prevents rapid flicker when meter depletes)
-    const wasSlowMo = g.slowMo.active;
-    const canSlowMo = g.slowMo.active ? g.slowMo.meter > 0 : g.slowMo.meter > 20;
-    if (g.input.slowmo && canSlowMo) {
+    // Backflip slow-mo — cinematic, doesn't drain meter, can't be toggled off
+    const backflipSlowMo = g.slowMo._backflipSlowMo > 0;
+    if (backflipSlowMo) {
       g.slowMo.active = true;
-      g.slowMo.meter = Math.max(0, g.slowMo.meter - 30 * rawDt); // ~3.3 sec at full
-      g.time.scale = 0.25;
-      if (g.slowMo.meter <= 0) g.slowMo.active = false;
+      g.time.scale = 0.2; // extra slow for backflip drama
     } else {
-      g.slowMo.active = false;
-      g.time.scale = 1;
-      // No passive regen — kills are the ONLY way to gain slow-mo
+      // Regular slow-mo — require 20% meter to START (prevents rapid flicker)
+      const wasSlowMo = g.slowMo.active;
+      const canSlowMo = g.slowMo.active ? g.slowMo.meter > 0 : g.slowMo.meter > 20;
+      if (g.input.slowmo && canSlowMo) {
+        g.slowMo.active = true;
+        g.slowMo.meter = Math.max(0, g.slowMo.meter - 30 * rawDt); // ~3.3 sec at full
+        g.time.scale = 0.25;
+        if (g.slowMo.meter <= 0) g.slowMo.active = false;
+      } else {
+        g.slowMo.active = false;
+        g.time.scale = 1;
+        // No passive regen — kills are the ONLY way to gain slow-mo
+      }
+      if (!wasSlowMo && g.slowMo.active) playSound("slowmoOn");
+      if (wasSlowMo && !g.slowMo.active) playSound("slowmoOff");
     }
-    if (!wasSlowMo && g.slowMo.active) playSound("slowmoOn");
-    if (wasSlowMo && !g.slowMo.active) playSound("slowmoOff");
   }
 
   const dt = rawDt * g.time.scale;
@@ -577,23 +584,20 @@ export function update(g, callbacks) {
       spawnDust(g, p.x, p.y + TILE * SCALE);
       playSound("jump");
     } else if (p._wallRunning) {
-      // BACKFLIP off wall — powerful launch with spin
+      // Cancel wall run → regular wall jump (auto-backflip happens if they DON'T press jump)
       p._wallRunning = false;
-      p._backflipping = true;
-      p._backflipTimer = 500; // 500ms backflip duration
-      p.vy = JUMP_FORCE * 1.2; // higher than normal wall-jump
-      p.vx = -p.wallDir * MOVE_SPEED * 1.3;
+      p._wallRunCooldown = 300;
+      p.vy = JUMP_FORCE * 0.9;
+      p.vx = -p.wallDir * MOVE_SPEED * 1.6;
       p.facing = -p.wallDir;
       p.wallSliding = false;
-      p.wallJumpCooldown = 300;
-      p.invincible = Math.max(p.invincible, 200); // brief i-frames during backflip
-      playSound("jump", { playbackRate: 1.3 });
-      // Backflip particles — dramatic
-      for (let i = 0; i < 8; i++) {
+      p.wallJumpCooldown = 200;
+      playSound("wall_launch");
+      for (let i = 0; i < 4; i++) {
         g.particles.push({
-          x: p.x + p.wallDir * 15, y: p.y + rnd(0, TILE * SCALE),
-          vx: -p.wallDir * rnd(50, 150), vy: rnd(-100, -30),
-          life: 300, maxLife: 300, color: i < 4 ? "#ffffff" : "#aaaaff", size: rndInt(1, 3),
+          x: p.x + p.wallDir * 15, y: p.y + rnd(10, TILE * SCALE - 10),
+          vx: -p.wallDir * rnd(30, 80), vy: rnd(-50, 50),
+          life: 200, maxLife: 200, color: "#888888", size: rndInt(1, 3),
         });
       }
     } else if (p.wallSliding) {
@@ -1332,16 +1336,18 @@ export function update(g, callbacks) {
     }
   }
   // ═══ WALL RUN — hold direction toward wall while sliding to run UP ═══
+  // Hold toward wall = wall run (short burst up → auto-backflip with slow-mo)
+  // Tap jump while sliding = simple wall jump (no run, no backflip)
   const holdingTowardWall = (p.wallDir === 1 && g.input.right) || (p.wallDir === -1 && g.input.left);
-  if (p.wallSliding && holdingTowardWall && !p._wallRunning) {
+  if (p.wallSliding && holdingTowardWall && !p._wallRunning && !p._wallRunCooldown) {
     p._wallRunning = true;
     p._wallRunTimer = 0;
   }
   if (p._wallRunning) {
     p._wallRunTimer += rawDt * 1000;
-    // Run up the wall for up to 400ms
-    if (p._wallRunTimer < 400 && p.wallSliding) {
-      p.vy = -350; // run upward
+    // Short wall run — 200ms burst upward, then auto-backflip
+    if (p._wallRunTimer < 200 && p.wallSliding) {
+      p.vy = -280; // moderate upward speed (not too high)
       // Wall run particles — footstep dust on wall
       if (Math.random() < dt * 15) {
         g.particles.push({
@@ -1350,15 +1356,49 @@ export function update(g, callbacks) {
           life: 200, maxLife: 200, color: "#aa9977", size: rndInt(1, 3),
         });
       }
-    } else {
-      // Wall run expired — auto-backflip
-      if (p.wallSliding) {
-        g.input.jumpPressed = true; // trigger the backflip jump
-      }
+    } else if (p.wallSliding || p._wallRunTimer >= 200) {
+      // Auto-backflip — no jump press needed
       p._wallRunning = false;
+      p._wallRunCooldown = 500; // prevent immediate re-trigger
+      p._backflipping = true;
+      p._backflipTimer = 500;
+      p.vy = JUMP_FORCE * 1.1;
+      p.vx = -p.wallDir * MOVE_SPEED * 1.2;
+      p.facing = -p.wallDir;
+      p.wallSliding = false;
+      p.wallJumpCooldown = 300;
+      p.invincible = Math.max(p.invincible, 200);
+      playSound("jump", { playbackRate: 1.3 });
+      // Slow-mo + zoom on backflip — cinematic
+      g.slowMo.active = true;
+      g.slowMo._backflipSlowMo = 0.4; // 400ms of slow-mo
+      g.camera._backflipZoom = 1.0; // will ease in
+      // Dramatic particles
+      for (let i = 0; i < 8; i++) {
+        g.particles.push({
+          x: p.x + p.wallDir * 15, y: p.y + rnd(0, TILE * SCALE),
+          vx: -p.wallDir * rnd(50, 150), vy: rnd(-100, -30),
+          life: 300, maxLife: 300, color: i < 4 ? "#ffffff" : "#aaaaff", size: rndInt(1, 3),
+        });
+      }
     }
   }
-  if (!p.wallSliding) p._wallRunning = false;
+  if (!p.wallSliding && p._wallRunning) p._wallRunning = false;
+  // Wall run cooldown decay
+  if (p._wallRunCooldown > 0) p._wallRunCooldown -= rawDt * 1000;
+  // Backflip slow-mo decay
+  if (g.slowMo._backflipSlowMo > 0) {
+    g.slowMo._backflipSlowMo -= rawDt;
+    if (g.slowMo._backflipSlowMo <= 0) {
+      g.slowMo.active = false;
+      g.slowMo._backflipSlowMo = 0;
+    }
+  }
+  // Backflip camera zoom ease in/out
+  if (g.camera._backflipZoom !== undefined && g.camera._backflipZoom > 0) {
+    g.camera._backflipZoom -= rawDt * 2.5; // ~400ms ease out
+    if (g.camera._backflipZoom <= 0) delete g.camera._backflipZoom;
+  }
 
   // Backflip timer — during backflip, player can attack at angle
   if (p._backflipTimer > 0) {
@@ -1912,9 +1952,14 @@ export function update(g, callbacks) {
   }
   // Zoom: lerp toward target zoom
   g.camera.zoom = lerp(g.camera.zoom, g.camera.zoomTarget, 1 - Math.pow(0.001, rawDt));
-  // Slow-mo: slight zoom out for more visibility
-  if (g.slowMo.active) g.camera.zoomTarget = 0.97;
-  else if (g.camera.zoomTarget < 1) g.camera.zoomTarget = 1;
+  // Backflip zoom — close-up on player during flip (overrides slow-mo zoom-out)
+  if (g.camera._backflipZoom > 0) {
+    g.camera.zoomTarget = 1.0 + g.camera._backflipZoom * 0.12; // up to 1.12x zoom-in
+  } else if (g.slowMo.active) {
+    g.camera.zoomTarget = 0.97; // slow-mo: slight zoom out
+  } else if (g.camera.zoomTarget !== 1) {
+    g.camera.zoomTarget = 1;
+  }
 
   if (g.camera.shakeTimer > 0) {
     g.camera.shakeTimer -= rawDt * 1000;

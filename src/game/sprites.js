@@ -19,8 +19,29 @@ function loadImg(key, src) {
   return p;
 }
 
-// Sprite spec helpers
-const gs = (key) => [key, `/images/tinysenpai/game/${key}.png`];
+// Sprite spec helpers — routes keys to organized subfolders
+const SUBFOLDER = {
+  bg_: "backgrounds", cutscene_: "cutscenes", portrait_: "portraits",
+  titlecard_: "titlecards", room_: "rooms",
+  tile_: "tiles", platform_: "tiles", wall_: "tiles",
+  story_sensei_: "story/sensei", story_player_: "story/player",
+  story_shadow_: "story/shadow", story_elder_: "story/elder",
+  story_kunoichi_: "story/kunoichi", story_katsura_: "story/katsura",
+  story_hacker_: "story/hacker", story_fox_: "story/fox",
+  dummy_: "enemies/dummy", samurai_: "enemies/samurai",
+  archer_: "enemies/archer", brute_: "enemies/brute",
+  tengu_: "enemies/tengu", ronin_: "enemies/ronin",
+  cyber_ninja_: "enemies/cyber_ninja", bouncer_: "enemies/bouncer",
+  monk_: "enemies/monk", spirit_fox_: "enemies/spirit_fox",
+  cursed_ronin_: "enemies/cursed_ronin", player_: "story/player",
+};
+// Match longest prefix first (spirit_fox_ before spirit_, cursed_ronin_ before cursed_)
+const _prefixes = Object.keys(SUBFOLDER).sort((a, b) => b.length - a.length);
+const gs = (key) => {
+  const prefix = _prefixes.find(p => key.startsWith(p));
+  const folder = prefix ? SUBFOLDER[prefix] : "";
+  return [key, `/images/tinysenpai/game/${folder ? folder + "/" : ""}${key}.png`];
+};
 const ps = (key, src) => [key, src];
 
 // ═══ ZONE-BASED SPRITE DEFINITIONS ═══

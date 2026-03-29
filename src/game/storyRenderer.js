@@ -96,11 +96,11 @@ export function updateStory(g, rawDt, callbacks) {
     const moveT = Math.min(1, s._charMove.timer / s._charMove.duration);
     const easeT = moveT * (2 - moveT);
     s[`_charPosX_${s._charMove.side}`] = s._charMove.startX + (s._charMove.targetX - s._charMove.startX) * easeT;
-    // Footstep sounds during walk
+    // Soft footstep sounds during walk — quieter, slower interval for story mood
     s._charMove._stepTimer = (s._charMove._stepTimer || 0) + rawDt;
-    if (s._charMove._stepTimer > 0.32) {
+    if (s._charMove._stepTimer > 0.55) {
       s._charMove._stepTimer = 0;
-      try { const a = new Audio("/audio/game/footstep.mp3"); a.volume = 0.15; a.play().catch(() => {}); } catch {}
+      try { const a = new Audio("/audio/game/sfx_running_footsteps.mp3"); a.volume = 0.08; a.playbackRate = 0.7; a.play().catch(() => {}); } catch {}
     }
     if (moveT >= 1) s._charMove = null; // arrived
   }
@@ -206,7 +206,7 @@ export function updateStory(g, rawDt, callbacks) {
         startX: currentX,
         targetX: line.toX * g.W,
         timer: 0,
-        duration: line.duration || 2.5, // slow walks build tension
+        duration: line.duration || 4.0, // slow walks build tension — let it breathe
       };
     } else if (line.type === "characterExit") {
       // Animate a character running off screen
