@@ -1452,8 +1452,8 @@ const CROPS = {
   parry:         { ...F, R: false },
   land_heavy:    { ...F, R: false },
   slash_through: { ...F, R: true },
-  wall_climb1:   { ...F, R: false },
-  wall_climb2:   { ...F, R: false },
+  wall_climb1:   { ...F, R: true },
+  wall_climb2:   { ...F, R: true },
   wall_pushoff:  { ...F, R: false },
   backflip:      { ...F, R: false },
 };
