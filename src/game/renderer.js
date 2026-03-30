@@ -38,7 +38,7 @@ export function render(g, ctx, isDesktop, font) {
   if (isSlowMo) {
     if (isBackflipSlowMo) {
       // Backflip: subtle desaturation matching the flat slow-mo curve
-      const progress = 1 - g.slowMo._backflipSlowMo / 0.7;
+      const progress = 1 - g.slowMo._backflipSlowMo / 0.55;
       // Quick in, hold, ease out — matches time scale curve
       const intensity = progress < 0.08 ? progress / 0.08
         : progress < 0.7 ? 1
@@ -1092,58 +1092,35 @@ export function render(g, ctx, isDesktop, font) {
     const ez = g.objective.exitZone;
     const pulse = 0.6 + Math.sin(g.time.elapsed * 4) * 0.2;
     if (ez.bgRoom) {
-      // Background room: exit on upper-right platform with forest arch sprite
+      // Background room: clean golden glow on upper platform — no sprite overlay
       const exitCX = ez.x + ez.w / 2;
-      const exitY = ez.y || H * 0.28; // upper platform Y
-      const exitImg = getImage("exit_forest");
-      if (exitImg) {
-        // Draw the forest arch sprite centered on exit zone
-        const spriteH = 90;
-        const spriteW = spriteH * (exitImg.width / exitImg.height);
-        ctx.globalAlpha = pulse;
-        ctx.drawImage(exitImg, exitCX - spriteW / 2, exitY - spriteH + 10, spriteW, spriteH);
-        ctx.globalAlpha = 1;
-      }
-      // Warm golden light glow through the arch
-      const glowR = 50;
-      const glowGrad = ctx.createRadialGradient(exitCX, exitY - 25, 5, exitCX, exitY - 25, glowR);
-      glowGrad.addColorStop(0, `rgba(255,220,120,${0.35 * pulse})`);
-      glowGrad.addColorStop(0.5, `rgba(255,200,100,${0.15 * pulse})`);
+      const exitY = ez.y || H * 0.28;
+      // Soft radial glow — warm light from a path ahead
+      const glowR = 65;
+      const glowGrad = ctx.createRadialGradient(exitCX, exitY - 20, 4, exitCX, exitY - 20, glowR);
+      glowGrad.addColorStop(0, `rgba(255,220,120,${0.3 * pulse})`);
+      glowGrad.addColorStop(0.4, `rgba(255,200,100,${0.12 * pulse})`);
       glowGrad.addColorStop(1, "rgba(255,180,80,0)");
       ctx.fillStyle = glowGrad;
-      ctx.fillRect(exitCX - glowR, exitY - glowR - 25, glowR * 2, glowR * 2);
-      // Light beam from above
-      const beamW = ez.w + 20;
-      const beamGrad = ctx.createLinearGradient(exitCX, 0, exitCX, exitY);
-      beamGrad.addColorStop(0, `rgba(255,220,120,0)`);
-      beamGrad.addColorStop(0.5, `rgba(255,220,120,${0.08 * pulse})`);
-      beamGrad.addColorStop(1, `rgba(255,200,100,${0.15 * pulse})`);
-      ctx.fillStyle = beamGrad;
-      ctx.fillRect(exitCX - beamW / 2, 0, beamW, exitY);
-      // Floating light motes rising from exit
-      ctx.globalAlpha = pulse * 0.85;
-      for (let i = 0; i < 6; i++) {
-        const t = g.time.elapsed * 0.7 + i * 1.1;
-        const mx = exitCX + Math.sin(t * 1.3 + i * 2) * 25;
-        const my = exitY - 10 - (t * 20 % 80);
-        const mSize = 1.5 + Math.sin(t * 3) * 0.5;
+      ctx.fillRect(exitCX - glowR, exitY - glowR - 20, glowR * 2, glowR * 2);
+      // Floating light motes rising gently
+      ctx.globalAlpha = pulse * 0.8;
+      for (let i = 0; i < 5; i++) {
+        const t = g.time.elapsed * 0.6 + i * 1.3;
+        const mx = exitCX + Math.sin(t * 1.1 + i * 2) * 20;
+        const my = exitY - 8 - (t * 15 % 60);
+        const mSize = 1.5 + Math.sin(t * 3) * 0.4;
         ctx.fillStyle = "#ffe888";
         ctx.beginPath();
         ctx.arc(mx, my, mSize, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = `rgba(255,232,136,0.25)`;
-        ctx.beginPath();
-        ctx.arc(mx, my, mSize * 2.5, 0, Math.PI * 2);
-        ctx.fill();
       }
       ctx.globalAlpha = 1;
-      // "EXIT →" indicator
-      ctx.font = "bold 12px monospace";
+      // Small "→" hint
+      ctx.font = "bold 11px monospace";
       ctx.textAlign = "center";
-      ctx.fillStyle = `rgba(0,0,0,${0.3 * pulse})`;
-      ctx.fillRect(exitCX - 28, exitY + 6, 56, 14);
-      ctx.fillStyle = `rgba(255,220,140,${0.8 * pulse})`;
-      ctx.fillText("EXIT →", exitCX, exitY + 16);
+      ctx.fillStyle = `rgba(255,220,140,${0.55 * pulse})`;
+      ctx.fillText("→", exitCX, exitY + 8);
     } else {
       // Standard rooms: cool blue vertical beam
       const beamGrad = ctx.createLinearGradient(ez.x, 0, ez.x, g.groundY);
@@ -1224,7 +1201,7 @@ export function render(g, ctx, isDesktop, font) {
   if (g.slowMo.active) {
     if (isBackflipSlowMo) {
       // Backflip: clean cinematic vignette — no purple, just dramatic focus
-      const progress = 1 - g.slowMo._backflipSlowMo / 0.7;
+      const progress = 1 - g.slowMo._backflipSlowMo / 0.55;
       const intensity = progress < 0.08 ? progress / 0.08
         : progress < 0.7 ? 1
         : 1 - ((progress - 0.7) / 0.3) ** 2;
@@ -1660,34 +1637,21 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
-  // Backflip — frame-based animation with smooth rotation between poses
+  // Backflip — pure frame-based animation, NO code rotation (sprites carry the flip)
   if (p.state === "backflip") {
-    const flipProgress = 1 - (p._backflipTimer || 0) / 700; // 0→1 (700ms flip)
+    const flipProgress = 1 - (p._backflipTimer || 0) / 550; // 0→1 over 550ms
     const flipDir = p._backflipFacing || p.facing;
-    // 4-phase frame animation: pushoff → tuck → peak (extended) → land
-    let frameKey, rotation;
+    // 4-phase frame animation: pushoff → tuck → peak → land
+    let frameKey;
     if (flipProgress < 0.18) {
-      // Phase 1: Push-off — explosive launch, slight backward lean
-      frameKey = "backflip_pushoff";
-      rotation = flipDir * flipProgress / 0.18 * 0.5; // 0→0.5 rad (~30°)
+      frameKey = "backflip_pushoff";  // explosive launch pose
     } else if (flipProgress < 0.45) {
-      // Phase 2: Tuck — compact spinning ball
-      frameKey = "backflip_tuck";
-      const t = (flipProgress - 0.18) / 0.27; // 0→1 within phase
-      rotation = flipDir * (0.5 + t * 1.8); // 0.5→2.3 rad (~30°→130°)
+      frameKey = "backflip_tuck";     // compact mid-rotation curl
     } else if (flipProgress < 0.75) {
-      // Phase 3: Peak — extended pose, katana out (the cool frame)
-      frameKey = "backflip";
-      const t = (flipProgress - 0.45) / 0.30;
-      rotation = flipDir * (2.3 + t * 1.8); // 2.3→4.1 rad (~130°→235°)
+      frameKey = "backflip";          // extended peak — the cool katana pose
     } else {
-      // Phase 4: Landing — uncurling, ready to strike
-      frameKey = "backflip_land";
-      const t = (flipProgress - 0.75) / 0.25;
-      rotation = flipDir * (4.1 + t * 2.15); // 4.1→6.25 rad (~235°→358°)
+      frameKey = "backflip_land";     // uncurling, ready to strike
     }
-    ctx.rotate(rotation);
-    // Graceful fallback: if frame sprites aren't generated yet, use existing backflip
     const img = getImage(frameKey) || getImage("backflip") || getImage("jump2");
     const cropKey = getImage(frameKey) ? frameKey : (getImage("backflip") ? "backflip" : "jump2");
     if (drawSpriteFrame(ctx, img, cropKey, s, flipDir)) { ctx.restore(); return; }

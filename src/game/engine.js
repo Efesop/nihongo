@@ -313,7 +313,7 @@ export function update(g, callbacks) {
     const backflipSlowMo = g.slowMo._backflipSlowMo > 0;
     if (backflipSlowMo) {
       g.slowMo.active = true;
-      const BACKFLIP_SLOWMO_DUR = 0.7; // must match initial _backflipSlowMo value
+      const BACKFLIP_SLOWMO_DUR = 0.55; // must match initial _backflipSlowMo value
       const progress = 1 - g.slowMo._backflipSlowMo / BACKFLIP_SLOWMO_DUR; // 0→1
       if (progress < 0.08) {
         // Quick ease-in (~56ms) — snap into slow-mo
@@ -1387,9 +1387,9 @@ export function update(g, callbacks) {
   // Wall run cooldown — prevent re-triggering immediately after a backflip
   if (p._wallRunning) {
     p._wallRunTimer += rawDt * 1000;
-    // Wall run — 350ms burst upward, then auto-backflip
-    if (p._wallRunTimer < 350 && p.wallSliding) {
-      p.vy = -260; // steady upward speed
+    // Wall run — 250ms fast burst upward, then auto-backflip
+    if (p._wallRunTimer < 250 && p.wallSliding) {
+      p.vy = -360; // fast aggressive climb
       p.facing = p.wallDir; // face INTO the wall during climb
       // Wall run particles — footstep dust on wall
       if (Math.random() < dt * 15) {
@@ -1399,13 +1399,13 @@ export function update(g, callbacks) {
           life: 200, maxLife: 200, color: "#aa9977", size: rndInt(1, 3),
         });
       }
-    } else if (p.wallSliding || p._wallRunTimer >= 350) {
+    } else if (p.wallSliding || p._wallRunTimer >= 250) {
       // Auto-backflip — launch AWAY from wall with force
       const launchDir = -p.wallDir; // away from wall
       p._wallRunning = false;
       p._wallRunCooldown = 500; // prevent immediate re-trigger
       p._backflipping = true;
-      p._backflipTimer = 700; // slower, more cinematic flip
+      p._backflipTimer = 550; // punchy flip — sprites carry the visual weight
       p._backflipFacing = launchDir; // lock rotation direction for entire flip
       log.wall("BACKFLIP LAUNCH — dir:", launchDir, "vx:", p.vx, "vy:", p.vy);
       p.vy = JUMP_FORCE * 1.3; // strong upward launch
@@ -1414,17 +1414,18 @@ export function update(g, callbacks) {
       p.wallSliding = false;
       // Push player away from wall immediately so wall detection doesn't re-grab
       p.x += launchDir * 15;
-      p.wallJumpCooldown = 700; // lock facing for full backflip duration
+      p.wallJumpCooldown = 550; // lock facing for full backflip duration
       const halfW = TILE * SCALE * 0.5;
       p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // prevent re-grab
       p.invincible = Math.max(p.invincible, 300);
-      playSound("jump", { playbackRate: 1.3 });
-      // Cinematic audio — duck everything, play impact whoosh
-      duckAudio(0.1);
-      playSound("wall_launch", { volume: 1.2, playbackRate: 0.8 });
+      playSound("wall_launch", { volume: 0.8, playbackRate: 0.9 });
+      // Cinematic audio — duck everything for the epic moment
+      duckAudio(0.12);
+      // Play breath/focus sound if available, otherwise silence is powerful too
+      playSound("backflip_breath", { volume: 0.9 });
       // Slow-mo + zoom on backflip — cinematic
       g.slowMo.active = true;
-      g.slowMo._backflipSlowMo = 0.7; // 700ms slow-mo (matches flip duration)
+      g.slowMo._backflipSlowMo = 0.55; // matches flip duration
       g.camera._backflipZoom = 1.0; // will ease in
       // Impact burst — heavy push-off particles from wall
       g.camera.shakeTimer = 120; // brief shake on push-off
