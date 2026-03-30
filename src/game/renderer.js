@@ -49,13 +49,16 @@ export function render(g, ctx, isDesktop, font) {
     }
   }
 
-  // Apply camera zoom (centered on viewport)
+  // Apply camera zoom — backflip centers on player, otherwise viewport center
   const zoom = cam.zoom || 1;
   if (zoom !== 1) {
     ctx.save();
-    ctx.translate(W / 2, H / 2);
+    const isBackflipZoom = cam._backflipZoom > 0 && g.player;
+    const zoomCX = isBackflipZoom ? (g.player.x - (cam.x || 0)) : W / 2;
+    const zoomCY = isBackflipZoom ? (g.player.y + DRAW_SIZE * 0.4) : H / 2;
+    ctx.translate(zoomCX, zoomCY);
     ctx.scale(zoom, zoom);
-    ctx.translate(-W / 2, -H / 2);
+    ctx.translate(-zoomCX, -zoomCY);
   }
 
   // Room background image — if exists, replaces ALL procedural background rendering
