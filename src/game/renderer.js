@@ -1570,10 +1570,10 @@ const CROPS = {
   wall_climb1:   { ...F, R: true },
   wall_climb2:   { ...F, R: true },
   wall_pushoff:  { ...F, R: false },
-  backflip:          { ...F, R: true },
-  backflip_pushoff:  { ...F, R: true },
-  backflip_tuck:     { ...F, R: true },
-  backflip_land:     { ...F, R: true },
+  backflip:          { ...F, R: true },   // faces RIGHT
+  backflip_pushoff:  { ...F, R: false },  // faces LEFT
+  backflip_tuck:     { ...F, R: false },  // faces LEFT
+  backflip_land:     { ...F, R: false },  // faces LEFT
 };
 
 // Helper: draw a sprite image with crop and flip
