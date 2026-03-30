@@ -141,9 +141,15 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   const detectMult = (player.crouching ? CROUCH_DETECT_MULT : 1) * (player.inShadow ? SHADOW_DETECT_MULT : 1);
   const effectiveRange = (e.passive ? 50 : e.alertRange) * detectMult;
 
+  // Vertical distance — enemies can't see through floors
+  const absDy = Math.abs(dy);
+  const sameFloor = absDy < 120; // within ~1.5 platform heights
+  const canLookDown = dy > 0 && absDy < 200; // enemy above, player below (limited)
+
   // Can enemy see the player?
   const canSee = !player.hidden && player.visibility > 0.3 &&
-    dist < effectiveRange && (e.facing === toPlayer || dist < 80 * detectMult);
+    dist < effectiveRange && (e.facing === toPlayer || dist < 80 * detectMult) &&
+    (sameFloor || canLookDown);
 
   // Can enemy hear the player? (noise-based, ignores facing)
   const canHear = player.noiseLevel > 0.4 && dist < NOISE_HEAR_RANGE;
@@ -166,12 +172,15 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   if (e.suspicion >= SUSPICION_ALERT) {
     e.detection = "alert";
     e.searchTimer = SEARCH_DURATION;
-    // Alert propagation — nearby enemies gain suspicion
+    // Alert propagation — nearby enemies on SAME FLOOR gain suspicion
     if (prevDetection !== "alert" && allEnemies) {
       for (const other of allEnemies) {
         if (other === e || other.dead) continue;
-        const eDist = Math.abs(other.x - e.x);
-        if (eDist < ALERT_PROPAGATE_RANGE) {
+        const eDx = other.x - e.x;
+        const eDy = other.y - e.y;
+        const e2dDist = Math.sqrt(eDx * eDx + eDy * eDy);
+        const onSameFloor = Math.abs(eDy) < 100; // must be roughly same height
+        if (e2dDist < ALERT_PROPAGATE_RANGE && onSameFloor) {
           other.suspicion = Math.min(SUSPICION_ALERT, other.suspicion + 40);
           other.lastKnownX = e.lastKnownX;
           other.lastKnownY = e.lastKnownY;
@@ -298,7 +307,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 50;
     }
   } else if (e.type === "ninja") {
@@ -350,7 +360,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 35;
     }
   } else if (e.type === "samurai") {
@@ -380,7 +391,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 30;
     }
   } else if (e.type === "archer") {
@@ -406,7 +418,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       if (dist < 120) e.vx = -toPlayer * 120;
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 25;
     }
   } else if (e.type === "brute") {
@@ -441,7 +454,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 25;
     }
   } else if (e.type === "tengu") {
@@ -483,7 +497,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
         }
       } else {
         e.state = "patrol";
-        if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+        if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
         e.vx = e.facing * 30;
       }
     }
@@ -507,7 +522,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       if (dist < 60) { e.state = "attack"; e.attackTimer = 400; e.facing = toPlayer; }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 55;
     }
   } else if (e.type === "cyber_ninja") {
@@ -534,7 +550,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       if (dist < 80) e.vx = -toPlayer * 180;
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 40;
     }
   } else if (e.type === "bouncer") {
@@ -559,7 +576,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 20;
     }
   } else if (e.type === "monk") {
@@ -587,7 +605,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 25;
     }
   } else if (e.type === "spirit_fox") {
@@ -612,7 +631,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
         }
       } else {
         e.state = "patrol";
-        if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+        if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
         e.vx = e.facing * 25;
       }
     }
@@ -641,7 +661,8 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       }
     } else {
       e.state = "patrol";
-      if (Math.abs(e.x - e.patrolOrigin) > e.patrolRange) e.facing *= -1;
+      if (e.x > e.patrolOrigin + e.patrolRange) e.facing = -1;
+      else if (e.x < e.patrolOrigin - e.patrolRange) e.facing = 1;
       e.vx = e.facing * 35;
     }
   }
