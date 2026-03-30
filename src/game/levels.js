@@ -33,7 +33,7 @@ export const ROOMS = [
   // Training with Sensei. The tutorial IS the story.
   // ════════════════════════════════════════════════════
 
-  // ── Room 0: "修行 Training" — learn MOVE + SLASH ──
+  // ── Room 1: "修行 Training" — learn MOVE + SLASH ──
   // Simple open dojo floor. Sensei waits near the middle. No doors (bg is one open room).
   {
     title: { jp: "修行", en: "Training" },
@@ -77,7 +77,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 1: "跳躍 Take Flight" — learn JUMP ──
+  // ── Room 2: "跳躍 Take Flight" — learn JUMP ──
   // Elevated wooden training platforms — like balance beams at different heights.
   // Dummies stand on each platform as targets. Must jump gaps to reach them.
   {
@@ -115,7 +115,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 2: "閃光 Phase Through" — learn DASH + DASH-SLASH ──
+  // ── Room 3: "閃光 Phase Through" — learn DASH + DASH-SLASH ──
   // Step 1: Practice dashing past normal dummies (safe introduction)
   // Step 2: Face the shielded dummy that REQUIRES dash-slash (twist)
   // Follows 4-step: introduce dash → practice → twist (shield) → conclude
@@ -153,7 +153,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 3: "壁走 Wall Runner" — learn WALL JUMP ──
+  // ── Room 4: "壁走 Wall Runner" — learn WALL JUMP ──
   // A vertical climbing tower inside the dojo. Two wooden pillars form a shaft.
   // Must wall jump between them to reach the top training platform.
   // Lanterns mounted at different heights light the way up.
@@ -195,7 +195,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 4: "集中 Bullet Time" — learn SLOW-MO / FOCUS ──
+  // ── Room 5: "集中 Bullet Time" — learn SLOW-MO / FOCUS ──
   // Sensei throws shurikens from the far end — his final test.
   // Must use slow-mo to see and dodge. Dummy at the end to kill.
   {
@@ -256,7 +256,7 @@ export const ROOMS = [
   // - Max platform height: y:-100 (stay on screen)
   // - Follow 4-step: introduce → develop → twist → conclude
 
-  // ── Room 5: "逃走 Flight" — SINGLE-SCREEN MULTI-FLOOR PUZZLE ──
+  // ── Room 6: "逃走 Flight" — SINGLE-SCREEN MULTI-FLOOR PUZZLE ──
   // 3 floors: ground, mid bridge, upper ledges. Enemies cover each other.
   // Ninja on upper-right throws DOWN. Must plan approach.
   // Background art has exact surfaces matching these collision zones.
@@ -302,7 +302,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 6: "天空 Sky Path" — BURNING FOREST (Single-Screen Painted Scene) ──
+  // ── Room 7: "天空 Sky Path" — BURNING FOREST (Single-Screen Painted Scene) ──
   // Identity: Ninja introduction + environmental storytelling. Dojo fire spreading.
   // Same approach as Room 5: custom painted background, percentage coords, platforms = art.
   // More zoomed out: 5 platform levels, wall-runnable center trunk, stair to shrine.
@@ -359,7 +359,7 @@ export const ROOMS = [
     breakables: [],
   },
 
-  // ── Room 7: "登城 Ascent" — WALL-JUMP REQUIRED ──
+  // ── Room 8: "登城 Ascent" — WALL-JUMP REQUIRED ──
   // Identity: Cliff room. Forced verticality. Cannot proceed without wall-jump.
   // Skills: Wall-jump (mandatory) + combat at different heights
   // Principle: One wall-jump shaft (not two — keep on screen). Samurai at top.
@@ -398,7 +398,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 8: "屋根走 Rooftop Run" — PARKOUR (timed, branch sprint) ──
+  // ── Room 9: "屋根走 Rooftop Run" — PARKOUR (timed, branch sprint) ──
   // Identity: Speed room. Sprint across tree branches. Timer = urgency.
   // Skills: Jump, dash (to clear gaps). Minimal enemies.
   // Principle: Pace break from combat. Focus on MOVEMENT. Branches as platforms.
@@ -434,7 +434,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 9: "塔 The Tower" — COMBINATION (all skills) ──
+  // ── Room 10: "塔 The Tower" — COMBINATION (all skills) ──
   // Identity: The hardest room in Act 1. Tests EVERYTHING.
   // Skills: Wall-jump + dash-slash (samurai) + dodge shurikens (ninja above)
   // Principle: This is the "conclusion" — combine all mechanics. One shaft + wide arena.
@@ -482,7 +482,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 10: "忍道 Ninja Gauntlet" — WAVE SURVIVAL (shrine arena) ──
+  // ── Room 11: "忍道 Ninja Gauntlet" — WAVE SURVIVAL (shrine arena) ──
   // Identity: Sacred clearing. Stand and fight. Waves of enemies.
   // Skills: All combat skills under pressure
   // Principle: Different challenge type — endurance, not puzzle. Flat arena.
@@ -527,7 +527,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 11: Canyon — two wall-jump shafts ──
+  // ── Room 12: Canyon — two wall-jump shafts ──
   {
     title: { jp: "峡谷", en: "The Canyon" },
     platforms: [
@@ -565,7 +565,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 12: Fortress ──
+  // ── Room 13: Fortress ──
   {
     title: { jp: "要塞", en: "The Fortress" },
     platforms: [
@@ -608,7 +608,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 13: The gauntlet — SURVIVE (mixed enemy waves with hazards) ──
+  // ── Room 14: The gauntlet — SURVIVE (mixed enemy waves with hazards) ──
   {
     title: { jp: "試練", en: "The Gauntlet" },
     objective: {
@@ -661,7 +661,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 14: Boss arena — Act 1 finale ──
+  // ── Room 15: Boss arena — Act 1 finale ──
   {
     title: { jp: "鬼大将", en: "Oni Warlord" },
     platforms: [
@@ -700,7 +700,7 @@ export const ROOMS = [
   // ACT 2: TEMPLE GARDENS (Rooms 15-19)
   // ════════════════════════════════════════════════════
 
-  // ── Room 15: Temple entrance ──
+  // ── Room 16: Temple entrance ──
   {
     title: { jp: "鳥居", en: "Temple Gate" },
     theme: "temple",
@@ -732,7 +732,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 16: Garden walkway ──
+  // ── Room 17: Garden walkway ──
   {
     title: { jp: "庭園", en: "Garden Path" },
     theme: "temple",
@@ -768,7 +768,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 17: Bell tower ──
+  // ── Room 18: Bell tower ──
   {
     title: { jp: "鐘楼", en: "Bell Tower" },
     theme: "temple",
@@ -810,7 +810,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 18: Inner sanctum ──
+  // ── Room 19: Inner sanctum ──
   {
     title: { jp: "内殿", en: "Inner Sanctum" },
     theme: "temple",
@@ -852,7 +852,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 19: Temple boss — Act 2 finale ──
+  // ── Room 20: Temple boss — Act 2 finale ──
   {
     title: { jp: "大天狗", en: "Great Tengu" },
     theme: "temple",
@@ -901,7 +901,7 @@ export const ROOMS = [
   // Stealth rooms, one-way platforms, new enemy types.
   // ════════════════════════════════════════════════════
 
-  // ── Room 20: "城下町 Castle Town" — Rooftop arrival ──
+  // ── Room 21: "城下町 Castle Town" — Rooftop arrival ──
   {
     title: { jp: "城下町", en: "Castle Town" },
     theme: "edo",
@@ -923,7 +923,7 @@ export const ROOMS = [
     deco: [{ type: "lantern", x: 300 }, { type: "sign", x: 1100 }, { type: "lantern", x: 1800 }],
   },
 
-  // ── Room 21: "市場 Market" — Stealth through market stalls ──
+  // ── Room 22: "市場 Market" — Stealth through market stalls ──
   {
     title: { jp: "市場", en: "Market Street" },
     theme: "edo",
@@ -954,7 +954,7 @@ export const ROOMS = [
     objective: { type: "stealth", exitX: 2100, maxAlerts: 1 },
   },
 
-  // ── Room 22: "城壁 Castle Wall" — Vertical climb with archers ──
+  // ── Room 23: "城壁 Castle Wall" — Vertical climb with archers ──
   {
     title: { jp: "城壁", en: "Castle Wall" },
     theme: "edo",
@@ -983,7 +983,7 @@ export const ROOMS = [
     hazards: [{ type: "spikes", x: 900, y: 0, w: 80 }],
   },
 
-  // ── Room 23: "廊下 Castle Corridor" — Tight stealth ──
+  // ── Room 24: "廊下 Castle Corridor" — Tight stealth ──
   {
     title: { jp: "廊下", en: "Corridor" },
     theme: "edo",
@@ -1012,7 +1012,7 @@ export const ROOMS = [
     objective: { type: "stealth", exitX: 1900, maxAlerts: 0 },
   },
 
-  // ── Room 24: "中庭 Inner Court" — Open combat arena + survive ──
+  // ── Room 25: "中庭 Inner Court" — Open combat arena + survive ──
   {
     title: { jp: "中庭", en: "Inner Court" },
     theme: "edo",
@@ -1041,7 +1041,7 @@ export const ROOMS = [
     ]},
   },
 
-  // ── Room 25: "天守 Castle Keep" — Multi-level + boss ──
+  // ── Room 26: "天守 Castle Keep" — Multi-level + boss ──
   {
     title: { jp: "天守", en: "Castle Keep" },
     theme: "edo",
@@ -1071,7 +1071,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 26: "桂の間 Katsura's Chamber" — Boss arena ──
+  // ── Room 27: "桂の間 Katsura's Chamber" — Boss arena ──
   {
     title: { jp: "桂の間", en: "Katsura's Chamber" },
     theme: "edo",
@@ -1106,7 +1106,7 @@ export const ROOMS = [
   // Cyberpunk streets. Rain. Neon signs as platforms.
   // ════════════════════════════════════════════════════
 
-  // ── Room 27: "ネオン通り Neon Street" — Arrival ──
+  // ── Room 28: "ネオン通り Neon Street" — Arrival ──
   {
     title: { jp: "ネオン通り", en: "Neon Street" },
     theme: "neonTokyo",
@@ -1128,7 +1128,7 @@ export const ROOMS = [
     deco: [{ type: "sign", x: 400 }, { type: "lantern", x: 1200 }, { type: "sign", x: 2100 }],
   },
 
-  // ── Room 28: "路地裏 Alley Chase" — Parkour ──
+  // ── Room 29: "路地裏 Alley Chase" — Parkour ──
   {
     title: { jp: "路地裏", en: "Alley Chase" },
     theme: "neonTokyo",
@@ -1155,7 +1155,7 @@ export const ROOMS = [
     objective: { type: "parkour", time: 20, exitX: 2800 },
   },
 
-  // ── Room 29: "高速道路 Highway" — Fast horizontal, drones ──
+  // ── Room 30: "高速道路 Highway" — Fast horizontal, drones ──
   {
     title: { jp: "高速道路", en: "Highway" },
     theme: "neonTokyo",
@@ -1188,7 +1188,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 30: "地下通路 Underground" — Dark stealth ──
+  // ── Room 31: "地下通路 Underground" — Dark stealth ──
   {
     title: { jp: "地下通路", en: "Underground" },
     theme: "neonTokyo",
@@ -1221,7 +1221,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 31: "アーケード Arcade" — Mixed combat ──
+  // ── Room 32: "アーケード Arcade" — Mixed combat ──
   {
     title: { jp: "アーケード", en: "Arcade" },
     theme: "neonTokyo",
@@ -1250,7 +1250,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 32: "屋上庭園 Rooftop Garden" — Vertical gauntlet ──
+  // ── Room 33: "屋上庭園 Rooftop Garden" — Vertical gauntlet ──
   {
     title: { jp: "屋上庭園", en: "Rooftop Garden" },
     theme: "neonTokyo",
@@ -1275,7 +1275,7 @@ export const ROOMS = [
     deco: [{ type: "sign", x: 100 }],
   },
 
-  // ── Room 33: "影の再会 Shadow Encounter" — Open arena + dialogue ──
+  // ── Room 34: "影の再会 Shadow Encounter" — Open arena + dialogue ──
   {
     title: { jp: "影の再会", en: "Shadow's Return" },
     theme: "neonTokyo",
@@ -1303,7 +1303,7 @@ export const ROOMS = [
   // Dark. Stealth-heavy. Neon purple lighting.
   // ════════════════════════════════════════════════════
 
-  // ── Room 34: "下水道 Sewers" — Dark stealth entry ──
+  // ── Room 35: "下水道 Sewers" — Dark stealth entry ──
   {
     title: { jp: "下水道", en: "Sewers" },
     theme: "nightclub",
@@ -1331,7 +1331,7 @@ export const ROOMS = [
     objective: { type: "stealth", exitX: 1900, maxAlerts: 1 },
   },
 
-  // ── Room 35: "闇市 Black Market" — Mixed ──
+  // ── Room 36: "闇市 Black Market" — Mixed ──
   {
     title: { jp: "闇市", en: "Black Market" },
     theme: "nightclub",
@@ -1361,7 +1361,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 36: "クラブ Nightclub" — Pulsing stealth ──
+  // ── Room 37: "クラブ Nightclub" — Pulsing stealth ──
   {
     title: { jp: "クラブ", en: "Nightclub" },
     theme: "nightclub",
@@ -1392,7 +1392,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 37: "VIP室 VIP Room" — Boss: DJ Mech ──
+  // ── Room 38: "VIP室 VIP Room" — Boss: DJ Mech ──
   {
     title: { jp: "VIP室", en: "VIP Room" },
     theme: "nightclub",
@@ -1425,7 +1425,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 38: "サーバー室 Server Room" — Laser parkour ──
+  // ── Room 39: "サーバー室 Server Room" — Laser parkour ──
   {
     title: { jp: "サーバー室", en: "Server Room" },
     theme: "nightclub",
@@ -1455,7 +1455,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 39: "脱出 Rooftop Escape" — Vertical climb, fast ──
+  // ── Room 40: "脱出 Rooftop Escape" — Vertical climb, fast ──
   {
     title: { jp: "脱出", en: "Escape" },
     theme: "nightclub",
@@ -1488,7 +1488,7 @@ export const ROOMS = [
   // Cherry blossoms. Ethereal. Time fracturing.
   // ════════════════════════════════════════════════════
 
-  // ── Room 40: "山道 Mountain Path" — Temple approach ──
+  // ── Room 41: "山道 Mountain Path" — Temple approach ──
   {
     title: { jp: "山道", en: "Mountain Path" },
     theme: "spirit",
@@ -1510,7 +1510,7 @@ export const ROOMS = [
     deco: [{ type: "torii", x: 200 }, { type: "lantern", x: 700 }, { type: "torii", x: 1500 }],
   },
 
-  // ── Room 41: "鳥居 Temple Gate" — Spirit foxes ──
+  // ── Room 42: "鳥居 Temple Gate" — Spirit foxes ──
   {
     title: { jp: "鳥居", en: "Temple Gate" },
     theme: "spirit",
@@ -1538,7 +1538,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 42: "内殿 Inner Temple" — Time fracture, mixed era enemies ──
+  // ── Room 43: "内殿 Inner Temple" — Time fracture, mixed era enemies ──
   {
     title: { jp: "時の狭間", en: "Time Fracture" },
     theme: "spirit",
@@ -1573,7 +1573,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 43: "精霊の道 Spirit Path" — Floating platforms ──
+  // ── Room 44: "精霊の道 Spirit Path" — Floating platforms ──
   {
     title: { jp: "精霊の道", en: "Spirit Path" },
     theme: "spirit",
@@ -1603,7 +1603,7 @@ export const ROOMS = [
     deco: [{ type: "torii", x: 100 }, { type: "torii", x: 1500 }],
   },
 
-  // ── Room 44: "試練 Spirit Trial" — Gauntlet ──
+  // ── Room 45: "試練 Spirit Trial" — Gauntlet ──
   {
     title: { jp: "試練", en: "Spirit Trial" },
     theme: "spirit",
@@ -1631,7 +1631,7 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 45: "呪いの心臓 Heart of the Curse" — Story heavy ──
+  // ── Room 46: "呪いの心臓 Heart of the Curse" — Story heavy ──
   {
     title: { jp: "呪いの心臓", en: "Heart of the Curse" },
     theme: "spirit",
@@ -1651,7 +1651,7 @@ export const ROOMS = [
     deco: [{ type: "torii", x: 150 }, { type: "torii", x: 750 }],
   },
 
-  // ── Room 46: "最終決戦 Final Battle" — Shadow boss arena ──
+  // ── Room 47: "最終決戦 Final Battle" — Shadow boss arena ──
   {
     title: { jp: "最終決戦", en: "Final Battle" },
     theme: "spirit",
@@ -1693,7 +1693,7 @@ export const ROOMS = [
   // Quiet. Resolution. No enemies in room 47.
   // ════════════════════════════════════════════════════
 
-  // ── Room 47: "帰路 Spirit Walk" — No enemies, pure story ──
+  // ── Room 48: "帰路 Spirit Walk" — No enemies, pure story ──
   {
     title: { jp: "帰路", en: "Spirit Walk" },
     theme: "spirit",
@@ -1707,7 +1707,7 @@ export const ROOMS = [
     objective: { type: "parkour", time: 60, exitX: 1400 }, // just walk to end
   },
 
-  // ── Room 48: "道場 Dojo Return" — Nostalgic callback ──
+  // ── Room 49: "道場 Dojo Return" — Nostalgic callback ──
   {
     title: { jp: "帰還", en: "Homecoming" },
     theme: "dojo",
@@ -1722,7 +1722,7 @@ export const ROOMS = [
     deco: [{ type: "lantern", x: 400 }, { type: "scroll", x: 200 }, { type: "weapon_rack", x: 900 }],
   },
 
-  // ── Room 49: "新しい夜明け New Dawn" — Final test ──
+  // ── Room 50: "新しい夜明け New Dawn" — Final test ──
   {
     title: { jp: "新しい夜明け", en: "New Dawn" },
     theme: "dojo",

@@ -16,7 +16,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
   const gameRef = useRef(null);
   const rafRef = useRef(null);
   const _dr = new URLSearchParams(window.location.search).get('room');
-  const startRoomRef = useRef(_dr ? parseInt(_dr) : 0);
+  const startRoomRef = useRef(_dr ? parseInt(_dr) - 1 : 0); // ?room=N matches stage select (1-indexed)
   const resumeFromStoryRef = useRef(false);
   const [screen, setScreen] = useState(_dr ? "playing" : "menu");
   const [hasSave, setHasSave] = useState(() => !!loadSave());
@@ -53,7 +53,7 @@ export default function Game({ theme, c, isDesktop, SIDEBAR_W }) {
       score: 0, combo: 0, comboTimer: 0, maxCombo: 0,
       hitStop: 0, flashTimer: 0, cleared: false,
       // Room system
-      currentRoom: _dr ? parseInt(_dr) : 0, roomTimer: 0, roomStars: [],
+      currentRoom: _dr ? parseInt(_dr) - 1 : 0, roomTimer: 0, roomStars: [],
       deaths: 0, totalTime: 0,
       roomState: "playing",
       roomClearTimer: 0,
