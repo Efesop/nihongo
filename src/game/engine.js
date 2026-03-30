@@ -393,9 +393,23 @@ export function update(g, callbacks) {
       phase: rnd(0, Math.PI * 2),
     });
   }
+  // Fire embers — Room 7 (index 6) is the burning forest
+  const room = (g._rooms || [])[g.currentRoom];
+  const _hasFire = g.currentRoom === 6; // Room 7 "Sky Path" — burning forest
+  if (_hasFire && Math.random() < dt * 8) {
+    const fromLeft = Math.random() < 0.7; // most embers rise from the left (fire side)
+    g.embers.push({
+      x: g.camera.x + (fromLeft ? rnd(-20, g.W * 0.5) : rnd(g.W * 0.3, g.W * 0.8)),
+      y: g.H + rnd(-20, 10),
+      vx: rnd(-15, 25), vy: rnd(-80, -30),
+      life: rnd(2000, 5000), maxLife: 5000,
+      size: rnd(1, 3), color: ["#ff6622", "#ffaa30", "#ffdd40", "#ff4411"][Math.floor(rnd(0, 4))],
+      type: "ember",
+      phase: rnd(0, Math.PI * 2),
+    });
+  }
   // Rain — diagonal streaks, bent by periodic wind gusts
   // Skip rain for indoor rooms (dojo, nightclub)
-  const room = (g._rooms || [])[g.currentRoom];
   const roomTheme = room?.theme || "forest";
   const noRain = roomTheme === "dojo" || roomTheme === "nightclub" || roomTheme === "neonTokyo" || room?.noRain;
   // For bg rooms, compute actual ground level from platforms (not engine groundY which doesn't match)

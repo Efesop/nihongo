@@ -302,55 +302,73 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 7: "天空 Sky Path" — BURNING FOREST (Single-Screen Painted Scene) ──
-  // Platforms matched to painted surfaces via visual overlay analysis.
-  // 5 main surfaces + 1 wall trunk. Simple, clean, playable.
+  // ── Room 7: "天空 Sky Path" — BURNING FOREST ESCAPE ──
+  // Identity: The fire has reached the forest. First ninja encounter.
+  // Multi-level design: ground → fallen logs → branches → cliff tops.
+  // Wide, scrolling level with verticality. Ninjas throw from above.
+  // Skills: Wall-jump (reinforced), dodge shurikens (new ninja threat).
   {
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
-    background: "room_forest_06",
     platforms: [
-      // ── Ground: stone cobblestone paths (gap in center = tree roots) ──
-      { x: 0.000, y: 0.860, w: 0.260, pct: true },   // left stone path
-      { x: 0.500, y: 0.870, w: 0.500, pct: true },   // right stone path
-      // ── Burning log bridge: flat-topped fallen log on fire ──
-      { x: 0.110, y: 0.660, w: 0.290, pct: true },   // burning log
-      // ── Big tree branch: flat-topped gnarled branch extending right ──
-      { x: 0.480, y: 0.545, w: 0.300, pct: true },   // tree branch
-      // ── Upper-left: rock cliff with shrine and torii gate ──
-      { x: 0.010, y: 0.260, w: 0.160, pct: true },   // shrine cliff ledge
-      // ── Upper-right: wooden scaffold / rope bridge ──
-      { x: 0.710, y: 0.180, w: 0.270, pct: true },   // rope bridge lookout
-      // ── Center tree trunk: wall-runnable surface ──
-      { x: 0.340, y: 0.180, w: 0.035, h: 0.540, wall: true, pct: true },
-      // ── Invisible edge walls ──
-      { x: 0.000, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
-      { x: 0.985, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
+      // ── Ground floor: broken forest path, gaps force player UP ──
+      { x: 0, y: 0, w: 400 },             // starting ground
+      { x: 500, y: 0, w: 300 },            // middle ground (past first gap)
+      { x: 900, y: 0, w: 250 },            // ground before cliff
+      { x: 1300, y: 0, w: 400 },           // ground after cliff
+      { x: 1850, y: 0, w: 350 },           // final ground stretch
+      // ── Fallen logs + low branches (mid tier, y:-40 to -70) ──
+      { x: 350, y: -45, w: 200 },          // burning log bridge over first gap
+      { x: 750, y: -60, w: 180 },          // branch above middle ground
+      { x: 1100, y: -50, w: 180 },         // branch leading to cliff
+      // ── Cliff walls: wall-jump section (forced vertical moment) ──
+      { x: 1150, y: -180, w: 30, h: 120, wall: true },  // left cliff face
+      { x: 1290, y: -180, w: 30, h: 120, wall: true },  // right cliff face
+      // ── Upper branches + lookout (high tier, y:-100 to -130) ──
+      { x: 200, y: -110, w: 160 },         // high branch near start (ninja perch)
+      { x: 600, y: -120, w: 200 },         // canopy platform (ninja + oni)
+      { x: 1100, y: -190, w: 250 },        // top of cliff (exit area)
+      { x: 1500, y: -100, w: 250 },        // high branch right side
+      { x: 1900, y: -120, w: 200 },        // final lookout branch
     ],
-    hazards: [],
     enemies: [
-      // Left ground: oni patrol near spawn
-      { type: "oni", x: 0.14, y: 0.78 },
-      // Right ground: oni + ninja crossfire
-      { type: "oni", x: 0.65, y: 0.79 },
-      { type: "ninja", x: 0.90, y: 0.79 },
-      // Burning log: oni blocks the bridge
-      { type: "oni", x: 0.26, y: 0.58 },
-      // Tree branch: solo ninja — key encounter
-      { type: "ninja", x: 0.60, y: 0.46 },
-      // Shrine: oni guards sacred ground
-      { type: "oni", x: 0.08, y: 0.18 },
-      // Rope bridge: ninja throws down + oni
-      { type: "ninja", x: 0.88, y: 0.10 },
-      { type: "oni", x: 0.78, y: 0.10 },
+      // Ground: oni patrols — familiar threat
+      { type: "oni", x: 200, y: 0 },
+      { type: "oni", x: 600, y: 0 },
+      { type: "oni", x: 1400, y: 0 },
+      // Burning log: oni guards the crossing
+      { type: "oni", x: 430, y: -45 },
+      // High branches: NINJAS — first real ninja encounters
+      // Ninja on high branch throws shurikens DOWN at ground below
+      { type: "ninja", x: 280, y: -110 },
+      // Canopy: ninja + oni combo — learn to fight mixed enemies at height
+      { type: "ninja", x: 700, y: -120 },
+      { type: "oni", x: 650, y: -120 },
+      // After cliff: ninja on lookout
+      { type: "ninja", x: 1600, y: -100 },
+      // Final stretch: oni ground + ninja high = crossfire
+      { type: "oni", x: 1950, y: 0 },
+      { type: "ninja", x: 2000, y: -120 },
     ],
-    shadows: [],
-    playerStart: 100,
+    shadows: [
+      { x: 100, w: 200 }, { x: 700, w: 150 }, { x: 1500, w: 200 },
+    ],
+    playerStart: 60,
     hideSpots: [
-      { type: "tallGrass", x: 0.04, y: 0.84, w: 0.06, pct: true },
+      { type: "tallGrass", x: 450, w: 80 },
+      { type: "tallGrass", x: 1350, w: 80 },
     ],
-    deco: [],
-    breakables: [],
+    deco: [
+      { type: "lantern", x: 150 }, { type: "lantern", x: 550 },
+      { type: "lantern", x: 1000 }, { type: "lantern", x: 1500 },
+      { type: "lantern", x: 1900 },
+    ],
+    breakables: [
+      { type: "pot", x: 300, y: 0, w: 25, h: 30, hp: 1 },
+      { type: "lantern", x: 850, y: 0, w: 28, h: 36 },
+      { type: "bamboo", x: 1200, y: 0, w: 40, h: 60, hp: 1 },
+      { type: "pot", x: 1700, y: 0, w: 25, h: 30, hp: 1 },
+    ],
   },
 
   // ── Room 8: "登城 Ascent" — WALL-JUMP REQUIRED ──
