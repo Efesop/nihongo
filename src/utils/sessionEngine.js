@@ -569,7 +569,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const t = item.type || "";
     // Skip safety check for learn cards, try-first, specials (they don't have SRS schedules)
     if (t.includes("learn") || t.includes("try-first") || t === "grammar-pattern" ||
-        t === "kana-pair" || t === "story" || t === "branch-convo" || t === "conversation" ||
+        t === "kana-pair" || t === "phrase-pair" || t === "phrase-build" || t === "word-quiz" ||
+        t === "story" || t === "branch-convo" || t === "conversation" ||
         t === "leech-review") return true;
     // For phrase exercises: check if the phrase is due or close to due
     if (t.startsWith("phrase-") && item.item && item.item[0]) {
