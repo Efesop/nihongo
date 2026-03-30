@@ -302,84 +302,63 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 6: "天空 Sky Path" — THE BURNING FOREST ESCAPE ──
-  // Identity: Ninja introduction + environmental storytelling. Dojo fire spreading through forest.
-  // 5 zones: Quiet Forest → Smoke Trail → Burning Canopy → Ravine Wall-Run → Final Stand
-  // Skills: Dodge shurikens, wall-run traversal (reinforces Room 5), timing (fire jets)
-  // Principle: Introduce ninja ALONE, then combine, add hazards, reward wall-run mastery.
+  // ── Room 6: "天空 Sky Path" — BURNING FOREST (Single-Screen Painted Scene) ──
+  // Identity: Ninja introduction + environmental storytelling. Dojo fire spreading.
+  // Same approach as Room 5: custom painted background, percentage coords, platforms = art.
+  // More zoomed out: 5 platform levels (vs Room 5's 3), wall-runnable center pillar.
+  // Skills: Dodge shurikens, wall-run (reinforces Room 5), fire jet timing.
   {
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
-    bg: { far: "bg_forest_fire_far", mid: "bg_forest_fire_mid", near: "bg_forest_fire_near" },
+    background: "room_forest_06",
     platforms: [
-      // Zone 1: Quiet Forest (0-900) — calm, solo ninja intro
-      { x: 0, y: 0, w: 900 },
-      { x: 200, y: -70, w: 150, oneWay: true },       // mossy rock ledge
-      { x: 600, y: -80, w: 200 },                      // ninja branch
-      // Zone 2: Smoke Trail (1000-1800) — combination combat + fire
-      { x: 1000, y: 0, w: 800 },
-      { x: 1300, y: -90, w: 250 },                     // elevated branch (ninja+oni)
-      { x: 1650, y: -50, w: 120, oneWay: true },       // stepping stone
-      // Zone 3: Burning Canopy (2000-2600) — falling branch + urgency
-      { x: 2000, y: 0, w: 600 },
-      // NOTE: no static platform at 2100,-80 — falling hazard handles collision
-      { x: 2350, y: -50, w: 120, oneWay: true },       // escape step
-      // Zone 4: The Ravine (2650-3500) — wall-run traversal, NO combat
-      { x: 2650, y: 0, w: 400 },                       // approach ledge
-      { x: 2950, y: -40, w: 80 },                      // rock step up
-      { x: 3050, y: -180, w: 35, h: 140, wall: true }, // left cliff face
-      { x: 3350, y: -180, w: 35, h: 140, wall: true }, // right cliff face
-      { x: 3180, y: -100, w: 100, oneWay: true },      // midpoint safety ledge
-      { x: 3500, y: 0, w: 300 },                       // landing
-      // Zone 5: Final Stand (3800-4800) — boss arena + exit
-      { x: 3800, y: 0, w: 1000 },
-      { x: 4200, y: -90, w: 200 },                     // ninja perch
-      { x: 4000, y: -50, w: 100, oneWay: true },       // stepping stone
+      // Ground floor — wide stone path / forest floor
+      { x: 0.03, y: 0.88, w: 0.94, pct: true },
+      // Lower-mid: fallen burning log bridge (left-center)
+      { x: 0.08, y: 0.65, w: 0.30, pct: true },
+      // Mid: thick tree branch across center
+      { x: 0.30, y: 0.48, w: 0.40, pct: true },
+      // Upper-left: rock outcropping / ruined shrine
+      { x: 0.03, y: 0.30, w: 0.22, pct: true },
+      // Upper-right: treehouse scaffold
+      { x: 0.70, y: 0.28, w: 0.27, pct: true },
+      // Center pillar — wall-runnable tree trunk
+      { x: 0.48, y: 0.10, w: 0.04, h: 0.32, wall: true, visible: true, pct: true },
+      // Invisible walls at screen edges
+      { x: 0.000, y: 0.000, w: 0.030, h: 1.0, wall: true, pct: true },
+      { x: 0.970, y: 0.000, w: 0.030, h: 1.0, wall: true, pct: true },
     ],
     hazards: [
-      // Zone 2: fire jet guards the gap between zones
-      { type: "firejet", x: 950, y: 0, w: 30, h: 70, onTime: 1200, offTime: 2500, offset: 0 },
-      // Zone 3: burning branch collapses + spike pit
-      { type: "falling", x: 2100, y: -80, w: 180 },
-      { type: "spikes", x: 2550, y: 0, w: 64 },
-      // Zone 5: fire between ground and perch
-      { type: "firejet", x: 4100, y: 0, w: 30, h: 80, onTime: 1500, offTime: 2000, offset: 500 },
+      // Fire jet on ground-left (burning debris)
+      { type: "firejet", x: 0.15, y: 0.88, w: 0.02, h: 0.08, onTime: 1200, offTime: 2500, offset: 0, pct: true },
+      // Spikes on far-right ground (rocky debris)
+      { type: "spikes", x: 0.85, y: 0.88, w: 0.06, pct: true },
     ],
     enemies: [
-      // Zone 1: solo ninja intro (learn the pattern)
-      { type: "ninja", x: 680, y: -80 },
-      // Zone 2: combination (ninja crossfire + ground pressure)
-      { type: "oni", x: 1100, y: 0 },
-      { type: "ninja", x: 1400, y: -90 },
-      { type: "oni", x: 1600, y: 0 },
-      // Zone 3: urgency (ninja on falling branch!)
-      { type: "ninja", x: 2180, y: -80 },
-      { type: "oni", x: 2250, y: 0 },
-      { type: "oni", x: 2450, y: 0 },
-      // Zone 4: NO enemies — pure traversal
-      // Zone 5: final test
-      { type: "ninja", x: 4280, y: -90 },
-      { type: "oni", x: 4400, y: 0 },
+      // Ground: 2 oni spread apart
+      { type: "oni", x: 0.18, y: 0.80 },
+      { type: "oni", x: 0.65, y: 0.80 },
+      // Lower-mid log: 1 oni guard
+      { type: "oni", x: 0.22, y: 0.57 },
+      // Mid branch: ninja ALONE — the key introduction moment
+      { type: "ninja", x: 0.55, y: 0.40 },
+      // Upper left: oni guard
+      { type: "oni", x: 0.10, y: 0.22 },
+      // Upper right: ninja throws down + oni partner
+      { type: "ninja", x: 0.85, y: 0.20 },
+      { type: "oni", x: 0.78, y: 0.20 },
+      // Ground right: ninja crossfire
+      { type: "ninja", x: 0.90, y: 0.80 },
     ],
     shadows: [],
-    playerStart: 60,
+    playerStart: 100,
     hideSpots: [
-      { type: "tallGrass", x: 120, w: 80 },
+      { type: "tallGrass", x: 0.06, y: 0.84, w: 0.06, pct: true },
     ],
-    deco: [
-      { type: "lantern", x: 80 }, { type: "lantern", x: 450 },
-      { type: "lantern", x: 1050 }, { type: "torii", x: 1500 },
-      { type: "lantern", x: 2050 }, { type: "lantern", x: 2400 },
-      { type: "lantern", x: 2750 },
-      { type: "lantern", x: 4500 }, { type: "torii", x: 4700 },
-    ],
+    deco: [],
     breakables: [
-      { type: "pot", x: 350, y: 0, w: 25, h: 30, hp: 1 },
-      { type: "lantern", x: 1250, y: 0, w: 28, h: 36 },
-      { type: "crate", x: 1700, y: 0, w: 35, h: 40, hp: 1 },
-      { type: "bamboo", x: 2500, y: 0, w: 40, h: 60, hp: 1 },
-      { type: "pot", x: 4050, y: 0, w: 25, h: 30, hp: 1 },
-      { type: "lantern", x: 4600, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 0.30, y: 0.84, w: 25, h: 30, hp: 1, pct: true },
+      { type: "lantern", x: 0.50, y: 0.84, w: 28, h: 36, pct: true },
     ],
   },
 

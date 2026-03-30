@@ -72,26 +72,38 @@ export function loadRoom(g, roomIndex) {
   g.npcs = (room.npcs || []).map(n => makeNPC(n.charKey, n.x, g.groundY + (n.y || 0), n));
   g.activeDialogue = null; // current NPC dialogue state
   // Hide spots for stealth
+  const _isPctRoom = room.background && room.platforms[0]?.pct;
   g.hideSpots = (room.hideSpots || []).map(hs => ({
-    ...hs, y: g.groundY + (hs.y || 0), occupied: false,
+    ...hs,
+    x: hs.pct ? hs.x * g.W : hs.x,
+    y: hs.pct ? hs.y * g.H : g.groundY + (hs.y || 0),
+    w: hs.pct ? hs.w * g.W : (hs.w || 80),
+    occupied: false,
   }));
   g._stealthFailed = false;
   // Breakable objects
   g.breakables = (room.breakables || []).map(b => ({
     ...b,
-    y: g.groundY + (b.y || 0),
+    x: b.pct ? b.x * g.W : b.x,
+    y: b.pct ? b.y * g.H : g.groundY + (b.y || 0),
     hp: b.hp || 1,
     broken: false,
   }));
-  // Hazards
-  g.hazards = (room.hazards || []).map(h => ({
-    ...h,
-    y: g.groundY + (h.y || 0),
-    timer: h.offset || 0, // offset staggers initial fire timing
-    active: h.type !== "firejet",
-    shaking: 0, fallen: false, respawnTimer: 0, // falling platform state
-    originalY: g.groundY + (h.y || 0),
-  }));
+  // Hazards — support pct coords for background-image rooms
+  g.hazards = (room.hazards || []).map(h => {
+    const hx = h.pct ? h.x * g.W : h.x;
+    const hy = h.pct ? h.y * g.H : g.groundY + (h.y || 0);
+    const hw = h.pct ? (h.w || 0.02) * g.W : (h.w || 30);
+    const hh = h.pct ? (h.h || 0.08) * g.H : (h.h || 80);
+    return {
+      ...h,
+      x: hx, y: hy, w: hw, h: hh,
+      timer: h.offset || 0,
+      active: h.type !== "firejet",
+      shaking: 0, fallen: false, respawnTimer: 0,
+      originalY: hy,
+    };
+  });
   // Moving platforms — create both a platform entry (for collision) and a motion tracker
   g.movingPlatforms = [];
   for (const mp of (room.movingPlatforms || [])) {

@@ -126,7 +126,7 @@ const ZONE_SPRITES = {
     // Environment sprites
     gs("tall_grass"), gs("torii_burned"),
     // Scene backgrounds (single-screen rooms)
-    gs("room_forest_05"),
+    gs("room_forest_05"), gs("room_forest_06"),
     gs("exit_forest"),
     // Platform tileset sprites
     gs("tile_forest_ground"), gs("tile_forest_branch"), gs("tile_forest_wall"),
