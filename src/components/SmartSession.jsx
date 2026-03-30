@@ -10,6 +10,7 @@ import { CONVERSATIONS } from "../data/conversations.js";
 import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
+import { KEY_WORDS, WORD_CATS } from "../data/keyWords.js";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -1232,6 +1233,83 @@ export default function SmartSession({
       </div>
       <button onClick={() => { advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
+    </>);
+  }
+
+  // ═══ EXERCISE: WORD QUIZ (learn building block words individually) ═══
+  if (ex.type === "word-quiz") {
+    const word = ex.word; // [japanese, romaji, meaning, category, phraseExamples[]]
+    const catInfo = WORD_CATS[word[3]] || { label: "Word", color: c.m };
+    if (!choiceAnswer) {
+      // Build distractors from same category
+      const sameCat = KEY_WORDS.filter(w => w[3] === word[3] && w[0] !== word[0]);
+      const otherCat = KEY_WORDS.filter(w => w[3] !== word[3] && w[0] !== word[0]);
+      const distractorPool = [...sameCat, ...shuffle(otherCat)].slice(0, 8);
+      const distractors = shuffle(distractorPool).slice(0, 3);
+      const choices = shuffle([word, ...distractors]);
+      speak(word[0]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
+      return null;
+    }
+    const answered = choiceAnswer.selected !== null;
+    // Find example phrases this word appears in (that the user knows)
+    const exIds = (word[4] || []).filter(id => data.phr?.[id]);
+    const exPhrases = exIds.map(id => PHRASES.find(p => p[0] === id)).filter(Boolean).slice(0, 2);
+    return withSenpai(<>
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14, textAlign: "center" }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: catInfo.color, textTransform: "uppercase", marginBottom: 8 }}>{catInfo.label}</div>
+        <div style={{ fontSize: 44, fontWeight: 800, color: c.tx, marginBottom: 4 }}>{word[0]}</div>
+        <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginBottom: 4 }}>{word[1]}</div>
+        <button onClick={() => speak(word[0])} style={{ ...btn, padding: "4px 14px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: 12, color: c.m }}>🔊 hear it</button>
+      </div>
+      <div style={{ fontSize: 13, color: c.m, marginBottom: 8, textAlign: "center" }}>What does this mean?</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {choiceAnswer.choices.map((w, i) => {
+          const isCorrect = w[0] === word[0];
+          const isSelected = choiceAnswer.selected === w[0];
+          let bg = "transparent", border = c.b, col = c.tx;
+          if (answered && isCorrect) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
+          return <button key={i} onClick={() => {
+            if (answered) return;
+            const ok = w[0] === word[0];
+            setChoiceAnswer({ ...choiceAnswer, selected: w[0], correct: ok });
+            setFb(ok ? "ok" : "no");
+            setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 16, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
+            {w[2]}
+          </button>;
+        })}
+      </div>
+      {answered && <>
+        {exPhrases.length > 0 && <div style={{ ...card, padding: "12px 16px", marginTop: 12, borderLeft: "3px solid " + catInfo.color }}>
+          <div style={{ fontSize: 11, color: c.m, marginBottom: 6 }}>You know this from:</div>
+          {exPhrases.map(p => {
+            const segs = PHRASE_BREAKDOWNS[p[0]];
+            if (!segs) return null;
+            return <div key={p[0]} style={{ marginBottom: 6 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3, alignItems: "baseline" }}>
+                {segs.map((seg, si) => {
+                  const isTarget = seg[0] === word[0];
+                  return <span key={si} style={{
+                    fontSize: 16, fontWeight: isTarget ? 700 : 400,
+                    color: isTarget ? catInfo.color : c.tx,
+                    background: isTarget ? catInfo.color + "18" : "transparent",
+                    padding: isTarget ? "2px 5px" : "2px 1px", borderRadius: 4,
+                  }}>{seg[0]}</span>;
+                })}
+              </div>
+              <div style={{ fontSize: 11, color: c.m }}>{p[3]}</div>
+            </div>;
+          })}
+        </div>}
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button onClick={() => speak(word[0])}
+            style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: 14 }}>🔊 hear again</button>
+          <button onClick={() => advance(choiceAnswer.correct)}
+            style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+        </div>
+      </>}
     </>);
   }
 

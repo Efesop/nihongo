@@ -7,6 +7,7 @@ import { CONFUSED_PAIRS } from "../data/confusedPairs.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { getUnlockedPatterns } from "../data/grammarPatterns.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
+import { KEY_WORDS } from "../data/keyWords.js";
 
 // All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -393,6 +394,19 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (eligiblePhrPairs.length > 0) {
       const cp = eligiblePhrPairs[Math.floor(Math.random() * eligiblePhrPairs.length)];
       queue.push({ type: "phrase-pair", pair: cp });
+    }
+  }
+
+  // Word quiz — building block vocabulary (question words, particles, pointers, etc.)
+  // These are the words that differentiate phrases from each other
+  if (phrasesLearned >= 3 && queue.length < sessionLength) {
+    // Pick words the user has encountered (in phrases they've learned)
+    const knownWords = KEY_WORDS.filter(w =>
+      (w[4] || []).some(id => phrData[id]?.box >= 1)
+    );
+    if (knownWords.length > 0) {
+      const word = shuffle(knownWords)[0];
+      queue.push({ type: "word-quiz", word });
     }
   }
 
