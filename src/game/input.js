@@ -1,5 +1,59 @@
 // ═══ INPUT HANDLING ═══
 
+// Export all platform + enemy positions to clipboard (debug mode)
+function _exportDebugData(g) {
+  if (!g) return;
+  const isPct = g.platforms[0]?._pct;
+  const W = g.W, H = g.H;
+
+  const platLines = g.platforms.map((p, i) => {
+    if (isPct) {
+      const extras = [];
+      if (p.h > 16) extras.push(`h: ${(p.h / H).toFixed(3)}`);
+      if (p.wall) extras.push('wall: true');
+      if (p.oneWay) extras.push('oneWay: true');
+      extras.push('pct: true');
+      return `      { x: ${(p.x/W).toFixed(3)}, y: ${(p.y/H).toFixed(3)}, w: ${(p.w/W).toFixed(3)}${p.h > 16 ? ', h: ' + (p.h/H).toFixed(3) : ''}, ${extras.filter(e => !e.startsWith('h:')).join(', ')} },`;
+    }
+    return `      { x: ${Math.round(p.x)}, y: ${Math.round(p.y - g.groundY)}, w: ${Math.round(p.w)} },`;
+  }).join('\n');
+
+  const enemyLines = g.enemies.map(e => {
+    const ex = isPct ? (e.x / W).toFixed(3) : Math.round(e.x);
+    const ey = isPct ? (e.y / H).toFixed(3) : Math.round(e.y - g.groundY);
+    return `      { type: "${e.type}", x: ${ex}, y: ${ey} },`;
+  }).join('\n');
+
+  const output = `    platforms: [\n${platLines}\n    ],\n    enemies: [\n${enemyLines}\n    ],`;
+
+  navigator.clipboard.writeText(output).then(() => {
+    g._copyFlash = Date.now();
+  }).catch(() => {
+    console.log(output);
+    g._copyFlash = Date.now();
+  });
+}
+
+// Show copy button when debug mode is active
+let _debugBtn = null;
+function _ensureDebugButton(gameRef) {
+  if (_debugBtn) {
+    _debugBtn.style.display = gameRef.current?._debugCollision ? 'block' : 'none';
+    return;
+  }
+  _debugBtn = document.createElement('button');
+  _debugBtn.textContent = '📋 Copy Positions';
+  Object.assign(_debugBtn.style, {
+    position: 'fixed', top: '40px', right: '10px', zIndex: '99999',
+    padding: '8px 16px', fontSize: '14px', fontWeight: 'bold',
+    background: '#222', color: '#0f0', border: '2px solid #0f0',
+    borderRadius: '6px', cursor: 'pointer', fontFamily: 'monospace',
+    display: 'none',
+  });
+  _debugBtn.addEventListener('click', () => _exportDebugData(gameRef.current));
+  document.body.appendChild(_debugBtn);
+}
+
 export function setupKeyboard(gameRef, setScreen) {
   const keys = {};
 
@@ -16,21 +70,13 @@ export function setupKeyboard(gameRef, setScreen) {
     if (e.code === "KeyK" || e.code === "KeyX" || e.code === "ShiftLeft" || e.code === "ShiftRight") { inp.slowmo = true; e.preventDefault(); }
     if (e.code === "KeyL" || e.code === "KeyC") { inp.dash = true; inp.dashPressed = true; e.preventDefault(); }
     // Debug hotkeys (work on live site too)
-    if (e.code === "F2") { inp._toggleDebug = true; e.preventDefault(); }
+    if (e.code === "F2") { inp._toggleDebug = true; _ensureDebugButton(gameRef); setTimeout(() => _ensureDebugButton(gameRef), 100); e.preventDefault(); }
     if (e.code === "F3") { inp._skipRoom = true; e.preventDefault(); }
     if (e.code === "F4") { inp._godMode = true; e.preventDefault(); }
     if (e.code === "F5") { inp._fillMeter = true; e.preventDefault(); }
-    // Export platform data in debug mode — outputs percentage coords for bg rooms
+    // Export platform + enemy data in debug mode — copies to clipboard
     if (e.code === "KeyE" && gameRef.current?._debugCollision) {
-      const g = gameRef.current;
-      const isPct = g.platforms[0]?._pct;
-      const json = g.platforms.map((p, i) => {
-        if (isPct) {
-          return `      { x: ${(p.x/g.W).toFixed(3)}, y: ${(p.y/g.H).toFixed(3)}, w: ${(p.w/g.W).toFixed(3)}, pct: true },`;
-        }
-        return `      { x: ${Math.round(p.x)}, y: ${Math.round(p.y - g.groundY)}, w: ${Math.round(p.w)} },`;
-      }).join('\n');
-      console.log('═══ PLATFORM DATA ═══\n    platforms: [\n' + json + '\n    ],');
+      _exportDebugData(gameRef.current);
       e.preventDefault();
     }
     // Story mode inputs (story overlay OR in-world NPC dialogue)

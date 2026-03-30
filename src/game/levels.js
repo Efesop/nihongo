@@ -323,9 +323,6 @@ export const ROOMS = [
       { x: 0.710, y: 0.180, w: 0.270, pct: true },   // rope bridge lookout
       // ── Center tree trunk: wall-runnable surface ──
       { x: 0.340, y: 0.180, w: 0.035, h: 0.540, wall: true, pct: true },
-      // ── One-way steps: invisible collision for painted stairs/ledges ──
-      { x: 0.000, y: 0.740, w: 0.100, oneWay: true, pct: true },  // step: ground → log
-      { x: 0.000, y: 0.480, w: 0.120, oneWay: true, pct: true },  // step: log → shrine
       // ── Invisible edge walls ──
       { x: 0.000, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
       { x: 0.985, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
