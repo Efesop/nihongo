@@ -163,10 +163,8 @@ export function render(g, ctx, isDesktop, font) {
   for (const d of g.decorations) renderDeco(ctx, d, g.groundY, g.time.elapsed);
 
   // Visible wall columns (stone pillars) — drawn as part of the environment
-  // Skip in background rooms — the painted art IS the environment
   for (const plat of g.platforms) {
     if (!plat.wall || !plat.visible) continue;
-    if (roomBgImg) continue;
     const px = plat.x, py = plat.y, pw = plat.w, ph = plat.h || 16;
     // Stone pillar with dark texture
     ctx.fillStyle = "#2a221a";
