@@ -1692,6 +1692,7 @@ const ENEMY_SPRITE_MAP = {
     patrol:  { frames: ["oni_walk1", "oni_walk2"], R: false },
     chase:   { frames: ["oni_walk1", "oni_walk2"], R: false },
     alert:   { key: "oni_alert", R: false },
+    block:   { key: "oni_windup", R: false }, // reuse windup sprite for block stance
     attack_windup: { key: "oni_windup", R: false },
     attack_strike: { key: "oni_attack", R: false },
     dazed:   { key: "oni_dazed", R: false },

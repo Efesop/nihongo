@@ -102,7 +102,20 @@ All game code in `src/game/`:
 | Jump | -560 initial vy | W/Up/Space |
 | Wall jump | 1.6x horizontal | Jump while wall-sliding |
 | Wall slide | 100 max fall | Touch wall while airborne |
+| Wall run | See below | Hold Dash while wall-sliding or hold Dash + jump at wall |
 | Dash | 700 px/s, 230ms | L/C, 500ms cooldown, i-frames |
+
+### Wall Run + Backflip
+| Parameter | Value |
+|-----------|-------|
+| Trigger | Hold Dash (L/C) while wall sliding, OR hold Dash + jump at wall (auto-triggers on contact) |
+| Grace buffer | 300ms — dash pressed slightly before wall contact still works |
+| Wall detection | 12px tolerance |
+| Phase 1 — Wall Climb | 350ms duration, wall_climb1/wall_climb2 sprites alternating every 100ms, vy=-260 upward, player faces INTO wall |
+| Phase 2 — Backflip | Auto-launches: JUMP_FORCE*1.3 up + MOVE_SPEED*2.0 horizontal away + 20px instant push |
+| Cinematic | 0.35x slow-mo, 1.12x camera zoom, 300ms invincibility |
+| Momentum | vx *= 0.98 drag, position uses Math.max(dt, rawDt*0.6) for visible launch during slow-mo |
+| Cooldown | 500ms prevents re-trigger, _lastWallX prevents wall re-grab |
 
 ### Combat — 4-Hit Combo
 | Hit | Duration | Special |

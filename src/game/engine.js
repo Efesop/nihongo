@@ -1715,7 +1715,7 @@ export function update(g, callbacks) {
         // Dash-slash bypasses all blocks (counts as backstab)
         const isDashSlash = p.dashSlashing;
 
-        if ((e.type === "samurai" || (e.type === "brute" && e.state !== "exhausted") || e.shielded) && !isDashSlash) {
+        if ((e.type === "samurai" || (e.type === "brute" && e.state !== "exhausted") || e.shielded || (e.type === "oni" && e.state === "block")) && !isDashSlash) {
           // Samurai/Brute: blocks frontal attacks. Must backstab or dash-slash.
           // Shielded enemies block ALL normal attacks (no backstab) — forces dash-slash
           const attackFromBehind = !e.shielded && ((p.x < e.x && e.facing > 0) || (p.x > e.x && e.facing < 0));

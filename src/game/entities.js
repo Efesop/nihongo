@@ -240,6 +240,7 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   if (e.throwAnim > 0) e.throwAnim -= dt * 1000;
   if (e.alert > 0) e.alert -= dt * 1000;
   if (e._dodgeCooldown > 0) e._dodgeCooldown -= dt * 1000;
+  if (e._blockCooldown > 0) e._blockCooldown -= dt * 1000;
 
   if (e.type === "oni") {
     // Passive enemies only react when player is very close
@@ -252,6 +253,15 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       if (e.windupTimer <= 0) {
         e.state = "attack"; e.attackTimer = 400;
         playRandom("oni_attack", { volume: 0.6 });
+      }
+    } else if (e.state === "block") {
+      // Oni block — holds ground, absorbs attack, then counter-strikes
+      e.blockTimer -= dt * 1000;
+      e.vx = 0;
+      if (e.blockTimer <= 0) {
+        // Counter-attack after block
+        e.state = "windup"; e.windupTimer = 200; // faster counter-windup
+        e.facing = toPlayer;
       }
     } else if (e.state === "attack") {
       e.attackTimer -= dt * 1000;
@@ -268,12 +278,19 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
       e.state = "chase";
       e.facing = toPlayer;
       e.vx = toPlayer * MOVE_SPEED * 0.7;
-      // Oni dodge — rare sidestep when player swings nearby (keeps them from being pure punching bags)
-      if (dist < 80 && player.slashTimer > 0 && !e._dodgeCooldown && Math.random() < 0.12) {
-        e.vx = -toPlayer * 200; // modest dodge backward
-        e._dodgeCooldown = 2000; // long cooldown — this is a rare surprise, not constant
+      // Oni block — when player approaches with slash, sometimes blocks instead of attacking
+      if (dist < 90 && player.slashTimer > 0 && !e._blockCooldown && Math.random() < 0.28) {
+        e.state = "block"; e.blockTimer = 500;
+        e._blockCooldown = 1500;
+        e.vx = 0;
+        playRandom("parry", { volume: 0.4 });
+      }
+      // Oni dodge — backstep when player swings nearby
+      else if (dist < 80 && player.slashTimer > 0 && !e._dodgeCooldown && Math.random() < 0.25) {
+        e.vx = -toPlayer * 250; // quick dodge backward
+        e._dodgeCooldown = 1200;
         e.state = "cooldown";
-        e.attackTimer = 400;
+        e.attackTimer = 300;
       } else if (dist < 65) {
         // Windup telegraph — 300ms pause before attacking
         e.state = "windup"; e.windupTimer = 300;
@@ -302,20 +319,34 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
           type: "shuriken", timer: 3000, rotation: 0, trail: [],
           gravity: elevated, // arrows/shurikens from above have gravity arc
         });
-        e.attackTimer = elevated ? 650 : 900; // elevated = faster throws
+        // Varied throw timing — unpredictable rhythm (±200ms random)
+        const baseCD = elevated ? 650 : 900;
+        e.attackTimer = baseCD + (Math.random() * 400 - 200);
         e.throwAnim = 400;
         playRandom("ninja_throw");
       }
+      // Ninja dodge roll — fast evasion when player slashes nearby
+      if (dist < 60 && player.slashTimer > 0 && !e._dodgeCooldown && Math.random() < 0.4) {
+        e.vx = -toPlayer * 350; // fast dodge roll
+        e._dodgeCooldown = 1000;
+        e.state = "retreat";
+        e.alert = 200; // brief retreat display
+        playRandom("dash", { volume: 0.3, playbackRate: 1.2 });
+      }
       // Ninja backstep — retreats when player approaches
-      if (e._dodgeCooldown > 0) {
+      else if (e._dodgeCooldown > 0) {
         // During dodge cooldown: keep retreating slowly (no flipping)
-        e.vx = -e.facing * 80;
+        e.vx = -e.facing * 100;
       } else if (dist < 70 && !((e.y + 30) < player.y)) {
         e.vx = -toPlayer * 160;
         if (dist < 40) {
           e._dodgeCooldown = 800;
           e.vx = -toPlayer * 280;
         }
+      }
+      // Ninja repositioning — tries to maintain ideal throw distance
+      else if (dist > 200 && dist < e.alertRange && !e._dodgeCooldown) {
+        e.vx = toPlayer * 60; // slowly close distance to ideal range
       }
     } else {
       e.state = "patrol";

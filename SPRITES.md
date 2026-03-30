@@ -72,11 +72,16 @@
 | Jump 1-2 | `jump/launch.png`, `jump/airborne.png` | `game/player_jump1-2.png` |
 | Fall | `fall.png` | `game/player_fall.png` |
 | Dash | `dash.png` | `game/player_dash.png` |
-| Wall Slide | `wallslide.png` | `game/player_wallslide.png` |
+| Wall Slide | ~~`wallslide.png`~~ DEPRECATED | ~~`game/player_wallslide.png`~~ — has baked wall, NOT used |
+| Wall Climb 1 | `wall_climb1.png` | — | Clean climbing pose, no wall |
+| Wall Climb 2 | `wall_climb2.png` | — | Clean climbing pose, no wall |
+| Backflip | `backflip.png` | — | Spinning flip sprite |
+| Wall Cling | `wall-cling.png` | — | Regenerated without baked wall |
+| Wall Pushoff | `wall-run2.png` | — | Mapped as wall_pushoff, kept as asset |
+| Wall Run | ~~`wall-run.png`~~ DEPRECATED | — | Wrong pose, not referenced in code |
 | Crouch | — | `game/player_crouch.png` |
 | Death Hit | `death/hit.png` | `game/player_death1.png` |
 | Death Fallen | `death/fallen.png` | `game/player_death2.png` |
-| Wall Cling | `wall-cling.png` | — |
 | Parry | `parry.png` | — |
 | Land Heavy | `land-heavy.png` | — |
 | Slash Through | `slash-through.png` | — |
