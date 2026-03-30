@@ -1525,16 +1525,15 @@ export default function SmartSession({
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "baseline" }}>
                 {segs.map((seg, si) => {
                   const isDiff = !otherTexts.includes(seg[0]);
+                  const segCol = { particle: c.go, noun: "#5a9ec4", verb: "#4caf50", adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m }[seg[3]] || c.m;
                   return <span key={si} style={{
-                    fontSize: 18, fontWeight: isDiff ? 700 : 500,
-                    color: isDiff ? "#ff9800" : c.tx,
-                    background: isDiff ? "#ff980015" : "transparent",
-                    padding: isDiff ? "2px 6px" : "2px 2px",
-                    borderRadius: isDiff ? 6 : 0,
-                    borderBottom: isDiff ? "2px solid #ff9800" : "none"
+                    display: "inline-flex", flexDirection: "column", alignItems: "center",
+                    padding: "4px 6px", borderRadius: 6,
+                    background: isDiff ? "#ff980018" : c.s2,
+                    border: isDiff ? "1px solid #ff980055" : "1px solid " + c.b + "44",
                   }}>
-                    {seg[0]}
-                    <span style={{ fontSize: 9, color: isDiff ? "#ff9800" : c.m, display: "block", fontWeight: 400, fontFamily: mono }}>{seg[2]}</span>
+                    <span style={{ fontSize: 18, fontWeight: isDiff ? 700 : 500, color: isDiff ? "#ff9800" : c.tx }}>{seg[0]}</span>
+                    <span style={{ fontSize: 10, color: isDiff ? "#ff9800" : segCol, fontWeight: 400, fontFamily: mono }}>{seg[2]}</span>
                   </span>;
                 })}
               </div>
