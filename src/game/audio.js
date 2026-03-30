@@ -27,7 +27,7 @@ const SFX_CRITICAL = [
   "shing", "slash3_electric", "hit_impact", "hit_impact2", "hit_impact3",
   "kill", "blood_splatter", "clash", "deflect", "backstab", "samurai_block",
   "jump", "land", "dash", "menuStart", "death",
-  "wall_grab", "wall_launch",
+  "wall_grab", "wall_launch", "wall_stomp", "backflip_breath",
 ];
 const SFX_GAMEPLAY = [
   "wallSlide", "step1", "step2", "step3",

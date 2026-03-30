@@ -1418,7 +1418,7 @@ export function update(g, callbacks) {
       const halfW = TILE * SCALE * 0.5;
       p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // prevent re-grab
       p.invincible = Math.max(p.invincible, 300);
-      playSound("wall_launch", { volume: 0.8, playbackRate: 0.9 });
+      playSound("wall_stomp", { volume: 0.9 });
       // Cinematic audio — duck everything for the epic moment
       duckAudio(0.12);
       // Play breath/focus sound if available, otherwise silence is powerful too
