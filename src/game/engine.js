@@ -309,15 +309,23 @@ export function update(g, callbacks) {
   const isDeath = g.player && g.player.dead;
   const isKillCam = g.roomState === "lastKillCam";
   if (!isDeath && !isKillCam) {
-    // Backflip slow-mo — cinematic bell curve: normal → slow → normal (smooth transition)
+    // Backflip slow-mo — quick drop into slow, hold epic moment, smooth ease-out
     const backflipSlowMo = g.slowMo._backflipSlowMo > 0;
     if (backflipSlowMo) {
       g.slowMo.active = true;
-      // Smooth bell-curve: ease into slow-mo, hold, ease back out
       const BACKFLIP_SLOWMO_DUR = 0.7; // must match initial _backflipSlowMo value
       const progress = 1 - g.slowMo._backflipSlowMo / BACKFLIP_SLOWMO_DUR; // 0→1
-      const slowAmount = Math.sin(progress * Math.PI); // bell: 0→1→0
-      g.time.scale = 1 - slowAmount * 0.65; // 1.0 → 0.35 → 1.0
+      if (progress < 0.08) {
+        // Quick ease-in (~56ms) — snap into slow-mo
+        g.time.scale = 1 - (progress / 0.08) * 0.65; // 1.0→0.35
+      } else if (progress < 0.7) {
+        // Hold slow — the epic moment
+        g.time.scale = 0.35;
+      } else {
+        // Smooth ease-out — return to action
+        const t = (progress - 0.7) / 0.3; // 0→1
+        g.time.scale = 0.35 + t * t * 0.65; // 0.35→1.0 (quadratic)
+      }
     } else {
       // Regular slow-mo — require 20% meter to START (prevents rapid flicker)
       const wasSlowMo = g.slowMo.active;

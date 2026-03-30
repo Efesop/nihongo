@@ -37,9 +37,12 @@ export function render(g, ctx, isDesktop, font) {
   const isBackflipSlowMo = g.slowMo && g.slowMo._backflipSlowMo > 0;
   if (isSlowMo) {
     if (isBackflipSlowMo) {
-      // Backflip: subtle desaturation that fades with the slow-mo bell curve
+      // Backflip: subtle desaturation matching the flat slow-mo curve
       const progress = 1 - g.slowMo._backflipSlowMo / 0.7;
-      const intensity = Math.sin(progress * Math.PI); // matches time curve
+      // Quick in, hold, ease out — matches time scale curve
+      const intensity = progress < 0.08 ? progress / 0.08
+        : progress < 0.7 ? 1
+        : 1 - ((progress - 0.7) / 0.3) ** 2;
       ctx.filter = `saturate(${1 - intensity * 0.3})`; // 1.0→0.7→1.0
     } else {
       ctx.filter = "saturate(0.4)";
@@ -1086,43 +1089,56 @@ export function render(g, ctx, isDesktop, font) {
     const ez = g.objective.exitZone;
     const pulse = 0.6 + Math.sin(g.time.elapsed * 4) * 0.2;
     if (ez.bgRoom) {
-      // Background room: warm golden forest-path light (sunlight through trees)
+      // Background room: bright golden forest-path light (sunlight through trees)
       const cx = ez.x + ez.w / 2;
       const groundY = H * 0.87; // approximate ground for bg rooms
-      // Warm light column — like sunlight breaking through canopy
+      // Wide warm light column — very visible
+      const lightW = ez.w + 40;
       const lightGrad = ctx.createLinearGradient(cx, 0, cx, groundY);
       lightGrad.addColorStop(0, `rgba(255,220,120,0)`);
-      lightGrad.addColorStop(0.2, `rgba(255,220,120,${0.06 * pulse})`);
-      lightGrad.addColorStop(0.5, `rgba(255,200,100,${0.12 * pulse})`);
-      lightGrad.addColorStop(0.8, `rgba(255,180,80,${0.18 * pulse})`);
-      lightGrad.addColorStop(1, `rgba(255,160,60,${0.08 * pulse})`);
+      lightGrad.addColorStop(0.15, `rgba(255,220,120,${0.1 * pulse})`);
+      lightGrad.addColorStop(0.4, `rgba(255,200,100,${0.2 * pulse})`);
+      lightGrad.addColorStop(0.7, `rgba(255,180,80,${0.3 * pulse})`);
+      lightGrad.addColorStop(1, `rgba(255,160,60,${0.15 * pulse})`);
       ctx.fillStyle = lightGrad;
-      ctx.fillRect(ez.x - 10, 0, ez.w + 20, groundY + 10);
-      // Radial glow at ground level
-      const glowGrad = ctx.createRadialGradient(cx, groundY - 20, 5, cx, groundY - 20, ez.w);
-      glowGrad.addColorStop(0, `rgba(255,200,100,${0.25 * pulse})`);
-      glowGrad.addColorStop(0.5, `rgba(255,180,80,${0.1 * pulse})`);
+      ctx.fillRect(cx - lightW / 2, 0, lightW, groundY + 10);
+      // Bright radial glow at ground level
+      const glowR = ez.w * 1.5;
+      const glowGrad = ctx.createRadialGradient(cx, groundY - 15, 8, cx, groundY - 15, glowR);
+      glowGrad.addColorStop(0, `rgba(255,220,120,${0.4 * pulse})`);
+      glowGrad.addColorStop(0.4, `rgba(255,200,100,${0.2 * pulse})`);
       glowGrad.addColorStop(1, "rgba(255,180,80,0)");
       ctx.fillStyle = glowGrad;
-      ctx.fillRect(cx - ez.w, groundY - ez.w, ez.w * 2, ez.w * 2);
-      // Floating light motes (particle-like, using sin waves)
-      ctx.globalAlpha = pulse * 0.7;
-      for (let i = 0; i < 5; i++) {
-        const t = g.time.elapsed * 0.8 + i * 1.3;
-        const mx = cx + Math.sin(t * 1.2 + i) * (ez.w * 0.4);
-        const my = groundY - 30 - (t * 20 % (groundY * 0.5));
-        const mSize = 1.5 + Math.sin(t * 3) * 0.5;
+      ctx.fillRect(cx - glowR, groundY - glowR, glowR * 2, glowR * 2);
+      // Ground path highlight
+      ctx.fillStyle = `rgba(255,200,100,${0.2 * pulse})`;
+      ctx.fillRect(ez.x - 5, groundY - 3, ez.w + 10, 6);
+      // Floating light motes — more and brighter
+      ctx.globalAlpha = pulse * 0.9;
+      for (let i = 0; i < 8; i++) {
+        const t = g.time.elapsed * 0.8 + i * 0.9;
+        const mx = cx + Math.sin(t * 1.2 + i * 2.1) * (ez.w * 0.6);
+        const my = groundY - 20 - (t * 25 % (groundY * 0.6));
+        const mSize = 2 + Math.sin(t * 3) * 0.8;
         ctx.fillStyle = "#ffe888";
         ctx.beginPath();
         ctx.arc(mx, my, mSize, 0, Math.PI * 2);
         ctx.fill();
+        // Glow halo
+        ctx.fillStyle = `rgba(255,232,136,0.3)`;
+        ctx.beginPath();
+        ctx.arc(mx, my, mSize * 2.5, 0, Math.PI * 2);
+        ctx.fill();
       }
       ctx.globalAlpha = 1;
-      // Subtle "→" arrow
-      ctx.font = "bold 16px monospace";
+      // Clear "EXIT →" text with backdrop
+      ctx.font = "bold 14px monospace";
       ctx.textAlign = "center";
-      ctx.fillStyle = `rgba(255,220,140,${0.5 * pulse})`;
-      ctx.fillText("→", cx, groundY - 12);
+      const txtY = groundY - 20;
+      ctx.fillStyle = `rgba(0,0,0,${0.3 * pulse})`;
+      ctx.fillRect(cx - 32, txtY - 11, 64, 16);
+      ctx.fillStyle = `rgba(255,220,140,${0.85 * pulse})`;
+      ctx.fillText("EXIT →", cx, txtY);
     } else {
       // Standard rooms: cool blue vertical beam
       const beamGrad = ctx.createLinearGradient(ez.x, 0, ez.x, g.groundY);
@@ -1204,7 +1220,9 @@ export function render(g, ctx, isDesktop, font) {
     if (isBackflipSlowMo) {
       // Backflip: clean cinematic vignette — no purple, just dramatic focus
       const progress = 1 - g.slowMo._backflipSlowMo / 0.7;
-      const intensity = Math.sin(progress * Math.PI);
+      const intensity = progress < 0.08 ? progress / 0.08
+        : progress < 0.7 ? 1
+        : 1 - ((progress - 0.7) / 0.3) ** 2;
       // Dark vignette (draws eye to center where the flip is)
       const vigAlpha = intensity * 0.45;
       const vigGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.65);
@@ -1605,8 +1623,8 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     if (drawSpriteFrame(ctx, img, "fall", s, p.facing)) { ctx.restore(); return; }
   }
 
-  if (p.wallSliding) {
-    // Use wall_cling only — wallslide.png has baked-in wall texture
+  if (p.wallSliding && !p._wallRunning) {
+    // Use wall_cling only — wallslide.png has baked-in wall texture (skip during wall run)
     const img = getImage("wall_cling") || getImage("jump1");
     if (img) {
       const crop = CROPS.wall_cling || CROPS.wallslide;
