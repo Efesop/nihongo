@@ -312,43 +312,44 @@ export const ROOMS = [
     theme: "forest",
     background: "room_forest_06",
     platforms: [
-      // Ground floor — wide stone path / forest floor
-      { x: 0.03, y: 0.88, w: 0.94, pct: true },
-      // Lower-mid: fallen burning log bridge (left-center)
-      { x: 0.08, y: 0.65, w: 0.30, pct: true },
-      // Mid: thick tree branch across center
-      { x: 0.30, y: 0.48, w: 0.40, pct: true },
-      // Upper-left: rock outcropping / ruined shrine
-      { x: 0.03, y: 0.30, w: 0.22, pct: true },
-      // Upper-right: treehouse scaffold
-      { x: 0.70, y: 0.28, w: 0.27, pct: true },
-      // Center pillar — wall-runnable tree trunk
-      { x: 0.48, y: 0.10, w: 0.04, h: 0.32, wall: true, visible: true, pct: true },
+      // Ground — stone path across bottom (gap in center where cliff drops)
+      { x: 0.00, y: 0.90, w: 0.32, pct: true },    // left ground (to cliff edge)
+      { x: 0.55, y: 0.90, w: 0.45, pct: true },    // right ground (past gap)
+      // Lower-left: burning fallen log bridge
+      { x: 0.14, y: 0.60, w: 0.30, pct: true },
+      // Mid-right: huge gnarled tree branch
+      { x: 0.44, y: 0.48, w: 0.34, pct: true },
+      // Upper-left: rock cliff with shrine + torii
+      { x: 0.01, y: 0.24, w: 0.20, pct: true },
+      // Upper-right: wooden rope bridge / lookout
+      { x: 0.67, y: 0.26, w: 0.28, pct: true },
+      // Center: massive tree trunk (wall-runnable)
+      { x: 0.41, y: 0.08, w: 0.04, h: 0.38, wall: true, visible: true, pct: true },
       // Invisible walls at screen edges
-      { x: 0.000, y: 0.000, w: 0.030, h: 1.0, wall: true, pct: true },
-      { x: 0.970, y: 0.000, w: 0.030, h: 1.0, wall: true, pct: true },
+      { x: 0.000, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
+      { x: 0.985, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
     ],
     hazards: [
-      // Fire jet on ground-left (burning debris)
-      { type: "firejet", x: 0.15, y: 0.88, w: 0.02, h: 0.08, onTime: 1200, offTime: 2500, offset: 0, pct: true },
-      // Spikes on far-right ground (rocky debris)
-      { type: "spikes", x: 0.85, y: 0.88, w: 0.06, pct: true },
+      // Fire jet on left ground (burning debris near cliff edge)
+      { type: "firejet", x: 0.26, y: 0.90, w: 0.02, h: 0.08, onTime: 1200, offTime: 2500, offset: 0, pct: true },
+      // Spikes in the gap between ground sections (fallen rocks)
+      { type: "spikes", x: 0.36, y: 0.94, w: 0.15, pct: true },
     ],
     enemies: [
-      // Ground: 2 oni spread apart
-      { type: "oni", x: 0.18, y: 0.80 },
-      { type: "oni", x: 0.65, y: 0.80 },
-      // Lower-mid log: 1 oni guard
-      { type: "oni", x: 0.22, y: 0.57 },
+      // Left ground: oni patrol
+      { type: "oni", x: 0.12, y: 0.82 },
+      // Right ground: oni + ninja crossfire
+      { type: "oni", x: 0.70, y: 0.82 },
+      { type: "ninja", x: 0.88, y: 0.82 },
+      // Burning log: oni guard
+      { type: "oni", x: 0.28, y: 0.52 },
       // Mid branch: ninja ALONE — the key introduction moment
-      { type: "ninja", x: 0.55, y: 0.40 },
-      // Upper left: oni guard
-      { type: "oni", x: 0.10, y: 0.22 },
-      // Upper right: ninja throws down + oni partner
-      { type: "ninja", x: 0.85, y: 0.20 },
-      { type: "oni", x: 0.78, y: 0.20 },
-      // Ground right: ninja crossfire
-      { type: "ninja", x: 0.90, y: 0.80 },
+      { type: "ninja", x: 0.60, y: 0.40 },
+      // Upper left shrine: oni guard
+      { type: "oni", x: 0.10, y: 0.16 },
+      // Upper right lookout: ninja throws down + oni
+      { type: "ninja", x: 0.82, y: 0.18 },
+      { type: "oni", x: 0.74, y: 0.18 },
     ],
     shadows: [],
     playerStart: 100,
