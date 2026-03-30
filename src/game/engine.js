@@ -12,7 +12,7 @@ import { ROOM_ENCOUNTERS, ROOM_DIALOGUE, STORY_TRIGGERS } from "./story.js";
 import { updateStory, initStoryState } from "./storyRenderer.js";
 import log from "./logger.js";
 import { crossfadeMusic } from "./audio.js";
-import { playSound, playRandom, playRandomExclusive, setAmbientTheme, playVoiceBlip } from "./audio.js";
+import { playSound, playRandom, playRandomExclusive, setAmbientTheme, playVoiceBlip, duckAudio, unduckAudio } from "./audio.js";
 import { preloadZone } from "./sprites.js";
 
 // ═══ ZONE MUSIC MAPPING ═══
@@ -1419,16 +1419,30 @@ export function update(g, callbacks) {
       p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // prevent re-grab
       p.invincible = Math.max(p.invincible, 300);
       playSound("jump", { playbackRate: 1.3 });
+      // Cinematic audio — duck everything, play impact whoosh
+      duckAudio(0.1);
+      playSound("wall_launch", { volume: 1.2, playbackRate: 0.8 });
       // Slow-mo + zoom on backflip — cinematic
       g.slowMo.active = true;
-      g.slowMo._backflipSlowMo = 0.7; // 700ms slow-mo bell curve (matches flip duration)
+      g.slowMo._backflipSlowMo = 0.7; // 700ms slow-mo (matches flip duration)
       g.camera._backflipZoom = 1.0; // will ease in
-      // Dramatic particles
-      for (let i = 0; i < 8; i++) {
+      // Impact burst — heavy push-off particles from wall
+      g.camera.shakeTimer = 120; // brief shake on push-off
+      for (let i = 0; i < 14; i++) {
         g.particles.push({
           x: p.x + p.wallDir * 15, y: p.y + rnd(0, TILE * SCALE),
-          vx: -p.wallDir * rnd(50, 150), vy: rnd(-100, -30),
-          life: 300, maxLife: 300, color: i < 4 ? "#ffffff" : "#aaaaff", size: rndInt(1, 3),
+          vx: -p.wallDir * rnd(80, 220), vy: rnd(-140, -20),
+          life: 400, maxLife: 400,
+          color: i < 5 ? "#ffffff" : i < 9 ? "#cccccc" : "#888888",
+          size: rndInt(2, 5),
+        });
+      }
+      // Dust cloud at wall contact point
+      for (let i = 0; i < 6; i++) {
+        g.particles.push({
+          x: p.x + p.wallDir * 10, y: p.y + TILE * SCALE * 0.5 + rnd(-15, 15),
+          vx: -p.wallDir * rnd(10, 40), vy: rnd(-50, -10),
+          life: 500, maxLife: 500, color: "#6a5a4a", size: rndInt(4, 8),
         });
       }
     }
@@ -1447,6 +1461,7 @@ export function update(g, callbacks) {
     if (g.slowMo._backflipSlowMo <= 0) {
       g.slowMo.active = false;
       g.slowMo._backflipSlowMo = 0;
+      unduckAudio(0.4); // restore audio smoothly after epic moment
     }
   }
   // Backflip camera zoom ease in/out
@@ -2192,10 +2207,11 @@ export function update(g, callbacks) {
           clearRoom(g, callbacks);
         } else {
           g.roomState = "open";
-          // Single-screen bg rooms: exit is a forest path on the right side
+          // Single-screen bg rooms: exit is on the upper-right platform (integrated with bg)
           const isBgRoom = (g._rooms || [])[g.currentRoom]?.background && g.levelW <= g.W;
           if (isBgRoom) {
-            g.objective.exitZone = { x: g.W * 0.87, w: g.W * 0.08, bgRoom: true };
+            // Upper-right platform: x: 0.682, y: 0.280, w: 0.280 — exit at far right of it
+            g.objective.exitZone = { x: g.W * 0.88, y: g.H * 0.28, w: g.W * 0.07, bgRoom: true };
           } else {
             g.objective.exitZone = { x: g.levelW - 100, w: 60 };
           }
@@ -2207,10 +2223,12 @@ export function update(g, callbacks) {
       clearRoom(g, callbacks);
     }
   } else if (g.roomState === "open") {
-    // All enemies dead — player must run to the exit door
+    // All enemies dead — player must reach the exit zone
     const ez = g.objective.exitZone;
     if (ez && p.x > ez.x && p.x < ez.x + ez.w) {
-      clearRoom(g, callbacks);
+      // For bg rooms with elevated exit, also check Y (player must be on the platform)
+      const yOk = !ez.y || (p.y + TILE * SCALE < ez.y + 60);
+      if (yOk) clearRoom(g, callbacks);
     }
   } else if (g.roomState === "cleared") {
     g.roomClearTimer -= rawDt * 1000;

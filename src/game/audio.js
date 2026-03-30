@@ -482,3 +482,47 @@ export function setMusicVolume(v) {
   _musicVolume = Math.max(0, Math.min(1, v));
   if (_musicGain && !_muted) _musicGain.gain.value = _musicVolume;
 }
+
+// ═══ CINEMATIC AUDIO DUCKING ═══
+// Fades all audio buses down for epic moments (backflip etc), then restores
+let _duckActive = false;
+export function duckAudio(fadeSec = 0.15) {
+  if (!_ctx || _duckActive || _muted) return;
+  _duckActive = true;
+  const now = _ctx.currentTime;
+  if (_musicGain) {
+    _musicGain.gain.cancelScheduledValues(now);
+    _musicGain.gain.setValueAtTime(_musicGain.gain.value, now);
+    _musicGain.gain.linearRampToValueAtTime(_musicVolume * 0.08, now + fadeSec);
+  }
+  if (_masterGain) {
+    _masterGain.gain.cancelScheduledValues(now);
+    _masterGain.gain.setValueAtTime(_masterGain.gain.value, now);
+    _masterGain.gain.linearRampToValueAtTime(0.15, now + fadeSec);
+  }
+  if (_ambientGain) {
+    _ambientGain.gain.cancelScheduledValues(now);
+    _ambientGain.gain.setValueAtTime(_ambientGain.gain.value, now);
+    _ambientGain.gain.linearRampToValueAtTime(_ambientVolume * 0.1, now + fadeSec);
+  }
+}
+export function unduckAudio(fadeSec = 0.3) {
+  if (!_ctx || !_duckActive) return;
+  _duckActive = false;
+  const now = _ctx.currentTime;
+  if (_musicGain) {
+    _musicGain.gain.cancelScheduledValues(now);
+    _musicGain.gain.setValueAtTime(_musicGain.gain.value, now);
+    _musicGain.gain.linearRampToValueAtTime(_muted ? 0 : _musicVolume, now + fadeSec);
+  }
+  if (_masterGain) {
+    _masterGain.gain.cancelScheduledValues(now);
+    _masterGain.gain.setValueAtTime(_masterGain.gain.value, now);
+    _masterGain.gain.linearRampToValueAtTime(_muted ? 0 : 1, now + fadeSec);
+  }
+  if (_ambientGain) {
+    _ambientGain.gain.cancelScheduledValues(now);
+    _ambientGain.gain.setValueAtTime(_ambientGain.gain.value, now);
+    _ambientGain.gain.linearRampToValueAtTime(_muted ? 0 : _ambientVolume, now + fadeSec);
+  }
+}

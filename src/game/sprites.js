@@ -73,6 +73,9 @@ const PLAYER_CORE = [
   ps("wall_climb1", "/images/tinysenpai/wall-climb1.png"), ps("wall_climb2", "/images/tinysenpai/wall-climb2.png"),
   ps("wall_pushoff", "/images/tinysenpai/wall-run2.png"),
   ps("backflip", "/images/tinysenpai/backflip.png"),
+  ps("backflip_pushoff", "/images/tinysenpai/backflip_pushoff.png"),
+  ps("backflip_tuck", "/images/tinysenpai/backflip_tuck.png"),
+  ps("backflip_land", "/images/tinysenpai/backflip_land.png"),
 ];
 
 const ZONE_SPRITES = {
@@ -121,6 +124,7 @@ const ZONE_SPRITES = {
     gs("bg_forest_far"), gs("bg_forest_mid"), gs("bg_forest_near"),
     // Scene backgrounds (single-screen rooms)
     gs("room_forest_05"),
+    gs("exit_forest"),
     // Platform tileset sprites
     gs("tile_forest_ground"), gs("tile_forest_branch"), gs("tile_forest_wall"),
     // Legacy contextual sprites (kept for compatibility)
