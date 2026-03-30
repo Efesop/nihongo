@@ -124,6 +124,34 @@ export function render(g, ctx, isDesktop, font) {
   // Decorations
   for (const d of g.decorations) renderDeco(ctx, d, g.groundY, g.time.elapsed);
 
+  // Visible wall columns (stone pillars) — drawn as part of the environment
+  for (const plat of g.platforms) {
+    if (!plat.wall || !plat.visible) continue;
+    const px = plat.x, py = plat.y, pw = plat.w, ph = plat.h || 16;
+    // Stone pillar with dark texture
+    ctx.fillStyle = "#2a221a";
+    ctx.fillRect(px, py, pw, ph);
+    // Lighter edge highlights
+    ctx.fillStyle = "#3d3228";
+    ctx.fillRect(px + 1, py, 2, ph);
+    ctx.fillStyle = "#1a150f";
+    ctx.fillRect(px + pw - 2, py, 2, ph);
+    // Stone block lines every ~20px
+    ctx.strokeStyle = "#1a150f";
+    ctx.lineWidth = 1;
+    for (let by = py; by < py + ph; by += 18) {
+      ctx.beginPath();
+      ctx.moveTo(px, by);
+      ctx.lineTo(px + pw, by);
+      ctx.stroke();
+    }
+    // Top cap
+    ctx.fillStyle = "#3d3228";
+    ctx.fillRect(px - 2, py - 3, pw + 4, 5);
+    // Bottom cap
+    ctx.fillRect(px - 2, py + ph - 2, pw + 4, 5);
+  }
+
   // Doors — shoji panels that open/close
   if (g.doors) {
     for (const door of g.doors) {
@@ -1542,14 +1570,16 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
-  // Backflip — full spinning flip (no pushoff phase to avoid baked wall sprite)
+  // Backflip — single clean 360° spin with locked facing direction
   if (p.state === "backflip") {
     const flipProgress = 1 - (p._backflipTimer || 0) / 500; // 0→1
-    const rotation = flipProgress * Math.PI * 2 * p.facing; // full 360 spin
+    // Use locked facing from launch (prevents mid-flip direction change)
+    const flipDir = p._backflipFacing || p.facing;
+    const rotation = flipProgress * Math.PI * 2 * flipDir; // single 360° rotation
     ctx.rotate(rotation);
     const img = getImage("backflip") || getImage("jump2") || getImage("jump1");
     const cropKey = getImage("backflip") ? "backflip" : "jump2";
-    if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
+    if (drawSpriteFrame(ctx, img, cropKey, s, flipDir)) { ctx.restore(); return; }
   }
 
   if (p.state === "dash") {

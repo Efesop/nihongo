@@ -52,6 +52,7 @@ export function loadRoom(g, roomIndex) {
       x: p.x * g.W, y: p.y * g.H, w: p.w * g.W, h: p.h ? p.h * g.H : 16,
       ...(p.wall && { wall: true }), ...(p.ceiling && { ceiling: true }),
       ...(p.oneWay && { oneWay: true }), ...(p.stair && { stair: true }),
+      ...(p.visible && { visible: true }),
       _pct: true, // flag for debug export
     }));
   } else {
@@ -1373,21 +1374,22 @@ export function update(g, callbacks) {
       p._wallRunCooldown = 500; // prevent immediate re-trigger
       p._backflipping = true;
       p._backflipTimer = 500;
+      p._backflipFacing = launchDir; // lock rotation direction for entire flip
       log.wall("BACKFLIP LAUNCH — dir:", launchDir, "vx:", p.vx, "vy:", p.vy);
       p.vy = JUMP_FORCE * 1.3; // strong upward launch
-      p.vx = launchDir * MOVE_SPEED * 2.0; // strong horizontal push away
+      p.vx = launchDir * MOVE_SPEED * 1.7; // horizontal push (reduced from 2.0)
       p.facing = launchDir;
       p.wallSliding = false;
       // Push player away from wall immediately so wall detection doesn't re-grab
-      p.x += launchDir * 20;
-      p.wallJumpCooldown = 400;
+      p.x += launchDir * 15;
+      p.wallJumpCooldown = 500; // lock facing for full backflip duration
       const halfW = TILE * SCALE * 0.5;
       p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // prevent re-grab
       p.invincible = Math.max(p.invincible, 300);
       playSound("jump", { playbackRate: 1.3 });
       // Slow-mo + zoom on backflip — cinematic
       g.slowMo.active = true;
-      g.slowMo._backflipSlowMo = 0.4; // 400ms of slow-mo
+      g.slowMo._backflipSlowMo = 0.5; // 500ms of slow-mo (full flip duration)
       g.camera._backflipZoom = 1.0; // will ease in
       // Dramatic particles
       for (let i = 0; i < 8; i++) {
@@ -1975,7 +1977,7 @@ export function update(g, callbacks) {
   g.camera.zoom = lerp(g.camera.zoom, g.camera.zoomTarget, 1 - Math.pow(0.001, rawDt));
   // Backflip zoom — close-up on player during flip (overrides slow-mo zoom-out)
   if (g.camera._backflipZoom > 0) {
-    g.camera.zoomTarget = 1.0 + g.camera._backflipZoom * 0.12; // up to 1.12x zoom-in
+    g.camera.zoomTarget = 1.0 + g.camera._backflipZoom * 0.25; // up to 1.25x zoom-in
   } else if (g.slowMo.active) {
     g.camera.zoomTarget = 0.97; // slow-mo: slight zoom out
   } else if (g.camera.zoomTarget !== 1) {
