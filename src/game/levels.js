@@ -305,36 +305,35 @@ export const ROOMS = [
   // ── Room 6: "天空 Sky Path" — BURNING FOREST (Single-Screen Painted Scene) ──
   // Identity: Ninja introduction + environmental storytelling. Dojo fire spreading.
   // Same approach as Room 5: custom painted background, percentage coords, platforms = art.
-  // More zoomed out: 5 platform levels (vs Room 5's 3), wall-runnable center pillar.
-  // Skills: Dodge shurikens, wall-run (reinforces Room 5), fire jet timing.
+  // More zoomed out: 5 platform levels, wall-runnable center trunk, stair to shrine.
+  // Skills: Dodge shurikens, wall-run (reinforces Room 5).
   {
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
     background: "room_forest_06",
     platforms: [
-      // Ground — stone path across bottom (gap in center where cliff drops)
-      { x: 0.00, y: 0.90, w: 0.32, pct: true },    // left ground (to cliff edge)
-      { x: 0.55, y: 0.90, w: 0.45, pct: true },    // right ground (past gap)
-      // Lower-left: burning fallen log bridge
-      { x: 0.14, y: 0.60, w: 0.30, pct: true },
-      // Mid-right: huge gnarled tree branch
-      { x: 0.44, y: 0.48, w: 0.34, pct: true },
+      // Ground — stone path across bottom (gap in center where cliff drops off)
+      { x: 0.00, y: 0.90, w: 0.30, pct: true },    // left ground
+      { x: 0.55, y: 0.90, w: 0.45, pct: true },    // right ground
+      // Lower-left: burning fallen log bridge (oni stands here)
+      { x: 0.15, y: 0.62, w: 0.25, pct: true },
+      // Step from ground toward burning log (painted stone steps — invisible collision)
+      { x: 0.02, y: 0.76, w: 0.12, oneWay: true, pct: true },
+      // Mid-right: huge gnarled tree branch (lower than before — matches painted branch)
+      { x: 0.48, y: 0.55, w: 0.30, pct: true },
       // Upper-left: rock cliff with shrine + torii
-      { x: 0.01, y: 0.24, w: 0.20, pct: true },
+      { x: 0.01, y: 0.26, w: 0.20, pct: true },
+      // Step from burning log toward shrine (painted stone steps — invisible collision)
+      { x: 0.01, y: 0.44, w: 0.14, oneWay: true, pct: true },
       // Upper-right: wooden rope bridge / lookout
-      { x: 0.67, y: 0.26, w: 0.28, pct: true },
+      { x: 0.70, y: 0.28, w: 0.27, pct: true },
       // Center: massive tree trunk (wall-runnable)
-      { x: 0.41, y: 0.08, w: 0.04, h: 0.38, wall: true, visible: true, pct: true },
+      { x: 0.41, y: 0.08, w: 0.04, h: 0.40, wall: true, visible: true, pct: true },
       // Invisible walls at screen edges
       { x: 0.000, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
       { x: 0.985, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
     ],
-    hazards: [
-      // Fire jet on left ground (burning debris near cliff edge)
-      { type: "firejet", x: 0.26, y: 0.90, w: 0.02, h: 0.08, onTime: 1200, offTime: 2500, offset: 0, pct: true },
-      // Spikes in the gap between ground sections (fallen rocks)
-      { type: "spikes", x: 0.36, y: 0.94, w: 0.15, pct: true },
-    ],
+    hazards: [],  // No artificial hazards — the painted fire IS the atmosphere
     enemies: [
       // Left ground: oni patrol
       { type: "oni", x: 0.12, y: 0.82 },
@@ -342,25 +341,22 @@ export const ROOMS = [
       { type: "oni", x: 0.70, y: 0.82 },
       { type: "ninja", x: 0.88, y: 0.82 },
       // Burning log: oni guard
-      { type: "oni", x: 0.28, y: 0.52 },
+      { type: "oni", x: 0.28, y: 0.54 },
       // Mid branch: ninja ALONE — the key introduction moment
-      { type: "ninja", x: 0.60, y: 0.40 },
+      { type: "ninja", x: 0.62, y: 0.47 },
       // Upper left shrine: oni guard
-      { type: "oni", x: 0.10, y: 0.16 },
+      { type: "oni", x: 0.10, y: 0.18 },
       // Upper right lookout: ninja throws down + oni
-      { type: "ninja", x: 0.82, y: 0.18 },
-      { type: "oni", x: 0.74, y: 0.18 },
+      { type: "ninja", x: 0.82, y: 0.20 },
+      { type: "oni", x: 0.76, y: 0.20 },
     ],
     shadows: [],
     playerStart: 100,
     hideSpots: [
-      { type: "tallGrass", x: 0.06, y: 0.84, w: 0.06, pct: true },
+      { type: "tallGrass", x: 0.06, y: 0.86, w: 0.06, pct: true },
     ],
     deco: [],
-    breakables: [
-      { type: "pot", x: 0.30, y: 0.84, w: 25, h: 30, hp: 1, pct: true },
-      { type: "lantern", x: 0.50, y: 0.84, w: 28, h: 36, pct: true },
-    ],
+    breakables: [],
   },
 
   // ── Room 7: "登城 Ascent" — WALL-JUMP REQUIRED ──
