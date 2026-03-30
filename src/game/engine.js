@@ -962,6 +962,7 @@ export function update(g, callbacks) {
             h.fallen = true;
             h.respawnTimer = 3000;
             h.y = g.H + 200; // move offscreen
+            playSound("branch_crack", { volume: 0.7 });
             playSound("land", { volume: 0.6, playbackRate: 0.5 });
           }
         }

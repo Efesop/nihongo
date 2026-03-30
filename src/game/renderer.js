@@ -452,6 +452,36 @@ export function render(g, ctx, isDesktop, font) {
     }
   }
 
+  // ── Hide spots (tall grass, crates, barrels) ──
+  if (g.hideSpots) {
+    for (const hs of g.hideSpots) {
+      if (hs.x + hs.w < cx - 50 || hs.x > cx + W + 50) continue;
+      const hsImg = getImage("tall_grass");
+      if (hsImg) {
+        // Draw sprite scaled to hide spot dimensions
+        const drawH = 50;
+        const drawW = hs.w || 80;
+        ctx.globalAlpha = hs.occupied ? 0.6 : 0.85;
+        ctx.drawImage(hsImg, hs.x, hs.y - drawH + 8, drawW, drawH);
+        ctx.globalAlpha = 1;
+      } else {
+        // Fallback: procedural grass blades
+        const bladeCount = Math.floor((hs.w || 80) / 8);
+        for (let i = 0; i < bladeCount; i++) {
+          const bx = hs.x + i * 8 + Math.random() * 4;
+          const bh = 25 + Math.random() * 20;
+          const sway = Math.sin(Date.now() * 0.002 + i) * 2;
+          ctx.fillStyle = hs.occupied ? "rgba(20,60,20,0.4)" : "rgba(30,80,30,0.7)";
+          ctx.beginPath();
+          ctx.moveTo(bx, hs.y);
+          ctx.lineTo(bx + sway + 2, hs.y - bh);
+          ctx.lineTo(bx + 4, hs.y);
+          ctx.fill();
+        }
+      }
+    }
+  }
+
   // ── Hazards ──
   if (g.hazards) {
     for (const h of g.hazards) {

@@ -120,8 +120,11 @@ const ZONE_SPRITES = {
   ],
   forest: [
     ps("bg_forest", "/images/forest.png"), gs("bg_forest_story"), gs("bg_temple_story"),
-    // Parallax background layers
+    // Parallax background layers (original + burning forest variants)
     gs("bg_forest_far"), gs("bg_forest_mid"), gs("bg_forest_near"),
+    gs("bg_forest_fire_far"), gs("bg_forest_fire_mid"), gs("bg_forest_fire_near"),
+    // Environment sprites
+    gs("tall_grass"), gs("torii_burned"),
     // Scene backgrounds (single-screen rooms)
     gs("room_forest_05"),
     gs("exit_forest"),

@@ -558,11 +558,13 @@ export const ROOM_ENCOUNTERS = {
     { triggerX: 800, speaker: "player", textJp: "...先生、無事でいて。", text: "...Sensei, please be safe.", duration: 2000 },
     { triggerX: 1400, speaker: "player", textJp: "後ろから来てる...！", text: "They're behind me...!", duration: 1500 },
   ],
-  // Room 6: Processing what happened, getting deeper into forest
+  // Room 6: Fleeing through burning forest — fire spreading, ninja pursuers
   6: [
-    { triggerX: 200, speaker: "player", textJp: "道場が...先生が...", text: "The dojo... Sensei...", duration: 2000 },
-    { triggerX: 800, speaker: "player", textJp: "上に行くしかない。", text: "Only way is up.", duration: 1500 },
-    { triggerX: 1400, speaker: "player", textJp: "追手だ。先生の言う通りだった。", text: "Pursuers. Sensei was right.", duration: 2000 },
+    { triggerX: 100, speaker: "player", textJp: "道場が...先生が...", text: "The dojo... Sensei...", duration: 2000 },
+    { triggerX: 1050, speaker: "player", textJp: "煙の匂い...火が広がってる。", text: "Smoke... the fire is spreading.", duration: 1800 },
+    { triggerX: 2000, speaker: "player", textJp: "上に行くしかない。", text: "Only way is up.", duration: 1500 },
+    { triggerX: 2700, speaker: "player", textJp: "腕が...熱い。印が光ってる。", text: "My arm... it's hot. The mark is glowing.", duration: 2200 },
+    { triggerX: 3900, speaker: "player", textJp: "追手だ。先生の言う通りだった。", text: "Pursuers. Sensei was right.", duration: 2000 },
   ],
   // Room 7: Pushing forward, using sensei's training
   7: [

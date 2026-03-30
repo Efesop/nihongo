@@ -302,45 +302,84 @@ export const ROOMS = [
     ],
   },
 
-  // ── Room 6: "天空 Sky Path" — NINJA INTRODUCTION ──
-  // Identity: First ranged enemy. Introduce ninjas on elevated branches.
-  // Skills: Jump (to reach branches) + dodge/deflect shurikens
-  // Principle: Introduce ninja ALONE first, then with oni. 2 vertical layers max.
+  // ── Room 6: "天空 Sky Path" — THE BURNING FOREST ESCAPE ──
+  // Identity: Ninja introduction + environmental storytelling. Dojo fire spreading through forest.
+  // 5 zones: Quiet Forest → Smoke Trail → Burning Canopy → Ravine Wall-Run → Final Stand
+  // Skills: Dodge shurikens, wall-run traversal (reinforces Room 5), timing (fire jets)
+  // Principle: Introduce ninja ALONE, then combine, add hazards, reward wall-run mastery.
   {
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
-    bg: { far: "bg_forest_far", mid: "bg_forest_mid", near: "bg_forest_near" },
+    bg: { far: "bg_forest_fire_far", mid: "bg_forest_fire_mid", near: "bg_forest_fire_near" },
     platforms: [
-      // Longer forest floor with gaps requiring jumps
-      { x: 0, y: 0, w: 1000 },
-      { x: 1200, y: 0, w: 1000 },
-      { x: 2400, y: 0, w: 800 },
-      // Tree branches — thick limbs at varying positions
-      { x: 400, y: -70, w: 220 },   // first ninja (ALONE — introduction)
-      { x: 1500, y: -80, w: 280 },  // oni + ninja together (combination)
-      { x: 2600, y: -70, w: 220 },  // final ninja (test what you learned)
+      // Zone 1: Quiet Forest (0-900) — calm, solo ninja intro
+      { x: 0, y: 0, w: 900 },
+      { x: 200, y: -70, w: 150, oneWay: true },       // mossy rock ledge
+      { x: 600, y: -80, w: 200 },                      // ninja branch
+      // Zone 2: Smoke Trail (1000-1800) — combination combat + fire
+      { x: 1000, y: 0, w: 800 },
+      { x: 1300, y: -90, w: 250 },                     // elevated branch (ninja+oni)
+      { x: 1650, y: -50, w: 120, oneWay: true },       // stepping stone
+      // Zone 3: Burning Canopy (2000-2600) — falling branch + urgency
+      { x: 2000, y: 0, w: 600 },
+      // NOTE: no static platform at 2100,-80 — falling hazard handles collision
+      { x: 2350, y: -50, w: 120, oneWay: true },       // escape step
+      // Zone 4: The Ravine (2650-3500) — wall-run traversal, NO combat
+      { x: 2650, y: 0, w: 400 },                       // approach ledge
+      { x: 2950, y: -40, w: 80 },                      // rock step up
+      { x: 3050, y: -180, w: 35, h: 140, wall: true }, // left cliff face
+      { x: 3350, y: -180, w: 35, h: 140, wall: true }, // right cliff face
+      { x: 3180, y: -100, w: 100, oneWay: true },      // midpoint safety ledge
+      { x: 3500, y: 0, w: 300 },                       // landing
+      // Zone 5: Final Stand (3800-4800) — boss arena + exit
+      { x: 3800, y: 0, w: 1000 },
+      { x: 4200, y: -90, w: 200 },                     // ninja perch
+      { x: 4000, y: -50, w: 100, oneWay: true },       // stepping stone
+    ],
+    hazards: [
+      // Zone 2: fire jet guards the gap between zones
+      { type: "firejet", x: 950, y: 0, w: 30, h: 70, onTime: 1200, offTime: 2500, offset: 0 },
+      // Zone 3: burning branch collapses + spike pit
+      { type: "falling", x: 2100, y: -80, w: 180 },
+      { type: "spikes", x: 2550, y: 0, w: 64 },
+      // Zone 5: fire between ground and perch
+      { type: "firejet", x: 4100, y: 0, w: 30, h: 80, onTime: 1500, offTime: 2000, offset: 500 },
     ],
     enemies: [
-      // Section 1: One ninja alone on branch — isolated introduction
-      { type: "ninja", x: 480, y: -70 },
-      { type: "oni", x: 800, y: 0 },
-      // Section 2: Oni + ninja on same branch — cover each other
-      { type: "oni", x: 1550, y: -80 },
-      { type: "ninja", x: 1700, y: -80 },
-      { type: "oni", x: 1900, y: 0 },
-      // Section 3: Final test — ninja on branch, oni below
-      { type: "ninja", x: 2680, y: -70 },
-      { type: "oni", x: 2800, y: 0 },
+      // Zone 1: solo ninja intro (learn the pattern)
+      { type: "ninja", x: 680, y: -80 },
+      // Zone 2: combination (ninja crossfire + ground pressure)
+      { type: "oni", x: 1100, y: 0 },
+      { type: "ninja", x: 1400, y: -90 },
+      { type: "oni", x: 1600, y: 0 },
+      // Zone 3: urgency (ninja on falling branch!)
+      { type: "ninja", x: 2180, y: -80 },
+      { type: "oni", x: 2250, y: 0 },
+      { type: "oni", x: 2450, y: 0 },
+      // Zone 4: NO enemies — pure traversal
+      // Zone 5: final test
+      { type: "ninja", x: 4280, y: -90 },
+      { type: "oni", x: 4400, y: 0 },
     ],
     shadows: [],
     playerStart: 60,
+    hideSpots: [
+      { type: "tallGrass", x: 120, w: 80 },
+    ],
     deco: [
-      { type: "lantern", x: 200 }, { type: "lantern", x: 600 },
-      { type: "lantern", x: 1100 }, { type: "lantern", x: 1500 },
+      { type: "lantern", x: 80 }, { type: "lantern", x: 450 },
+      { type: "lantern", x: 1050 }, { type: "torii", x: 1500 },
+      { type: "lantern", x: 2050 }, { type: "lantern", x: 2400 },
+      { type: "lantern", x: 2750 },
+      { type: "lantern", x: 4500 }, { type: "torii", x: 4700 },
     ],
     breakables: [
-      { type: "pot", x: 750, y: 0, w: 25, h: 30, hp: 1 },
-      { type: "lantern", x: 1150, y: 0, w: 28, h: 36 },
+      { type: "pot", x: 350, y: 0, w: 25, h: 30, hp: 1 },
+      { type: "lantern", x: 1250, y: 0, w: 28, h: 36 },
+      { type: "crate", x: 1700, y: 0, w: 35, h: 40, hp: 1 },
+      { type: "bamboo", x: 2500, y: 0, w: 40, h: 60, hp: 1 },
+      { type: "pot", x: 4050, y: 0, w: 25, h: 30, hp: 1 },
+      { type: "lantern", x: 4600, y: 0, w: 28, h: 36 },
     ],
   },
 

@@ -57,7 +57,7 @@ const SFX_STEALTH = [
   "stealth_kill", "detection_suspicious", "detection_alert",
 ];
 const SFX_HAZARDS = [
-  "laser_hum", "electric_zap",
+  "laser_hum", "electric_zap", "branch_crack",
 ];
 const SFX_NEW_ENEMIES = [
   "cyber_teleport", "pistol_shot", "drone_hover", "drone_laser",
@@ -65,7 +65,7 @@ const SFX_NEW_ENEMIES = [
   "fox_cry", "illusion_pop", "time_rift",
 ];
 const SFX_NAMES = [...SFX_CRITICAL, ...SFX_GAMEPLAY, ...SFX_STORY, ...SFX_CINEMATIC, ...SFX_STEALTH, ...SFX_HAZARDS, ...SFX_NEW_ENEMIES];
-const AMBIENT_NAMES = ["rain_loop", "forest_night", "city_hum", "nightclub_bass", "spirit_wind"];
+const AMBIENT_NAMES = ["rain_loop", "forest_night", "forest_fire_ambient", "city_hum", "nightclub_bass", "spirit_wind"];
 const MUSIC_NAMES = [
   "music_forest", "music_temple", "music_boss", "music_story_calm", "music_story_tension",
   "music_edo", "music_neon", "music_nightclub", "music_spirit", "music_boss_shadow", "music_epilogue",
