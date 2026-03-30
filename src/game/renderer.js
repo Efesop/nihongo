@@ -121,6 +121,30 @@ export function render(g, ctx, isDesktop, font) {
       ctx.moveTo(sx, em.y);
       ctx.lineTo(sx + 3, em.y - em.size * 16);
       ctx.stroke();
+    } else if (em.type === "ember") {
+      // Fire ember — glowing hot particle rising from flames
+      const flicker = 0.6 + Math.sin(g.time.elapsed * 8 + em.phase) * 0.3;
+      const alpha = lifeAlpha * flicker;
+      // Outer glow (soft, large)
+      ctx.globalAlpha = alpha * 0.3;
+      ctx.fillStyle = em.color;
+      ctx.beginPath();
+      ctx.arc(sx, em.y, em.size * 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Hot core
+      ctx.globalAlpha = alpha * 0.9;
+      ctx.fillStyle = em.color;
+      ctx.beginPath();
+      ctx.arc(sx, em.y, em.size, 0, Math.PI * 2);
+      ctx.fill();
+      // White-hot center on larger embers
+      if (em.size > 1.5) {
+        ctx.globalAlpha = alpha * 0.7;
+        ctx.fillStyle = "#ffffcc";
+        ctx.beginPath();
+        ctx.arc(sx, em.y, em.size * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else {
       // Dust mote
       ctx.globalAlpha = lifeAlpha * 0.25;
@@ -139,8 +163,10 @@ export function render(g, ctx, isDesktop, font) {
   for (const d of g.decorations) renderDeco(ctx, d, g.groundY, g.time.elapsed);
 
   // Visible wall columns (stone pillars) — drawn as part of the environment
+  // Skip in background rooms — the painted art IS the environment
   for (const plat of g.platforms) {
     if (!plat.wall || !plat.visible) continue;
+    if (roomBgImg) continue;
     const px = plat.x, py = plat.y, pw = plat.w, ph = plat.h || 16;
     // Stone pillar with dark texture
     ctx.fillStyle = "#2a221a";

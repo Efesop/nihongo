@@ -328,7 +328,7 @@ export const ROOMS = [
       // Upper-right: wooden rope bridge / lookout
       { x: 0.70, y: 0.28, w: 0.27, pct: true },
       // Center: massive tree trunk (wall-runnable)
-      { x: 0.41, y: 0.08, w: 0.04, h: 0.40, wall: true, visible: true, pct: true },
+      { x: 0.41, y: 0.08, w: 0.04, h: 0.40, wall: true, pct: true },
       // Invisible walls at screen edges
       { x: 0.000, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
       { x: 0.985, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },

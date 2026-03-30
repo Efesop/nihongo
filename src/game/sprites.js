@@ -125,6 +125,8 @@ const ZONE_SPRITES = {
     gs("bg_forest_fire_far"), gs("bg_forest_fire_mid"), gs("bg_forest_fire_near"),
     // Environment sprites
     gs("tall_grass"), gs("torii_burned"),
+    gs("smoke_overlay"), gs("burning_debris"), gs("hanging_vine"), gs("stone_lantern_broken"),
+    gs("exit_forest_fire"),
     // Scene backgrounds (single-screen rooms)
     gs("room_forest_05"), gs("room_forest_06"),
     gs("exit_forest"),
