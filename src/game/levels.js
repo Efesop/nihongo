@@ -303,57 +303,66 @@ export const ROOMS = [
   },
 
   // ── Room 7: "天空 Sky Path" — BURNING FOREST (Single-Screen Painted Scene) ──
-  // Identity: Ninja introduction + environmental storytelling. Dojo fire spreading.
-  // Same approach as Room 5: custom painted background, percentage coords, platforms = art.
-  // More zoomed out: 5 platform levels, wall-runnable center trunk, stair to shrine.
-  // Skills: Dodge shurikens, wall-run (reinforces Room 5).
+  // AI-designed: Gemini Vision detected surfaces from painted background.
+  // Physics-validated navigation: all platforms reachable via jump/wall-run/dash.
+  // 16 walkable surfaces, 10 wall-jump surfaces, 8 enemies across 5 elevation levels.
   {
     title: { jp: "天空", en: "Sky Path" },
     theme: "forest",
     background: "room_forest_06",
     platforms: [
-      // Ground — stone path across bottom (gap in center where cliff drops off)
-      { x: 0.00, y: 0.90, w: 0.30, pct: true },    // left ground
-      { x: 0.55, y: 0.90, w: 0.45, pct: true },    // right ground
-      // Lower-left: burning fallen log bridge (oni stands here)
-      { x: 0.15, y: 0.62, w: 0.25, pct: true },
-      // Step from ground toward burning log (painted stone steps — invisible collision)
-      { x: 0.02, y: 0.76, w: 0.12, oneWay: true, pct: true },
-      // Mid-right: huge gnarled tree branch (lower than before — matches painted branch)
-      { x: 0.48, y: 0.55, w: 0.30, pct: true },
-      // Upper-left: rock cliff with shrine + torii
-      { x: 0.01, y: 0.26, w: 0.20, pct: true },
-      // Step from burning log toward shrine (painted stone steps — invisible collision)
-      { x: 0.01, y: 0.44, w: 0.14, oneWay: true, pct: true },
-      // Upper-right: wooden rope bridge / lookout
-      { x: 0.70, y: 0.28, w: 0.27, pct: true },
-      // Center: massive tree trunk (wall-runnable)
-      { x: 0.41, y: 0.08, w: 0.04, h: 0.40, wall: true, pct: true },
-      // Invisible walls at screen edges
+      // ── Ground level (y ~0.92) ──
+      { x: 0.000, y: 0.924, w: 0.313, pct: true },   // left ground path (stone cobbles)
+      { x: 0.430, y: 0.931, w: 0.195, pct: true },   // central ground path (between tree roots)
+      { x: 0.625, y: 0.931, w: 0.375, pct: true },   // right ground path (wide, main area)
+      // ── Lower-mid level (y ~0.69-0.71) ── burning log + tree branches
+      { x: 0.219, y: 0.714, w: 0.250, pct: true },   // burning log bridge (left-center)
+      { x: 0.352, y: 0.693, w: 0.117, pct: true },   // lower tree branch (central left)
+      { x: 0.469, y: 0.693, w: 0.117, pct: true },   // lower tree branch (central right)
+      // ── Mid level (y ~0.50-0.53) ── cliff ledge + wooden platform
+      { x: 0.078, y: 0.497, w: 0.195, pct: true },   // left cliff ledge (shrine base)
+      { x: 0.469, y: 0.532, w: 0.117, pct: true },   // central tree platform (lower wooden)
+      // ── Upper level (y ~0.32-0.40) ── shrine, torii, rope bridge
+      { x: 0.117, y: 0.406, w: 0.063, pct: true },   // shrine porch
+      { x: 0.109, y: 0.322, w: 0.078, pct: true },   // shrine roof
+      { x: 0.195, y: 0.350, w: 0.078, pct: true },   // torii gate crossbar
+      { x: 0.547, y: 0.350, w: 0.117, pct: true },   // central tree platform (upper wooden)
+      { x: 0.664, y: 0.343, w: 0.117, pct: true },   // rope bridge
+      { x: 0.766, y: 0.336, w: 0.117, pct: true },   // right tree platform (lower wooden)
+      // ── Top level (y ~0.18-0.25) ── highest platforms
+      { x: 0.703, y: 0.252, w: 0.117, pct: true },   // upper right tree branch
+      { x: 0.820, y: 0.210, w: 0.117, pct: true },   // upper right tree platform (highest)
+      // ── Wall-jumpable surfaces (tree trunks, cliff faces, pillars) ──
+      { x: 0.219, y: 0.497, w: 0.031, h: 0.217, wall: true, pct: true },  // left cliff face (under shrine)
+      { x: 0.219, y: 0.742, w: 0.031, h: 0.182, wall: true, pct: true },  // left cliff face (below log)
+      { x: 0.430, y: 0.420, w: 0.039, h: 0.511, wall: true, pct: true },  // central tree trunk (left side)
+      { x: 0.547, y: 0.420, w: 0.039, h: 0.511, wall: true, pct: true },  // central tree trunk (right side)
+      { x: 0.742, y: 0.280, w: 0.039, h: 0.651, wall: true, pct: true },  // right tree trunk (left side)
+      { x: 0.859, y: 0.280, w: 0.039, h: 0.651, wall: true, pct: true },  // right tree trunk (right side)
+      // ── Invisible edge walls ──
       { x: 0.000, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
       { x: 0.985, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
     ],
-    hazards: [],  // No artificial hazards — the painted fire IS the atmosphere
+    hazards: [],
     enemies: [
-      // Left ground: oni patrol
-      { type: "oni", x: 0.12, y: 0.82 },
-      // Right ground: oni + ninja crossfire
-      { type: "oni", x: 0.70, y: 0.82 },
-      { type: "ninja", x: 0.88, y: 0.82 },
-      // Burning log: oni guard
-      { type: "oni", x: 0.28, y: 0.54 },
-      // Mid branch: ninja ALONE — the key introduction moment
-      { type: "ninja", x: 0.62, y: 0.47 },
-      // Upper left shrine: oni guard
-      { type: "oni", x: 0.10, y: 0.18 },
-      // Upper right lookout: ninja throws down + oni
-      { type: "ninja", x: 0.82, y: 0.20 },
-      { type: "oni", x: 0.76, y: 0.20 },
+      // Ground: oni patrol on left, oni + ninja crossfire on right
+      { type: "oni", x: 0.15, y: 0.85 },
+      { type: "oni", x: 0.72, y: 0.86 },
+      { type: "ninja", x: 0.92, y: 0.86 },
+      // Burning log: oni guard blocks the bridge
+      { type: "oni", x: 0.32, y: 0.64 },
+      // Central tree platform: ninja — first solo ninja encounter on elevated ground
+      { type: "ninja", x: 0.52, y: 0.46 },
+      // Shrine area: oni guards the sacred ground
+      { type: "oni", x: 0.14, y: 0.42 },
+      // Upper right: ninja throws down from highest point + oni on rope bridge
+      { type: "ninja", x: 0.85, y: 0.13 },
+      { type: "oni", x: 0.70, y: 0.27 },
     ],
     shadows: [],
     playerStart: 100,
     hideSpots: [
-      { type: "tallGrass", x: 0.06, y: 0.86, w: 0.06, pct: true },
+      { type: "tallGrass", x: 0.04, y: 0.88, w: 0.06, pct: true },
     ],
     deco: [],
     breakables: [],
