@@ -270,6 +270,16 @@ export const ROOMS = [
       { x: 0.321, y: 0.509, w: 0.390, pct: true },   // mid bridge
       { x: 0.050, y: 0.281, w: 0.240, pct: true },   // upper left ledge
       { x: 0.682, y: 0.280, w: 0.280, pct: true },   // upper right platform
+      // Stepping stones — one-way platforms for ascending between floors
+      // Left side: ground → bridge (stone ledges on left wall/tree)
+      { x: 0.08, y: 0.78, w: 0.12, oneWay: true, pct: true },  // root ledge near left wall
+      { x: 0.22, y: 0.69, w: 0.10, oneWay: true, pct: true },  // stone outcrop, shifted right
+      { x: 0.08, y: 0.60, w: 0.12, oneWay: true, pct: true },  // higher ledge, back left
+      // Bridge → upper platforms (small ledges on each side)
+      { x: 0.18, y: 0.40, w: 0.10, oneWay: true, pct: true },  // left step above bridge
+      { x: 0.10, y: 0.33, w: 0.10, oneWay: true, pct: true },  // approach to upper-left ledge
+      { x: 0.72, y: 0.40, w: 0.10, oneWay: true, pct: true },  // right step above bridge
+      { x: 0.82, y: 0.33, w: 0.10, oneWay: true, pct: true },  // approach to upper-right platform
       // Invisible walls — stop player walking into background stone walls
       { x: 0.000, y: 0.000, w: 0.050, h: 1.0, wall: true, pct: true },  // left wall
       { x: 0.962, y: 0.000, w: 0.038, h: 1.0, wall: true, pct: true },  // right wall
@@ -284,7 +294,7 @@ export const ROOMS = [
       // Upper left: 1 oni
       { type: "oni", x: 0.12, y: 0.21 },
       // Upper right: ninja throws down
-      { type: "ninja", x: 0.78, y: 0.21 },
+      { type: "ninja", x: 0.85, y: 0.21 },
       // Ground right: ninja crossfire
       { type: "ninja", x: 0.82, y: 0.80 },
     ],
