@@ -34,8 +34,16 @@ export function render(g, ctx, isDesktop, font) {
 
   // Slow-mo desaturation — applied before world render
   const isSlowMo = g.slowMo && g.slowMo.active;
+  const isBackflipSlowMo = g.slowMo && g.slowMo._backflipSlowMo > 0;
   if (isSlowMo) {
-    ctx.filter = "saturate(0.4)";
+    if (isBackflipSlowMo) {
+      // Backflip: subtle desaturation that fades with the slow-mo bell curve
+      const progress = 1 - g.slowMo._backflipSlowMo / 0.7;
+      const intensity = Math.sin(progress * Math.PI); // matches time curve
+      ctx.filter = `saturate(${1 - intensity * 0.3})`; // 1.0→0.7→1.0
+    } else {
+      ctx.filter = "saturate(0.4)";
+    }
   }
 
   // Apply camera zoom (centered on viewport)
@@ -1073,26 +1081,66 @@ export function render(g, ctx, isDesktop, font) {
   }
   ctx.globalAlpha = 1;
 
-  // ── Exit zone — glowing vertical beam (parkour mode OR "open" state after clearing) ──
+  // ── Exit zone — visual indicator (parkour mode OR "open" state after clearing) ──
   if (g.objective && g.objective.exitZone && (g.objective.type === "parkour" || g.roomState === "open")) {
     const ez = g.objective.exitZone;
     const pulse = 0.6 + Math.sin(g.time.elapsed * 4) * 0.2;
-    // Vertical beam
-    const beamGrad = ctx.createLinearGradient(ez.x, 0, ez.x, g.groundY);
-    beamGrad.addColorStop(0, `rgba(100,220,255,0)`);
-    beamGrad.addColorStop(0.3, `rgba(100,220,255,${0.15 * pulse})`);
-    beamGrad.addColorStop(0.7, `rgba(100,220,255,${0.25 * pulse})`);
-    beamGrad.addColorStop(1, `rgba(100,220,255,${0.1 * pulse})`);
-    ctx.fillStyle = beamGrad;
-    ctx.fillRect(ez.x, 0, ez.w, g.groundY + 20);
-    // Ground glow
-    ctx.fillStyle = `rgba(100,220,255,${0.3 * pulse})`;
-    ctx.fillRect(ez.x - 5, g.groundY - 2, ez.w + 10, 4);
-    // "EXIT" text
-    ctx.font = `bold 14px monospace`;
-    ctx.textAlign = "center";
-    ctx.fillStyle = `rgba(100,220,255,${0.7 * pulse})`;
-    ctx.fillText("EXIT", ez.x + ez.w / 2, g.groundY - 10);
+    if (ez.bgRoom) {
+      // Background room: warm golden forest-path light (sunlight through trees)
+      const cx = ez.x + ez.w / 2;
+      const groundY = H * 0.87; // approximate ground for bg rooms
+      // Warm light column — like sunlight breaking through canopy
+      const lightGrad = ctx.createLinearGradient(cx, 0, cx, groundY);
+      lightGrad.addColorStop(0, `rgba(255,220,120,0)`);
+      lightGrad.addColorStop(0.2, `rgba(255,220,120,${0.06 * pulse})`);
+      lightGrad.addColorStop(0.5, `rgba(255,200,100,${0.12 * pulse})`);
+      lightGrad.addColorStop(0.8, `rgba(255,180,80,${0.18 * pulse})`);
+      lightGrad.addColorStop(1, `rgba(255,160,60,${0.08 * pulse})`);
+      ctx.fillStyle = lightGrad;
+      ctx.fillRect(ez.x - 10, 0, ez.w + 20, groundY + 10);
+      // Radial glow at ground level
+      const glowGrad = ctx.createRadialGradient(cx, groundY - 20, 5, cx, groundY - 20, ez.w);
+      glowGrad.addColorStop(0, `rgba(255,200,100,${0.25 * pulse})`);
+      glowGrad.addColorStop(0.5, `rgba(255,180,80,${0.1 * pulse})`);
+      glowGrad.addColorStop(1, "rgba(255,180,80,0)");
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(cx - ez.w, groundY - ez.w, ez.w * 2, ez.w * 2);
+      // Floating light motes (particle-like, using sin waves)
+      ctx.globalAlpha = pulse * 0.7;
+      for (let i = 0; i < 5; i++) {
+        const t = g.time.elapsed * 0.8 + i * 1.3;
+        const mx = cx + Math.sin(t * 1.2 + i) * (ez.w * 0.4);
+        const my = groundY - 30 - (t * 20 % (groundY * 0.5));
+        const mSize = 1.5 + Math.sin(t * 3) * 0.5;
+        ctx.fillStyle = "#ffe888";
+        ctx.beginPath();
+        ctx.arc(mx, my, mSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // Subtle "→" arrow
+      ctx.font = "bold 16px monospace";
+      ctx.textAlign = "center";
+      ctx.fillStyle = `rgba(255,220,140,${0.5 * pulse})`;
+      ctx.fillText("→", cx, groundY - 12);
+    } else {
+      // Standard rooms: cool blue vertical beam
+      const beamGrad = ctx.createLinearGradient(ez.x, 0, ez.x, g.groundY);
+      beamGrad.addColorStop(0, `rgba(100,220,255,0)`);
+      beamGrad.addColorStop(0.3, `rgba(100,220,255,${0.15 * pulse})`);
+      beamGrad.addColorStop(0.7, `rgba(100,220,255,${0.25 * pulse})`);
+      beamGrad.addColorStop(1, `rgba(100,220,255,${0.1 * pulse})`);
+      ctx.fillStyle = beamGrad;
+      ctx.fillRect(ez.x, 0, ez.w, g.groundY + 20);
+      // Ground glow
+      ctx.fillStyle = `rgba(100,220,255,${0.3 * pulse})`;
+      ctx.fillRect(ez.x - 5, g.groundY - 2, ez.w + 10, 4);
+      // "EXIT" text
+      ctx.font = `bold 14px monospace`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = `rgba(100,220,255,${0.7 * pulse})`;
+      ctx.fillText("EXIT", ez.x + ez.w / 2, g.groundY - 10);
+    }
   }
 
   // ── In-game encounter speech bubble ──
@@ -1153,27 +1201,43 @@ export function render(g, ctx, isDesktop, font) {
     ctx.fillRect(0, 0, W, H);
   }
   if (g.slowMo.active) {
-    // Strong purple overlay (was 0.12 — now 0.25, clearly visible)
-    ctx.fillStyle = "rgba(60,40,160,0.25)";
-    ctx.fillRect(0, 0, W, H);
-    // Wider chromatic aberration (8px edges)
-    ctx.fillStyle = "rgba(255,50,50,0.08)";
-    ctx.fillRect(0, 0, 8, H);
-    ctx.fillStyle = "rgba(50,50,255,0.08)";
-    ctx.fillRect(W - 8, 0, 8, H);
-    // Radial zoom lines from center (subtle speed effect)
-    ctx.save();
-    ctx.globalAlpha = 0.06;
-    ctx.strokeStyle = "#8060cc";
-    ctx.lineWidth = 1;
-    for (let i = 0; i < 12; i++) {
-      const angle = (i / 12) * Math.PI * 2;
-      ctx.beginPath();
-      ctx.moveTo(W / 2 + Math.cos(angle) * W * 0.15, H / 2 + Math.sin(angle) * H * 0.15);
-      ctx.lineTo(W / 2 + Math.cos(angle) * W * 0.5, H / 2 + Math.sin(angle) * H * 0.5);
-      ctx.stroke();
+    if (isBackflipSlowMo) {
+      // Backflip: clean cinematic vignette — no purple, just dramatic focus
+      const progress = 1 - g.slowMo._backflipSlowMo / 0.7;
+      const intensity = Math.sin(progress * Math.PI);
+      // Dark vignette (draws eye to center where the flip is)
+      const vigAlpha = intensity * 0.45;
+      const vigGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.65);
+      vigGrad.addColorStop(0, "rgba(0,0,0,0)");
+      vigGrad.addColorStop(0.6, "rgba(0,0,0,0)");
+      vigGrad.addColorStop(1, `rgba(0,0,0,${vigAlpha})`);
+      ctx.fillStyle = vigGrad;
+      ctx.fillRect(0, 0, W, H);
+      // Subtle warm tint (moonlit blade flash, not purple)
+      ctx.fillStyle = `rgba(255,240,200,${intensity * 0.04})`;
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      // Regular slow-mo: purple overlay + chromatic aberration
+      ctx.fillStyle = "rgba(60,40,160,0.25)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = "rgba(255,50,50,0.08)";
+      ctx.fillRect(0, 0, 8, H);
+      ctx.fillStyle = "rgba(50,50,255,0.08)";
+      ctx.fillRect(W - 8, 0, 8, H);
+      // Radial zoom lines from center
+      ctx.save();
+      ctx.globalAlpha = 0.06;
+      ctx.strokeStyle = "#8060cc";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(W / 2 + Math.cos(angle) * W * 0.15, H / 2 + Math.sin(angle) * H * 0.15);
+        ctx.lineTo(W / 2 + Math.cos(angle) * W * 0.5, H / 2 + Math.sin(angle) * H * 0.5);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.restore();
   }
 
   // Last kill cam visual effects
@@ -1572,7 +1636,7 @@ function drawPlayer(ctx, p, mascot, elapsed) {
 
   // Backflip — single clean 360° spin with locked facing direction
   if (p.state === "backflip") {
-    const flipProgress = 1 - (p._backflipTimer || 0) / 500; // 0→1
+    const flipProgress = 1 - (p._backflipTimer || 0) / 700; // 0→1 (700ms flip)
     // Use locked facing from launch (prevents mid-flip direction change)
     const flipDir = p._backflipFacing || p.facing;
     const rotation = flipProgress * Math.PI * 2 * flipDir; // single 360° rotation

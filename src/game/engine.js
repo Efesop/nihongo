@@ -108,6 +108,26 @@ export function loadRoom(g, roomIndex) {
   g.player.invincible = 2000; // 2 second spawn protection
   // Brief delay before enemies can detect player (gives time to assess the room)
   for (const e of g.enemies) { e._spawnDelay = 1500; }
+  // Scale patrol range for percentage-based rooms — 80px is too small on wide viewports
+  if (room.background && room.platforms[0]?.pct) {
+    for (const enemy of g.enemies) {
+      // Find which platform this enemy stands on
+      const ey = enemy.y + TILE * SCALE;
+      const standingPlat = g.platforms.find(p => !p.wall &&
+        enemy.x >= p.x - 10 && enemy.x <= p.x + p.w + 10 &&
+        Math.abs(ey - p.y) < 40
+      );
+      if (standingPlat) {
+        // Patrol 35% of platform width (more visible movement)
+        enemy.patrolRange = Math.max(80, standingPlat.w * 0.35);
+        // Keep patrol origin within platform so they don't get stuck at edges
+        enemy.patrolOrigin = clamp(enemy.patrolOrigin,
+          standingPlat.x + enemy.patrolRange + 20,
+          standingPlat.x + standingPlat.w - enemy.patrolRange - 20
+        );
+      }
+    }
+  }
   g.particles = [];
   g.slashEffects = [];
   g.projectiles = [];
@@ -289,11 +309,15 @@ export function update(g, callbacks) {
   const isDeath = g.player && g.player.dead;
   const isKillCam = g.roomState === "lastKillCam";
   if (!isDeath && !isKillCam) {
-    // Backflip slow-mo — cinematic, doesn't drain meter, can't be toggled off
+    // Backflip slow-mo — cinematic bell curve: normal → slow → normal (smooth transition)
     const backflipSlowMo = g.slowMo._backflipSlowMo > 0;
     if (backflipSlowMo) {
       g.slowMo.active = true;
-      g.time.scale = 0.35; // slow-mo for backflip drama (not too slow or launch looks weak)
+      // Smooth bell-curve: ease into slow-mo, hold, ease back out
+      const BACKFLIP_SLOWMO_DUR = 0.7; // must match initial _backflipSlowMo value
+      const progress = 1 - g.slowMo._backflipSlowMo / BACKFLIP_SLOWMO_DUR; // 0→1
+      const slowAmount = Math.sin(progress * Math.PI); // bell: 0→1→0
+      g.time.scale = 1 - slowAmount * 0.65; // 1.0 → 0.35 → 1.0
     } else {
       // Regular slow-mo — require 20% meter to START (prevents rapid flicker)
       const wasSlowMo = g.slowMo.active;
@@ -791,7 +815,7 @@ export function update(g, callbacks) {
   // Gravity
   if (p.dashTimer <= 0) p.vy += GRAVITY * dt;
   // Backflip uses faster time so the launch is visually dramatic during slow-mo
-  const moveDt = p._backflipping ? Math.max(dt, rawDt * 0.6) : dt;
+  const moveDt = p._backflipping ? Math.max(dt, rawDt * 0.5) : dt;
   p.x += p.vx * moveDt;
   p.y += p.vy * moveDt;
 
@@ -1373,7 +1397,7 @@ export function update(g, callbacks) {
       p._wallRunning = false;
       p._wallRunCooldown = 500; // prevent immediate re-trigger
       p._backflipping = true;
-      p._backflipTimer = 500;
+      p._backflipTimer = 700; // slower, more cinematic flip
       p._backflipFacing = launchDir; // lock rotation direction for entire flip
       log.wall("BACKFLIP LAUNCH — dir:", launchDir, "vx:", p.vx, "vy:", p.vy);
       p.vy = JUMP_FORCE * 1.3; // strong upward launch
@@ -1382,14 +1406,14 @@ export function update(g, callbacks) {
       p.wallSliding = false;
       // Push player away from wall immediately so wall detection doesn't re-grab
       p.x += launchDir * 15;
-      p.wallJumpCooldown = 500; // lock facing for full backflip duration
+      p.wallJumpCooldown = 700; // lock facing for full backflip duration
       const halfW = TILE * SCALE * 0.5;
       p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // prevent re-grab
       p.invincible = Math.max(p.invincible, 300);
       playSound("jump", { playbackRate: 1.3 });
       // Slow-mo + zoom on backflip — cinematic
       g.slowMo.active = true;
-      g.slowMo._backflipSlowMo = 0.5; // 500ms of slow-mo (full flip duration)
+      g.slowMo._backflipSlowMo = 0.7; // 700ms slow-mo bell curve (matches flip duration)
       g.camera._backflipZoom = 1.0; // will ease in
       // Dramatic particles
       for (let i = 0; i < 8; i++) {
@@ -1419,7 +1443,7 @@ export function update(g, callbacks) {
   }
   // Backflip camera zoom ease in/out
   if (g.camera._backflipZoom !== undefined && g.camera._backflipZoom > 0) {
-    g.camera._backflipZoom -= rawDt * 2.5; // ~400ms ease out
+    g.camera._backflipZoom -= rawDt * 1.8; // ~550ms ease out (matches longer flip)
     if (g.camera._backflipZoom <= 0) delete g.camera._backflipZoom;
   }
 
@@ -1612,6 +1636,11 @@ export function update(g, callbacks) {
     // Clamp to platform bounds + wall collision for enemies
     if (onPlatform) {
       e.x = Math.max(platLeft, Math.min(platRight, e.x));
+      // Turn around at platform edges — prevents getting stuck when patrol range exceeds platform
+      if (e.state === "patrol") {
+        if (e.x <= platLeft + 2 && e.facing < 0) e.facing = 1;
+        else if (e.x >= platRight - 2 && e.facing > 0) e.facing = -1;
+      }
     }
     // Enemies can't walk through walls either
     const epw = TILE * SCALE * 0.4;
@@ -1977,7 +2006,7 @@ export function update(g, callbacks) {
   g.camera.zoom = lerp(g.camera.zoom, g.camera.zoomTarget, 1 - Math.pow(0.001, rawDt));
   // Backflip zoom — close-up on player during flip (overrides slow-mo zoom-out)
   if (g.camera._backflipZoom > 0) {
-    g.camera.zoomTarget = 1.0 + g.camera._backflipZoom * 0.25; // up to 1.25x zoom-in
+    g.camera.zoomTarget = 1.0 + g.camera._backflipZoom * 0.3; // up to 1.3x zoom-in (more cinematic)
   } else if (g.slowMo.active) {
     g.camera.zoomTarget = 0.97; // slow-mo: slight zoom out
   } else if (g.camera.zoomTarget !== 1) {
@@ -2155,7 +2184,13 @@ export function update(g, callbacks) {
           clearRoom(g, callbacks);
         } else {
           g.roomState = "open";
-          g.objective.exitZone = { x: g.levelW - 100, w: 60 };
+          // Single-screen bg rooms: exit is a forest path on the right side
+          const isBgRoom = (g._rooms || [])[g.currentRoom]?.background && g.levelW <= g.W;
+          if (isBgRoom) {
+            g.objective.exitZone = { x: g.W * 0.87, w: g.W * 0.08, bgRoom: true };
+          } else {
+            g.objective.exitZone = { x: g.levelW - 100, w: 60 };
+          }
           // Fade music out over 2 seconds
           try { crossfadeMusic(null, 2.0); } catch {}
         }
