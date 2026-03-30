@@ -841,7 +841,7 @@ export function renderStoryScene(ctx, g, W, H, font) {
     } else {
       // Fallback: large colored kanji silhouette
       const kanji = charInfo.name?.[0] || "?";
-      const fy = floorY - charH * 0.6 + (isActive ? bob : 0);
+      const fy = floorY - charH * 0.6;
       ctx.textAlign = "center";
       ctx.font = `bold ${charH * 0.6}px "Noto Sans JP",sans-serif`;
       if (isActive) { ctx.shadowColor = charInfo.color; ctx.shadowBlur = 25; }

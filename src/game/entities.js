@@ -1,5 +1,6 @@
 import { TILE, SCALE, MOVE_SPEED, ENEMY_CONFIG } from "./constants.js";
 import { playSound, playRandom } from "./audio.js";
+import log from "./logger.js";
 
 // ═══ PLAYER FACTORY ═══
 export function makePlayer(groundY, startX = 100) {
@@ -170,6 +171,7 @@ export function updateEnemyAI(e, player, dt, projectiles, allEnemies) {
   // Update detection state based on suspicion thresholds
   const prevDetection = e.detection;
   if (e.suspicion >= SUSPICION_ALERT) {
+    if (prevDetection !== "alert") log.ai(e.type, "→ ALERT (suspicion:", Math.round(e.suspicion), "dist:", Math.round(dist), "sameFloor:", sameFloor, ")");
     e.detection = "alert";
     e.searchTimer = SEARCH_DURATION;
     // Alert propagation — nearby enemies on SAME FLOOR gain suspicion

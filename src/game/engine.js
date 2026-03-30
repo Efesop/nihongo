@@ -10,6 +10,7 @@ import { updateEnemyAI, makeEnemy, makePlayer, makeNPC, updateNPC } from "./enti
 import { ROOMS } from "./levels.js";
 import { ROOM_ENCOUNTERS, ROOM_DIALOGUE, STORY_TRIGGERS } from "./story.js";
 import { updateStory, initStoryState } from "./storyRenderer.js";
+import log from "./logger.js";
 import { crossfadeMusic } from "./audio.js";
 import { playSound, playRandom, playRandomExclusive, setAmbientTheme, playVoiceBlip } from "./audio.js";
 import { preloadZone } from "./sprites.js";
@@ -36,6 +37,7 @@ function getZoneMusic(roomIndex) {
 export function loadRoom(g, roomIndex) {
   const room = ROOMS[roomIndex];
   if (!room) return;
+  log.room(`Loading room ${roomIndex + 1}/${ROOMS.length}: "${room.title?.jp || ""}" (${room.theme || "forest"}) — ${room.enemies?.length || 0} enemies, ${room.platforms?.length || 0} platforms`);
   g.currentRoom = roomIndex;
   g._rooms = ROOMS; // expose for renderer theme lookup
   // Preload sprites for this zone (and next zone)
@@ -498,6 +500,7 @@ export function update(g, callbacks) {
     g.input.dashPressed = false;
     p.dashTimer = 0; // cancel any active dash — wall run takes over
     p.dashCooldown = 0;
+    log.wall("WALL RUN START — wallDir:", p.wallDir, "dashHeld:", dashHeld);
     playSound("wall_grab", { playbackRate: 1.3 });
   }
 
@@ -1345,6 +1348,7 @@ export function update(g, callbacks) {
     p._dashPressTime = 0;
     p.dashTimer = 0;
     p.dashCooldown = 0;
+    log.wall("WALL RUN AUTO-TRIGGER on wall grab — wallDir:", p.wallDir);
     playSound("wall_grab", { playbackRate: 1.3 });
   }
   // Wall run cooldown — prevent re-triggering immediately after a backflip
@@ -1369,6 +1373,7 @@ export function update(g, callbacks) {
       p._wallRunCooldown = 500; // prevent immediate re-trigger
       p._backflipping = true;
       p._backflipTimer = 500;
+      log.wall("BACKFLIP LAUNCH — dir:", launchDir, "vx:", p.vx, "vy:", p.vy);
       p.vy = JUMP_FORCE * 1.3; // strong upward launch
       p.vx = launchDir * MOVE_SPEED * 2.0; // strong horizontal push away
       p.facing = launchDir;
@@ -1398,7 +1403,10 @@ export function update(g, callbacks) {
   // (small grace: wall contact can briefly flicker during upward movement)
   if (!p.wallSliding && p._wallRunning && p._wallRunTimer > 80) p._wallRunning = false;
   // Wall run cooldown decay
-  if (p._wallRunCooldown > 0) p._wallRunCooldown -= rawDt * 1000;
+  if (p._wallRunCooldown > 0) {
+    p._wallRunCooldown -= rawDt * 1000;
+    if (p._wallRunCooldown < 0) p._wallRunCooldown = 0;
+  }
   // Backflip slow-mo decay
   if (g.slowMo._backflipSlowMo > 0) {
     g.slowMo._backflipSlowMo -= rawDt;

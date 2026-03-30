@@ -1,4 +1,5 @@
 import { sfxr } from "jsfxr";
+import log from "./logger.js";
 
 // ═══ GAME AUDIO SYSTEM ═══
 // ElevenLabs MP3 primary → jsfxr fallback → Web Audio API playback
@@ -154,6 +155,17 @@ export function initAudio() {
     }
   });
 
+  // Retry music when AudioContext resumes from suspended state
+  // (handles browser autoplay policy — context starts suspended until user gesture)
+  _ctx.addEventListener("statechange", () => {
+    log.audio("AudioContext state:", _ctx.state);
+    if (_ctx.state === "running" && _wantsMusic && !_musicSource) {
+      log.audio("Retrying music after context resume");
+      _startMusicNow();
+      _startAmbientNow();
+    }
+  });
+
   return _loadAllSounds(); // returns promise — game can await this
 }
 
@@ -200,7 +212,10 @@ async function _loadAllSounds() {
     // Yield to main thread between each decode
     await new Promise(r => setTimeout(r, 5));
   }
-  console.log(`[audio] Loaded ${mp3}/${allNames.length} MP3s`);
+  log.audio(`Loaded ${mp3}/${allNames.length} MP3s`);
+  // Log which sounds failed to load
+  const failed = allNames.filter(n => !_buffers[n]);
+  if (failed.length > 0) log.audio.warn("Missing MP3s:", failed.join(", "));
   if (_wantsMusic) { _startMusicNow(); _startAmbientNow(); }
 }
 
@@ -286,18 +301,21 @@ function _startMusicNow() {
   const buf = _buffers[_currentMusic];
   if (!buf || typeof buf !== "object") return;
   try {
+    if (_ctx.state === "suspended") { log.audio("Resuming suspended AudioContext for music"); _ctx.resume(); }
     _musicSource = _ctx.createBufferSource();
     _musicSource.buffer = buf;
     _musicSource.loop = true;
     _musicSource.connect(_musicGain);
     _musicSource.start(0);
-  } catch { /* */ }
+    log.audio("Music started:", _currentMusic, "ctx.state:", _ctx.state);
+  } catch (e) { log.audio.error("Music start failed:", e.message); }
 }
 
 let _currentTheme = "forest"; // track which ambient set to play
 
 function _startAmbientNow() {
   if (!_ctx || !_ambientGain) return;
+  if (_ctx.state === "suspended") _ctx.resume();
   // Theme-specific ambient sounds
   const THEME_AMBIENT = {
     dojo: [],                             // indoor — no ambient
