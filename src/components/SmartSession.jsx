@@ -1227,28 +1227,17 @@ export default function SmartSession({
         {exPhrases.length > 0 && <>
           <div style={{ fontSize: 11, fontFamily: mono, color: c.m, marginBottom: 8 }}>You already know these:</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {exPhrases.map(p => {
-              const segs = PHRASE_BREAKDOWNS[p[0]];
-              if (!segs) return null;
-              const gramCol = { particle: c.go, noun: "#5a9ec4", verb: "#4caf50", adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m, question: c.go };
-              return <div key={p[0]} style={{ padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b }}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "baseline", marginBottom: 6 }}>
-                  {segs.map((seg, i) => {
-                    const isTarget = seg[0] === gp.pattern || (gp.phrasePattern && seg[0].includes(gp.phrasePattern));
-                    return <span key={i} style={{
-                      display: "inline-flex", flexDirection: "column", alignItems: "center",
-                      padding: "4px 6px", borderRadius: 6,
-                      background: isTarget ? c.a + "20" : "transparent",
-                      border: isTarget ? "1px solid " + c.a + "55" : "1px solid transparent"
-                    }}>
-                      <span style={{ fontSize: isDesktop ? 20 : 17, fontWeight: isTarget ? 700 : 500, color: isTarget ? c.a : c.tx }}>{seg[0]}</span>
-                      <span style={{ fontSize: 9, color: gramCol[seg[3]] || c.m, fontFamily: mono }}>{seg[2]}</span>
-                    </span>;
-                  })}
+            {exPhrases.map(p => <div key={p[0]} style={{ padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b }}>
+              <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 20 : 17} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontFamily: mono, color: c.a }}>{p[2]}</div>
+                  <div style={{ fontSize: 13, color: c.m }}>{p[3]}</div>
                 </div>
-                <div style={{ fontSize: 12, color: c.m }}>{p[3]}</div>
-              </div>;
-            })}
+                <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
+                  style={{ ...btn, padding: "6px 12px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: 12, color: c.m, flexShrink: 0 }}>🔊</button>
+              </div>
+            </div>)}
           </div>
         </>}
       </div>
