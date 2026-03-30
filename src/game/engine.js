@@ -290,7 +290,7 @@ export function update(g, callbacks) {
     const backflipSlowMo = g.slowMo._backflipSlowMo > 0;
     if (backflipSlowMo) {
       g.slowMo.active = true;
-      g.time.scale = 0.2; // extra slow for backflip drama
+      g.time.scale = 0.35; // slow-mo for backflip drama (not too slow or launch looks weak)
     } else {
       // Regular slow-mo — require 20% meter to START (prevents rapid flicker)
       const wasSlowMo = g.slowMo.active;
@@ -486,15 +486,18 @@ export function update(g, callbacks) {
   // ── Player movement ──
   const moveDir = (g.input.left ? -1 : 0) + (g.input.right ? 1 : 0);
 
-  // Wall run — press Dash while wall sliding → run up → auto-backflip
-  // Grace buffer: if dash was pressed within 200ms and player is now wall sliding, trigger wall run
+  // Wall run — Dash (held OR pressed) while wall sliding → run up → auto-backflip
+  // Also triggers if holding dash when you first grab a wall (most intuitive)
   if (g.input.dashPressed) p._dashPressTime = g.time.elapsed;
-  const dashRecent = (g.time.elapsed - (p._dashPressTime || 0)) < 0.2;
-  if ((g.input.dashPressed || dashRecent) && p.wallSliding && !p._wallRunning && !p._wallRunCooldown) {
+  const dashHeld = g.input.dash; // L/C key held down
+  const dashRecent = (g.time.elapsed - (p._dashPressTime || 0)) < 0.3;
+  if ((dashHeld || g.input.dashPressed || dashRecent) && p.wallSliding && !p._wallRunning && !p._wallRunCooldown) {
     p._wallRunning = true;
     p._wallRunTimer = 0;
-    p._dashPressTime = 0; // consume the grace buffer
-    g.input.dashPressed = false; // consume so normal dash doesn't fire
+    p._dashPressTime = 0;
+    g.input.dashPressed = false;
+    p.dashTimer = 0; // cancel any active dash — wall run takes over
+    p.dashCooldown = 0;
     playSound("wall_grab", { playbackRate: 1.3 });
   }
 
@@ -556,6 +559,9 @@ export function update(g, callbacks) {
     // During wall jump — preserve launch momentum, no air control override
     // Player automatically flies to opposite wall without needing to steer
     p.vx *= 0.99; // tiny drag so they don't overshoot
+  } else if (p._backflipping) {
+    // During backflip — preserve launch momentum with gentle drag
+    p.vx *= 0.98;
   } else {
     const speed = p.crouching ? 100 : MOVE_SPEED; // crouch = slow
     p.vx = moveDir * speed;
@@ -780,8 +786,10 @@ export function update(g, callbacks) {
 
   // Gravity
   if (p.dashTimer <= 0) p.vy += GRAVITY * dt;
-  p.x += p.vx * dt;
-  p.y += p.vy * dt;
+  // Backflip uses faster time so the launch is visually dramatic during slow-mo
+  const moveDt = p._backflipping ? Math.max(dt, rawDt * 0.6) : dt;
+  p.x += p.vx * moveDt;
+  p.y += p.vy * moveDt;
 
   // ── Horizontal wall collision — walls are SOLID, player can't walk through ──
   // Skip during wall jump (player is being launched between walls)
@@ -1309,8 +1317,8 @@ export function update(g, callbacks) {
       const playerTop = p.y;
       if (playerBottom <= plat.y || playerTop >= plat.y + plat.h) continue;
 
-      // Player's right side against wall's left face
-      if (Math.abs((p.x + pw) - plat.x) < 8) {
+      // Player's right side against wall's left face (wider 12px detection)
+      if (Math.abs((p.x + pw) - plat.x) < 12) {
         // During cooldown, skip if this is the wall we just jumped from
         if (p.wallJumpCooldown > 0 && Math.abs(plat.x - (p._lastWallX || -999)) < 50) continue;
         p.wallSliding = true;
@@ -1319,8 +1327,8 @@ export function update(g, callbacks) {
         p.x = plat.x - pw;
         p.wallJumpCooldown = 0; // grabbed a wall — clear cooldown
       }
-      // Player's left side against wall's right face
-      if (Math.abs((p.x - pw) - (plat.x + plat.w)) < 8) {
+      // Player's left side against wall's right face (wider 12px detection)
+      if (Math.abs((p.x - pw) - (plat.x + plat.w)) < 12) {
         if (p.wallJumpCooldown > 0 && Math.abs((plat.x + plat.w) - (p._lastWallX || -999)) < 50) continue;
         p.wallSliding = true;
         p.wallDir = -1;
@@ -1329,6 +1337,15 @@ export function update(g, callbacks) {
         p.wallJumpCooldown = 0;
       }
     }
+  }
+  // Auto-trigger wall run if JUST grabbed a wall while holding dash
+  if (p.wallSliding && !wasWallSliding && g.input.dash && !p._wallRunning && !p._wallRunCooldown) {
+    p._wallRunning = true;
+    p._wallRunTimer = 0;
+    p._dashPressTime = 0;
+    p.dashTimer = 0;
+    p.dashCooldown = 0;
+    playSound("wall_grab", { playbackRate: 1.3 });
   }
   // Wall run cooldown — prevent re-triggering immediately after a backflip
   if (p._wallRunning) {
@@ -1346,17 +1363,22 @@ export function update(g, callbacks) {
         });
       }
     } else if (p.wallSliding || p._wallRunTimer >= 350) {
-      // Auto-backflip — no jump press needed
+      // Auto-backflip — launch AWAY from wall with force
+      const launchDir = -p.wallDir; // away from wall
       p._wallRunning = false;
       p._wallRunCooldown = 500; // prevent immediate re-trigger
       p._backflipping = true;
       p._backflipTimer = 500;
-      p.vy = JUMP_FORCE * 1.1;
-      p.vx = -p.wallDir * MOVE_SPEED * 1.2;
-      p.facing = -p.wallDir;
+      p.vy = JUMP_FORCE * 1.3; // strong upward launch
+      p.vx = launchDir * MOVE_SPEED * 2.0; // strong horizontal push away
+      p.facing = launchDir;
       p.wallSliding = false;
-      p.wallJumpCooldown = 300;
-      p.invincible = Math.max(p.invincible, 200);
+      // Push player away from wall immediately so wall detection doesn't re-grab
+      p.x += launchDir * 20;
+      p.wallJumpCooldown = 400;
+      const halfW = TILE * SCALE * 0.5;
+      p._lastWallX = p.wallDir === 1 ? p.x + halfW : p.x - halfW; // prevent re-grab
+      p.invincible = Math.max(p.invincible, 300);
       playSound("jump", { playbackRate: 1.3 });
       // Slow-mo + zoom on backflip — cinematic
       g.slowMo.active = true;

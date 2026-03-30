@@ -1514,10 +1514,10 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   }
 
   if (p.wallSliding) {
-    // Prefer wall-cling sprite, fallback to wallslide
-    const img = getImage("wall_cling") || getImage("wallslide");
+    // Use wall_cling only — wallslide.png has baked-in wall texture
+    const img = getImage("wall_cling") || getImage("jump1");
     if (img) {
-      const crop = CROPS.wallslide; // same crop works for both
+      const crop = CROPS.wall_cling || CROPS.wallslide;
       const wallFacing = -p.wallDir;
       if (crop.R ? (wallFacing < 0) : (wallFacing > 0)) ctx.scale(-1, 1);
       ctx.drawImage(img, crop.x, crop.y, crop.w, crop.h, -DRAW_W / 2, -DRAW_H + FOOT_NUDGE, DRAW_W, DRAW_H);
@@ -1530,9 +1530,9 @@ function drawPlayer(ctx, p, mascot, elapsed) {
   if (p.state === "wall_run") {
     // Alternate climb frames every 100ms for running-up-wall animation
     const climbFrame = Math.floor((p._wallRunTimer || 0) / 100) % 2 === 0 ? "wall_climb1" : "wall_climb2";
-    const img = getImage(climbFrame) || getImage("wall_cling") || getImage("wallslide");
+    const img = getImage(climbFrame) || getImage("wall_cling") || getImage("jump1");
     if (img) {
-      const crop = CROPS[climbFrame] || CROPS.wallslide;
+      const crop = CROPS[climbFrame] || CROPS.wall_cling || CROPS.wallslide;
       // Face INTO the wall (not away) — wallDir points toward wall
       const wallFacing = p.wallDir;
       if (crop.R ? (wallFacing < 0) : (wallFacing > 0)) ctx.scale(-1, 1);
@@ -1542,23 +1542,14 @@ function drawPlayer(ctx, p, mascot, elapsed) {
     }
   }
 
-  // Backflip — push-off then spinning flip
+  // Backflip — full spinning flip (no pushoff phase to avoid baked wall sprite)
   if (p.state === "backflip") {
     const flipProgress = 1 - (p._backflipTimer || 0) / 500; // 0→1
-    if (flipProgress < 0.2) {
-      // Push-off phase — use wall_pushoff sprite, no rotation yet
-      const img = getImage("wall_pushoff") || getImage("jump2") || getImage("jump1");
-      const cropKey = getImage("wall_pushoff") ? "wall_pushoff" : "jump2";
-      if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
-    } else {
-      // Flip phase — spinning backflip
-      const spinProgress = (flipProgress - 0.2) / 0.8; // 0→1 within flip phase
-      const rotation = spinProgress * Math.PI * 2 * p.facing;
-      ctx.rotate(rotation);
-      const img = getImage("backflip") || getImage("jump2") || getImage("jump1");
-      const cropKey = getImage("backflip") ? "backflip" : "jump2";
-      if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
-    }
+    const rotation = flipProgress * Math.PI * 2 * p.facing; // full 360 spin
+    ctx.rotate(rotation);
+    const img = getImage("backflip") || getImage("jump2") || getImage("jump1");
+    const cropKey = getImage("backflip") ? "backflip" : "jump2";
+    if (drawSpriteFrame(ctx, img, cropKey, s, p.facing)) { ctx.restore(); return; }
   }
 
   if (p.state === "dash") {
