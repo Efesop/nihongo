@@ -311,21 +311,21 @@ export const ROOMS = [
     background: "room_forest_06",
     platforms: [
       // ── Ground: stone cobblestone paths (gap in center = tree roots) ──
-      { x: 0.000, y: 0.890, w: 0.260, pct: true },   // left stone path
-      { x: 0.570, y: 0.900, w: 0.430, pct: true },   // right stone path
+      { x: 0.000, y: 0.860, w: 0.260, pct: true },   // left stone path
+      { x: 0.500, y: 0.870, w: 0.500, pct: true },   // right stone path
       // ── Burning log bridge: flat-topped fallen log on fire ──
-      { x: 0.110, y: 0.680, w: 0.300, pct: true },   // burning log
+      { x: 0.110, y: 0.660, w: 0.290, pct: true },   // burning log
       // ── Big tree branch: flat-topped gnarled branch extending right ──
-      { x: 0.490, y: 0.550, w: 0.280, pct: true },   // tree branch
+      { x: 0.480, y: 0.545, w: 0.300, pct: true },   // tree branch
       // ── Upper-left: rock cliff with shrine and torii gate ──
-      { x: 0.010, y: 0.280, w: 0.165, pct: true },   // shrine cliff ledge
+      { x: 0.010, y: 0.260, w: 0.160, pct: true },   // shrine cliff ledge
       // ── Upper-right: wooden scaffold / rope bridge ──
-      { x: 0.720, y: 0.195, w: 0.265, pct: true },   // rope bridge lookout
+      { x: 0.710, y: 0.180, w: 0.270, pct: true },   // rope bridge lookout
       // ── Center tree trunk: wall-runnable surface ──
-      { x: 0.370, y: 0.180, w: 0.045, h: 0.560, wall: true, pct: true },
+      { x: 0.340, y: 0.180, w: 0.035, h: 0.540, wall: true, pct: true },
       // ── One-way steps: invisible collision for painted stairs/ledges ──
-      { x: 0.000, y: 0.780, w: 0.100, oneWay: true, pct: true },  // step: ground → log
-      { x: 0.000, y: 0.490, w: 0.120, oneWay: true, pct: true },  // step: log → shrine
+      { x: 0.000, y: 0.740, w: 0.100, oneWay: true, pct: true },  // step: ground → log
+      { x: 0.000, y: 0.480, w: 0.120, oneWay: true, pct: true },  // step: log → shrine
       // ── Invisible edge walls ──
       { x: 0.000, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
       { x: 0.985, y: 0.000, w: 0.015, h: 1.0, wall: true, pct: true },
@@ -333,19 +333,19 @@ export const ROOMS = [
     hazards: [],
     enemies: [
       // Left ground: oni patrol near spawn
-      { type: "oni", x: 0.14, y: 0.82 },
+      { type: "oni", x: 0.14, y: 0.78 },
       // Right ground: oni + ninja crossfire
-      { type: "oni", x: 0.68, y: 0.83 },
-      { type: "ninja", x: 0.90, y: 0.83 },
+      { type: "oni", x: 0.65, y: 0.79 },
+      { type: "ninja", x: 0.90, y: 0.79 },
       // Burning log: oni blocks the bridge
-      { type: "oni", x: 0.26, y: 0.60 },
+      { type: "oni", x: 0.26, y: 0.58 },
       // Tree branch: solo ninja — key encounter
-      { type: "ninja", x: 0.60, y: 0.47 },
+      { type: "ninja", x: 0.60, y: 0.46 },
       // Shrine: oni guards sacred ground
-      { type: "oni", x: 0.08, y: 0.20 },
+      { type: "oni", x: 0.08, y: 0.18 },
       // Rope bridge: ninja throws down + oni
-      { type: "ninja", x: 0.88, y: 0.12 },
-      { type: "oni", x: 0.78, y: 0.12 },
+      { type: "ninja", x: 0.88, y: 0.10 },
+      { type: "oni", x: 0.78, y: 0.10 },
     ],
     shadows: [],
     playerStart: 100,
