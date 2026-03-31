@@ -859,10 +859,10 @@ export default function SmartSession({
     if (!fb) setTimeout(() => speakPhraseWithEnglish(p[0], p[1], p[3]), 500);
     return withSenpai(<>
       <div style={{ ...card, padding: 0, marginBottom: 14 }}>
-        {/* Category image */}
-        <img src={`/images/phrases/${p[4]}.png`} alt={CATS[p[4]]}
-          style={{ width: "100%", height: isDesktop ? 120 : 80, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
-          onError={e => { e.target.style.display = "none"; }} />
+        {/* Phrase scene image — specific to this phrase, falls back to category */}
+        <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
+          style={{ width: "100%", height: isDesktop ? 160 : 120, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+          onError={e => { e.target.src = `/images/phrases/${p[4]}.png`; e.target.onerror = () => { e.target.style.display = "none"; }; }} />
         <div style={{ padding: "16px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 16 }}>{CAT_ICONS[p[4]]}</span>
@@ -1669,7 +1669,12 @@ export default function SmartSession({
     }
     const answered = choiceAnswer.selected !== null;
     return withSenpai(<>
-      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+      <div style={{ ...card, padding: 0, marginBottom: 14 }}>
+        {/* Scene image — sets the visual context before the guess */}
+        <img src={`/images/phrases/scenes/${p[0]}.png`} alt=""
+          style={{ width: "100%", height: isDesktop ? 140 : 100, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+          onError={e => { e.target.style.display = "none"; }} />
+        <div style={{ padding: "16px 20px" }}>
         <div style={{ fontSize: 11, fontFamily: mono, color: c.a, textTransform: "uppercase", marginBottom: 8 }}>Try first — what would you say?</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <span style={{ fontSize: 16 }}>{CAT_ICONS[p[4]]}</span>
@@ -1680,6 +1685,7 @@ export default function SmartSession({
         {answered && <div style={{ marginTop: 12, fontSize: 13, color: choiceAnswer.selected === p[0] ? "#4caf50" : c.a }}>
           {choiceAnswer.selected === p[0] ? "You already knew this!" : "Good try — you'll learn this phrase next"}
         </div>}
+        </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {choiceAnswer.choices.map((choice, i) => {
@@ -1778,7 +1784,10 @@ export default function SmartSession({
 
     if (leechPhase === "study") {
       return withSenpai(<>
-        <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ ...card, padding: 0, marginBottom: 14 }}>
+          {/* Scene image for re-encoding */}
+          <img src={`/images/phrases/scenes/${p[0]}.png`} alt="" style={{ width: "100%", height: isDesktop ? 120 : 80, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }} onError={e => { e.target.style.display = "none"; }} />
+          <div style={{ padding: "16px 20px" }}>
           <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginBottom: 12 }}>This phrase keeps tripping you up ({ex.errorCount} mistakes) — study it, then prove you know it</div>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 28 : 22} />
           <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8 }}>{p[2]}</div>
@@ -1790,6 +1799,7 @@ export default function SmartSession({
           </div>
           <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
             style={{ ...btn, width: "100%", marginTop: 10, padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 hear it slowly</button>
+          </div>
         </div>
         <button onClick={() => {
           // Set up the quiz: show English, pick the Japanese from 4 choices
