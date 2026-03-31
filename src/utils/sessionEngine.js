@@ -378,7 +378,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   }
   if (phrasesLearned >= 5 && Math.random() < 0.4) {
     const eligible = CONVERSATIONS.filter(conv =>
-      conv.lines.filter(l => l.blank).every(l => phrData[l.correctId]?.box >= 0)
+      conv.lines.filter(l => l.blank).every(l => (phrData[l.correctId]?.box || 0) >= 1)
     );
     if (eligible.length > 0) {
       specialPool.push({ type: "conversation", conversation: eligible[Math.floor(Math.random() * eligible.length)] });

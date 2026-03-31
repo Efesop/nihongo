@@ -373,6 +373,8 @@ export default function SmartSession({
             // Build new session immediately
             setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null);
             setConvoAnswers({}); setConvoSubmitted(false); setStoryData(null); setBranchData(null);
+            setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null); setLeechChoices([]);
+            setAssemblySlots([]); setAssemblyPool([]); setAssemblySubmitted(false);
             try {
               const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
               setCards(session.length > 0 ? session : []);
@@ -407,7 +409,7 @@ export default function SmartSession({
     setConvoAnswers({}); setConvoSubmitted(false); setSelectedBlank(null); setDraggingId(null);
     setStoryData(null); setStoryAnswer(null); setStoryLoading(false);
     setBranchData(null); setBranchHistory([]); setBranchTurn(1); setBranchScore(0); setBranchLoading(false);
-    setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null);
+    setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null); setLeechChoices([]);
     setAssemblySlots([]); setAssemblyPool([]); setAssemblySubmitted(false);
     cardStartTime.current = Date.now(); // Reset timer for next card
     if (ci + 1 >= cards.length) setDone(true);
