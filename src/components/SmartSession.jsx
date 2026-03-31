@@ -1547,16 +1547,15 @@ export default function SmartSession({
         })}
       </div>
 
-      {/* Correct answer — shown after submit with interactive segments */}
+      {/* Correct answer — always show the actual generated pieces, not the template's example phrase */}
       {assemblySubmitted && <div style={{ ...card, padding: "14px 18px", marginBottom: 16, borderLeft: "3px solid #4caf50" }}>
         <div style={{ fontSize: T.sm, color: isCorrectAnswer ? "#4caf50" : c.m, marginBottom: 8, fontWeight: 600 }}>{isCorrectAnswer ? "✓ Correct!" : "Correct answer:"}</div>
-        {exPhrase ? <PhraseSegments phraseId={exPhrase[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} /> :
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           {ch.correctPieces.map((p, i) => <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
             <span style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, color: c.tx, padding: "4px 8px" }}>{p.japanese}</span>
             <span style={{ fontSize: T.xs, color: c.m }}>{p.meaning}</span>
           </div>)}
-        </div>}
+        </div>
         <div style={{ fontSize: T.sm, color: c.m, marginTop: 10 }}>Pattern: <span style={{ fontWeight: 600, color: c.a }}>{ch.pattern}</span> = {ch.patternMeaning}</div>
       </div>}
 

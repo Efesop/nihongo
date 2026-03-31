@@ -155,9 +155,10 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const errorCount = errors[ch] || 0;
     const adjusted = box + difficultyMod;
 
-    // Leech treatment: 5+ errors → ALWAYS show mnemonic + breakdown, not quiz
-    // Don't keep quizzing items they've failed 5+ times — treat them differently
-    if (errorCount >= 5) {
+    // Leech treatment: 5+ errors → show mnemonic + breakdown, not quiz
+    // Only if the character HAS a mnemonic (base kana). Dakuten/yōon don't have
+    // mnemonic images so leech review is useless for them — just quiz normally.
+    if (errorCount >= 5 && M[ch]) {
       return { type: "leech-review", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], errorCount, isKana: true };
     }
 
