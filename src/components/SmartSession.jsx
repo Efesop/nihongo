@@ -1494,9 +1494,8 @@ export default function SmartSession({
       const ok = isCorrectAnswer;
       setFb(ok ? "ok" : "no");
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-      // Play the correct sentence audio
-      if (exPhrase) speakPhrase(exPhrase[0], exPhrase[1]);
-      else speak(correctSentence);
+      // Always speak the actual generated sentence, not the template's example phrase
+      speak(correctSentence);
       // Credit SRS for the example phrase if it exists
       if (ch.examplePhraseId && data.phr?.[ch.examplePhraseId]) {
         reviewPhr(ch.examplePhraseId, ok, "pattern-assembly", getResponseMs());
@@ -1575,7 +1574,7 @@ export default function SmartSession({
 
       {assemblySubmitted && <>
         <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-          <button onClick={() => exPhrase ? speakPhrase(exPhrase[0], exPhrase[1]) : speak(correctSentence)}
+          <button onClick={() => speak(correctSentence)}
             style={{ ...btn, flex: 1, padding: 14, borderRadius: 12, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.base }}>🔊 hear it</button>
           <button onClick={() => advance(isCorrectAnswer)}
             style={{ ...btn, flex: 2, padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>
