@@ -75,15 +75,29 @@ function nextInterval(stability, requestRetention = DEFAULT_PARAMS.requestRetent
   return Math.max(Math.round(9 * stability * (1 / requestRetention - 1)), 1);
 }
 
+// Exercise types that require production (harder recall = stronger evidence of learning)
+// Research: Smith & Karpicke 2014 — production recall creates stronger memory traces than recognition
+const PRODUCTION_TYPES = new Set([
+  "kana-visual",      // free-text typing
+  "kana-reverse",     // see romaji, pick character
+  "phrase-reverse",   // see English, pick Japanese
+  "phrase-production", // English → pick from 8 Japanese
+  "phrase-build",     // fill in missing segment
+]);
+
+// Recognition-only types get no bonus (baseline)
+// "kana-listen", "phrase-scenario", "phrase-listen", "kana-pair", "phrase-pair"
+
 /**
  * Main function: calculate next review timing
  *
  * @param {object} itemData - { stability, difficulty, lastReview } or null for new item
  * @param {boolean} correct - whether the user got it right
  * @param {number} responseTime - ms taken to answer (optional, for future use)
+ * @param {string} exerciseType - the exercise type (for production weighting)
  * @returns {object} { stability, difficulty, nextMs, intervalDays }
  */
-export function fsrsUpdate(itemData, correct, responseTime = null) {
+export function fsrsUpdate(itemData, correct, responseTime = null, exerciseType = null) {
   const now = Date.now();
   // Use response time to distinguish Hard/Good/Easy instead of binary
   // Fast correct (<3s) = Easy(4), normal = Good(3), slow correct (>8s) = Hard(2), wrong = Again(1)
@@ -94,9 +108,14 @@ export function fsrsUpdate(itemData, correct, responseTime = null) {
     else rating = 3;                                            // Good — normal recall
   }
 
+  // Production bonus: correct answers on harder exercise types earn more stability
+  // This means the same item reviewed via production advances faster through SRS
+  const isProduction = exerciseType && PRODUCTION_TYPES.has(exerciseType);
+  const productionBonus = (correct && isProduction) ? 1.15 : 1.0; // 15% stability boost
+
   if (!itemData || !itemData.stability) {
     // New item — first review
-    const s = initStability(rating);
+    const s = initStability(rating) * productionBonus;
     const d = initDifficulty(rating);
     const interval = nextInterval(s);
     return {
@@ -111,7 +130,7 @@ export function fsrsUpdate(itemData, correct, responseTime = null) {
   const elapsedDays = (now - (itemData.lastReview || now)) / 864e5;
   const r = retrievability(itemData.stability, elapsedDays);
 
-  const newS = nextStability(itemData.difficulty, itemData.stability, r, rating);
+  const newS = nextStability(itemData.difficulty, itemData.stability, r, rating) * productionBonus;
   const newD = nextDifficulty(itemData.difficulty, rating);
   const interval = nextInterval(newS);
 

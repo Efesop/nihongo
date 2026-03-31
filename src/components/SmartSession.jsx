@@ -31,6 +31,8 @@ export default function SmartSession({
   const [choiceAnswer, setChoiceAnswer] = useState(null);
   const [sessionFeedback, setSessionFeedback] = useState(null);
   const [coachingPlan, setCoachingPlan] = useState(null);
+  const [coachDismissed, setCoachDismissed] = useState(false);
+  const [reviewCoaching, setReviewCoaching] = useState(null);
   const [loading, setLoading] = useState(true);
   // Floating chat
   const [chatOpen, setChatOpen] = useState(false);
@@ -54,6 +56,11 @@ export default function SmartSession({
   const [branchHistory, setBranchHistory] = useState([]);
   const [branchTurn, setBranchTurn] = useState(1);
   const [branchScore, setBranchScore] = useState(0);
+  const [leechPhase, setLeechPhase] = useState("study"); // "study" | "quiz"
+  const [leechInput, setLeechInput] = useState("");
+  const [leechFb, setLeechFb] = useState(null); // null | "ok" | "no"
+  const [leechChoices, setLeechChoices] = useState([]);
+  const [leechPicked, setLeechPicked] = useState(null);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
@@ -125,6 +132,7 @@ export default function SmartSession({
 
   // Focus input when needed + auto-play for listen exercises
   useEffect(() => {
+    if (leechPhase === "quiz" && !leechFb && inputRef.current) inputRef.current.focus();
     if (inputRef.current && !fb) inputRef.current.focus();
     if (cards[ci]?.type === "kana-listen" && !fb) {
       const t = setTimeout(() => speak(cards[ci].item), 300);
@@ -135,9 +143,7 @@ export default function SmartSession({
   // Post-session AI review + error pattern analysis every 10 sessions
   useEffect(() => {
     if (done && score.c + score.w > 0 && !sessionFeedback) {
-      // Track session count
-      const sessionCount = (data.settings?.sessionCount || 0) + 1;
-      save({ settings: { ...data.settings, sessionCount } });
+      // Session count is incremented in the done screen save — not here (was causing double increment)
 
       // Regular post-session review
       fetch('/api/coach', {
@@ -148,7 +154,11 @@ export default function SmartSession({
           userData: data,
         }),
       }).then(r => r.json()).then(review => {
-        if (review.userCoaching) save({ settings: { ...data.settings, coaching: review.userCoaching, nextFocus: review.nextFocus, sessionCount } });
+        if (review.userCoaching) {
+          const sessionCount = (data.settings?.sessionCount || 0) + 1;
+          save({ settings: { ...data.settings, coaching: review.userCoaching, nextFocus: review.nextFocus, sessionCount } });
+          setReviewCoaching(review.userCoaching);
+        }
       }).catch(() => {});
 
       // Error pattern analysis every 10 sessions
@@ -252,10 +262,10 @@ export default function SmartSession({
     const pct = score.c + score.w > 0 ? Math.round(score.c / (score.c + score.w) * 100) : 0;
 
     // Grade + mascot pose based on performance
-    const grade = pct >= 90 ? { rank: "S", label: "Perfect!", img: "/images/tinysenpai/grades-strike/4.png", color: c.go, note: "Making it harder next time", adj: -1 }
-      : pct >= 70 ? { rank: "A", label: "Great job!", img: "/images/tinysenpai/grades-strike/1.png", color: c.g, note: "Good balance — keeping this level", adj: 0 }
-      : pct >= 50 ? { rank: "B", label: "Keep going!", img: "/images/tinysenpai/grades-run/ts1.png", color: c.a, note: "A bit tough — easing off slightly", adj: 1 }
-      : { rank: "C", label: "Let's practice more", img: "/images/tinysenpai/tinysenpai2.png", color: c.m, note: "Tough session — easing off next time", adj: 1 };
+    const grade = pct >= 90 ? { rank: "S", label: "Perfect!", img: "/images/tinysenpai/grades-strike/4.png", color: c.go }
+      : pct >= 70 ? { rank: "A", label: "Great job!", img: "/images/tinysenpai/grades-strike/1.png", color: c.g }
+      : pct >= 50 ? { rank: "B", label: "Keep going!", img: "/images/tinysenpai/grades-run/ts1.png", color: c.a }
+      : { rank: "C", label: "Let's practice more", img: "/images/tinysenpai/tinysenpai2.png", color: c.m };
 
     // XP calculation
     const xpForRank = grade.rank === "S" ? 100 : grade.rank === "A" ? 60 : grade.rank === "B" ? 30 : 10;
@@ -268,12 +278,26 @@ export default function SmartSession({
     const leveledUp = newLevel > prevLevel;
 
     // Auto-save difficulty adjustment + XP + S rank count + badges
+    // Rolling accuracy tracking: keep last 5 session accuracies, target ~85%
     if (!sessionFeedback) {
       setTimeout(() => {
-        setSessionFeedback(grade.note);
         const sRanks = (data.settings?.sRanks || 0) + (grade.rank === "S" ? 1 : 0);
         const sessionCount = (data.settings?.sessionCount || 0) + 1;
-        const updatedSettings = { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + grade.adj, xp: newXP, sRanks, sessionCount };
+
+        // Rolling accuracy → adaptive difficulty (target: 80-88%, based on 85% rule)
+        const recentAccuracy = [...(data.settings?.recentAccuracy || []), pct].slice(-5);
+        const avgAccuracy = recentAccuracy.reduce((a, b) => a + b, 0) / recentAccuracy.length;
+        // Smooth adjustment: too easy (>88%) → harder, too hard (<80%) → easier, in zone → no change
+        let diffAdj = 0;
+        let diffNote = "Right in the zone — optimal challenge level";
+        if (avgAccuracy > 92) { diffAdj = -2; diffNote = "Too easy — increasing difficulty"; }
+        else if (avgAccuracy > 88) { diffAdj = -1; diffNote = "Making it a bit harder next time"; }
+        else if (avgAccuracy < 70) { diffAdj = 2; diffNote = "Tough stretch — easing off to rebuild confidence"; }
+        else if (avgAccuracy < 80) { diffAdj = 1; diffNote = "Slightly too hard — adjusting down"; }
+
+        setSessionFeedback(diffNote);
+
+        const updatedSettings = { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + diffAdj, xp: newXP, sRanks, sessionCount, recentAccuracy };
         save({ settings: updatedSettings });
         // Check for new badges
         if (checkBadges) {
@@ -321,7 +345,7 @@ export default function SmartSession({
         </div>
 
         {/* Difficulty note */}
-        <div style={{ fontSize: 12, color: grade.color, marginBottom: 16 }}>{grade.note}</div>
+        {sessionFeedback && <div style={{ fontSize: 12, color: grade.color, marginBottom: 16 }}>{sessionFeedback}</div>}
 
         {/* Struggled items */}
         {struggled.length > 0 && <div style={{ marginBottom: 16 }}>
@@ -329,6 +353,15 @@ export default function SmartSession({
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }}>
             {struggled.map((item, i) => <span key={i} style={{ fontSize: 13, padding: "3px 8px", borderRadius: 6, background: c.go + "12", border: "1px solid " + c.go + "28", color: c.go }}>{item.label}</span>)}
           </div>
+        </div>}
+
+        {/* AI coaching feedback */}
+        {reviewCoaching && <div style={{ marginBottom: 16, padding: "12px 16px", background: c.s2, borderRadius: 10, border: "1px solid " + c.b, textAlign: "left" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <img src="/images/tinysenpai/tinysenpai2.png" alt="" style={{ width: 24, height: 24, imageRendering: "pixelated" }} />
+            <div style={{ fontSize: 11, fontFamily: mono, color: c.m, textTransform: "uppercase" }}>Senpai's feedback</div>
+          </div>
+          <div style={{ fontSize: 13, color: c.tx, lineHeight: 1.6 }}>{reviewCoaching}</div>
         </div>}
 
         {/* Actions */}
@@ -371,6 +404,7 @@ export default function SmartSession({
     setConvoAnswers({}); setConvoSubmitted(false); setSelectedBlank(null); setDraggingId(null);
     setStoryData(null); setStoryAnswer(null); setStoryLoading(false);
     setBranchData(null); setBranchHistory([]); setBranchTurn(1); setBranchScore(0); setBranchLoading(false);
+    setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null);
     cardStartTime.current = Date.now(); // Reset timer for next card
     if (ci + 1 >= cards.length) setDone(true);
     else setCi(ci + 1);
@@ -439,7 +473,14 @@ export default function SmartSession({
     </div>
   </>;
 
-  const withSenpai = (content) => <div style={inner}>{header}{content}{senpaiBar}</div>;
+  // Coaching plan banner — shown on first card only, dismissible
+  const coachBanner = (ci === 0 && !coachDismissed && coachingPlan?.focus) ? <div style={{ marginBottom: 14, padding: "10px 14px", background: c.s2, borderRadius: 10, border: "1px solid " + c.b, display: "flex", alignItems: "center", gap: 10 }}>
+    <img src="/images/tinysenpai/tinysenpai2.png" alt="" style={{ width: 28, height: 28, imageRendering: "pixelated", flexShrink: 0 }} />
+    <div style={{ flex: 1, fontSize: 13, color: c.tx, lineHeight: 1.4 }}>{coachingPlan.focus}</div>
+    <button onClick={() => setCoachDismissed(true)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", color: c.m, fontSize: 16, flexShrink: 0 }}>✕</button>
+  </div> : null;
+
+  const withSenpai = (content) => <div style={inner}>{header}{coachBanner}{content}{senpaiBar}</div>;
 
   // ═══ EXERCISE: KANA VISUAL ═══
   if (ex.type === "kana-visual") {
@@ -1241,7 +1282,7 @@ export default function SmartSession({
           </div>
         </>}
       </div>
-      <button onClick={() => { advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
+      <button onClick={() => { advance(true); /* grammar patterns don't count toward score — informational only */ }}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Got it — Next →</button>
     </>);
   }
@@ -1660,59 +1701,140 @@ export default function SmartSession({
 
   // ═══ EXERCISE: LEECH REVIEW (special treatment for hard items) ═══
   if (ex.type === "leech-review") {
+    // Two-phase leech review: study the mnemonic, then prove recall
     if (ex.isKana) {
       const m = ex.mnemonic;
       const isHiragana = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
       const imgPath = `/images/mnemonics/approved/${isHiragana ? "hiragana" : "katakana"}/${ex.item.codePointAt(0).toString(16)}.png`;
+
+      // Phase 1: Study the mnemonic
+      if (leechPhase === "study") {
+        return withSenpai(<>
+          <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginBottom: 8 }}>This one keeps tripping you up ({ex.errorCount} mistakes) — study it, then prove you know it</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ flex: "1 1 40%", textAlign: "center" }}>
+                <div style={{ fontSize: 90, lineHeight: 1 }}>{ex.item}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: c.a, fontFamily: mono, marginTop: 8 }}>{ex.romaji}</div>
+                <button onClick={() => speak(ex.item)} style={{ ...btn, marginTop: 8, padding: "5px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊</button>
+              </div>
+              <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }}
+                style={{ flex: "1 1 60%", maxWidth: "50%", borderRadius: 12 }} />
+            </div>
+            {m && <div style={{ marginTop: 14, padding: "12px 16px", background: c.a + "10", borderRadius: 8, border: "1px solid " + c.a + "22" }}>
+              <div style={{ fontSize: 11, color: c.a, fontWeight: 700, marginBottom: 4 }}>Remember it like this:</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 20 }}>{m[0]}</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{m[1]}</span>
+              </div>
+              <div style={{ fontSize: 13, color: c.tx, lineHeight: 1.5 }}>{m[3] || m[2]}</div>
+            </div>}
+            {KANA_WORDS[ex.item] && <div style={{ marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8 }}>
+              <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>Used in real words:</div>
+              {KANA_WORDS[ex.item].map((w, i) => <span key={i} style={{ fontSize: 13, color: c.tx, marginRight: 12 }}>
+                <span style={{ fontWeight: 600 }}>{w.word}</span> <span style={{ color: c.m }}>({w.meaning})</span>
+              </span>)}
+            </div>}
+          </div>
+          <button onClick={() => { setLeechPhase("quiz"); setLeechInput(""); setLeechFb(null); cardStartTime.current = Date.now(); }}
+            style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>I've studied it — quiz me →</button>
+        </>);
+      }
+
+      // Phase 2: Quiz — type the romaji
+      const submitLeechKana = () => {
+        if (leechFb || !leechInput.trim()) return;
+        const ok = leechInput.trim().toLowerCase() === ex.romaji;
+        setLeechFb(ok ? "ok" : "no");
+        updateKanaSRS(ex.item, ok, "leech-review", getResponseMs());
+        if (ok) { setScore(s => ({ ...s, c: s.c + 1 })); senpaiReact(true); }
+        else { setScore(s => ({ ...s, w: s.w + 1 })); senpaiReact(false); setStruggled(s => [...s, { label: ex.item, type: "leech-review" }]); }
+        setTimeout(() => speak(ex.item), 250);
+      };
       return withSenpai(<>
         <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginBottom: 8 }}>This one keeps tripping you up ({ex.errorCount} mistakes)</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div style={{ flex: "1 1 40%", textAlign: "center" }}>
-              <div style={{ fontSize: 90, lineHeight: 1 }}>{ex.item}</div>
-              <div style={{ fontSize: 28, fontWeight: 700, color: c.a, fontFamily: mono, marginTop: 8 }}>{ex.romaji}</div>
-              <button onClick={() => speak(ex.item)} style={{ ...btn, marginTop: 8, padding: "5px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊</button>
-            </div>
-            <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }}
-              style={{ flex: "1 1 60%", maxWidth: "50%", borderRadius: 12 }} />
+          <div style={{ fontSize: 11, fontFamily: mono, color: c.go, marginBottom: 12 }}>Now prove it — what is this character?</div>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 100, lineHeight: 1, marginBottom: 16 }}>{ex.item}</div>
+            <input ref={inputRef} value={leechInput} onChange={e => setLeechInput(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") submitLeechKana(); }}
+              placeholder="type romaji..."
+              disabled={!!leechFb}
+              style={{ width: "100%", maxWidth: 200, padding: "12px 16px", fontSize: 20, textAlign: "center", fontFamily: mono, background: leechFb === "ok" ? c.g + "18" : leechFb === "no" ? c.a + "18" : c.s, color: c.tx, border: "1px solid " + (leechFb === "ok" ? c.g : leechFb === "no" ? c.a : c.b), borderRadius: 10, outline: "none" }} />
+            {leechFb === "no" && <div style={{ fontSize: 16, fontWeight: 700, color: c.a, marginTop: 10 }}>It's <span style={{ color: c.g }}>{ex.romaji}</span></div>}
           </div>
-          {m && <div style={{ marginTop: 14, padding: "12px 16px", background: c.a + "10", borderRadius: 8, border: "1px solid " + c.a + "22" }}>
-            <div style={{ fontSize: 11, color: c.a, fontWeight: 700, marginBottom: 4 }}>Remember it like this:</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 20 }}>{m[0]}</span>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{m[1]}</span>
-            </div>
-            <div style={{ fontSize: 13, color: c.tx, lineHeight: 1.5 }}>{m[3] || m[2]}</div>
-          </div>}
-          {KANA_WORDS[ex.item] && <div style={{ marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8 }}>
-            <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>Used in real words:</div>
-            {KANA_WORDS[ex.item].map((w, i) => <span key={i} style={{ fontSize: 13, color: c.tx, marginRight: 12 }}>
-              <span style={{ fontWeight: 600 }}>{w.word}</span> <span style={{ color: c.m }}>({w.meaning})</span>
-            </span>)}
-          </div>}
         </div>
-        <button onClick={() => { updateKanaSRS(ex.item, true, "leech-review"); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
-          style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>I've got it now →</button>
+        {!leechFb
+          ? <button onClick={submitLeechKana} disabled={!leechInput.trim()}
+              style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: leechInput.trim() ? c.a : c.b, color: leechInput.trim() ? "#fff" : c.m, fontSize: 15, fontWeight: 600 }}>Check</button>
+          : <button onClick={() => advance(leechFb === "ok")}
+              style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+        }
       </>);
     }
-    // Phrase leech
+
+    // Phrase leech — two-phase: study then pick from choices
     const p = ex.item;
+
+    if (leechPhase === "study") {
+      return withSenpai(<>
+        <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginBottom: 12 }}>This phrase keeps tripping you up ({ex.errorCount} mistakes) — study it, then prove you know it</div>
+          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 28 : 22} />
+          <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8 }}>{p[2]}</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: c.tx, marginTop: 4 }}>{p[3]}</div>
+          {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + c.a }}>{p[5]}</div>}
+          <div style={{ marginTop: 12, padding: "10px 14px", background: c.a + "10", borderRadius: 8, border: "1px solid " + c.a + "22" }}>
+            <div style={{ fontSize: 11, color: c.a, fontWeight: 700, marginBottom: 4 }}>Break it down:</div>
+            <div style={{ fontSize: 13, color: c.tx }}>Tap each word above to see what it means. Listen carefully to the pronunciation.</div>
+          </div>
+          <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
+            style={{ ...btn, width: "100%", marginTop: 10, padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 hear it slowly</button>
+        </div>
+        <button onClick={() => {
+          // Set up the quiz: show English, pick the Japanese from 4 choices
+          const distractors = getDistractors(p, 3);
+          const choices = shuffle([p, ...distractors]);
+          setLeechChoices(choices);
+          setLeechPhase("quiz");
+          setLeechPicked(null);
+          setLeechFb(null);
+          cardStartTime.current = Date.now();
+        }}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>I've studied it — quiz me →</button>
+      </>);
+    }
+
+    // Phase 2: Quiz — see English, pick the Japanese
+    const handleLeechPhrasePick = (choice) => {
+      if (leechFb) return;
+      const ok = choice[0] === p[0];
+      setLeechPicked(choice[0]);
+      setLeechFb(ok ? "ok" : "no");
+      reviewPhr(p[0], ok, "leech-review", getResponseMs());
+      if (ok) { setScore(s => ({ ...s, c: s.c + 1 })); senpaiReact(true); speakPhrase(p[0], p[1]); }
+      else { setScore(s => ({ ...s, w: s.w + 1 })); senpaiReact(false); setStruggled(s => [...s, { label: p[1], type: "leech-review" }]); }
+    };
     return withSenpai(<>
       <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontFamily: mono, color: c.a, marginBottom: 12 }}>This phrase keeps tripping you up ({ex.errorCount} mistakes)</div>
-        <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? 28 : 22} />
-        <div style={{ fontSize: 14, fontFamily: mono, color: c.a, marginTop: 8 }}>{p[2]}</div>
-        <div style={{ fontSize: 18, fontWeight: 600, color: c.tx, marginTop: 4 }}>{p[3]}</div>
-        {p[5] && <div style={{ fontSize: 13, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + c.a }}>{p[5]}</div>}
-        <div style={{ marginTop: 12, padding: "10px 14px", background: c.a + "10", borderRadius: 8, border: "1px solid " + c.a + "22" }}>
-          <div style={{ fontSize: 11, color: c.a, fontWeight: 700, marginBottom: 4 }}>Break it down:</div>
-          <div style={{ fontSize: 13, color: c.tx }}>Tap each word above to see what it means. Listen carefully to the pronunciation.</div>
+        <div style={{ fontSize: 11, fontFamily: mono, color: c.go, marginBottom: 12 }}>Now prove it — which phrase means:</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: c.tx, marginBottom: 16 }}>{p[3]}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {leechChoices.map(ch => {
+            const isCorrect = ch[0] === p[0];
+            const isPicked = leechPicked === ch[0];
+            const bg = leechFb ? (isCorrect ? c.g + "18" : isPicked ? c.a + "18" : c.s) : c.s;
+            const border = leechFb ? (isCorrect ? c.g : isPicked && !isCorrect ? c.a : c.b) : c.b;
+            return <button key={ch[0]} onClick={() => handleLeechPhrasePick(ch)}
+              disabled={!!leechFb}
+              style={{ ...btn, padding: "12px 16px", borderRadius: 10, background: bg, border: "1px solid " + border, color: c.tx, fontSize: 16, fontWeight: 500, textAlign: "left", cursor: leechFb ? "default" : "pointer" }}>
+              {ch[1]}
+            </button>;
+          })}
         </div>
-        <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-          style={{ ...btn, width: "100%", marginTop: 10, padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: 14, color: c.m }}>🔊 hear it slowly</button>
       </div>
-      <button onClick={() => { reviewPhr(p[0], true, "leech-review"); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
-        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>I've got it now →</button>
+      {leechFb && <button onClick={() => advance(leechFb === "ok")}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>}
     </>);
   }
 

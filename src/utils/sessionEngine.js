@@ -265,7 +265,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // If user knows very few kana, focus on teaching kana first
   if (kanaLearned < 10) {
-    unseenKana.slice(0, Math.min(sessionLength, 8)).forEach(ch => addLearnKana(ch));
+    unseenKana.slice(0, Math.min(sessionLength, 10)).forEach(ch => addLearnKana(ch));
     const reviewable = ALL_BASE_KANA.filter(ch => (kanaData[ch]?.box || 0) >= 1);
     shuffle(reviewable).slice(0, 2).forEach(ch => addKana(ch));
     return queue.slice(0, sessionLength);
@@ -315,17 +315,18 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     maintenanceKana.slice(0, 2 - kanaInQueue).forEach(ch => addKana(ch));
   }
 
-  // New item cap: max 2 new items per session
-  // Each new item takes 3 slots (try-first + learn + same-session review)
-  // That's 6 of 10 cards for new content — remaining 4 for SRS review + specials
+  // New item cap: 5 new items per session (research: 10-20/day is optimal)
+  // Productive failure flow takes 3 slots per item (try-first + learn + quiz)
+  // With 5 new items that's 15 slots — but not all get the 3-slot treatment,
+  // and the queue is trimmed to sessionLength anyway, so this just raises the ceiling.
   let newItemCount = 0;
-  const MAX_NEW = 2;
+  const MAX_NEW = 5;
 
   // Productive failure: quiz FIRST, then learn card, then same-session review
   // Research: Kapur 2014 (productive failure) + Pimsleur (graduated interval recall)
   // Flow: try-first → [2 cards] → learn card → [3 cards] → quiz (3 exposures total)
   if (unseenKana.length > 0 && queue.length < sessionLength - 2 && newItemCount < MAX_NEW) {
-    const maxNewKana = Math.min(2, MAX_NEW - newItemCount);
+    const maxNewKana = Math.min(3, MAX_NEW - newItemCount);
     const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, maxNewKana);
     newKana.forEach(ch => {
       usedKana.add(ch);
@@ -337,15 +338,16 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     });
   }
   if (unseenPhrases.length > 0 && queue.length < sessionLength - 1 && newItemCount < MAX_NEW) {
-    const np = unseenPhrases.find(p => !usedPhrases.has(p[0]));
-    if (np) {
+    const maxNewPhr = Math.min(2, MAX_NEW - newItemCount);
+    const newPhrases = unseenPhrases.filter(p => !usedPhrases.has(p[0])).slice(0, maxNewPhr);
+    newPhrases.forEach(np => {
       usedPhrases.add(np[0]);
       queue.push({ type: "try-first-phrase", item: np });
       queue.push({ type: "_delayed_learn_phrase", item: np, delay: 2 });
       // Same-session review: quiz the new phrase ~3 cards after the learn card
       queue.push({ type: "_delayed_phrase", item: np, delay: 5 });
       newItemCount++;
-    }
+    });
   }
 
   // Fill remaining slots — only items not already used
@@ -532,9 +534,9 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const specialItems = [];
   for (const item of finalQueue) {
     const t = item.type || "";
-    if (t.startsWith("kana-") || t === "learn-card" || t === "try-first-kana" || t === "leech-review" && item.isKana) {
+    if (t.startsWith("kana-") || t === "learn-card" || t === "try-first-kana" || (t === "leech-review" && item.isKana)) {
       kanaItems.push(item);
-    } else if (t.startsWith("phrase-") || t === "learn-phrase" || t === "try-first-phrase" || t === "leech-review" && !item.isKana) {
+    } else if (t.startsWith("phrase-") || t === "learn-phrase" || t === "try-first-phrase" || (t === "leech-review" && !item.isKana)) {
       phraseItems.push(item);
     } else {
       specialItems.push(item);
