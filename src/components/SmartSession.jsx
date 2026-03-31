@@ -146,7 +146,8 @@ export default function SmartSession({
   // Post-session AI review + error pattern analysis every 10 sessions
   useEffect(() => {
     if (done && score.c + score.w > 0 && !sessionFeedback) {
-      // Session count is incremented in the done screen save — not here (was causing double increment)
+      // Session count — computed once for use in both review and error analysis
+      const sessionCount = (data.settings?.sessionCount || 0) + 1;
 
       // Regular post-session review
       fetch('/api/coach', {
@@ -158,7 +159,6 @@ export default function SmartSession({
         }),
       }).then(r => r.json()).then(review => {
         if (review.userCoaching) {
-          const sessionCount = (data.settings?.sessionCount || 0) + 1;
           save({ settings: { ...data.settings, coaching: review.userCoaching, nextFocus: review.nextFocus, sessionCount } });
           setReviewCoaching(review.userCoaching);
         }
