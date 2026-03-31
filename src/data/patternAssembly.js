@@ -199,29 +199,6 @@ export const ASSEMBLY_TEMPLATES = [
     situation: "Express what you want to do!",
   },
 
-  // ═══ ACTION REQUEST — X を V てください ═══
-  {
-    id: "te-kudasai",
-    pattern: "X をVてください",
-    meaning: "Please V X",
-    slots: [
-      { japanese: "けいさつ", romaji: "keisatsu", meaning: "the police", verb: "よんで", verbMeaning: "call", sourcePhrase: "e3" },
-      { japanese: "ちず", romaji: "chizu", meaning: "a map", verb: "みせて", verbMeaning: "show", sourcePhrase: "d7" },
-      { japanese: "しゃしん", romaji: "shashin", meaning: "a photo", verb: "とって", verbMeaning: "take", sourcePhrase: "dl9" },
-      { japanese: "タクシー", romaji: "takushii", meaning: "a taxi", verb: "よんで", verbMeaning: "call", sourcePhrase: null },
-    ],
-    fixedParts: [
-      { japanese: "を", romaji: "o", meaning: "the thing", type: "particle" },
-      { japanese: "ください", romaji: "kudasai", meaning: "please", type: "verb" },
-    ],
-    // For this pattern, verb is part of the slot — build order is special
-    buildOrder: ["slot", "を", "verb", "ください"],
-    requiredPhrases: ["e3", "d7"],
-    examplePhraseId: "e3",
-    situation: "You need someone to do something — ask politely!",
-    hasVerb: true,
-  },
-
   // ═══ NOT NEEDED — X はいらないです ═══
   {
     id: "iranai",
