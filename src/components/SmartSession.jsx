@@ -1485,12 +1485,18 @@ export default function SmartSession({
 
     const gramCol = { particle: "#c49a5a", noun: "#5a9ec4", verb: "#4caf50", question: "#ff9800", copula: c.m, suffix: "#9c27b0", adjective: "#c45a9e" };
 
+    // Build the full correct sentence for TTS
+    const correctSentence = ch.correctPieces.map(p => p.japanese).join("");
+
     const handleSubmit = () => {
       if (assemblySubmitted || assemblySlots.length === 0) return;
       setAssemblySubmitted(true);
       const ok = isCorrectAnswer;
       setFb(ok ? "ok" : "no");
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+      // Play the correct sentence audio
+      if (exPhrase) speakPhrase(exPhrase[0], exPhrase[1]);
+      else speak(correctSentence);
       // Credit SRS for the example phrase if it exists
       if (ch.examplePhraseId && data.phr?.[ch.examplePhraseId]) {
         reviewPhr(ch.examplePhraseId, ok, "pattern-assembly", getResponseMs());
@@ -1542,15 +1548,16 @@ export default function SmartSession({
         })}
       </div>
 
-      {/* Correct answer shown when wrong */}
-      {assemblySubmitted && !isCorrectAnswer && <div style={{ ...card, padding: "12px 16px", marginBottom: 14, borderLeft: "3px solid #4caf50" }}>
-        <div style={{ fontSize: 11, color: c.m, marginBottom: 6 }}>Correct order:</div>
+      {/* Correct answer — always shown after submit (with interactive segments if known phrase) */}
+      {assemblySubmitted && <div style={{ ...card, padding: "12px 16px", marginBottom: 14, borderLeft: "3px solid " + (isCorrectAnswer ? "#4caf50" : "#4caf50") }}>
+        <div style={{ fontSize: 11, color: c.m, marginBottom: 6 }}>{isCorrectAnswer ? "Correct!" : "Correct order:"}</div>
+        {exPhrase ? <PhraseSegments phraseId={exPhrase[0]} c={c} fontSize={isDesktop ? 22 : 18} /> :
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
           {ch.correctPieces.map((p, i) => <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
             <span style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 700, color: gramCol[p.type] || c.tx, padding: "4px 8px" }}>{p.japanese}</span>
             <span style={{ fontSize: 9, color: c.m, fontFamily: mono }}>{p.meaning}</span>
           </div>)}
-        </div>
+        </div>}
       </div>}
 
       {/* Available pieces */}
@@ -1569,14 +1576,12 @@ export default function SmartSession({
         style={{ ...btn, width: "100%", padding: 10, borderRadius: 10, background: "transparent", border: "1px solid " + c.b, color: c.m, fontSize: 13 }}>Clear</button>}
 
       {assemblySubmitted && <>
-        {/* Show the pattern insight */}
-        {exPhrase && <div style={{ ...card, padding: "12px 16px", marginBottom: 12, borderLeft: "3px solid #e040fb" }}>
-          <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>You know this pattern from:</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: c.tx }}>{exPhrase[1]}</div>
-          <div style={{ fontSize: 12, color: c.m }}>{exPhrase[3]}</div>
-        </div>}
-        <button onClick={() => advance(isCorrectAnswer)}
-          style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          <button onClick={() => exPhrase ? speakPhrase(exPhrase[0], exPhrase[1]) : speak(correctSentence)}
+            style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: 14 }}>🔊 hear it</button>
+          <button onClick={() => advance(isCorrectAnswer)}
+            style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+        </div>
       </>}
     </>);
   }
