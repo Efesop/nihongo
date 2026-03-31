@@ -196,29 +196,32 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (weak === "listen" && adjusted >= 1) return { type: "phrase-listen", item: p };
     if (weak === "production" && adjusted >= 2) return { type: "phrase-reverse", item: p };
 
-    // Default progression — mix exercise types at every level
-    // Earlier production/reverse builds recall, not just recognition
+    // Default progression — gradual difficulty increase
+    // Research: 85% accuracy target (Wilson 2019). Recognition first, production later.
+    // Box 0-1: high success rate exercises (scenario, listen)
+    // Box 2: introduce reverse (production)
+    // Box 3+: production-heavy (recall over recognition)
     const r = Math.random();
     if (adjusted <= 0) {
-      // Brand new: mostly scenario but sprinkle in listening
-      return r > 0.75 ? { type: "phrase-listen", item: p } : { type: "phrase-scenario", item: p };
+      // Brand new: recognition only — build confidence
+      return r > 0.7 ? { type: "phrase-listen", item: p } : { type: "phrase-scenario", item: p };
     }
     if (adjusted <= 1) {
-      // Learning: 35% scenario, 35% listen, 30% reverse (early production!)
-      if (r > 0.65) return { type: "phrase-reverse", item: p };
-      if (r > 0.35) return { type: "phrase-listen", item: p };
+      // Learning: still mostly recognition, 15% reverse to start stretching
+      if (r > 0.85) return { type: "phrase-reverse", item: p };
+      if (r > 0.45) return { type: "phrase-listen", item: p };
       return { type: "phrase-scenario", item: p };
     }
     if (adjusted <= 2) {
-      // Reviewing: 25% scenario, 25% listen, 25% reverse, 25% production
-      if (r > 0.75) return { type: "phrase-production", item: p };
-      if (r > 0.50) return { type: "phrase-reverse", item: p };
+      // Reviewing: introduce production, balance recognition
+      if (r > 0.80) return { type: "phrase-production", item: p };
+      if (r > 0.55) return { type: "phrase-reverse", item: p };
       if (r > 0.25) return { type: "phrase-listen", item: p };
       return { type: "phrase-scenario", item: p };
     }
-    // Mature: heavier on production/reverse (recall over recognition)
-    if (r > 0.6) return { type: "phrase-reverse", item: p };
-    if (r > 0.3) return { type: "phrase-production", item: p };
+    // Mature (box 3+): production-heavy — recall over recognition
+    if (r > 0.55) return { type: "phrase-reverse", item: p };
+    if (r > 0.25) return { type: "phrase-production", item: p };
     return { type: "phrase-listen", item: p };
   }
 
