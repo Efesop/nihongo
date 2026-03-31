@@ -129,6 +129,10 @@ function AuthedApp({ user, getToken }){
   const [onboardStep,setOnboardStep]=useState(0);
   const [onboardAnswers,setOnboardAnswers]=useState({});
   const [syncStatus,setSyncStatus]=useState("idle"); // idle | saving | saved | error
+  const [accessGranted,setAccessGranted]=useState(false);
+  const [accessCode,setAccessCode]=useState("");
+  const [accessError,setAccessError]=useState("");
+  const [accessChecking,setAccessChecking]=useState(false);
   const uid = user.id;
   // ui
   const [isDesktop,setIsDesktop]=useState(window.innerWidth>=768);
@@ -179,6 +183,7 @@ function AuthedApp({ user, getToken }){
         setD(nd);
         store.set(KEY,nd);
         loadedData=nd;
+        setAccessGranted(true); // existing user — skip access code
         if(nd.streak>oldStreak){setStreakCelebrate(true);setTimeout(()=>setStreakCelebrate(false),3500);}
       } else {
         // 2. First sign-in — migrate any existing localStorage data up to DB
@@ -190,6 +195,7 @@ function AuthedApp({ user, getToken }){
           store.set(KEY,nd);
           syncSave(token,nd);
           loadedData=nd;
+          setAccessGranted(true); // has local data — existing user
           if(nd.streak>oldStreak){setStreakCelebrate(true);setTimeout(()=>setStreakCelebrate(false),3500);}
         }
       }
@@ -220,6 +226,19 @@ function AuthedApp({ user, getToken }){
       return nd;
     });
   },[getToken]);
+
+  const verifyAccessCode=async()=>{
+    if(!accessCode.trim()){setAccessError("Please enter an access code");return;}
+    setAccessChecking(true);
+    setAccessError("");
+    try{
+      const r=await fetch("/api/verify-code",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:accessCode.trim()})});
+      const j=await r.json();
+      if(j.valid){setAccessGranted(true);}
+      else{setAccessError("Invalid access code");}
+    }catch{setAccessError("Something went wrong — try again");}
+    setAccessChecking(false);
+  };
 
   useEffect(()=>{
     if(kScreen==="quiz"&&!kFb&&inputRef.current)inputRef.current.focus();
@@ -602,6 +621,34 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
 
   if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
+
+  // ═══ ACCESS CODE GATE (new users only) ═══
+  if(loaded&&!accessGranted)return(
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:theme==="dark"?`radial-gradient(ellipse 80% 50% at 50% 110%, rgba(192,40,42,0.18) 0%, transparent 70%), ${c.bg}`:c.bg,padding:24,color:c.tx,fontFamily:font}}>
+      <div style={{width:"100%",maxWidth:380,textAlign:"center"}}>
+        <div style={{fontSize:36,fontWeight:800,letterSpacing:"-.02em",marginBottom:4}}>日本語</div>
+        <div style={{fontSize:12,color:c.m,fontFamily:mono,textTransform:"uppercase",letterSpacing:".08em",marginBottom:32}}>TinySenpai</div>
+        <div style={{fontSize:18,fontWeight:600,marginBottom:8}}>Early Access</div>
+        <div style={{fontSize:14,color:c.m,marginBottom:24,lineHeight:1.5}}>TinySenpai is currently invite-only. Enter your access code to continue.</div>
+        <input
+          type="text"
+          value={accessCode}
+          onChange={e=>{setAccessCode(e.target.value);setAccessError("");}}
+          onKeyDown={e=>{if(e.key==="Enter")verifyAccessCode();}}
+          placeholder="Enter access code"
+          style={{width:"100%",padding:"12px 16px",fontSize:15,background:c.s,color:c.tx,border:"1px solid "+(accessError?c.a:c.b),borderRadius:10,outline:"none",fontFamily:font,boxSizing:"border-box",marginBottom:8}}
+        />
+        {accessError&&<div style={{fontSize:13,color:c.a,marginBottom:8}}>{accessError}</div>}
+        <button
+          onClick={verifyAccessCode}
+          disabled={accessChecking}
+          style={{width:"100%",padding:"12px 0",fontSize:15,fontWeight:600,background:c.a,color:"#fff",border:"none",borderRadius:10,cursor:accessChecking?"wait":"pointer",opacity:accessChecking?0.7:1,fontFamily:font,marginTop:4}}
+        >{accessChecking?"Checking...":"Continue"}</button>
+        <div style={{fontSize:12,color:c.m,marginTop:16}}>Don't have a code? Contact the creator for access.</div>
+      </div>
+    </div>
+  );
+
   const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`;
 
   // ═══ TABS & ROUTING ═══
