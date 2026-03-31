@@ -83,6 +83,7 @@ const PRODUCTION_TYPES = new Set([
   "phrase-reverse",   // see English, pick Japanese
   "phrase-production", // English → pick from 8 Japanese
   "phrase-build",     // fill in missing segment
+  "pattern-assembly", // construct sentence from pieces (highest production)
 ]);
 
 // Recognition-only types get no bonus (baseline)

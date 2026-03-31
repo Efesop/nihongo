@@ -61,6 +61,9 @@ export default function SmartSession({
   const [leechFb, setLeechFb] = useState(null); // null | "ok" | "no"
   const [leechChoices, setLeechChoices] = useState([]);
   const [leechPicked, setLeechPicked] = useState(null);
+  const [assemblySlots, setAssemblySlots] = useState([]); // user's placed pieces
+  const [assemblyPool, setAssemblyPool] = useState([]); // available pieces to pick from
+  const [assemblySubmitted, setAssemblySubmitted] = useState(false);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
@@ -405,6 +408,7 @@ export default function SmartSession({
     setStoryData(null); setStoryAnswer(null); setStoryLoading(false);
     setBranchData(null); setBranchHistory([]); setBranchTurn(1); setBranchScore(0); setBranchLoading(false);
     setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null);
+    setAssemblySlots([]); setAssemblyPool([]); setAssemblySubmitted(false);
     cardStartTime.current = Date.now(); // Reset timer for next card
     if (ci + 1 >= cards.length) setDone(true);
     else setCi(ci + 1);
@@ -1455,6 +1459,125 @@ export default function SmartSession({
         <button onClick={() => advance(choiceAnswer.correct)}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
       </div>}
+    </>);
+  }
+
+  // ═══ EXERCISE: PATTERN ASSEMBLY (build sentence from pieces) ═══
+  if (ex.type === "pattern-assembly") {
+    const ch = ex.challenge;
+    if (!ch) { advance(true); return null; }
+
+    // Initialize the pool on first render of this card
+    if (assemblyPool.length === 0 && assemblySlots.length === 0 && !assemblySubmitted) {
+      const pieces = [...ch.correctPieces, ...ch.distractors].map((p, i) => ({ ...p, id: i }));
+      // Shuffle
+      for (let i = pieces.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
+      }
+      setTimeout(() => setAssemblyPool(pieces), 0);
+      return null;
+    }
+
+    const correctOrder = ch.correctPieces.map(p => p.japanese);
+    const isCorrectAnswer = assemblySlots.length === correctOrder.length &&
+      assemblySlots.every((s, i) => s.japanese === correctOrder[i]);
+
+    const gramCol = { particle: "#c49a5a", noun: "#5a9ec4", verb: "#4caf50", question: "#ff9800", copula: c.m, suffix: "#9c27b0", adjective: "#c45a9e" };
+
+    const handleSubmit = () => {
+      if (assemblySubmitted || assemblySlots.length === 0) return;
+      setAssemblySubmitted(true);
+      const ok = isCorrectAnswer;
+      setFb(ok ? "ok" : "no");
+      setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+      // Credit SRS for the example phrase if it exists
+      if (ch.examplePhraseId && data.phr?.[ch.examplePhraseId]) {
+        reviewPhr(ch.examplePhraseId, ok, "pattern-assembly", getResponseMs());
+      }
+    };
+
+    const addPiece = (piece) => {
+      if (assemblySubmitted) return;
+      setAssemblySlots(s => [...s, piece]);
+      setAssemblyPool(p => p.filter(pp => pp.id !== piece.id));
+    };
+
+    const removePiece = (piece) => {
+      if (assemblySubmitted) return;
+      setAssemblySlots(s => s.filter(pp => pp.id !== piece.id));
+      setAssemblyPool(p => [...p, piece]);
+    };
+
+    // Find the example phrase for showing after answer
+    const exPhrase = ch.examplePhraseId ? PHRASES.find(p => p[0] === ch.examplePhraseId) : null;
+
+    return withSenpai(<>
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: mono, color: "#e040fb", textTransform: "uppercase", marginBottom: 6, letterSpacing: 1 }}>Pattern Assembly</div>
+        <div style={{ fontSize: 13, color: c.m, marginBottom: 10, fontStyle: "italic" }}>{ch.situation}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: c.tx, marginBottom: 6 }}>"{ch.englishPrompt}"</div>
+        {ch.isNovel && !assemblySubmitted && <div style={{ fontSize: 11, color: "#e040fb", marginTop: 4 }}>✨ New combination — you haven't seen this exact sentence before!</div>}
+        <div style={{ fontSize: 12, color: c.m, marginTop: 8 }}>Pattern: <span style={{ fontWeight: 600, color: c.a }}>{ch.pattern}</span> = {ch.patternMeaning}</div>
+      </div>
+
+      {/* Drop zone — where pieces go */}
+      <div style={{ minHeight: 60, padding: "12px 14px", borderRadius: 12, border: "2px dashed " + (assemblySubmitted ? (isCorrectAnswer ? "#4caf50" : c.a) : c.b), background: assemblySubmitted ? (isCorrectAnswer ? "#4caf5008" : c.rs) : c.s2, marginBottom: 14, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        {assemblySlots.length === 0 && !assemblySubmitted && <div style={{ color: c.m, fontSize: 13, fontStyle: "italic", width: "100%", textAlign: "center" }}>Tap pieces below to build the sentence</div>}
+        {assemblySlots.map((piece, i) => {
+          let pieceColor = c.tx;
+          let pieceBg = c.s;
+          let pieceBorder = c.b;
+          if (assemblySubmitted) {
+            if (i < correctOrder.length && piece.japanese === correctOrder[i]) {
+              pieceColor = "#4caf50"; pieceBg = "#4caf5012"; pieceBorder = "#4caf5055";
+            } else {
+              pieceColor = c.a; pieceBg = c.rs; pieceBorder = c.a + "55";
+            }
+          }
+          return <button key={piece.id} onClick={() => removePiece(piece)}
+            style={{ ...btn, padding: "8px 14px", borderRadius: 8, fontSize: isDesktop ? 22 : 18, fontWeight: 700, color: pieceColor, background: pieceBg, border: "1px solid " + pieceBorder, cursor: assemblySubmitted ? "default" : "pointer", transition: "all .15s" }}>
+            {piece.japanese}
+          </button>;
+        })}
+      </div>
+
+      {/* Correct answer shown when wrong */}
+      {assemblySubmitted && !isCorrectAnswer && <div style={{ ...card, padding: "12px 16px", marginBottom: 14, borderLeft: "3px solid #4caf50" }}>
+        <div style={{ fontSize: 11, color: c.m, marginBottom: 6 }}>Correct order:</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+          {ch.correctPieces.map((p, i) => <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+            <span style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 700, color: gramCol[p.type] || c.tx, padding: "4px 8px" }}>{p.japanese}</span>
+            <span style={{ fontSize: 9, color: c.m, fontFamily: mono }}>{p.meaning}</span>
+          </div>)}
+        </div>
+      </div>}
+
+      {/* Available pieces */}
+      {!assemblySubmitted && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 14 }}>
+        {assemblyPool.map(piece => <button key={piece.id} onClick={() => addPiece(piece)}
+          style={{ ...btn, padding: "10px 16px", borderRadius: 10, fontSize: isDesktop ? 20 : 16, fontWeight: 600, color: c.tx, background: c.s, border: "1px solid " + c.b, cursor: "pointer", transition: "all .15s" }}>
+          {piece.japanese}
+          <span style={{ display: "block", fontSize: 10, color: c.m, fontFamily: mono, marginTop: 2 }}>{piece.meaning}</span>
+        </button>)}
+      </div>}
+
+      {/* Submit / Next buttons */}
+      {!assemblySubmitted && assemblySlots.length > 0 && <button onClick={handleSubmit}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Check answer</button>}
+      {!assemblySubmitted && assemblySlots.length > 0 && <button onClick={() => { setAssemblySlots([]); setAssemblyPool(p => [...p, ...assemblySlots]); }}
+        style={{ ...btn, width: "100%", padding: 10, borderRadius: 10, background: "transparent", border: "1px solid " + c.b, color: c.m, fontSize: 13 }}>Clear</button>}
+
+      {assemblySubmitted && <>
+        {/* Show the pattern insight */}
+        {exPhrase && <div style={{ ...card, padding: "12px 16px", marginBottom: 12, borderLeft: "3px solid #e040fb" }}>
+          <div style={{ fontSize: 11, color: c.m, marginBottom: 4 }}>You know this pattern from:</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: c.tx }}>{exPhrase[1]}</div>
+          <div style={{ fontSize: 12, color: c.m }}>{exPhrase[3]}</div>
+        </div>}
+        <button onClick={() => advance(isCorrectAnswer)}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+      </>}
     </>);
   }
 
