@@ -1791,11 +1791,12 @@ export default function SmartSession({
       return null;
     }
     const answered = choiceAnswer.selected !== null;
+    const wasCorrect = choiceAnswer.selected === p[0];
     return withSenpai(<>
       <div style={{ ...card, padding: 0, marginBottom: 14 }}>
-        {/* Scene image — sets the visual context before the guess */}
+        {/* Scene image — large for visual association / dual coding */}
         <img src={`/images/phrases/scenes/${p[0]}.png`} alt=""
-          style={{ width: "100%", height: isDesktop ? 140 : 100, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+          style={{ width: "100%", height: isDesktop ? 220 : 180, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
           onError={e => { e.target.style.display = "none"; }} />
         <div style={{ padding: "16px 20px" }}>
         <div style={{ fontSize: 11, fontFamily: mono, color: c.a, textTransform: "uppercase", marginBottom: 8 }}>Try first — what would you say?</div>
@@ -1805,8 +1806,8 @@ export default function SmartSession({
         </div>
         {p[5] && <div style={{ fontSize: 14, color: c.tx, marginBottom: 10, padding: "8px 12px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
         <div style={{ fontSize: 20, fontWeight: 700, color: c.tx }}>{p[3]}</div>
-        {answered && <div style={{ marginTop: 12, fontSize: 13, color: choiceAnswer.selected === p[0] ? "#4caf50" : c.a }}>
-          {choiceAnswer.selected === p[0] ? "You already knew this!" : "Good try — you'll learn this phrase next"}
+        {answered && <div style={{ marginTop: 12, fontSize: 13, color: wasCorrect ? "#4caf50" : c.a }}>
+          {wasCorrect ? "You already knew this!" : "Good try — you'll learn this phrase next"}
         </div>}
         </div>
       </div>
@@ -1819,12 +1820,20 @@ export default function SmartSession({
             if (answered) return;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
             setFb(choice[0] === p[0] ? "ok" : "no");
-            setTimeout(() => advance(true), 2000);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 17, textAlign: "left" }}>
+            // Play correct phrase audio so they hear it
+            speakPhrase(p[0], p[1]);
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: 17, textAlign: "left", transition: "all .2s" }}>
             {choice[1]}
+            {answered && choice[0] === p[0] && <span style={{ fontSize: 12, color: "#4caf50", marginLeft: 8 }}>= {p[3]}</span>}
           </button>;
         })}
       </div>
+      {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button onClick={() => speakPhrase(p[0], p[1])}
+          style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: 14 }}>🔊 hear it</button>
+        <button onClick={() => advance(true)}
+          style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: 15, fontWeight: 600 }}>Next →</button>
+      </div>}
     </>);
   }
 
