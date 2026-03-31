@@ -4,6 +4,19 @@ export const KEY="nihongo-v4";
 export const font='"Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
 export const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
 
+// ═══ TYPOGRAPHY — single source of truth for font sizes ═══
+// Use these everywhere instead of hardcoding pixel values
+export const T = {
+  xs:    11,  // tiny accent labels (grammar type tags under kanji)
+  sm:    13,  // small labels, secondary info
+  base:  15,  // body text, descriptions, hints
+  md:    17,  // prominent UI text, instructions
+  lg:    20,  // main content (Japanese text on mobile)
+  xl:    24,  // main content (Japanese text on desktop)
+  xxl:   32,  // hero text, big kana display
+  huge:  48,  // single character display
+};
+
 // ═══ ROLE-PLAY SCENARIOS ═══
 export const RP_SCENARIOS = [
   {id:"hotel", icon:"🏨", name:"Hotel Check-In", prompt:"Let's role-play. You are the front desk staff at a Japanese hotel. Speak in Japanese with English translation in parentheses after each line. Start by greeting me as I approach the desk to check in."},
