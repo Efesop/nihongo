@@ -42,6 +42,7 @@ Always:    Map connects language to places, SRS reviews everything,
 | Grammar pattern noticing | **Shipped** | **Strong** | Norris & Ortega 2000 — explicit d=1.13 vs implicit d=0.54 |
 | Context sentences for vocab | **Shipped** | **Moderate-Strong** | Nation 2001, Hulstijn & Laufer 2001 |
 | Dual coding (image + text) | **Shipped** | **Strong** | 89% better transfer in dual coding studies |
+| Pattern assembly (generative production) | **Shipped** | **Strong** | Novel recombination strengthens grammar acquisition |
 | Emotional memory (stories) | **Shipped** | **Strong** | Zero forgetting at 1.5 months for emotional content |
 | Streaks / gamification | **Shipped** | **Moderate** | Duolingo: 7-day streak → 2.4x retention |
 | Leech detection + treatment | **Shipped** | **Strong** | Adaptive response to items with 5+ errors |
@@ -74,7 +75,9 @@ Producing language (typing, speaking, writing) creates stronger memories than re
 - `phrase-reverse`: see English → pick Japanese (production) ✓
 - `phrase-production`: English → pick from 8 Japanese options ✓
 - `kana-reverse`: see romaji → pick character ✓
-- Production exercises now appear from box 1 (not delayed to box 2-3) ✓
+- `pattern-assembly`: tap-to-build sentences from grammar templates + vocabulary ✓
+- Production exercises softened at box 1 (15%), full ramp at box 2-3 (85% accuracy target) ✓
+- Production types get 15% FSRS stability bonus (stronger evidence of learning) ✓
 - Multi-dimensional skill tracking routes to weakest skill (visual/listen/production) ✓
 - **Still to do**: voice input for speaking practice (Web Speech API)
 

@@ -60,7 +60,7 @@ src/
   main.jsx               — Entry point, ClerkProvider wrapper
 
   components/
-    SmartSession.jsx     — Adaptive learning engine (largest: ~1485 lines, 18 exercise types)
+    SmartSession.jsx     — Adaptive learning engine (largest: ~1600 lines, 19 exercise types)
     PhraseBank.jsx       — Phrase browsing, 4 quiz modes
     KanaTrainer.jsx      — Kana learn/quiz/results
     Home.jsx             — Dashboard, stats, review cards
@@ -83,7 +83,8 @@ src/
     kanaWords.js         — Real vocabulary context words for 46 kana characters
     regions.js           — Japan map data (8 regions, cities, food, culture, linked phrases)
     themes.js            — Dark/light theme color objects
-    constants.js         — SRS_DAYS, fonts, RP_SCENARIOS, LEVEL_THRESHOLDS
+    constants.js         — SRS_DAYS, fonts, typography scale (T), RP_SCENARIOS, LEVEL_THRESHOLDS
+    patternAssembly.js   — 10 grammar templates for sentence construction (pattern-assembly exercise)
 
   utils/
     fsrs.js              — FSRS-5 implementation (stability, difficulty, retrievability)
@@ -113,6 +114,10 @@ api/
 
 scripts/
   generate-audio.mjs     — ElevenLabs audio generation (one-time)
+  generate-phrase-images.mjs  — Gemini scene image generation (all 100 phrases)
+  generate-scene-images.mjs   — Regenerate mismatched phrase scene images
+  simulate-learning.mjs       — 60-session learning simulation (accuracy, progression)
+  test-session-engine.mjs     — Unit tests for session engine (12 tests)
 
 public/
   audio/
@@ -123,7 +128,9 @@ public/
   images/
     mnemonics/approved/  — Kana mnemonic images (hiragana/ + katakana/)
     tinysenpai/          — Game sprites (run, slash, jump, death, etc.)
-    phrases/             — Category scene images
+    phrases/             — Category banner images
+    phrases/scenes/      — Per-phrase watercolor scene images (100, dual coding for learning)
+    phrases/scenes/backup/ — Old scene images before regeneration
 ```
 
 ---
@@ -132,41 +139,41 @@ public/
 
 The core learning experience. `SmartSession.jsx` + `sessionEngine.js` work together:
 
-### Session Building (`sessionEngine.js` — ~546 lines)
+### Session Building (`sessionEngine.js` — ~600 lines)
 
-Builds adaptive 10-card exercise sessions through a multi-stage pipeline:
+Builds adaptive 10-card exercise sessions through a **specials-first** architecture:
 
-#### Stage 1: Gather Items by Priority
-1. **Error patterns** — items with 5+ errors get priority drilling
-2. **Help-requested** — items the user asked Senpai about
-3. **Due for review** — all items past their FSRS due date (any box including 0)
-4. **Struggling** — box 0-2 items that are due
-5. **Recently learned** — box 0-1 items reviewed in last 2 hours (same-session reinforcement)
-6. **Unseen** — new items never studied
+#### Stage 1: Build Special Pool (reserved first)
+High-impact exercises are reserved BEFORE reviews fill the queue:
+- **Pattern assembly** — generative sentence construction (3+ phrases, 10 templates)
+- **Phrase build** — fill missing segment in a phrase
+- **Word quiz** — vocabulary in context
+- **Confused kana pair** — visual discrimination (20+ kana, 17 pairs)
+- **Confused phrase pair** — structural discrimination (5+ phrases, 25+ pairs)
+- **Grammar pattern** — auto-unlocked insights (10 patterns)
+- **Story** — AI-generated narrative (25% chance, 3+ phrases)
+- **Branching convo** — interactive AI dialogue (20% chance, 8+ phrases)
+- **Fill-in-the-blank conversation** — scripted dialogue (40% chance, 5+ phrases)
 
-#### Stage 2: Build the Queue
+Up to 3 specials reserved per session (`maxSpecials = min(specialPool.length, 3)`).
+
+#### Stage 2: Fill Remaining Slots with Reviews
+`reviewSlots = sessionLength - reservedSpecials.length`
+
+Priority order:
 1. Help-requested items (up to 2 kana, 1 phrase)
 2. Frequent error items (up to 2 kana, 1 phrase)
 3. Easy wins — 1-2 high-box due items for confidence
-4. Due items — up to 4 kana + 3 phrases
-5. Recently learned — max 1 each (prevents cross-session repetition)
-6. Maintenance kana — high-box items pulled in when too few kana in queue
+4. Due items — proportionally split between kana/phrases based on what's actually due
+5. Recently learned — max 1 each (2-hour window, prevents cross-session repetition)
+6. Maintenance kana — high-box items when too few kana in queue
 7. **Productive failure** — quiz BEFORE teaching new items:
    - `try-first-kana` → delayed `learn-card` (2+ cards later)
    - `try-first-phrase` → delayed `learn-phrase` (2+ cards later)
 8. Filler slots from remaining due/unseen items
 
-#### Stage 3: Guaranteed Specials (variety every session)
-- **Confused kana pair** — always 1 if 20+ kana learned (17 pairs available)
-- **Confused phrase pair** — always 1 if 5+ phrases learned (25+ pairs available)
-- **Grammar pattern** — always 1 if unlocked (10 patterns)
-- **Reverse/production** — always 1 phrase-reverse if box 2+ available
-- **Story** — AI-generated narrative (25% chance, needs 3+ phrases)
-- **Branching convo** — interactive AI dialogue (20% chance, needs 8+ phrases)
-- **Fill-in-the-blank conversation** — scripted dialogue (40% chance, needs 5+ phrases)
-
-#### Stage 4: Interleaving
-Final queue pass alternates kana and phrase exercises to prevent clustering. Special exercises (grammar, stories, convos, confused pairs) are woven in every ~4 cards.
+#### Stage 3: Interleaving with Randomized Placement
+Specials are placed with spacing and ±1 jitter (not fixed positions). Kana/phrase exercises alternate to prevent clustering.
 
 #### Smart Phrase Ordering
 New phrases are ordered by: mission-critical first (+100 score), known building blocks (+15 per familiar word fragment), cross-category interleaving (no 3+ from same category in a row).
@@ -182,13 +189,13 @@ Exercise types are chosen based on SRS box level + multi-dimensional skill track
 | Box | phrase-scenario | phrase-listen | phrase-reverse | phrase-production |
 |-----|----------------|---------------|----------------|-------------------|
 | 0 | 75% | 25% | — | — |
-| 1 | 35% | 35% | 30% | — |
+| 1 | 45% | 40% | 15% | — |
 | 2 | 25% | 25% | 25% | 25% |
 | 3+ | — | 10% | 60% | 30% |
 
-Key design: production/reverse exercises appear from box 1 (not delayed until box 2-3) to combat the recognition-production gap.
+Key design: production exercises softened at box 1 (15% reverse, not 30%) to keep accuracy in the 80-88% zone. Full production ramps up at box 2-3.
 
-### 18 Exercise Types
+### 19 Exercise Types
 
 | Type | Description | When |
 |------|-------------|------|
@@ -205,6 +212,7 @@ Key design: production/reverse exercises appear from box 1 (not delayed until bo
 | `phrase-reverse` | See English + context, pick Japanese | Box 1+ |
 | `phrase-production` | English → pick from 8 Japanese choices | Box 2+ |
 | `phrase-pair` | Confused phrases: distinguish similar structures | 5+ phrases |
+| `pattern-assembly` | Tap-to-build sentence from grammar template + vocabulary | 3+ phrases |
 | `leech-review` | Special mnemonic treatment for items with 5+ errors | 5+ errors |
 | `grammar-pattern` | Auto-unlocked grammar insight | 5+ phrases |
 | `conversation` | Fill-in-the-blank scripted dialogue | 5+ phrases |
@@ -278,7 +286,8 @@ Skill map:
 ```js
 { "kana-visual": "visual", "kana-listen": "listen", "kana-reverse": "production",
   "kana-pair": "visual", "phrase-scenario": "visual", "phrase-listen": "listen",
-  "phrase-production": "production", "phrase-reverse": "production" }
+  "phrase-production": "production", "phrase-reverse": "production",
+  "pattern-assembly": "production" }
 ```
 
 ### XP & Levels
@@ -472,6 +481,9 @@ All use Clerk JWT authentication.
 10. **Pull before push**: Another AI chat works on the game module simultaneously. Always `git stash && git pull --rebase && git stash pop` before committing.
 11. **recentPhrases filter**: Must use `d.next` not `p.next` — `p` is the phrase tuple, not SRS data. This bug made the filter always empty, causing cross-session repetition.
 12. **Box 0 invisible items**: `stabilityToBox()` minimum return is box 1. Box 0 is reserved for truly unseen items — otherwise items with data but box 0 become neither "due" nor "unseen".
+13. **sessionCount scoping**: `sessionCount` must be declared at the top of the done-screen useEffect, not inside a `.then()` callback. Wrong scoping caused a ReferenceError crash on the done screen.
+14. **Specials-first architecture**: The session engine reserves 2-3 slots for specials (pattern-assembly, grammar, confused pairs) BEFORE filling with reviews. Old approach: reviews filled the queue first and starved specials.
+15. **Production bonus**: FSRS gives 15% stability bonus for production exercise types (kana-reverse, phrase-reverse, phrase-production, pattern-assembly). Defined in `PRODUCTION_TYPES` set in `fsrs.js`.
 
 ---
 
@@ -479,6 +491,15 @@ All use Clerk JWT authentication.
 
 - All styles are inline objects. No CSS files, no CSS-in-JS libraries.
 - Colors always from `c` object (theme-aware): `c.bg`, `c.tx`, `c.a` (accent/red), `c.g` (green), `c.go` (gold), `c.m` (muted), `c.s` (surface), `c.s2` (surface2), `c.b` (border)
+- **Typography**: Use `T` constants from `constants.js` — single source of truth for font sizes:
+  - `T.xs` (11) — tiny accent labels, grammar tags
+  - `T.sm` (13) — small labels, secondary info
+  - `T.base` (15) — body text, descriptions, hints
+  - `T.md` (17) — prominent UI text, instructions
+  - `T.lg` (20) — Japanese text (mobile)
+  - `T.xl` (24) — Japanese text (desktop)
+  - `T.xxl` (32) — hero text, big kana display
+  - `T.huge` (48) — single character display
 - Font: `font` variable = Noto Sans JP / system font stack. `mono` = monospace stack.
 - Mobile-first, responsive at 768px breakpoint.
 - Hover states via `onMouseEnter`/`onMouseLeave`.

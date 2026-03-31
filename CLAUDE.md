@@ -25,7 +25,7 @@ src/
     Home.jsx             — dashboard, stats, review cards
     KanaTrainer.jsx      — learn, quiz, results, menu
     PhraseBank.jsx       — phrase browsing, practice, 4 quiz modes
-    SmartSession.jsx     — adaptive AI-powered learning sessions (~1485 lines, largest)
+    SmartSession.jsx     — adaptive AI-powered learning sessions (~1600 lines, largest)
     PhraseSegments.jsx   — interactive word-by-word phrase breakdowns
     SenpaiChat.jsx       — AI chat with roleplay scenarios
     DailyDrill.jsx       — mixed kana + phrase drill
@@ -44,7 +44,8 @@ src/
     kanaWords.js         — real vocabulary context words for 46 kana characters
     regions.js           — Japan map data (8 regions, cities, food, culture, phrases)
     themes.js            — dark/light themes
-    constants.js         — SRS config, fonts, roleplay scenarios
+    constants.js         — SRS config, fonts, typography (T), roleplay scenarios
+    patternAssembly.js   — 10 grammar templates for sentence construction exercises
   utils/
     audio.js             — TTS playback functions
     storage.js           — localStorage + DB sync
@@ -66,7 +67,7 @@ api/
 
 - **State lives in App.jsx** — passed as props to components (no Context/Redux)
 - **SRS**: FSRS-5 adaptive algorithm (stability/difficulty per item), backward-compatible with 6-box system
-- **Smart Sessions**: 18 exercise types, AI coaching, interleaved kana/phrase queue, productive failure, confused pair drilling
+- **Smart Sessions**: 19 exercise types, AI coaching, interleaved kana/phrase queue, productive failure, confused pair drilling, pattern assembly
 - **Skill tracking**: Multi-dimensional per item (visual, listen, production) — weakest skill gets prioritised
 - **XP/Levels**: 11-tier system (0→7500 XP). **Badges**: 12 achievements (streaks, milestones, S-ranks, explorer)
 - **Audio**: Google TTS proxy for kana, ElevenLabs static MP3s for stories + phrases
@@ -74,7 +75,7 @@ api/
 - **Auth**: Clerk. **DB**: Neon PostgreSQL. **Hosting**: Vercel
 - **AI**: Claude Sonnet for chat, coaching, stories, conversations, mnemonics
 
-## Smart Session — 18 Exercise Types
+## Smart Session — 19 Exercise Types
 
 | Type | Description | Unlocks at |
 |------|-------------|------------|
@@ -91,6 +92,7 @@ api/
 | `phrase-reverse` | See English, pick Japanese (production) | Box 1+ |
 | `phrase-production` | English → pick from 8 Japanese choices | Box 2+ |
 | `phrase-pair` | Confused phrases: distinguish similar structures | 5+ phrases |
+| `pattern-assembly` | Tap-to-build sentence from grammar pattern + vocabulary | 3+ phrases |
 | `leech-review` | Special mnemonic treatment for items with 5+ errors | 5+ errors |
 | `grammar-pattern` | Auto-unlocked grammar insight ("You've seen です in 6 phrases") | 5+ phrases |
 | `conversation` | Fill-in-the-blank dialogue scenarios | 5+ phrases |
