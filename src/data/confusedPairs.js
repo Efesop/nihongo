@@ -25,4 +25,25 @@ export const CONFUSED_PAIRS = [
   // Dakuten pairs (voicing confusion)
   { chars: ["は", "ば"], romaji: ["ha", "ba"], hint: "ば (ba) has two dots (dakuten ゛). は (ha) has none." },
   { chars: ["か", "が"], romaji: ["ka", "ga"], hint: "が (ga) = か (ka) + two dots. The dots add voice." },
+
+  // ── Additional confusing pairs (added April 2026) ──
+
+  // Hiragana — more subtle lookalikes
+  { chars: ["さ", "ら"], romaji: ["sa", "ra"], hint: "さ (sa) has a cross at the top like an X. ら (ra) has a simple horizontal bar — no crossing." },
+  { chars: ["つ", "ち"], romaji: ["tsu", "chi"], hint: "つ (tsu) is one open scoop. ち (chi) has a vertical stem dropping down before the curve." },
+  { chars: ["せ", "ね"], romaji: ["se", "ne"], hint: "ね (ne) has a snail-shell loop at the bottom. せ (se) ends open — no loop." },
+  { chars: ["わ", "ね"], romaji: ["wa", "ne"], hint: "わ (wa) loops gently left like a swan's neck. ね (ne) loops tighter and has a knot at the bottom." },
+  { chars: ["た", "な"], romaji: ["ta", "na"], hint: "た (ta) has a clean cross + curve. な (na) adds an extra stroke — a knot hanging off the right." },
+  { chars: ["ま", "も"], romaji: ["ma", "mo"], hint: "ま (ma) has a loop at the bottom right. も (mo) has two horizontal bars and no loop." },
+  { chars: ["け", "は"], romaji: ["ke", "ha"], hint: "は (ha) has a round loop on the right. け (ke) has a straight stroke — no loop." },
+
+  // Katakana — more angular lookalikes
+  { chars: ["ヨ", "コ"], romaji: ["yo", "ko"], hint: "ヨ (yo) has three horizontal bars. コ (ko) has only two — it's missing the middle bar." },
+  { chars: ["フ", "ワ"], romaji: ["fu", "wa"], hint: "フ (fu) is one stroke curving down. ワ (wa) has two strokes forming a wider wine-glass shape." },
+  { chars: ["チ", "テ"], romaji: ["chi", "te"], hint: "テ (te) angles straight down. チ (chi) has a horizontal bar then curves — like a lollipop on a stick." },
+  { chars: ["ナ", "メ"], romaji: ["na", "me"], hint: "ナ (na) has a horizontal bar on top. メ (me) is just two crossing strokes — no bar." },
+
+  // Cross-script pairs (same sound, different scripts — learners mix up which is which)
+  { chars: ["り", "リ"], romaji: ["ri", "ri"], hint: "り (hiragana) has soft curves. リ (katakana) uses straight rigid strokes — angular = katakana." },
+  { chars: ["か", "カ"], romaji: ["ka", "ka"], hint: "か (hiragana) has a flowing brush feel. カ (katakana) is sharp and angular — blocky = katakana." },
 ];

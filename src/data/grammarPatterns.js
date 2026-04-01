@@ -94,6 +94,87 @@ export const GRAMMAR_PATTERNS = [
     phrasePattern: "どこ",
     unlockAfter: 2,
   },
+  {
+    id: "tai",
+    pattern: "～たいです",
+    meaning: "I want to...",
+    explanation: "Swap the ます ending of a verb for たいです to say you WANT to do it. たべます → たべたいです = 'I want to eat'. のみます → のみたいです = 'I want to drink'. Simple and super useful.",
+    examples: ["dl1", "dl2", "dl3"], // たべたいです, のみたいです, いきたいです
+    phrasePattern: "たいです",
+    unlockAfter: 2,
+  },
+  {
+    id: "made",
+    pattern: "まで",
+    meaning: "to / until (destination or limit)",
+    explanation: "Marks where you're going TO or how far something extends. えきまで = 'to the station'. ...までいくらですか = 'how much to...?'. Think of it as drawing a line to a destination.",
+    examples: ["t2", "t5"], // ...までいくらですか, ...までおねがいします
+    phrasePattern: "まで",
+    unlockAfter: 2,
+  },
+  {
+    id: "no",
+    pattern: "の",
+    meaning: "possessive / linking ('s / of)",
+    explanation: "Connects two nouns — the first one describes or owns the second. つぎのえき = 'next's station' = 'next station'. WiFiのパスワード = 'WiFi's password'. Like putting 's between words.",
+    examples: ["t3", "h4"], // つぎのえきはなんですか, WiFiのパスワードはなんですか
+    phrasePattern: "の",
+    unlockAfter: 2,
+  },
+  {
+    id: "nandesuka",
+    pattern: "なんですか",
+    meaning: "what is...?",
+    explanation: "なん means 'what' and ですか makes it a polite question. Pair with は to ask 'what is X?': おすすめはなんですか = 'what is the recommendation?', しごとはなんですか = 'what is your job?'",
+    examples: ["f7", "t3", "h4", "dl6"], // おすすめはなんですか, つぎのえきはなんですか, WiFiのパスワードはなんですか, しごとはなんですか
+    phrasePattern: "なんですか",
+    unlockAfter: 2,
+  },
+  {
+    id: "te-kudasai",
+    pattern: "～てください",
+    meaning: "please do... (verb request)",
+    explanation: "Change a verb into its て-form and add ください to politely ask someone to DO something. みせてください = 'please show me', おろしてください = 'please let me off'. The て-form is a key building block in Japanese.",
+    examples: ["t6", "d7", "e1", "e6"], // おろしてください, みせてください, たすけてください, いってください
+    phrasePattern: "てください",
+    unlockAfter: 2,
+  },
+  {
+    id: "iranai",
+    pattern: "いらないです",
+    meaning: "I don't need... (polite refusal)",
+    explanation: "いらない means 'don't need/want' — add です to keep it polite. Perfect for declining things at shops: ふくろはいらないです = 'I don't need a bag'. A gentler way to say no than いいえ.",
+    examples: ["s2", "s7"], // ふくろはいらないです, レシートはいらないです
+    phrasePattern: "いらないです",
+    unlockAfter: 2,
+  },
+  {
+    id: "mashita",
+    pattern: "～ました",
+    meaning: "did / has done (polite past)",
+    explanation: "Swap ます for ました and the verb becomes past tense. きます → きました = 'came'. つかれます → つかれました = 'got tired'. Same polite level, just in the past.",
+    examples: ["dl7", "dl11", "dl12"], // どこからきましたか, つかれました, おなかがすきました
+    phrasePattern: "ました",
+    unlockAfter: 2,
+  },
+  {
+    id: "nanji",
+    pattern: "なんじ",
+    meaning: "what time?",
+    explanation: "なん = 'what' + じ = 'o'clock'. Put it in a question to ask about time: なんじですか = 'what time is it?', しゅうでんはなんじですか = 'what time is the last train?'. Essential for catching trains.",
+    examples: ["n13", "t8", "h3"], // なんじですか, しゅうでんはなんじですか, チェックアウトはなんじですか
+    phrasePattern: "なんじ",
+    unlockAfter: 2,
+  },
+  {
+    id: "mou",
+    pattern: "もう",
+    meaning: "more / again / already",
+    explanation: "A versatile little word. もういっぱく = 'one MORE night'. もういちど = 'one MORE time' (= 'again'). Placed before the thing you want more of. Handy for extending stays or asking for repeats.",
+    examples: ["h6", "e6"], // もういっぱくおねがいします, もういちどいってください
+    phrasePattern: "もう",
+    unlockAfter: 2,
+  },
 ];
 
 // Helper: check which patterns the user has unlocked based on known phrases

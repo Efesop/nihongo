@@ -156,4 +156,88 @@ export const CONFUSED_PHRASES = [
     hint: "いただきます = BEFORE eating (I humbly receive). ごちそうさまでした = AFTER eating (it was a feast). Bookend your meals!",
     diff: "timing"
   },
+
+  // ═══ Time words — today/tomorrow/yesterday ═══
+  {
+    ids: ["tm1", "tm2"],
+    hint: "きょう = TODAY (kyou — 'now'). あした = TOMORROW (ashita — 'next'). きょう starts with き like 気 (feeling present). あした sounds like 'a-shi-ta' — stepping ahead!",
+    diff: "time"
+  },
+  {
+    ids: ["tm2", "tm3"],
+    hint: "あした = TOMORROW (forward). きのう = YESTERDAY (backward). Both end differently: した = next, のう = old/past.",
+    diff: "time"
+  },
+  {
+    ids: ["tm4", "tm5"],
+    hint: "いま = NOW (immediate). あとで = LATER (delayed). いま is short and urgent. あとで has あと (after) built right in!",
+    diff: "time"
+  },
+  {
+    ids: ["tm8", "tm9"],
+    hint: "あさ = MORNING (bright start 🌅). よる = NIGHT (dark end 🌃). あさ sounds open and fresh. よる sounds deep and dark.",
+    diff: "time"
+  },
+
+  // ═══ Direction opposites ═══
+  {
+    ids: ["d2", "d3"],
+    hint: "みぎ = RIGHT. ひだり = LEFT. みぎ is short (2 mora) like a quick right turn. ひだり is longer (3 mora) like 'he-dah-ree' stretching left.",
+    diff: "opposite"
+  },
+  {
+    ids: ["d5", "d6"],
+    hint: "ちかいですか = 'Is it CLOSE?' (yes/no answer). あるいていけますか = 'Can I WALK there?' (asking about walkability). One checks distance, the other checks method.",
+    diff: "meaning"
+  },
+
+  // ═══ Greeting pairs — time of day ═══
+  {
+    ids: ["g2", "g3"],
+    hint: "おはよう = MORNING greeting (before ~10am). こんばんは = EVENING greeting (after sunset). はよう = early, ばん = evening. Opposite ends of the day!",
+    diff: "time"
+  },
+  {
+    ids: ["g1", "g2"],
+    hint: "こんにちは = DAYTIME hello (general). おはようございます = MORNING hello (before ~10am). こんにちは works all afternoon; おはよう is early birds only!",
+    diff: "time"
+  },
+
+  // ═══ は...ですか pattern — same grammar, different questions ═══
+  {
+    ids: ["s1", "d8"],
+    hint: "これはいくらですか = 'How MUCH is this?' (price). トイレはどこですか = 'WHERE is the toilet?' (location). Same は...ですか frame — いくら asks price, どこ asks place.",
+    diff: "question-word"
+  },
+  {
+    ids: ["h4", "dl6"],
+    hint: "WiFiのパスワードはなんですか = asking for the WiFi PASSWORD. しごとはなんですか = asking someone's JOB. Same なんですか (what is...?) — the topic before は changes everything.",
+    diff: "noun"
+  },
+
+  // ═══ を...ください pattern — requesting different things ═══
+  {
+    ids: ["f3", "d7"],
+    hint: "みずをください = 'WATER please' (requesting a drink). ちずをみせてください = 'SHOW me the MAP' (requesting an action). を marks the object — but ください vs みせてください changes the request type!",
+    diff: "verb"
+  },
+  {
+    ids: ["e3", "e1"],
+    hint: "けいさつをよんでください = 'CALL the police' (summon someone). たすけてください = 'HELP me' (direct action). Both are emergencies — よんで = call/summon, たすけて = help/save.",
+    diff: "verb"
+  },
+
+  // ═══ おねがいします vs ください — two please styles ═══
+  {
+    ids: ["g8", "f1"],
+    hint: "おねがいします = general 'please' (polite request). これをください = 'THIS ONE please' (specific item). おねがいします is versatile; ください is for concrete things you can point at.",
+    diff: "structure"
+  },
+
+  // ═══ Size adjective pair ═══
+  {
+    ids: ["dc1", "dc2"],
+    hint: "おおきい = BIG (oo = long sound = large). ちいさい = SMALL (chii = tiny sound). The 'oo' in おおきい stretches big. The 'chii' in ちいさい sounds itty-bitty!",
+    diff: "opposite"
+  },
 ];
