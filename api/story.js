@@ -35,7 +35,8 @@ Return ONLY valid JSON:
   "comprehensionQuestion": {
     "question": "simple question about the story in English",
     "options": ["answer A", "answer B", "answer C"],
-    "correctIndex": 0
+    "correctIndex": 0,
+    "explanation": "1-2 sentence explanation of WHY the correct answer is correct, referencing the specific Japanese text in the story"
   }
 }`;
 

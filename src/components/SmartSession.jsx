@@ -1009,21 +1009,38 @@ export default function SmartSession({
         </div>}
         <div style={{ fontSize: T.base, fontWeight: 600, color: c.tx, marginBottom: 10 }}>What do you say?</div>
       </div>
-      {/* Response options */}
+      {/* Response options — show feedback before advancing */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {branchData.options?.map((opt, i) => <button key={i} onClick={() => {
-          setBranchHistory(h => [...h, opt]);
-          if (opt.quality === "best") setBranchScore(s => s + 1);
-          setBranchData(null);
-          setBranchTurn(t => t + 1);
-          // Play the chosen phrase
-          speak(opt.japanese);
-        }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + c.b, background: "transparent", color: c.tx, textAlign: "left", transition: "all .15s" }}>
-          <div style={{ fontSize: isDesktop ? T.lg : T.base, fontWeight: 500, marginBottom: 4 }}>{opt.japanese}</div>
-          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a }}>{opt.romaji}</div>
-          <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{opt.english}</div>
-        </button>)}
+        {branchData.options?.map((opt, i) => {
+          const picked = branchHistory.length > 0 && branchHistory[branchHistory.length - 1] === opt;
+          const anyPicked = branchData._picked !== undefined;
+          const isThisPicked = branchData._picked === i;
+          const qualityCol = opt.quality === "best" ? "#4caf50" : opt.quality === "okay" ? c.go : c.a;
+          const qualityLabel = opt.quality === "best" ? "✓ Perfect" : opt.quality === "okay" ? "~ Okay — works but not ideal" : "✗ Not quite right";
+          let bg = "transparent", border = c.b;
+          if (anyPicked && isThisPicked) { bg = opt.quality === "best" ? c.gs : opt.quality === "okay" ? c.go + "15" : c.rs; border = qualityCol + "55"; }
+          if (anyPicked && !isThisPicked && opt.quality === "best") { bg = c.gs; border = "#4caf5044"; }
+          return <button key={i} onClick={() => {
+            if (anyPicked) return;
+            // Show feedback on this turn before advancing
+            setBranchData(d => ({ ...d, _picked: i }));
+            if (opt.quality === "best") setBranchScore(s => s + 1);
+            speak(opt.japanese);
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: c.tx, textAlign: "left", transition: "all .15s", opacity: anyPicked && !isThisPicked && opt.quality !== "best" ? 0.5 : 1 }}>
+            <div style={{ fontSize: isDesktop ? T.lg : T.base, fontWeight: 500, marginBottom: 4 }}>{opt.japanese}</div>
+            <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a }}>{opt.romaji}</div>
+            <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{opt.english}</div>
+            {anyPicked && (isThisPicked || opt.quality === "best") && <div style={{ fontSize: T.xs, fontWeight: 600, color: qualityCol, marginTop: 6 }}>{qualityLabel}</div>}
+            {anyPicked && isThisPicked && opt.why && <div style={{ fontSize: T.sm, color: c.m, marginTop: 4, fontStyle: "italic" }}>{opt.why}</div>}
+          </button>;
+        })}
       </div>
+      {branchData._picked !== undefined && <button onClick={() => {
+        const opt = branchData.options[branchData._picked];
+        setBranchHistory(h => [...h, opt]);
+        setBranchData(null);
+        setBranchTurn(t => t + 1);
+      }} style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600, marginTop: 12 }}>Next turn →</button>}
     </>);
   }
 
@@ -1072,21 +1089,30 @@ export default function SmartSession({
         <div style={{ fontSize: T.sm, fontWeight: 600, color: c.tx, marginBottom: 10 }}>{storyData.comprehensionQuestion.question}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {storyData.comprehensionQuestion.options?.map((opt, i) => {
+            const isThisCorrect = i === storyData.comprehensionQuestion.correctIndex;
             let bg = "transparent", border = c.b, col = c.tx;
-            if (answered && i === storyData.comprehensionQuestion.correctIndex) { bg = c.gs; border = c.g + "60"; col = c.g; }
+            if (answered && isThisCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
             if (answered && storyAnswer === i && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
             return <button key={i} onClick={() => {
               if (answered) return;
               setStoryAnswer(i);
-              const correct = i === storyData.comprehensionQuestion.correctIndex;
-              setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-              // Longer delay for stories — user needs time to understand why answer was right/wrong
-              setTimeout(() => { setStoryData(null); setStoryAnswer(null); advance(correct); }, correct ? 2500 : 4000);
+              setFb(i === storyData.comprehensionQuestion.correctIndex ? "ok" : "no");
+              setScore(s => (i === storyData.comprehensionQuestion.correctIndex) ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.sm, textAlign: "left", transition: "all .2s" }}>
               {opt}
             </button>;
           })}
         </div>
+        {/* Show explanation after answering — no more silent auto-advance */}
+        {answered && <div style={{ ...card, padding: "14px 18px", marginTop: 12, borderLeft: "3px solid " + (isCorrect ? c.g : c.a) }}>
+          <div style={{ fontSize: T.sm, fontWeight: 600, color: isCorrect ? "#4caf50" : c.a, marginBottom: 6 }}>
+            {isCorrect ? "✓ Correct!" : "✗ The answer was: " + storyData.comprehensionQuestion.options[storyData.comprehensionQuestion.correctIndex]}
+          </div>
+          {storyData.comprehensionQuestion.explanation && <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.5 }}>{storyData.comprehensionQuestion.explanation}</div>}
+          {!isCorrect && <div style={{ fontSize: T.sm, color: c.m, marginTop: 6, fontStyle: "italic" }}>Re-read the story above — the answer comes from the Japanese text.</div>}
+        </div>}
+        {answered && <button onClick={() => { setStoryData(null); setStoryAnswer(null); advance(isCorrect); }}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600, marginTop: 12 }}>Next →</button>}
       </div>}
     </>);
   }

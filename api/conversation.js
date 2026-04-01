@@ -36,6 +36,7 @@ Return ONLY valid JSON:
       "romaji": "romaji",
       "english": "what this means",
       "quality": "best|okay|wrong",
+      "why": "1 sentence explaining WHY this response is best/okay/wrong in this context",
       "consequence": "what happens next (1 sentence)"
     }
   ],
