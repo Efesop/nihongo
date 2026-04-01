@@ -192,10 +192,19 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       return { type: "leech-review", item: p, errorCount, isKana: false };
     }
 
+    // Romaji fading — progressive removal to force reading Japanese
+    // Research: romaji creates fossilized pronunciation errors (LEARNING_SCIENCE.md).
+    // Box 0-1: always show romaji (still learning the phrase)
+    // Box 2: hide romaji 40% of the time (start weaning off)
+    // Box 3+: hide romaji 80% of the time (should be reading Japanese)
+    const hideRomaji = adjusted >= 3 ? Math.random() < 0.8
+      : adjusted >= 2 ? Math.random() < 0.4
+      : false;
+
     // Pick based on weakest skill
     const weak = getWeakestSkill(p[0]);
-    if (weak === "listen" && adjusted >= 1) return { type: "phrase-listen", item: p };
-    if (weak === "production" && adjusted >= 2) return { type: "phrase-reverse", item: p };
+    if (weak === "listen" && adjusted >= 1) return { type: "phrase-listen", item: p, hideRomaji };
+    if (weak === "production" && adjusted >= 2) return { type: "phrase-reverse", item: p, hideRomaji };
 
     // Default progression — gradual difficulty increase
     // Research: 85% accuracy target (Wilson 2019). Recognition first, production later.
@@ -205,25 +214,25 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const r = Math.random();
     if (adjusted <= 0) {
       // Brand new: recognition only — build confidence
-      return r > 0.7 ? { type: "phrase-listen", item: p } : { type: "phrase-scenario", item: p };
+      return r > 0.7 ? { type: "phrase-listen", item: p, hideRomaji } : { type: "phrase-scenario", item: p, hideRomaji };
     }
     if (adjusted <= 1) {
       // Learning: still mostly recognition, 15% reverse to start stretching
-      if (r > 0.85) return { type: "phrase-reverse", item: p };
-      if (r > 0.45) return { type: "phrase-listen", item: p };
-      return { type: "phrase-scenario", item: p };
+      if (r > 0.85) return { type: "phrase-reverse", item: p, hideRomaji };
+      if (r > 0.45) return { type: "phrase-listen", item: p, hideRomaji };
+      return { type: "phrase-scenario", item: p, hideRomaji };
     }
     if (adjusted <= 2) {
       // Reviewing: introduce production, balance recognition
-      if (r > 0.80) return { type: "phrase-production", item: p };
-      if (r > 0.55) return { type: "phrase-reverse", item: p };
-      if (r > 0.25) return { type: "phrase-listen", item: p };
-      return { type: "phrase-scenario", item: p };
+      if (r > 0.80) return { type: "phrase-production", item: p, hideRomaji };
+      if (r > 0.55) return { type: "phrase-reverse", item: p, hideRomaji };
+      if (r > 0.25) return { type: "phrase-listen", item: p, hideRomaji };
+      return { type: "phrase-scenario", item: p, hideRomaji };
     }
     // Mature (box 3+): production-heavy — recall over recognition
-    if (r > 0.55) return { type: "phrase-reverse", item: p };
-    if (r > 0.25) return { type: "phrase-production", item: p };
-    return { type: "phrase-listen", item: p };
+    if (r > 0.55) return { type: "phrase-reverse", item: p, hideRomaji };
+    if (r > 0.25) return { type: "phrase-production", item: p, hideRomaji };
+    return { type: "phrase-listen", item: p, hideRomaji };
   }
 
   function learnCard(ch) {
