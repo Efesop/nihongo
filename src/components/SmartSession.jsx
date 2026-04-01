@@ -4,7 +4,7 @@ import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { font, mono, T } from "../data/constants.js";
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
-import { buildSmartSession, getSessionSummary, matchRomaji, getDistractors } from "../utils/sessionEngine.js";
+import { buildSmartSession, getDistractors } from "../utils/sessionEngine.js";
 import PhraseSegments from "./PhraseSegments.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { KANA_WORDS } from "../data/kanaWords.js";
@@ -1498,9 +1498,10 @@ export default function SmartSession({
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
       // Always speak the actual generated sentence, not the template's example phrase
       speak(correctSentence);
-      // Credit SRS for the example phrase if it exists
-      if (ch.examplePhraseId && data.phr?.[ch.examplePhraseId]) {
-        reviewPhr(ch.examplePhraseId, ok, "pattern-assembly", getResponseMs());
+      // Credit SRS for the actual slot's source phrase (not the template's example)
+      const creditId = ch.slotSourcePhrase || ch.examplePhraseId;
+      if (creditId && data.phr?.[creditId]) {
+        reviewPhr(creditId, ok, "pattern-assembly", getResponseMs());
       }
     };
 
@@ -1515,9 +1516,6 @@ export default function SmartSession({
       setAssemblySlots(s => s.filter(pp => pp.id !== piece.id));
       setAssemblyPool(p => [...p, piece]);
     };
-
-    // Find the example phrase for showing after answer
-    const exPhrase = ch.examplePhraseId ? PHRASES.find(p => p[0] === ch.examplePhraseId) : null;
 
     return withSenpai(<>
       {/* Prompt card — clean hierarchy: context → what to build */}
@@ -1558,6 +1556,13 @@ export default function SmartSession({
           </div>)}
         </div>
         <div style={{ fontSize: T.sm, color: c.m, marginTop: 10 }}>Pattern: <span style={{ fontWeight: 600, color: c.a }}>{ch.pattern}</span> = {ch.patternMeaning}</div>
+        {ch.keyWord && <div style={{ marginTop: 12, padding: "10px 14px", borderRadius: 10, background: c.a + "12", border: "1px solid " + c.a + "33" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 800, color: c.a }}>{ch.keyWord.japanese}</span>
+            <span style={{ fontSize: T.base, color: c.m, fontWeight: 600 }}>{ch.keyWord.meaning}</span>
+          </div>
+          <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.4 }}>{ch.keyWord.tip}</div>
+        </div>}
       </div>}
 
       {/* Available pieces — NO English hints before submit */}

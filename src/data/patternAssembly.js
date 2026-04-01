@@ -42,6 +42,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["d8", "t1"], // must know at least 2 "where is" phrases
     examplePhraseId: "d8",
     situation: "You need to find something — ask where it is!",
+    keyWord: { japanese: "どこ", meaning: "where", tip: "どこ turns any noun into a 'where is…?' question" },
   },
 
   // ═══ REQUEST — X をください ═══
@@ -65,6 +66,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["f1", "f3"],
     examplePhraseId: "f3",
     situation: "You want something — ask for it politely!",
+    keyWord: { japanese: "ください", meaning: "please give", tip: "を + ください = 'please give me…' — the casual way to ask for things" },
   },
 
   // ═══ FORMAL REQUEST — X おねがいします ═══
@@ -86,6 +88,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["h1", "f2"],
     examplePhraseId: "h1",
     situation: "You need a service — make a polite request!",
+    keyWord: { japanese: "おねがいします", meaning: "please (formal)", tip: "おねがいします is the polite way to request services — more formal than ください" },
   },
 
   // ═══ METHOD — X で おねがいします ═══
@@ -108,6 +111,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["s3", "s4"],
     examplePhraseId: "s3",
     situation: "You're paying — say how you want to pay!",
+    keyWord: { japanese: "で", meaning: "by/with", tip: "で marks HOW you do something — で + おねがいします = 'by X please'" },
   },
 
   // ═══ PRICE — X はいくらですか ═══
@@ -131,6 +135,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["s1"],
     examplePhraseId: "s1",
     situation: "You see something you might buy — ask the price!",
+    keyWord: { japanese: "いくら", meaning: "how much", tip: "いくら asks the price of anything — swap the noun to ask about different things" },
   },
 
   // ═══ TIME — X はなんじですか ═══
@@ -154,6 +159,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["h3", "t8"],
     examplePhraseId: "h3",
     situation: "You need to know what time something happens!",
+    keyWord: { japanese: "なんじ", meaning: "what time", tip: "なんじ asks 'what time?' — works for any event or schedule" },
   },
 
   // ═══ EXISTENCE — X があります ═══
@@ -175,6 +181,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["h2", "f10"],
     examplePhraseId: "h2",
     situation: "You need to tell someone you have something!",
+    keyWord: { japanese: "あります", meaning: "exists / I have", tip: "が + あります = 'there is…' or 'I have…' — essential for stating what exists" },
   },
 
   // ═══ WANT TO — X たいです ═══
@@ -197,6 +204,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["dl1", "dl2"],
     examplePhraseId: "dl1",
     situation: "Express what you want to do!",
+    keyWord: { japanese: "たい", meaning: "want to", tip: "Add たい to a verb stem to say 'I want to…' — the most useful suffix in Japanese" },
   },
 
   // ═══ NOT NEEDED — X はいらないです ═══
@@ -219,6 +227,7 @@ export const ASSEMBLY_TEMPLATES = [
     requiredPhrases: ["s2", "s7"],
     examplePhraseId: "s2",
     situation: "You want to decline something politely!",
+    keyWord: { japanese: "いらない", meaning: "don't need", tip: "は + いらないです = 'I don't need…' — polite way to decline things" },
   },
 ];
 
@@ -237,17 +246,23 @@ export function getUnlockedTemplates(phrData) {
  * Falls back to any slot if all are known
  */
 export function generateAssemblyChallenge(template, phrData) {
-  // Prefer novel combinations (vocabulary the user knows but hasn't seen in this pattern)
-  const novelSlots = template.slots.filter(s => !s.sourcePhrase || !(phrData[s.sourcePhrase]?.box >= 1));
+  // Prefer KNOWN vocabulary — the point is practising the PATTERN, not learning new words.
+  // Novel combinations only appear once user has seen most slots (avoids overwhelming beginners).
   const knownSlots = template.slots.filter(s => s.sourcePhrase && (phrData[s.sourcePhrase]?.box || 0) >= 1);
+  const novelSlots = template.slots.filter(s => !s.sourcePhrase || !(phrData[s.sourcePhrase]?.box >= 1));
 
-  // 60% chance of novel if available, 40% chance of known (reinforcement)
   let slot;
-  if (novelSlots.length > 0 && Math.random() < 0.6) {
-    slot = novelSlots[Math.floor(Math.random() * novelSlots.length)];
-  } else if (knownSlots.length > 0) {
-    slot = knownSlots[Math.floor(Math.random() * knownSlots.length)];
+  if (knownSlots.length > 0) {
+    // Strongly prefer known vocabulary — 80% chance
+    // Only try novel if user knows most slots already (>= 60% known)
+    const knownRatio = knownSlots.length / template.slots.length;
+    if (novelSlots.length > 0 && knownRatio >= 0.6 && Math.random() < 0.3) {
+      slot = novelSlots[Math.floor(Math.random() * novelSlots.length)];
+    } else {
+      slot = knownSlots[Math.floor(Math.random() * knownSlots.length)];
+    }
   } else {
+    // Fallback: no known slots at all (shouldn't happen if requiredPhrases gates are working)
     slot = template.slots[Math.floor(Math.random() * template.slots.length)];
   }
 
@@ -300,5 +315,7 @@ export function generateAssemblyChallenge(template, phrData) {
     allPieces: pieces.concat(distractors), // will be shuffled by the UI
     examplePhraseId: template.examplePhraseId,
     isNovel: !slot.sourcePhrase || !(phrData[slot.sourcePhrase]?.box >= 1),
+    keyWord: template.keyWord || null,
+    slotSourcePhrase: slot.sourcePhrase || null,
   };
 }
