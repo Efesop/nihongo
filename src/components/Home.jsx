@@ -1,8 +1,11 @@
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
-import { font, mono } from "../data/constants.js";
+import { font, mono, T } from "../data/constants.js";
 import { daysUntil } from "../utils/helpers.js";
 import { shuffle } from "../utils/helpers.js";
 import { getSessionSummary } from "../utils/sessionEngine.js";
+import { ROMAJI } from "../data/kana.js";
+import { GRAMMAR_PATTERNS, getUnlockedPatterns } from "../data/grammarPatterns.js";
+import { getUnlockedTemplates } from "../data/patternAssembly.js";
 
 export default function Home({
   data, save, c, theme, inner, card, btn, chip, mono: _mono,
@@ -77,6 +80,79 @@ export default function Home({
         })}
       </div>
     </div>}
+    {/* ═══ Struggling With ═══ */}
+    {(()=>{
+      const errors=data.errors||{};
+      const kanaItems=Object.keys(data.kana||{}).filter(ch=>(errors[ch]||0)>=3).map(ch=>({key:ch,type:"kana",char:ch,romaji:ROMAJI[ch]||ch,errors:errors[ch]}));
+      const phraseItems=PHRASES.filter(p=>(errors[p[0]]||0)>=3).map(p=>({key:p[0],type:"phrase",jp:p[1],en:p[3],errors:errors[p[0]]}));
+      const all=[...kanaItems,...phraseItems].sort((a,b)=>b.errors-a.errors).slice(0,5);
+      if(all.length===0)return null;
+      return <div style={{...card,marginBottom:10,padding:"12px 16px"}}>
+        <div style={{fontSize:T.xs,color:c.m,textTransform:"uppercase",fontFamily:mono,letterSpacing:".06em",marginBottom:8}}>Struggling With</div>
+        {all.map(item=><div key={item.key} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:"1px solid "+c.b+"44"}}>
+          {item.type==="kana"?<>
+            <span style={{fontSize:T.lg,fontWeight:700,width:28,textAlign:"center",flexShrink:0}}>{item.char}</span>
+            <span style={{fontSize:T.sm,color:c.m,flex:1,fontFamily:mono}}>{item.romaji}</span>
+          </>:<>
+            <span style={{fontSize:T.sm,fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.jp}</span>
+            <span style={{fontSize:T.xs,color:c.m,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.en}</span>
+          </>}
+          <span style={{fontSize:T.xs,fontWeight:700,color:c.a,background:c.a+"18",padding:"2px 7px",borderRadius:8,fontFamily:mono,flexShrink:0}}>{item.errors}x</span>
+        </div>)}
+      </div>;
+    })()}
+    {/* ═══ Coming Up ═══ */}
+    {(()=>{
+      const phrData=data.phr||{};
+      const kanaData=data.kana||{};
+      const phrasesLearned=PHRASES.filter(p=>(phrData[p[0]]?.box||0)>=1).length;
+      const kanaLearned=Object.keys(kanaData).filter(ch=>(kanaData[ch]?.box||0)>=1).length;
+      const unlocks=[];
+      // Pattern Assembly — needs 5+ phrases AND specific required phrases per template
+      if(phrasesLearned<5){
+        unlocks.push({label:"Pattern Building",desc:`Learn ${5-phrasesLearned} more phrase${5-phrasesLearned===1?"":"s"}`,pct:Math.round(phrasesLearned/5*100),icon:"🧩"});
+      } else if(getUnlockedTemplates(phrData).length===0){
+        unlocks.push({label:"Pattern Building",desc:"Learn required phrases to unlock templates",pct:Math.round(phrasesLearned/5*100),icon:"🧩"});
+      }
+      // Confused Kana Pairs — needs 20+ kana
+      if(kanaLearned<20){
+        unlocks.push({label:"Kana Discrimination",desc:`Learn ${20-kanaLearned} more kana`,pct:Math.round(kanaLearned/20*100),icon:"👀"});
+      }
+      // Conversations — needs 5+ phrases
+      if(phrasesLearned<5){
+        unlocks.push({label:"Conversations",desc:`Learn ${5-phrasesLearned} more phrase${5-phrasesLearned===1?"":"s"}`,pct:Math.round(phrasesLearned/5*100),icon:"💬"});
+      }
+      // Grammar Patterns — show next unlockable one
+      const unlockedGP=getUnlockedPatterns(phrData,PHRASES);
+      const unlockedIds=new Set(unlockedGP.map(g=>g.id));
+      const nextGP=GRAMMAR_PATTERNS.find(gp=>{
+        if(unlockedIds.has(gp.id))return false;
+        const matching=PHRASES.filter(p=>p[1].includes(gp.phrasePattern));
+        const known=matching.filter(p=>(phrData[p[0]]?.box||0)>=1).length;
+        return known>0&&known<gp.unlockAfter;
+      });
+      if(nextGP){
+        const matching=PHRASES.filter(p=>p[1].includes(nextGP.phrasePattern));
+        const known=matching.filter(p=>(phrData[p[0]]?.box||0)>=1).length;
+        unlocks.push({label:`Grammar: ${nextGP.pattern}`,desc:`${nextGP.unlockAfter-known} more phrase${nextGP.unlockAfter-known===1?"":"s"} with ${nextGP.pattern}`,pct:Math.round(known/nextGP.unlockAfter*100),icon:"📖"});
+      }
+      if(unlocks.length===0)return null;
+      const shown=unlocks.slice(0,3);
+      return <div style={{...card,marginBottom:10,padding:"12px 16px"}}>
+        <div style={{fontSize:T.xs,color:c.m,textTransform:"uppercase",fontFamily:mono,letterSpacing:".06em",marginBottom:8}}>Coming Up</div>
+        {shown.map((u,i)=><div key={i} style={{marginBottom:i<shown.length-1?10:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <span style={{fontSize:T.sm}}>{u.icon}</span>
+            <span style={{fontSize:T.sm,fontWeight:600,flex:1}}>{u.label}</span>
+            <span style={{fontSize:T.xs,color:c.m,fontFamily:mono}}>{u.pct}%</span>
+          </div>
+          <div style={{height:5,background:c.s2,borderRadius:3,overflow:"hidden"}}>
+            <div style={{width:u.pct+"%",height:"100%",background:c.g,borderRadius:3,transition:"width .3s"}}/>
+          </div>
+          <div style={{fontSize:T.xs,color:c.m,marginTop:3}}>{u.desc}</div>
+        </div>)}
+      </div>;
+    })()}
     <div onClick={()=>setTab("smart")}
       onMouseEnter={()=>setHov("smart")} onMouseLeave={()=>setHov(null)}
       style={{...card,marginBottom:10,padding:"18px 20px",cursor:"pointer",background:hov==="smart"?c.a+"15":c.a+"0a",border:"1px solid "+c.a+"33",transition:"all .15s"}}>
