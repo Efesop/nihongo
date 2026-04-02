@@ -25,7 +25,7 @@ export const M = {
 "ぬ":["🍜","Chopsticks + noodles","See n + angular u","Noodles twirling on chopsticks — an N shape on the left, a looping U on the right."],
 "ね":["🐌","Snail behind nail","Extra hoop = NE not RE","A nail with a snail trailing behind it. That loop at the bottom is the snail — it's what makes this ne and not re."],
 "の":["🚫","No sign","n + o in one swirl","One decisive swirl — N and O combined into a single spinning stroke."],
-"は":["🔤","Capital H + little a","Has hoop, け does not","A capital H with a hoop on the right side. One hoop is ha — two horizontal bars is ho."],
+"は":["🔤","Capital H + little a","Has hoop, け does not","A capital H with a hoop on the right side. Sounds like 'ha' in words (はな = flower, はい = yes). One quirk: as a topic particle between words, it's read 'wa' — like これはなんですか (kore WA nan desu ka). Same character, two sounds — perfectly normal once you know."],
 "ひ":["😁","Smiling mouth — hihihi!","Big grinning mouth","A wide curved mouth, lips pulled right back in the silliest grin."],
 "ふ":["🗻","Mount Fuji","Or nose blowing foooo","The silhouette of Mount Fuji — that iconic pointed peak."],
 "へ":["⬆️","Arrow to heaven — he","Angled line pointing up","One simple angled line rising to a point — an arrow aimed straight at heaven."],
