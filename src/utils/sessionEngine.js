@@ -394,9 +394,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
-  // Reserve 2-3 slots for specials (more if session is longer)
+  // Backlog mode: when many items are due, prioritise reviews over new content.
+  // Research: retrieval practice on existing knowledge beats introducing new items
+  // when retention is at risk (Kornell & Bjork 2008).
+  const totalDue = dueKana.length + duePhrases.length;
+  const backlogMode = totalDue > 15; // user has a significant review backlog
+
+  // Reserve specials — reduce to 1 when backlog is high (reviews take priority)
   // Priority order: pattern-assembly > phrase-build > word-quiz > confused pairs > grammar > AI
-  const maxSpecials = Math.min(specialPool.length, sessionLength <= 10 ? 3 : 4);
+  const maxSpecials = backlogMode ? 1 : Math.min(specialPool.length, sessionLength <= 10 ? 3 : 4);
   const reservedSpecials = specialPool.slice(0, maxSpecials);
 
   // ═══ STEP 2: BUILD REVIEW + NEW ITEM QUEUE ═══
@@ -426,9 +432,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 1).forEach(ch => addKana(ch, queue));
 
   // Due items — dynamically capped to leave room for new items
-  // Cap = remaining review slots minus 3-4 for productive failure
+  // In backlog mode: only 1 slot reserved for new items (clear the backlog first)
+  // Normal mode: 3 slots for new items (keep introducing fresh material)
   const usedReviewSlots = queue.length;
-  const newItemReserve = (unseenKana.length > 0 || unseenPhrases.length > 0) ? 3 : 0;
+  const hasUnseen = unseenKana.length > 0 || unseenPhrases.length > 0;
+  const newItemReserve = !hasUnseen ? 0 : backlogMode ? 1 : 3;
   const dueItemCap = Math.max(reviewSlots - usedReviewSlots - newItemReserve, 2);
   const dueCap = Math.min(dueItemCap, reviewSlots);
 
