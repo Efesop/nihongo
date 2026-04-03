@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { M, ROMAJI } from "../data/kana.js";
+import { M, ROMAJI, YOON_PARTS } from "../data/kana.js";
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { font, mono, T } from "../data/constants.js";
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
@@ -634,13 +634,19 @@ export default function SmartSession({
     const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: T.base }}>{CAT_ICONS[p[4]]}</span>
-          <span style={{ fontSize: T.sm, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
+      <div style={{ ...card, padding: 0, marginBottom: 14 }}>
+        {/* Scene image as situational context — reinforces dual coding during review */}
+        <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
+          style={{ width: "100%", height: isDesktop ? 130 : 100, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+          onError={e => { e.target.src = `/images/phrases/${p[4]}.png`; e.target.onerror = () => { e.target.style.display = "none"; }; }} />
+        <div style={{ padding: "16px 20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: T.base }}>{CAT_ICONS[p[4]]}</span>
+            <span style={{ fontSize: T.sm, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
+          </div>
+          <div style={{ fontSize: T.base, color: c.m, marginBottom: 8 }}>{situations[p[4]]}</div>
+          <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx }}>{p[3]}</div>
         </div>
-        <div style={{ fontSize: T.base, color: c.m, marginBottom: 10 }}>{situations[p[4]]}</div>
-        <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx }}>{p[3]}</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {choiceAnswer.choices.map((choice, i) => {
@@ -715,6 +721,10 @@ export default function SmartSession({
           <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 play again</button>
         </div>
         {answered && <div style={{ borderTop: "1px solid " + c.b, paddingTop: 16 }}>
+          {/* Scene image revealed after answering — reinforces visual memory without giving away answer */}
+          <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
+            style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8, marginBottom: 12 }}
+            onError={e => { e.target.style.display = "none"; }} />
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginTop: 8 }}>{p[2]}</div>
           <div style={{ fontSize: T.base, color: c.tx, marginTop: 4 }}>{p[3]}</div>
@@ -819,11 +829,16 @@ export default function SmartSession({
         reviewPhr(p[0], correct, ex.type, getResponseMs());
         speakPhraseWithEnglish(p[0], p[1], p[3]);
       }} style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: T.base, textAlign: "center", marginTop: 8 }}>None of these</button>}
-      {answered && <div style={{ ...card, padding: "16px 20px", borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "visible" }}>
-        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8 }}>✓ Correct answer</div>
-        <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
-        <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginTop: 6 }}>{p[2]}</div>
-        <div style={{ fontSize: T.base, color: c.m, marginTop: 2 }}>{p[3]}</div>
+      {answered && <div style={{ ...card, padding: 0, borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "hidden" }}>
+        <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
+          style={{ width: "100%", height: 90, objectFit: "cover", display: "block" }}
+          onError={e => { e.target.style.display = "none"; }} />
+        <div style={{ padding: "14px 18px" }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8 }}>✓ Correct answer</div>
+          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginTop: 6 }}>{p[2]}</div>
+          <div style={{ fontSize: T.base, color: c.m, marginTop: 2 }}>{p[3]}</div>
+        </div>
       </div>}
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
@@ -903,6 +918,18 @@ export default function SmartSession({
         if (source) familiarParts.push({ block: b, from: source[1] });
       }
     });
+    // Detect yōon combinations and foreign loanword combos in this phrase
+    // e.g. きょ (kyo), しゅ (shu), チェ (che) — explain them on first encounter
+    const FOREIGN_COMBOS = { 'チェ': 'che', 'ティ': 'ti', 'ディ': 'di', 'ファ': 'fa', 'フィ': 'fi', 'フェ': 'fe', 'フォ': 'fo', 'ウィ': 'wi', 'ウェ': 'we', 'ウォ': 'wo' };
+    const yoonInPhrase = [];
+    Object.keys(YOON_PARTS).forEach(combo => {
+      if (p[1].includes(combo)) yoonInPhrase.push({ combo, romaji: ROMAJI[combo] });
+    });
+    Object.entries(FOREIGN_COMBOS).forEach(([combo, rom]) => {
+      if (p[1].includes(combo) && !yoonInPhrase.find(y => y.combo === combo)) {
+        yoonInPhrase.push({ combo, romaji: rom, isSpecial: true });
+      }
+    });
     // Autoplay on mount
     if (!fb) setTimeout(() => speakPhraseWithEnglish(p[0], p[1], p[3]), 500);
     return withSenpai(<>
@@ -931,6 +958,20 @@ export default function SmartSession({
               {blockMeaning[fp.block] && <span style={{ color: c.tx, fontSize: T.sm, marginLeft: 4 }}>{blockMeaning[fp.block]}</span>}
               <span style={{ color: c.m, fontSize: T.sm, marginLeft: 4 }}>— from "{fp.from}"</span>
             </div>)}
+          </div>}
+          {yoonInPhrase.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, border: "1px solid " + c.b }}>
+            <div style={{ fontSize: T.sm, fontWeight: 700, color: c.tx, marginBottom: 8 }}>Combined kana in this phrase</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+              {yoonInPhrase.map(({ combo, romaji, isSpecial }) => <div key={combo} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, background: c.a + "10", border: "1px solid " + c.a + "22" }}>
+                <span style={{ fontSize: T.xl, fontWeight: 700 }}>{combo}</span>
+                <span style={{ fontSize: T.sm, fontFamily: mono, color: c.a, fontWeight: 600 }}>{romaji}</span>
+                {isSpecial && <span style={{ fontSize: T.xs, color: c.m, fontStyle: "italic" }}>loanword</span>}
+              </div>)}
+            </div>
+            <div style={{ fontSize: T.xs, color: c.m, lineHeight: 1.5 }}>
+              {yoonInPhrase.some(y => !y.isSpecial) && "Two kana that blend into one sound — a large kana + small や/ゆ/よ. "}
+              {yoonInPhrase.some(y => y.isSpecial) && "Loanword combos use a large + small vowel kana for foreign sounds."}
+            </div>
           </div>}
           <div style={{ fontSize: T.sm, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
           <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}
