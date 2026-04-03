@@ -635,7 +635,7 @@ export default function SmartSession({
       <div style={{ ...card, padding: 0, marginBottom: 14 }}>
         {/* Scene image as situational context — reinforces dual coding during review */}
         <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
-          style={{ width: "100%", height: isDesktop ? 130 : 100, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+          style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
           onError={e => { e.target.src = `/images/phrases/${p[4]}.png`; e.target.onerror = () => { e.target.style.display = "none"; }; }} />
         <div style={{ padding: "16px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
@@ -712,17 +712,17 @@ export default function SmartSession({
     const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
-        <div style={{ textAlign: "center", marginBottom: answered ? 16 : 0 }}>
+      <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
+        {/* Scene image — full bleed when answered, hidden until then so it doesn't give away the phrase */}
+        {answered && <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
+          style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block" }}
+          onError={e => { e.target.style.display = "none"; }} />}
+        <div style={{ padding: "24px 20px", textAlign: "center", borderBottom: answered ? "1px solid " + c.b : "none" }}>
           <div style={{ fontSize: T.huge, marginBottom: 8 }}>👂</div>
           <div style={{ fontSize: T.sm, color: c.m, marginBottom: 12 }}>What did you hear?</div>
           <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 play again</button>
         </div>
-        {answered && <div style={{ borderTop: "1px solid " + c.b, paddingTop: 16 }}>
-          {/* Scene image revealed after answering — reinforces visual memory without giving away answer */}
-          <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
-            style={{ width: "100%", height: 100, objectFit: "cover", borderRadius: 8, marginBottom: 12 }}
-            onError={e => { e.target.style.display = "none"; }} />
+        {answered && <div style={{ padding: "16px 20px" }}>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginTop: 8 }}>{p[2]}</div>
           <div style={{ fontSize: T.base, color: c.tx, marginTop: 4 }}>{p[3]}</div>
@@ -829,7 +829,7 @@ export default function SmartSession({
       }} style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: T.base, textAlign: "center", marginTop: 8 }}>None of these</button>}
       {answered && <div style={{ ...card, padding: 0, borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "hidden" }}>
         <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
-          style={{ width: "100%", height: 90, objectFit: "cover", display: "block" }}
+          style={{ width: "100%", height: isDesktop ? 160 : 130, objectFit: "cover", display: "block" }}
           onError={e => { e.target.style.display = "none"; }} />
         <div style={{ padding: "14px 18px" }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8 }}>✓ Correct answer</div>
@@ -935,7 +935,7 @@ export default function SmartSession({
       <div style={{ ...card, padding: 0, marginBottom: 14 }}>
         {/* Phrase scene image — specific to this phrase, falls back to category */}
         <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
-          style={{ width: "100%", height: isDesktop ? 160 : 120, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+          style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
           onError={e => { e.target.src = `/images/phrases/${p[4]}.png`; e.target.onerror = () => { e.target.style.display = "none"; }; }} />
         <div style={{ padding: "16px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2065,7 +2065,7 @@ export default function SmartSession({
         {typeLabel}
         <div style={{ ...card, padding: 0, marginBottom: 14 }}>
           {/* Scene image for re-encoding */}
-          <img src={`/images/phrases/scenes/${p[0]}.png`} alt="" style={{ width: "100%", height: isDesktop ? 120 : 80, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }} onError={e => { e.target.style.display = "none"; }} />
+          <img src={`/images/phrases/scenes/${p[0]}.png`} alt="" style={{ width: "100%", height: isDesktop ? 180 : 140, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }} onError={e => { e.target.style.display = "none"; }} />
           <div style={{ padding: "16px 20px" }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.a, marginBottom: 12 }}>This phrase keeps tripping you up ({ex.errorCount} mistakes) — study it, then prove you know it</div>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xxl : T.xl} />
