@@ -466,13 +466,17 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   // ═══ STEP 3: PRODUCTIVE FAILURE — NEW ITEMS ═══
   // Flow: try-first → [2 cards] → learn card → [3 cards] → quiz
-  // Uses absolute position tracking for delayed items (not relative offsets)
+  // Each new item needs 3 slots in the raw queue (try-first + delayed learn + delayed quiz).
+  // IMPORTANT: limit to 1 new kana + 1 new phrase per session — introducing 2 of the same
+  // type causes the second item's learn card to overflow past sessionLength, meaning the
+  // user sees try-first but never gets the lesson card in the same session.
   let newItemCount = 0;
   const MAX_NEW = 5;
   const slotsLeft = reviewSlots - queue.length;
 
   if (unseenKana.length > 0 && slotsLeft >= 2 && newItemCount < MAX_NEW) {
-    const maxNewKana = Math.min(2, MAX_NEW - newItemCount, Math.floor(slotsLeft / 2));
+    // Cap at 1: ensures try-first + learn + quiz all fit within the session
+    const maxNewKana = Math.min(1, MAX_NEW - newItemCount);
     const newKana = unseenKana.filter(ch => !usedKana.has(ch)).slice(0, maxNewKana);
     newKana.forEach(ch => {
       usedKana.add(ch);
@@ -484,7 +488,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     });
   }
   if (unseenPhrases.length > 0 && slotsLeft >= 1 && newItemCount < MAX_NEW) {
-    const maxNewPhr = Math.min(2, MAX_NEW - newItemCount);
+    // Cap at 1: same reason — ensures learn card always follows in the same session
+    const maxNewPhr = Math.min(1, MAX_NEW - newItemCount);
     const newPhrases = unseenPhrases.filter(p => !usedPhrases.has(p[0])).slice(0, maxNewPhr);
     newPhrases.forEach(np => {
       usedPhrases.add(np[0]);
