@@ -9,6 +9,21 @@
 4. **Check git log** for recent commits you may not know about
 5. **Always pull before pushing** — `git stash && git pull --rebase origin main && git stash pop`
 
+## Shell Environment — IMPORTANT
+
+The Bash tool runs in a sandboxed shell with a minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`). User dotfiles are NOT sourced. This means `npm`, `node`, `npx` are not found by default.
+
+**Always prefix npm/node commands with:**
+```bash
+PATH="/usr/local/bin:$PATH" npm run build
+PATH="/usr/local/bin:$PATH" node script.mjs
+```
+
+**Do NOT try to fix this by:**
+- `export PATH=...` in a separate command (state doesn't persist between Bash calls)
+- Modifying `.zshenv` (not sourced by the sandbox)
+- Removing `.git/index.lock` unless git explicitly tells you it exists — check first with `ls` before `rm`
+
 ## Project Overview
 
 TinySenpai — Japanese learning app for everyone (not just travelers). React SPA on Vercel.
