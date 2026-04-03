@@ -401,9 +401,12 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const backlogMode = totalDue > 15; // user has a significant review backlog
 
   // Reserve specials — reduce to 1 when backlog is high (reviews take priority)
-  // Priority order: pattern-assembly > phrase-build > word-quiz > confused pairs > grammar > AI
+  // Shuffle the pool so every exercise type has a fair chance of appearing.
+  // Previously, the deterministic order meant confused pairs, grammar patterns,
+  // and AI exercises were ALWAYS outcompeted by the first 3 (pattern-assembly,
+  // phrase-build, word-quiz) and never appeared.
   const maxSpecials = backlogMode ? 1 : Math.min(specialPool.length, sessionLength <= 10 ? 3 : 4);
-  const reservedSpecials = specialPool.slice(0, maxSpecials);
+  const reservedSpecials = shuffle(specialPool).slice(0, maxSpecials);
 
   // ═══ STEP 2: BUILD REVIEW + NEW ITEM QUEUE ═══
   // Fill the remaining slots with SRS reviews and new items

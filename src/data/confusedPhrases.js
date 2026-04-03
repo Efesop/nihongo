@@ -256,4 +256,72 @@ export const CONFUSED_PHRASES = [
     hint: "おおきい = BIG (oo = long sound = large). ちいさい = SMALL (chii = tiny sound). The 'oo' in おおきい stretches big. The 'chii' in ちいさい sounds itty-bitty!",
     diff: "opposite"
   },
+
+  // ═══ New / Old — adjective opposites ═══
+  {
+    ids: ["dc9", "dc10"],
+    hint: "あたらしい = NEW (fresh, modern). ふるい = OLD (for things, NOT people). あたらしい has あた like 'attach' a new tag. ふるい sounds like 'full' of history.",
+    diff: "opposite"
+  },
+
+  // ═══ Yes / No ═══
+  {
+    ids: ["g6", "g7"],
+    hint: "はい = YES (formal, clear). いいえ = NO (polite decline). はい is short and decisive. いいえ is longer, softening the rejection — very Japanese!",
+    diff: "opposite"
+  },
+
+  // ═══ Hello / Goodbye ═══
+  {
+    ids: ["g1", "g10"],
+    hint: "こんにちは = HELLO (arriving, opening). さようなら = GOODBYE (leaving, closing). こんにちは is warm and present. さようなら is formal — for longer separations.",
+    diff: "opposite"
+  },
+
+  // ═══ すみません vs ありがとう — uniquely Japanese confusion ═══
+  {
+    ids: ["g5", "g4"],
+    hint: "In Japan, すみません (sorry/excuse me) is ALSO used when receiving favors — it implies 'sorry for troubling you.' ありがとうございます is pure gratitude. Both work when someone helps you, but すみません is more humble!",
+    diff: "nuance"
+  },
+
+  // ═══ Declining vs accepting ═══
+  {
+    ids: ["g9", "g4"],
+    hint: "だいじょうぶです = 'I'm fine' (politely DECLINING). ありがとうございます = 'thank you' (ACCEPTING). Both are polite — だいじょうぶ with a hand wave means 'no thanks', ありがとう with a bow means 'yes please!'",
+    diff: "nuance"
+  },
+
+  // ═══ Hotel check-in flow ═══
+  {
+    ids: ["h2", "h1"],
+    hint: "よやくがあります = 'I HAVE a reservation' (stating a fact). チェックインおねがいします = 'Check in PLEASE' (requesting action). Say よやく first to confirm, then チェックイン to start the process!",
+    diff: "sequence"
+  },
+
+  // ═══ Communication — English ability ═══
+  {
+    ids: ["e4", "e5"],
+    hint: "えいごをはなせますか = 'Do YOU speak English?' (asking about THEIR ability). にほんごがわかりません = 'I don't understand Japanese' (stating YOUR limitation). One asks, the other explains.",
+    diff: "direction"
+  },
+
+  // ═══ Physical states ═══
+  {
+    ids: ["dl11", "dl12"],
+    hint: "つかれました = 'I'm TIRED' (energy). おなかがすきました = 'I'm HUNGRY' (stomach). Both use ました (past/completed state). つかれ = exhaustion, おなか = belly. Different needs, same grammar!",
+    diff: "noun"
+  },
+  {
+    ids: ["dl10", "dl11"],
+    hint: "たのしいです = 'It's FUN' (positive 🎉). つかれました = 'I'm TIRED' (done 😴). Fun uses present tense (です), tired uses past tense (ました) — you GET tired but you ARE having fun.",
+    diff: "mood"
+  },
+
+  // ═══ Food — appreciation vs discovery ═══
+  {
+    ids: ["f4", "f7"],
+    hint: "おいしいです = 'It's DELICIOUS' (after tasting, expressing joy). おすすめはなんですか = 'What do you RECOMMEND?' (before ordering, asking for help). Compliment vs question!",
+    diff: "timing"
+  },
 ];
