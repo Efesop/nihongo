@@ -517,10 +517,8 @@ export default function SmartSession({
 
   // Romaji fading — progressive removal to force reading Japanese text directly
   // hideRomaji flag comes from sessionEngine based on SRS box level
+  // Applied to choice buttons in phrase-scenario and phrase-reverse (where reading Japanese matters)
   const shouldHideRomaji = ex.hideRomaji && !romajiRevealed && !fb;
-  const romajiDisplay = (text) => shouldHideRomaji
-    ? <div onClick={() => setRomajiRevealed(true)} style={{ fontSize: T.sm, fontFamily: mono, color: c.b, marginTop: 8, cursor: "pointer", fontStyle: "italic" }}>tap to show romaji</div>
-    : <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginTop: 8 }}>{text}</div>;
 
   // ═══ EXERCISE: KANA VISUAL ═══
   if (ex.type === "kana-visual") {
