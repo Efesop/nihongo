@@ -928,6 +928,20 @@ export default function SmartSession({
         yoonInPhrase.push({ combo, romaji: rom, isSpecial: true });
       }
     });
+    // Find confused pairs — show "don't mix up with..." when user already knows the partner
+    const confusionNote = (() => {
+      const phrData = data.phr || {};
+      for (const cp of CONFUSED_PHRASES) {
+        const idx = cp.ids.indexOf(p[0]);
+        if (idx === -1) continue;
+        const otherId = cp.ids[1 - idx];
+        if (!phrData[otherId]) continue; // user hasn't learned the other phrase yet
+        const otherP = PHRASES.find(pp => pp[0] === otherId);
+        if (!otherP) continue;
+        return { hint: cp.hint, other: otherP };
+      }
+      return null;
+    })();
     // Autoplay on mount
     if (!fb) setTimeout(() => speakPhraseWithEnglish(p[0], p[1], p[3]), 500);
     return withSenpai(<>
@@ -970,6 +984,18 @@ export default function SmartSession({
               {yoonInPhrase.some(y => !y.isSpecial) && "Two kana that blend into one sound — a large kana + small や/ゆ/よ. "}
               {yoonInPhrase.some(y => y.isSpecial) && "Loanword combos use a large + small vowel kana for foreign sounds."}
             </div>
+          </div>}
+          {confusionNote && <div style={{ marginTop: 10, padding: "12px 14px", background: "#ff980008", borderRadius: 8, border: "1px solid #ff980025" }}>
+            <div style={{ fontSize: T.sm, fontWeight: 700, color: "#ff9800", marginBottom: 8 }}>Don't mix up with...</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, padding: "8px 12px", background: c.s2, borderRadius: 8, border: "1px solid " + c.b }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: T.base, fontWeight: 600, color: c.tx }}>{confusionNote.other[1]}</div>
+                <div style={{ fontSize: T.sm, color: c.m }}>{confusionNote.other[3]}</div>
+              </div>
+              <button onClick={e => { e.stopPropagation(); speakPhrase(confusionNote.other[0], confusionNote.other[1]); }}
+                style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
+            </div>
+            <div style={{ fontSize: T.sm, color: c.tx, lineHeight: 1.5 }}>{confusionNote.hint}</div>
           </div>}
           <div style={{ fontSize: T.sm, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
           <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}

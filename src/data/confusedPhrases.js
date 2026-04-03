@@ -228,9 +228,25 @@ export const CONFUSED_PHRASES = [
   },
 
   // ═══ おねがいします vs ください — two please styles ═══
+  // This is the #1 confusion for beginners. Multiple pairs to drill the pattern.
   {
     ids: ["g8", "f1"],
     hint: "おねがいします = general 'please' (polite request). これをください = 'THIS ONE please' (specific item). おねがいします is versatile; ください is for concrete things you can point at.",
+    diff: "structure"
+  },
+  {
+    ids: ["h1", "f3"],
+    hint: "チェックインおねがいします = requesting a SERVICE (check me in). みずをください = requesting a THING (give me water). おねがいします for services, ください for items!",
+    diff: "structure"
+  },
+  {
+    ids: ["t5", "e1"],
+    hint: "...までおねがいします = politely asking the driver to take you somewhere. たすけてください = urgently asking for help. おねがいします = calm request, てください = direct action!",
+    diff: "structure"
+  },
+  {
+    ids: ["f2", "f3"],
+    hint: "おかんじょうおねがいします = 'bill please' (service). みずをください = 'water please' (item). At a restaurant: おねがいします for asking staff to DO something, ください for asking to GET something.",
     diff: "structure"
   },
 
