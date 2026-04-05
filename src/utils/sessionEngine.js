@@ -131,7 +131,13 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const unseenDakuten = kanaLearned >= 30 ? ALL_DAKUTEN.filter(ch => !kanaData[ch] && ROMAJI[ch]) : [];
   const unseenYoon = kanaLearned >= 60 ? ALL_YOON.filter(ch => !kanaData[ch] && ROMAJI[ch]) : [];
   const unseenKana = [...unseenBaseKana, ...unseenDakuten, ...unseenYoon];
-  const unseenPhrases = smartPhraseOrder(PHRASES.filter(p => !phrData[p[0]]), phrData);
+
+  // Consolidation gate: don't introduce new phrases when too many are still shaky.
+  // If 10+ phrases are at box 0-1, the user is drowning — drill what they have
+  // before adding more. This prevents the "seen everything, mastered nothing" problem.
+  const shakyPhrases = PHRASES.filter(p => phrData[p[0]] && phrData[p[0]].box <= 1).length;
+  const blockNewPhrases = shakyPhrases >= 10;
+  const unseenPhrases = blockNewPhrases ? [] : smartPhraseOrder(PHRASES.filter(p => !phrData[p[0]]), phrData);
 
   // ═══ PICK EXERCISE TYPE BASED ON MASTERY ═══
 
@@ -187,8 +193,10 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const errorCount = errors[p[0]] || 0;
     const adjusted = box + difficultyMod;
 
-    // Leech treatment: ALWAYS treat, don't quiz (threshold higher for phrases — they're harder)
-    if (errorCount >= 7) {
+    // Leech treatment: ALWAYS treat, don't quiz
+    // Threshold lowered from 7 to 5 — phrases with 5+ errors clearly aren't sticking
+    // through normal drilling. Show mnemonic + breakdown instead of more quizzes.
+    if (errorCount >= 5) {
       return { type: "leech-review", item: p, errorCount, isKana: false };
     }
 
@@ -223,13 +231,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       return { type: "phrase-scenario", item: p, hideRomaji };
     }
     if (adjusted <= 2) {
-      // Reviewing: introduce production, balance recognition
-      if (r > 0.80) return { type: "phrase-production", item: p, hideRomaji };
+      // Reviewing: reverse (English→Japanese) but no production yet.
+      // phrase-production (8-choice grid) was at 25% accuracy when shown at box 2 —
+      // too many similar distractors for items still being consolidated.
       if (r > 0.55) return { type: "phrase-reverse", item: p, hideRomaji };
       if (r > 0.25) return { type: "phrase-listen", item: p, hideRomaji };
       return { type: "phrase-scenario", item: p, hideRomaji };
     }
     // Mature (box 3+): production-heavy — recall over recognition
+    // phrase-production now only appears at box 3+ where accuracy is higher
     if (r > 0.55) return { type: "phrase-reverse", item: p, hideRomaji };
     if (r > 0.25) return { type: "phrase-production", item: p, hideRomaji };
     return { type: "phrase-listen", item: p, hideRomaji };
