@@ -1,10 +1,23 @@
 #!/usr/bin/env node
 /**
  * Pre-generate all TTS audio files using ElevenLabs.
- * Run once: ELEVENLABS_API_KEY=your_key node scripts/generate-audio.mjs
  *
- * Outputs to public/audio/{kana,story,phrase}/
- * Files are served as static assets — no runtime API calls.
+ * Usage:
+ *   ELEVENLABS_API_KEY=your_key node scripts/generate-audio.mjs
+ *
+ * Modes (MODE env var):
+ *   all        — kana + stories + phrases (default)
+ *   kana       — kana characters only
+ *   story      — mnemonic stories only
+ *   phrase     — all 100 phrases (normal speed)
+ *   slow       — all 100 phrases at 0.85x speed → public/audio/phrase-slow/
+ *   test-voice — generate 5 sample phrases with 3 different native JP voices for comparison
+ *   missing    — only generate phrases that don't have audio files yet
+ *
+ * Voice override: VOICE_JA=voiceId node scripts/generate-audio.mjs
+ * Model override: MODEL=eleven_v3 node scripts/generate-audio.mjs
+ *
+ * Outputs to public/audio/{kana,story,phrase,phrase-slow}/
  */
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
@@ -17,11 +30,20 @@ const OUT = join(ROOT, 'public', 'audio');
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 if (!API_KEY) { console.error('Set ELEVENLABS_API_KEY env var'); process.exit(1); }
 
-// Voice IDs — change these to any ElevenLabs voice you like
-// These are good multilingual defaults. Find voices at elevenlabs.io/voice-library
-const VOICE_JA = process.env.VOICE_JA || 'pFZP5JQG7iQjIQuC4Bku'; // Lily — clear, multilingual
+// ── VOICES ─────────────────────────────────────────────────────────────────
+// Native Japanese voices — Tokyo/Kanto standard for clear pronunciation
+const VOICES_JA = {
+  konoha: 'T7yYq3WpB94yAuOXraRi',  // Female — premium clarity, natural rhythm
+  akira:  'DOL4zlUH4vnnX1hByxsw',  // Male — smooth, captivating Tokyo standard
+  fumi:   'PmgfHCGeS5b7sH90BOOJ',  // Female — clear, friendly, gentle warmth
+};
+
+const VOICE_JA = process.env.VOICE_JA || VOICES_JA.konoha;
 const VOICE_EN = process.env.VOICE_EN || 'XrExE9yKIg1WjnnlVkGX'; // Matilda — warm English
-const MODEL    = 'eleven_multilingual_v2';
+
+// eleven_v3 = best quality (pre-gen, latency doesn't matter)
+// eleven_multilingual_v2 = proven stable fallback
+const MODEL = process.env.MODEL || 'eleven_multilingual_v2';
 
 // ── DATA ────────────────────────────────────────────────────────────────────
 
@@ -75,7 +97,6 @@ const STORIES = {
   'わ': "A white swan gliding on water — the curved neck and round body form the elegant shape.",
   'を': "Something cracked clean through a wall — those complex strokes are the drama of that split.",
   'ん': "One simple flowing curve, just like the letter n — the simplest character in the whole alphabet.",
-  // Katakana
   'ア': "The sharp angular strokes form the head of an axe — the diagonal slash is the blade, the vertical line is the handle.",
   'イ': "An artist's easel tipped sideways — the two leaning strokes are the legs splayed apart on the floor.",
   'ウ': "The angular katakana version of hiragana う — same character straightened out with sharp corners.",
@@ -124,42 +145,83 @@ const STORIES = {
   'ン': "A spacecraft streaking into Earth's atmosphere — wider and flatter than ソ, like a capsule heating up on re-entry.",
 };
 
+// All 100 phrases — complete list
 const PHRASES = [
+  // Greetings (10)
   ['g1','こんにちは'],['g2','おはようございます'],['g3','こんばんは'],
   ['g4','ありがとうございます'],['g5','すみません'],['g6','はい'],
   ['g7','いいえ'],['g8','おねがいします'],['g9','だいじょうぶです'],
   ['g10','さようなら'],
+  // Restaurants (10)
   ['f1','これをください'],['f2','おかんじょうおねがいします'],
   ['f3','みずをください'],['f4','おいしいです'],['f5','いただきます'],
   ['f6','ごちそうさまでした'],['f7','おすすめはなんですか'],
   ['f8','ひとりです'],['f9','ふたりです'],['f10','アレルギーがあります'],
+  // Transport (8)
   ['t1','えきはどこですか'],['t2','までいくらですか'],
   ['t3','つぎのえきはなんですか'],['t4','のりかえはどこですか'],
   ['t5','までおねがいします'],['t6','ここでおろしてください'],
   ['t7','スイカ'],['t8','しゅうでんはなんじですか'],
+  // Hotels (6)
   ['h1','チェックインおねがいします'],['h2','よやくがあります'],
   ['h3','チェックアウトはなんじですか'],['h4','WiFiのパスワードはなんですか'],
   ['h5','かぎ'],['h6','もういっぱくおねがいします'],
+  // Shopping (7)
   ['s1','これはいくらですか'],['s2','ふくろはいらないです'],
   ['s3','カードでおねがいします'],['s4','げんきんでおねがいします'],
   ['s5','あたためますか'],['s6','これをふたつください'],['s7','レシートはいらないです'],
+  // Directions (8)
   ['d1','はどこですか'],['d2','みぎ'],['d3','ひだり'],['d4','まっすぐ'],
   ['d5','ちかいですか'],['d6','あるいていけますか'],['d7','ちずをみせてください'],
   ['d8','トイレはどこですか'],
+  // Emergencies (6)
   ['e1','たすけてください'],['e2','びょういんはどこですか'],
   ['e3','けいさつをよんでください'],['e4','えいごをはなせますか'],
   ['e5','にほんごがわかりません'],['e6','もういちどいってください'],
+  // Numbers (13)
+  ['n1','いち'],['n2','に'],['n3','さん'],['n4','よん'],['n5','ご'],
+  ['n6','ろく'],['n7','なな'],['n8','はち'],['n9','きゅう'],['n10','じゅう'],
+  ['n11','ひゃくえんです'],['n12','せんえんです'],['n13','なんじですか'],
+  // Time & Days (10)
+  ['tm1','きょう'],['tm2','あした'],['tm3','きのう'],
+  ['tm4','いま'],['tm5','あとで'],['tm6','なんようびですか'],
+  ['tm7','げつようび'],['tm8','あさ'],['tm9','よる'],['tm10','まいにち'],
+  // Daily Life (12)
+  ['dl1','たべたいです'],['dl2','のみたいです'],['dl3','いきたいです'],
+  ['dl4','これがすきです'],['dl5','にほんごをべんきょうしています'],
+  ['dl6','しごとはなんですか'],['dl7','どこからきましたか'],
+  ['dl8','わかります'],['dl9','しゃしんをとってもいいですか'],
+  ['dl10','たのしいです'],['dl11','つかれました'],['dl12','おなかがすきました'],
+  // Describing (10)
+  ['dc1','おおきい'],['dc2','ちいさい'],['dc3','たかい'],['dc4','やすい'],
+  ['dc5','あつい'],['dc6','さむい'],['dc7','とおい'],['dc8','ちかい'],
+  ['dc9','あたらしい'],['dc10','ふるい'],
+];
+
+// Subset for voice comparison tests
+const TEST_PHRASES = [
+  ['g1','こんにちは'],              // short greeting
+  ['f2','おかんじょうおねがいします'],  // medium polite request
+  ['t3','つぎのえきはなんですか'],     // question with particle chain
+  ['dl5','にほんごをべんきょうしています'], // long compound sentence
+  ['g4','ありがとうございます'],       // essential polite phrase
 ];
 
 // ── API ─────────────────────────────────────────────────────────────────────
 
-async function generate(text, voiceId, outPath, isJapanese = false) {
-  if (existsSync(outPath)) { process.stdout.write('·'); return; }
+async function generate(text, voiceId, outPath, { isJapanese = false, speed = 1.0, force = false } = {}) {
+  if (!force && existsSync(outPath)) { process.stdout.write('·'); return; }
 
   const body = {
     text,
     model_id: MODEL,
-    voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0.2 },
+    voice_settings: {
+      stability: 0.7,           // higher = clearer pronunciation
+      similarity_boost: 0.8,
+      style: 0.1,               // low = less stylistic, clearer for learning
+      ...(speed !== 1.0 && { speed }),
+      use_speaker_boost: true,
+    },
     ...(isJapanese && {
       language_code: 'ja',
       apply_language_text_normalization: true,
@@ -181,33 +243,50 @@ async function generate(text, voiceId, outPath, isJapanese = false) {
   writeFileSync(outPath, Buffer.from(buf));
   process.stdout.write('✓');
 
-  await new Promise(r => setTimeout(r, 350)); // ~3 req/s — safe for free tier
+  await new Promise(r => setTimeout(r, 350)); // ~3 req/s rate limit
 }
 
 // ── MAIN ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  ['kana','story','story2','story3','phrase'].forEach(d => mkdirSync(join(OUT, d), { recursive: true }));
-
   const mode = process.env.MODE || 'all';
 
+  // ── TEST VOICE COMPARISON ──
+  if (mode === 'test-voice') {
+    const testDir = join(OUT, 'test-voices');
+    mkdirSync(testDir, { recursive: true });
+
+    console.log('\n🎤 Voice comparison test — generating 5 phrases × 3 voices…\n');
+    for (const [name, voiceId] of Object.entries(VOICES_JA)) {
+      const voiceDir = join(testDir, name);
+      mkdirSync(voiceDir, { recursive: true });
+      console.log(`\n  ${name} (${voiceId}):`);
+      for (const [id, text] of TEST_PHRASES) {
+        process.stdout.write(`    ${id}: `);
+        await generate(text, voiceId, join(voiceDir, `${id}.mp3`), { isJapanese: true, force: true });
+        console.log(` ${text}`);
+      }
+    }
+    console.log(`\n✅ Test files in: public/audio/test-voices/`);
+    console.log('   Listen and pick your favourite, then set VOICE_JA=<id> for the full batch.\n');
+    return;
+  }
+
+  // Create output dirs
+  ['kana','story','story2','story3','phrase','phrase-slow'].forEach(d =>
+    mkdirSync(join(OUT, d), { recursive: true })
+  );
+
+  // ── KANA ──
   if (mode === 'all' || mode === 'kana') {
     console.log('\n🔤 Kana characters (Japanese)…');
     for (const ch of [...HIRAGANA, ...KATAKANA]) {
       const cp = ch.codePointAt(0).toString(16);
-      await generate(ch, VOICE_JA, join(OUT, 'kana', `${cp}.mp3`), true);
+      await generate(ch, VOICE_JA, join(OUT, 'kana', `${cp}.mp3`), { isJapanese: true });
     }
   }
 
-  if (mode === 'kana2') {
-    console.log('\n🔤 Kana characters v2 (Japanese, with language_code)…');
-    mkdirSync(join(OUT, 'kana2'), { recursive: true });
-    for (const ch of [...HIRAGANA, ...KATAKANA]) {
-      const cp = ch.codePointAt(0).toString(16);
-      await generate(ch, VOICE_JA, join(OUT, 'kana2', `${cp}.mp3`), true);
-    }
-  }
-
+  // ── STORIES ──
   if (mode === 'all' || mode === 'story') {
     console.log('\n\n📖 Mnemonic stories (English)…');
     for (const ch of [...HIRAGANA, ...KATAKANA]) {
@@ -218,10 +297,21 @@ async function main() {
     }
   }
 
-  if (mode === 'all' || mode === 'phrase') {
-    console.log('\n\n💬 Phrases (Japanese)…');
+  // ── PHRASES (normal speed) ──
+  if (mode === 'all' || mode === 'phrase' || mode === 'missing') {
+    console.log('\n\n💬 Phrases (Japanese, normal speed)…');
     for (const [id, text] of PHRASES) {
-      await generate(text, VOICE_JA, join(OUT, 'phrase', `${id}.mp3`), true);
+      const outPath = join(OUT, 'phrase', `${id}.mp3`);
+      if (mode === 'missing' && existsSync(outPath)) { process.stdout.write('·'); continue; }
+      await generate(text, VOICE_JA, outPath, { isJapanese: true });
+    }
+  }
+
+  // ── PHRASES (slow speed for learning) ──
+  if (mode === 'all' || mode === 'slow') {
+    console.log('\n\n🐢 Phrases (Japanese, slow 0.85x)…');
+    for (const [id, text] of PHRASES) {
+      await generate(text, VOICE_JA, join(OUT, 'phrase-slow', `${id}.mp3`), { isJapanese: true, speed: 0.85 });
     }
   }
 

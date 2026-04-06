@@ -24,8 +24,18 @@ export const speak = (text, lang="ja-JP") => {
   });
 };
 
-export const speakPhrase=(id,text)=>{
-  _playAudio(`/audio/phrase/${id}.mp3`,0.8).catch(()=>{
+export const speakPhrase=(id,text,{slow=false}={})=>{
+  // If slow requested and pre-recorded slow file exists, use it (no playbackRate hack needed)
+  if(slow){
+    _playAudio(`/audio/phrase-slow/${id}.mp3`,1).catch(()=>{
+      // Fallback: normal file at reduced speed
+      _playAudio(`/audio/phrase/${id}.mp3`,0.7).catch(()=>{
+        _playAudio(`/api/tts?lang=ja&q=${encodeURIComponent(text)}`,0.65).catch(()=>{});
+      });
+    });
+    return;
+  }
+  _playAudio(`/audio/phrase/${id}.mp3`,1).catch(()=>{
     _playAudio(`/api/tts?lang=ja&q=${encodeURIComponent(text)}`,0.75).catch(()=>{});
   });
 };
@@ -40,7 +50,7 @@ export const speakPhraseWithEnglish=(id,japanese,english)=>{
     setTimeout(()=>{
       // Then play Japanese
       const jpUrl=`/audio/phrase/${id}.mp3`;
-      const a2=new Audio(jpUrl);a2.playbackRate=0.8;_ttsAudio=a2;
+      const a2=new Audio(jpUrl);a2.playbackRate=1;_ttsAudio=a2;
       a2.onerror=()=>{
         const a3=new Audio(`/api/tts?lang=ja&q=${encodeURIComponent(japanese)}`);
         a3.playbackRate=0.85;_ttsAudio=a3;a3.play().catch(()=>{});

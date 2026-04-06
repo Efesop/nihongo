@@ -9,6 +9,8 @@ import { getUnlockedPatterns } from "../data/grammarPatterns.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 import { KEY_WORDS } from "../data/keyWords.js";
 import { getUnlockedTemplates, generateAssemblyChallenge } from "../data/patternAssembly.js";
+import { GRADED_STORIES } from "../data/gradedStories.js";
+import { PHRASE_CHAINS } from "../data/phraseChains.js";
 
 // All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -240,8 +242,10 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
     // Mature (box 3+): production-heavy — recall over recognition
     // phrase-production now only appears at box 3+ where accuracy is higher
-    if (r > 0.55) return { type: "phrase-reverse", item: p, hideRomaji };
-    if (r > 0.25) return { type: "phrase-production", item: p, hideRomaji };
+    // phrase-kana-type: true production — spell it out with kana keyboard (hardest)
+    if (r > 0.6) return { type: "phrase-reverse", item: p, hideRomaji };
+    if (r > 0.35) return { type: "phrase-production", item: p, hideRomaji };
+    if (r > 0.15) return { type: "phrase-kana-type", item: p };
     return { type: "phrase-listen", item: p, hideRomaji };
   }
 
@@ -387,8 +391,33 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
+  // Graded readers — pre-built stories using only known phrases (instant, no API call)
+  if (phrasesLearned >= 3) {
+    const eligible = GRADED_STORIES.filter(gs =>
+      gs.requires.every(id => phrData[id] && (phrData[id].box || 0) >= 1)
+    );
+    // Pick one the user hasn't seen recently (tracked via data.gradedStoriesSeen)
+    const seen = data.gradedStoriesSeen || [];
+    const unseen = eligible.filter(gs => !seen.includes(gs.id));
+    const pool = unseen.length > 0 ? unseen : eligible; // cycle if all seen
+    if (pool.length > 0) {
+      specialPool.push({ type: "graded-reader", story: pool[Math.floor(Math.random() * pool.length)] });
+    }
+  }
+
+  // Phrase chains — connected speech scenarios (requires 5+ phrases)
+  if (phrasesLearned >= 5) {
+    const eligibleChains = PHRASE_CHAINS.filter(ch =>
+      ch.requires.every(id => phrData[id] && (phrData[id].box || 0) >= 1)
+    );
+    if (eligibleChains.length > 0) {
+      specialPool.push({ type: "phrase-chain", chain: eligibleChains[Math.floor(Math.random() * eligibleChains.length)] });
+    }
+  }
+
   // AI exercises (probabilistic — not every session)
-  if (phrasesLearned >= 3 && Math.random() < 0.25) {
+  // Bumped from 25% → 45% for more comprehensible input exposure
+  if (phrasesLearned >= 3 && Math.random() < 0.45) {
     specialPool.push({ type: "story" });
   }
   if (phrasesLearned >= 8 && Math.random() < 0.2) {
@@ -623,7 +652,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const t = item.type || "";
     if (t.includes("learn") || t.includes("try-first") || t === "grammar-pattern" ||
         t === "kana-pair" || t === "phrase-pair" || t === "phrase-build" || t === "word-quiz" ||
-        t === "pattern-assembly" || t === "story" || t === "branch-convo" || t === "conversation" ||
+        t === "pattern-assembly" || t === "story" || t === "graded-reader" || t === "phrase-chain" || t === "phrase-kana-type" || t === "branch-convo" || t === "conversation" ||
         t === "leech-review") return true;
     if (t.startsWith("phrase-") && item.item && item.item[0]) {
       const d = phrData[item.item[0]];
