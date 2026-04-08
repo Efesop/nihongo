@@ -1217,18 +1217,52 @@ export default function SmartSession({
       }
     }
 
+    // Play all sentences in sequence using TTS
+    const playAll = () => {
+      let i = 0;
+      const playNext = () => {
+        if (i >= gs.sentences.length) return;
+        const s = gs.sentences[i];
+        // Find matching phrase for pre-recorded audio
+        const matchedPhrase = PHRASES.find(p => s.jp.replace(/[。？！、]/g, '').includes(p[1]));
+        if (matchedPhrase) {
+          speakPhrase(matchedPhrase[0], matchedPhrase[1]);
+        } else {
+          speak(s.jp);
+        }
+        i++;
+        setTimeout(playNext, 2500);
+      };
+      playNext();
+    };
+
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontSize: T.base }}>📖</span>
-          <span style={{ fontSize: T.xs, fontFamily: mono, color: c.g, textTransform: "uppercase", fontWeight: 600 }}>{gs.title}</span>
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: T.base }}>📖</span>
+            <span style={{ fontSize: T.xs, fontFamily: mono, color: c.g, textTransform: "uppercase", fontWeight: 600 }}>{gs.title}</span>
+          </div>
+          <button onClick={playAll} style={{ ...btn, padding: "6px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it</button>
         </div>
-        {gs.sentences.map((s, i) => <div key={i} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, lineHeight: 1.5, marginBottom: 4 }}>{s.jp}</div>
-          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 2 }}>{s.romaji}</div>
-          <div style={{ fontSize: T.base, color: c.m }}>{s.en}</div>
-        </div>)}
+        {/* Conversation-style bubbles */}
+        {gs.sentences.map((s, i) => {
+          const isEven = i % 2 === 0;
+          return <div key={i} style={{ display: "flex", justifyContent: isEven ? "flex-start" : "flex-end", marginBottom: 10 }}>
+            <div style={{
+              maxWidth: "85%", padding: "12px 16px", borderRadius: 16,
+              borderBottomLeftRadius: isEven ? 4 : 16,
+              borderBottomRightRadius: isEven ? 16 : 4,
+              background: isEven ? c.s2 : c.ac + "18",
+              border: "1px solid " + (isEven ? c.b : c.ac + "30"),
+            }}>
+              <div style={{ fontSize: isDesktop ? T.lg : T.base, fontWeight: 600, lineHeight: 1.5, color: c.tx }}>{s.jp}</div>
+              <div style={{ fontSize: T.xs, fontFamily: mono, color: c.a, marginTop: 3 }}>{s.romaji}</div>
+              <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{s.en}</div>
+            </div>
+          </div>;
+        })}
       </div>
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: T.sm, fontWeight: 600, color: c.tx, marginBottom: 10 }}>{gs.comprehension.question}</div>

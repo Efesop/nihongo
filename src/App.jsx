@@ -356,6 +356,7 @@ function AuthedApp({ user, getToken }){
       const newBox=stabilityToBox(result.stability);
       const errors=prev.errors||{};
       if(!correct){errors[id]=(errors[id]||0)+1;}
+      else if(errors[id]>0){errors[id]=Math.max(0,errors[id]-2);} // Correct answers heal leech status (2x faster)
       // Multi-dimensional skill tracking
       const skills={...(prev.skills||{})};
       const skill=SKILL_MAP[exerciseType]||"visual";
@@ -383,6 +384,7 @@ function AuthedApp({ user, getToken }){
       const newBox=stabilityToBox(result.stability);
       const errors=prev.errors||{};
       if(!correct){errors[ch]=(errors[ch]||0)+1;}
+      else if(errors[ch]>0){errors[ch]=Math.max(0,errors[ch]-2);} // Correct answers heal leech status
       const skills={...(prev.skills||{})};
       const skill=SKILL_MAP[exerciseType]||"visual";
       const curSkill=skills[ch]||{visual:0,listen:0,production:0};

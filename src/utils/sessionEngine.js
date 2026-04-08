@@ -164,10 +164,12 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const adjusted = box + difficultyMod;
 
     // Leech treatment: 5+ errors → show mnemonic + breakdown, not quiz
-    // Only if the character HAS a mnemonic (base kana). Dakuten/yōon don't have
-    // mnemonic images so leech review is useless for them — just quiz normally.
+    // Only if the character HAS a mnemonic (base kana) AND is actually due.
+    // Correct answers reduce error count so leeches can graduate.
     if (errorCount >= 5 && M[ch]) {
-      return { type: "leech-review", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], errorCount, isKana: true };
+      const kanaInfo = kanaData[ch];
+      const isDue = !kanaInfo?.next || kanaInfo.next <= Date.now();
+      if (isDue) return { type: "leech-review", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], errorCount, isKana: true };
     }
 
     // Pick exercise based on weakest skill
@@ -195,11 +197,14 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const errorCount = errors[p[0]] || 0;
     const adjusted = box + difficultyMod;
 
-    // Leech treatment: ALWAYS treat, don't quiz
-    // Threshold lowered from 7 to 5 — phrases with 5+ errors clearly aren't sticking
-    // through normal drilling. Show mnemonic + breakdown instead of more quizzes.
+    // Leech treatment: show mnemonic + breakdown for items with 5+ errors.
+    // Only if the item is actually due for review — prevents leech from
+    // dominating every session even when the user already knows it.
+    // Correct answers now reduce error count, so leeches can graduate.
     if (errorCount >= 5) {
-      return { type: "leech-review", item: p, errorCount, isKana: false };
+      const phrInfo = phrData[p[0]];
+      const isDue = !phrInfo?.next || phrInfo.next <= Date.now();
+      if (isDue) return { type: "leech-review", item: p, errorCount, isKana: false };
     }
 
     // Romaji fading — progressive removal to force reading Japanese
