@@ -1323,45 +1323,46 @@ export default function SmartSession({
       return true;
     };
 
-    // Kana keyboard layout — 5 rows of hiragana
-    const kanaRows = [
-      ["あ","い","う","え","お"],
-      ["か","き","く","け","こ"],
-      ["さ","し","す","せ","そ"],
-      ["た","ち","つ","て","と"],
-      ["な","に","ぬ","ね","の"],
-      ["は","ひ","ふ","へ","ほ"],
-      ["ま","み","む","め","も"],
-      ["や","　","ゆ","　","よ"],
-      ["ら","り","る","れ","ろ"],
-      ["わ","を","ん","っ","ー"],
-    ];
-    const dakutenRows = [
-      ["が","ぎ","ぐ","げ","ご"],
-      ["ざ","じ","ず","ぜ","ぞ"],
-      ["だ","ぢ","づ","で","ど"],
-      ["ば","び","ぶ","べ","ぼ"],
-      ["ぱ","ぴ","ぷ","ぺ","ぽ"],
-    ];
-    const katakanaRows = [
-      ["ア","イ","ウ","エ","オ"],
-      ["カ","キ","ク","ケ","コ"],
-      ["サ","シ","ス","セ","ソ"],
-      ["タ","チ","ツ","テ","ト"],
-      ["ナ","ニ","ヌ","ネ","ノ"],
-      ["ハ","ヒ","フ","ヘ","ホ"],
-      ["マ","ミ","ム","メ","モ"],
-      ["ヤ","　","ユ","　","ヨ"],
-      ["ラ","リ","ル","レ","ロ"],
-      ["ワ","ヲ","ン","ッ","ー"],
-    ];
+    // Build a flat character pool: all needed chars + distractors from same rows
+    // No tabs — everything in one horizontal flowing grid
+    const allHiragana = "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+    const allDakuten = "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ";
+    const allKatakana = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン";
+    const allSpecial = "っー";
 
-    // Detect if phrase needs katakana (has any katakana in it)
-    const needsKatakana = targetChars.some(ch => ch.charCodeAt(0) >= 0x30A0 && ch.charCodeAt(0) <= 0x30FF);
-    // Show dakuten if phrase needs them
-    const needsDakuten = targetChars.some(ch => "がぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽ".includes(ch));
+    // Get unique target characters
+    const uniqueTarget = [...new Set(targetChars)];
+    // Find row-mates for distractors (same consonant family)
+    const hiraganaRows = ["あいうえお","かきくけこ","さしすせそ","たちつてと","なにぬねの","はひふへほ","まみむめも","やゆよ","らりるれろ","わをん"];
+    const dakutenRowsArr = ["がぎぐげご","ざじずぜぞ","だぢづでど","ばびぶべぼ","ぱぴぷぺぽ"];
+    const katakanaRowsArr = ["アイウエオ","カキクケコ","サシスセソ","タチツテト","ナニヌネノ","ハヒフヘホ","マミムメモ","ヤユヨ","ラリルレロ","ワヲン"];
 
-    const activeRows = kbTab === 2 ? katakanaRows : kbTab === 1 ? dakutenRows : kanaRows;
+    const getRowMates = (ch) => {
+      for (const row of [...hiraganaRows, ...dakutenRowsArr, ...katakanaRowsArr]) {
+        if (row.includes(ch)) return [...row].filter(c => c !== ch);
+      }
+      return [];
+    };
+
+    // Build pool: target chars + row-mates as distractors + some random extras
+    const poolSet = new Set(uniqueTarget);
+    // Add row-mates for each target char
+    uniqueTarget.forEach(ch => getRowMates(ch).forEach(m => poolSet.add(m)));
+    // Add special chars if needed
+    if (targetChars.includes("っ")) poolSet.add("っ");
+    if (targetChars.includes("ー")) poolSet.add("ー");
+    // Ensure minimum pool size (~30 chars) by adding random hiragana
+    const allChars = allHiragana + allDakuten + allKatakana + allSpecial;
+    const shuffledAll = shuffle([...allChars]);
+    for (const ch of shuffledAll) {
+      if (poolSet.size >= 35) break;
+      poolSet.add(ch);
+    }
+    // Sort by script order for clean layout
+    const charPool = [...poolSet].sort((a, b) => {
+      const order = allHiragana + allSpecial + allDakuten + allKatakana;
+      return order.indexOf(a) - order.indexOf(b);
+    });
 
     const handleSubmit = () => {
       if (kanaSubmitted || kanaTyped.length === 0) return;
@@ -1410,25 +1411,18 @@ export default function SmartSession({
         </div>}
       </div>
 
-      {/* On-screen keyboard */}
+      {/* On-screen keyboard — horizontal flow, no tabs */}
       {!kanaSubmitted && <>
-        {/* Keyboard tabs */}
-        {(needsDakuten || needsKatakana) && <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-          <button onClick={() => setKbTab(0)} style={{ ...btn, flex: 1, padding: "6px 8px", borderRadius: 8, background: kbTab === 0 ? c.ac : c.s2, color: kbTab === 0 ? "#fff" : c.m, fontSize: T.xs, fontWeight: 600, border: "1px solid " + (kbTab === 0 ? c.ac : c.b) }}>あ basic</button>
-          {needsDakuten && <button onClick={() => setKbTab(1)} style={{ ...btn, flex: 1, padding: "6px 8px", borderRadius: 8, background: kbTab === 1 ? c.ac : c.s2, color: kbTab === 1 ? "#fff" : c.m, fontSize: T.xs, fontWeight: 600, border: "1px solid " + (kbTab === 1 ? c.ac : c.b) }}>が dakuten</button>}
-          {needsKatakana && <button onClick={() => setKbTab(2)} style={{ ...btn, flex: 1, padding: "6px 8px", borderRadius: 8, background: kbTab === 2 ? c.ac : c.s2, color: kbTab === 2 ? "#fff" : c.m, fontSize: T.xs, fontWeight: 600, border: "1px solid " + (kbTab === 2 ? c.ac : c.b) }}>カタカナ</button>}
-        </div>}
-        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-          {activeRows.map((row, ri) => <div key={ri} style={{ display: "flex", gap: 3, justifyContent: "center" }}>
-            {row.map((ch, ci) => ch === "　" ? <div key={ci} style={{ width: isDesktop ? 48 : 40, height: isDesktop ? 44 : 38 }} /> :
-              <button key={ci} onClick={() => setKanaTyped(t => [...t, ch])} style={{
-                ...btn, width: isDesktop ? 48 : 40, height: isDesktop ? 44 : 38,
-                borderRadius: 8, border: "1px solid " + c.b,
-                background: c.s, color: c.tx, fontSize: isDesktop ? T.lg : T.base,
-                fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center",
-              }}>{ch}</button>
-            )}
-          </div>)}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
+          {charPool.map((ch, i) =>
+            <button key={i} onClick={() => setKanaTyped(t => [...t, ch])} style={{
+              ...btn, width: isDesktop ? 46 : 40, height: isDesktop ? 44 : 40,
+              borderRadius: 8, border: "1px solid " + c.b,
+              background: uniqueTarget.includes(ch) ? c.s : c.s2,
+              color: c.tx, fontSize: isDesktop ? T.lg : T.base,
+              fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center",
+            }}>{ch}</button>
+          )}
         </div>
         {/* Action row */}
         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -2286,13 +2280,22 @@ export default function SmartSession({
             reviewPhr(p[0], ok, "phrase-reverse", getResponseMs());
             if (ok) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.lg, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
-            {choice[1]}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                {choice[1]}
+                {answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 3 }}>{choice[3]}</div>}
+              </div>
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }}
+                style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, cursor: "pointer", flexShrink: 0 }}>🔊</span>}
+            </div>
           </button>;
         })}
       </div>
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-          style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊 hear again</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
+        <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
         <button onClick={() => advance(fb === "ok")}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
       </div>}
