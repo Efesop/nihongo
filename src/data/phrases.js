@@ -29,7 +29,7 @@ export const PHRASES = [
 ["t7","スイカ / パスモ","sui-ka / pa-su-mo","IC transit cards","train","Tap on/off at gates"],
 ["t8","しゅうでんはなんじですか","shuu-den wa nan-ji de-su ka","When is the last train?","train","Critical for nightlife"],
 ["h1","チェックインおねがいします","chek-ku-in o-ne-gai-shi-ma-su","Check in please","hotel","Hand over passport with this",true],
-["h2","よやくがあります","yo-ya-ku ga a-ri-ma-su","I have a reservation","hotel","Follow with your name",true],
+["h2","よやくがあります","yo-ya-ku ga a-ri-ma-su","I have a reservation","hotel","At hotels — say this, then give your name",true],
 ["h3","チェックアウトはなんじですか","chek-ku-au-to wa nan-ji de-su ka","What time is checkout?","hotel","Usually 10-11am"],
 ["h4","WiFiのパスワードはなんですか","wai-fai no pa-su-waa-do wa nan de-su ka","What's the WiFi password?","hotel","Most hotels have free WiFi"],
 ["h5","かぎ","ka-gi","Key","hotel","If you need a room key"],

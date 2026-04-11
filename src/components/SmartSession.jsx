@@ -1603,7 +1603,6 @@ export default function SmartSession({
                     <div style={{ fontSize: T.base, fontWeight: 500, flex: 1 }}>{line.text}</div>
                     <button onClick={() => speak(line.text)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
                   </div>
-                  <div style={{ fontSize: T.sm, color: c.m }}>{line.translation}</div>
                 </div>
               </div>;
             }
