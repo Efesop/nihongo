@@ -84,6 +84,8 @@ const PRODUCTION_TYPES = new Set([
   "phrase-production", // English → pick from 8 Japanese
   "phrase-build",     // fill in missing segment
   "pattern-assembly", // construct sentence from pieces (highest production)
+  "phrase-kana-type", // spell phrase with kana keyboard
+  "phrase-shadow",    // speak the phrase out loud (highest production)
 ]);
 
 // Recognition-only types get no bonus (baseline)

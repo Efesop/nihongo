@@ -11,6 +11,7 @@ import { KEY_WORDS } from "../data/keyWords.js";
 import { getUnlockedTemplates, generateAssemblyChallenge } from "../data/patternAssembly.js";
 import { GRADED_STORIES } from "../data/gradedStories.js";
 import { PHRASE_CHAINS } from "../data/phraseChains.js";
+import { IMMERSION_SCENES } from "../data/immersionScenes.js";
 
 // All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -78,6 +79,11 @@ function smartPhraseOrder(unseen, phrData) {
 export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const queue = [];
   const now = Date.now();
+  // Morning/evening asymmetry: morning favours new items, evening favours reviews
+  // Research: new encoding is stronger in morning, consolidation in evening
+  const hour = new Date().getHours();
+  const isMorning = hour >= 5 && hour < 12;
+  const isEvening = hour >= 19 || hour < 5;
   const kanaData = data.kana || {};
   const phrData = data.phr || {};
 
@@ -208,12 +214,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
 
     // Romaji fading — progressive removal to force reading Japanese
-    // Research: romaji creates fossilized pronunciation errors (LEARNING_SCIENCE.md).
-    // Box 0-1: always show romaji (still learning the phrase)
-    // Box 2: hide romaji 40% of the time (start weaning off)
-    // Box 3+: hide romaji 80% of the time (should be reading Japanese)
-    const hideRomaji = adjusted >= 3 ? Math.random() < 0.8
-      : adjusted >= 2 ? Math.random() < 0.4
+    // Research: romaji is a crutch that prevents direct kana reading.
+    // Aggressive fading: start hiding at box 1 to force kana reading early.
+    // Box 0: always show (first encounter)
+    // Box 1: hide 30% (start weaning immediately)
+    // Box 2: hide 65% (should be reading kana mostly)
+    // Box 3+: hide 95% (romaji is training wheels, take them off)
+    const hideRomaji = adjusted >= 3 ? Math.random() < 0.95
+      : adjusted >= 2 ? Math.random() < 0.65
+      : adjusted >= 1 ? Math.random() < 0.3
       : false;
 
     // Pick based on weakest skill
@@ -238,19 +247,19 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       return { type: "phrase-scenario", item: p, hideRomaji };
     }
     if (adjusted <= 2) {
-      // Reviewing: reverse (English→Japanese) but no production yet.
-      // phrase-production (8-choice grid) was at 25% accuracy when shown at box 2 —
-      // too many similar distractors for items still being consolidated.
-      if (r > 0.55) return { type: "phrase-reverse", item: p, hideRomaji };
-      if (r > 0.25) return { type: "phrase-listen", item: p, hideRomaji };
+      // Reviewing: reverse + shadow introduced here.
+      // Shadow mode at box 2: user can recognise, now start speaking.
+      if (r > 0.6) return { type: "phrase-reverse", item: p, hideRomaji };
+      if (r > 0.35) return { type: "phrase-shadow", item: p };
+      if (r > 0.15) return { type: "phrase-listen", item: p, hideRomaji };
       return { type: "phrase-scenario", item: p, hideRomaji };
     }
     // Mature (box 3+): production-heavy — recall over recognition
-    // phrase-production now only appears at box 3+ where accuracy is higher
-    // phrase-kana-type: true production — spell it out with kana keyboard (hardest)
+    // Mix of kana typing, shadowing, production, and reverse
     if (r > 0.6) return { type: "phrase-reverse", item: p, hideRomaji };
-    if (r > 0.35) return { type: "phrase-production", item: p, hideRomaji };
-    if (r > 0.15) return { type: "phrase-kana-type", item: p };
+    if (r > 0.4) return { type: "phrase-production", item: p, hideRomaji };
+    if (r > 0.25) return { type: "phrase-kana-type", item: p };
+    if (r > 0.1) return { type: "phrase-shadow", item: p };
     return { type: "phrase-listen", item: p, hideRomaji };
   }
 
@@ -420,6 +429,36 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
+  // Immersion scenes — contextual listening (8+ phrases, 30% chance)
+  if (phrasesLearned >= 8 && Math.random() < 0.3) {
+    const eligible = IMMERSION_SCENES.filter(scene => {
+      const knownCount = scene.phraseIds.filter(id => phrData[id] && phrData[id].box >= 1).length;
+      return knownCount >= scene.minKnown;
+    });
+    if (eligible.length > 0) {
+      specialPool.push({ type: "immersion", scene: eligible[Math.floor(Math.random() * eligible.length)] });
+    }
+  }
+
+  // Phrase DJ — AI remixes known components into new phrases (10+ phrases known)
+  if (phrasesLearned >= 10 && Math.random() < 0.25) {
+    const knownPhraseData = PHRASES.filter(p => phrData[p[0]] && phrData[p[0]].box >= 2)
+      .map(p => ({ id: p[0], jp: p[1], en: p[3] }));
+    if (knownPhraseData.length >= 5) {
+      specialPool.push({ type: "phrase-dj", knownPhrases: knownPhraseData });
+    }
+  }
+
+  // Mistake Memory — AI error analysis (when user has 3+ error items)
+  if (frequentErrorPhrases.length >= 2 && Math.random() < 0.2) {
+    // Build error patterns from answer log
+    const answerLog = data.answerLog || [];
+    const errorItems = frequentErrorPhrases.slice(0, 5).map(p => ({
+      item: p[1], correct: p[3], id: p[0], count: errors[p[0]] || 0,
+    }));
+    specialPool.push({ type: "mistake-memory", errorItems });
+  }
+
   // AI exercises (probabilistic — not every session)
   // Bumped from 25% → 45% for more comprehensible input exposure
   if (phrasesLearned >= 3 && Math.random() < 0.45) {
@@ -483,7 +522,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // Normal mode: 3 slots for new items (keep introducing fresh material)
   const usedReviewSlots = queue.length;
   const hasUnseen = unseenKana.length > 0 || unseenPhrases.length > 0;
-  const newItemReserve = !hasUnseen ? 0 : backlogMode ? 1 : 3;
+  // Morning: reserve more slots for new items. Evening: prioritise reviews.
+  const newItemReserve = !hasUnseen ? 0 : backlogMode ? 1 : isMorning ? 4 : isEvening ? 1 : 3;
   const dueItemCap = Math.max(reviewSlots - usedReviewSlots - newItemReserve, 2);
   const dueCap = Math.min(dueItemCap, reviewSlots);
 
@@ -657,7 +697,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const t = item.type || "";
     if (t.includes("learn") || t.includes("try-first") || t === "grammar-pattern" ||
         t === "kana-pair" || t === "phrase-pair" || t === "phrase-build" || t === "word-quiz" ||
-        t === "pattern-assembly" || t === "story" || t === "graded-reader" || t === "phrase-chain" || t === "phrase-kana-type" || t === "branch-convo" || t === "conversation" ||
+        t === "pattern-assembly" || t === "story" || t === "graded-reader" || t === "phrase-chain" || t === "phrase-kana-type" || t === "phrase-shadow" || t === "phrase-dj" || t === "mistake-memory" || t === "immersion" || t === "branch-convo" || t === "conversation" ||
         t === "leech-review") return true;
     if (t.startsWith("phrase-") && item.item && item.item[0]) {
       const d = phrData[item.item[0]];

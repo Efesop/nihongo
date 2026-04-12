@@ -71,6 +71,13 @@ export default function SmartSession({
   const [kanaTyped, setKanaTyped] = useState([]); // characters typed so far in kana-type exercise
   const [kanaSubmitted, setKanaSubmitted] = useState(false); // whether answer has been checked
   const [kbTab, setKbTab] = useState(0); // kana keyboard tab: 0=basic, 1=dakuten, 2=katakana
+  const [shadowState, setShadowState] = useState("idle"); // idle | listening | done
+  const [shadowResult, setShadowResult] = useState(null); // { transcript, correct }
+  const [immersionIdx, setImmersionIdx] = useState(-1); // immersion: current phrase index
+  const [immersionTaps, setImmersionTaps] = useState([]); // immersion: user tap timestamps
+  const [immersionDone, setImmersionDone] = useState(false);
+  const [immersionPlaying, setImmersionPlaying] = useState(false);
+  const immersionTimers = useRef([]);
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
@@ -421,6 +428,9 @@ export default function SmartSession({
     setRomajiRevealed(false);
     setChainStep(0); setChainAnswers([]); setChainPicked(null);
     setKanaTyped([]); setKanaSubmitted(false); setKbTab(0);
+    setShadowState("idle"); setShadowResult(null);
+    immersionTimers.current.forEach(t => clearTimeout(t)); immersionTimers.current = [];
+    setImmersionIdx(-1); setImmersionTaps([]); setImmersionDone(false); setImmersionPlaying(false);
     cardStartTime.current = Date.now(); // Reset timer for next card
     if (ci + 1 >= cards.length) setDone(true);
     else setCi(ci + 1);
@@ -521,6 +531,10 @@ export default function SmartSession({
     "graded-reader": "GRADED READER",
     "phrase-chain": "CONNECTED SPEECH",
     "phrase-kana-type": "KANA TYPING",
+    "phrase-shadow": "SHADOW MODE",
+    "phrase-dj": "PHRASE REMIX",
+    "mistake-memory": "MISTAKE ANALYSIS",
+    "immersion": "IMMERSION LISTENING",
     "branch-convo": "CONVERSATION",
     "leech-review": "EXTRA REVIEW",
   };
@@ -1288,9 +1302,148 @@ export default function SmartSession({
           </div>
           {gs.comprehension.explanation && <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.5 }}>{gs.comprehension.explanation}</div>}
         </div>}
-        {answered && <button onClick={() => { setStoryData(null); setStoryAnswer(null); advance(isCorrect); }}
+        {/* Story continuation: after answering, pick a phrase to continue the story */}
+        {answered && !convoSubmitted && (() => {
+          // Pick 4 random known phrases as continuation options
+          const knownIds = Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1);
+          const knownPhrases = PHRASES.filter(p => knownIds.includes(p[0]));
+          if (knownPhrases.length < 3) return null;
+          const options = shuffle(knownPhrases).slice(0, 4);
+          return <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ac, textTransform: "uppercase", marginBottom: 8 }}>✍️ What would you say next?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {options.map((p, i) => <button key={i} onClick={() => {
+                setConvoSubmitted(true);
+                speakPhrase(p[0], p[1]);
+              }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontSize: T.base, textAlign: "left" }}>
+                <div>{p[1]}</div>
+                <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{p[3]}</div>
+              </button>)}
+            </div>
+          </div>;
+        })()}
+        {answered && (convoSubmitted || !Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1).length) && <button onClick={() => { setStoryData(null); setStoryAnswer(null); advance(isCorrect); }}
           style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600, marginTop: 12 }}>Next →</button>}
+        {answered && !convoSubmitted && Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1).length >= 3 && <button onClick={() => { setStoryData(null); setStoryAnswer(null); advance(isCorrect); }}
+          style={{ ...btn, width: "100%", padding: 10, borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm, marginTop: 8 }}>Skip →</button>}
       </div>
+    </>);
+  }
+
+  // ═══ EXERCISE: SHADOW MODE (speak the phrase) ═══
+  if (ex.type === "phrase-shadow") {
+    const p = ex.item;
+    const supported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+    const startListening = () => {
+      if (!supported) return;
+      setShadowState("listening");
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ja-JP";
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 3;
+      recognition.onresult = (event) => {
+        const results = event.results[0];
+        // Check all alternatives for a match
+        let bestTranscript = results[0].transcript;
+        let matched = false;
+        const target = p[1].replace(/[。？！、\s]/g, "");
+        for (let i = 0; i < results.length; i++) {
+          const t = results[i].transcript.replace(/[。？！、\s]/g, "");
+          if (t === target || t.includes(target) || target.includes(t)) {
+            bestTranscript = results[i].transcript;
+            matched = true;
+            break;
+          }
+        }
+        // Partial match: at least 60% of characters match
+        if (!matched) {
+          const targetChars = [...target];
+          const spokenChars = [...bestTranscript.replace(/[。？！、\s]/g, "")];
+          let matchCount = 0;
+          for (const ch of spokenChars) {
+            if (targetChars.includes(ch)) matchCount++;
+          }
+          matched = matchCount >= targetChars.length * 0.6;
+        }
+        setShadowResult({ transcript: bestTranscript, correct: matched });
+        setShadowState("done");
+        setScore(s => matched ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+        reviewPhr(p[0], matched, "phrase-shadow", getResponseMs());
+        senpaiReact(matched);
+        if (matched) speakPhrase(p[0], p[1]);
+      };
+      recognition.onerror = () => {
+        setShadowState("done");
+        setShadowResult({ transcript: "(couldn't hear you)", correct: false });
+      };
+      recognition.onend = () => {
+        if (shadowState === "listening") {
+          setShadowState("done");
+          if (!shadowResult) setShadowResult({ transcript: "(no speech detected)", correct: false });
+        }
+      };
+      recognition.start();
+      // Auto-stop after 6 seconds
+      setTimeout(() => { try { recognition.stop(); } catch (e) {} }, 6000);
+    };
+
+    // Auto-play the phrase on first render
+    if (shadowState === "idle" && !shadowResult) {
+      speakPhrase(p[0], p[1]);
+    }
+
+    return withSenpai(<>
+      {typeLabel}
+      <div style={{ ...card, padding: "24px 20px", marginBottom: 14, textAlign: "center" }}>
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 10 }}>Listen, then say it out loud</div>
+        <div style={{ fontSize: isDesktop ? T.xxl : T.xl, fontWeight: 700, lineHeight: 1.5, color: c.tx, marginBottom: 6 }}>{p[1]}</div>
+        <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 4 }}>{p[2]}</div>
+        <div style={{ fontSize: T.base, color: c.m, marginBottom: 16 }}>{p[3]}</div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it</button>
+          <button onClick={() => speakPhrase(p[0], p[1], { slow: true })} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🐢 slow</button>
+        </div>
+      </div>
+
+      {/* Recording state */}
+      {!supported && <div style={{ ...card, padding: "16px 20px", textAlign: "center" }}>
+        <div style={{ fontSize: T.sm, color: c.a }}>Speech recognition not available in this browser. Use Chrome for best results.</div>
+        <button onClick={() => { setScore(s => ({ ...s, c: s.c + 1 })); reviewPhr(p[0], true, "phrase-shadow", 3000); advance(true); }}
+          style={{ ...btn, marginTop: 12, padding: "12px 24px", borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>I said it — skip →</button>
+      </div>}
+
+      {supported && shadowState === "idle" && !shadowResult && <button onClick={startListening}
+        style={{ ...btn, width: "100%", padding: "18px 20px", borderRadius: 14, background: c.a, color: "#fff", fontSize: T.lg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+        🎤 Tap and say it
+      </button>}
+
+      {shadowState === "listening" && <div style={{ ...card, padding: "24px 20px", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 8, animation: "pulse 1.5s infinite" }}>🎤</div>
+        <div style={{ fontSize: T.base, color: c.a, fontWeight: 600 }}>Listening...</div>
+        <div style={{ fontSize: T.sm, color: c.m, marginTop: 6 }}>Say the phrase now</div>
+      </div>}
+
+      {shadowResult && <div style={{ ...card, padding: "20px", textAlign: "center", borderLeft: "3px solid " + (shadowResult.correct ? c.g : c.a) }}>
+        <div style={{ fontSize: T.lg, fontWeight: 700, color: shadowResult.correct ? c.g : c.a, marginBottom: 8 }}>
+          {shadowResult.correct ? "✓ Great pronunciation!" : "✗ Try again next time"}
+        </div>
+        <div style={{ fontSize: T.sm, color: c.m, marginBottom: 4 }}>You said:</div>
+        <div style={{ fontSize: T.lg, color: c.tx, marginBottom: 12 }}>{shadowResult.transcript}</div>
+        {!shadowResult.correct && <div style={{ fontSize: T.sm, color: c.m }}>
+          Target: <span style={{ color: c.g, fontWeight: 600 }}>{p[1]}</span>
+        </div>}
+      </div>}
+
+      {shadowResult && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        {!shadowResult.correct && supported && <button onClick={() => { setShadowResult(null); setShadowState("idle"); speakPhrase(p[0], p[1]); }}
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔄 retry</button>}
+        <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
+        <button onClick={() => advance(shadowResult.correct)}
+          style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
+      </div>}
     </>);
   }
 
@@ -1442,6 +1595,219 @@ export default function SmartSession({
         <button onClick={() => advance(fb === "ok")}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
       </div>}
+    </>);
+  }
+
+  // ═══ EXERCISE: IMMERSION (contextual listening) ═══
+  if (ex.type === "immersion") {
+    const scene = ex.scene;
+    const knownIds = new Set(Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1));
+
+    // Start playing the scene
+    const startScene = () => {
+      setImmersionPlaying(true);
+      setImmersionIdx(0);
+      let cumulativeDelay = 500;
+      scene.phraseIds.forEach((id, i) => {
+        const timer = setTimeout(() => {
+          setImmersionIdx(i);
+          const phrase = PHRASES.find(p => p[0] === id);
+          if (phrase) speakPhrase(id, phrase[1]);
+        }, cumulativeDelay);
+        immersionTimers.current.push(timer);
+        cumulativeDelay += scene.delays[i] || 2500;
+      });
+      // End after all phrases played
+      const endTimer = setTimeout(() => {
+        setImmersionDone(true);
+        setImmersionPlaying(false);
+      }, cumulativeDelay + 1000);
+      immersionTimers.current.push(endTimer);
+    };
+
+    // Calculate score
+    const recognizedIds = scene.phraseIds.filter(id => knownIds.has(id));
+    const tappedCount = immersionTaps.length;
+    const totalKnown = recognizedIds.length;
+
+    return withSenpai(<>
+      <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10 }}>IMMERSION LISTENING</div>
+      <div style={{ ...card, padding: "20px", marginBottom: 14, textAlign: "center" }}>
+        <div style={{ fontSize: T.xxl, marginBottom: 8 }}>{scene.emoji}</div>
+        <div style={{ fontSize: T.lg, fontWeight: 700, color: c.tx, marginBottom: 4 }}>{scene.title}</div>
+        <div style={{ fontSize: T.sm, color: c.m, marginBottom: 16 }}>{scene.description}</div>
+
+        {!immersionPlaying && !immersionDone && <button onClick={startScene}
+          style={{ ...btn, padding: "16px 32px", borderRadius: 14, background: c.a, color: "#fff", fontSize: T.lg, fontWeight: 700 }}>
+          ▶ Start Listening
+        </button>}
+
+        {immersionPlaying && <>
+          {/* Animated listening indicator */}
+          <div style={{ fontSize: 52, marginBottom: 12, animation: "pulse 1.5s infinite" }}>👂</div>
+          <div style={{ fontSize: T.base, color: c.ac, fontWeight: 600, marginBottom: 4 }}>
+            Phrase {immersionIdx + 1} of {scene.phraseIds.length}
+          </div>
+          <div style={{ width: "100%", height: 4, background: c.b, borderRadius: 2, marginBottom: 16 }}>
+            <div style={{ width: ((immersionIdx + 1) / scene.phraseIds.length * 100) + "%", height: "100%", background: c.ac, borderRadius: 2, transition: "width .5s" }} />
+          </div>
+          {/* Big tap button */}
+          <button onClick={() => {
+            setImmersionTaps(t => [...t, { time: Date.now(), idx: immersionIdx }]);
+          }} style={{
+            ...btn, width: "100%", padding: "28px 20px", borderRadius: 16,
+            background: c.g + "15", border: "2px solid " + c.g + "40",
+            color: c.g, fontSize: T.xl, fontWeight: 700,
+          }}>
+            ✓ I heard one! ({tappedCount})
+          </button>
+        </>}
+      </div>
+
+      {/* Results */}
+      {immersionDone && <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ fontSize: T.lg, fontWeight: 700, color: c.tx, textAlign: "center", marginBottom: 14 }}>
+          {tappedCount >= totalKnown * 0.7 ? "🎉 Great ears!" : tappedCount >= totalKnown * 0.4 ? "👏 Not bad!" : "💪 Keep training!"}
+        </div>
+        <div style={{ fontSize: T.sm, color: c.m, textAlign: "center", marginBottom: 14 }}>
+          You recognized {tappedCount} phrase{tappedCount !== 1 ? "s" : ""} — there were {totalKnown} you know in this scene.
+        </div>
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>Phrases in this scene:</div>
+        {scene.phraseIds.map((id, i) => {
+          const phrase = PHRASES.find(p => p[0] === id);
+          if (!phrase) return null;
+          const known = knownIds.has(id);
+          return <div key={i} style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "8px 12px", marginBottom: 4, borderRadius: 8,
+            background: known ? c.gs : c.s2, opacity: known ? 1 : 0.5,
+          }}>
+            <div>
+              <span style={{ fontSize: T.base, fontWeight: 600, color: c.tx }}>{phrase[1]}</span>
+              <span style={{ fontSize: T.sm, color: c.m, marginLeft: 8 }}>{phrase[3]}</span>
+            </div>
+            <button onClick={() => speakPhrase(id, phrase[1])} style={{ ...btn, padding: "4px 10px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊</button>
+          </div>;
+        })}
+      </div>}
+
+      {immersionDone && <button onClick={() => advance(tappedCount >= totalKnown * 0.5)}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>}
+    </>);
+  }
+
+  // ═══ EXERCISE: PHRASE DJ (AI remixed phrases) ═══
+  if (ex.type === "phrase-dj") {
+    if (!storyData && !storyLoading) {
+      setStoryLoading(true);
+      fetch('/api/remix', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ knownPhrases: ex.knownPhrases }),
+      }).then(r => r.json()).then(result => {
+        if (result.remixes) setStoryData(result);
+        else advance(true);
+        setStoryLoading(false);
+      }).catch(() => { advance(true); setStoryLoading(false); });
+    }
+
+    if (storyLoading) return withSenpai(<>
+      <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
+        <img src={runFrames[loadingFrame % 4]} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
+        <div style={{ fontSize: T.base, color: c.m }}>Senpai is remixing your vocabulary...</div>
+      </div>
+    </>);
+
+    if (!storyData?.remixes) return null;
+
+    return withSenpai(<>
+      {typeLabel}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <span style={{ fontSize: T.xl }}>🎧</span>
+          <div>
+            <div style={{ fontSize: T.base, fontWeight: 700, color: c.tx }}>Phrase Remix</div>
+            <div style={{ fontSize: T.sm, color: c.m }}>New phrases built from words you know</div>
+          </div>
+        </div>
+        {storyData.remixes.map((remix, i) => <div key={i} style={{
+          padding: "14px 16px", marginBottom: 10, borderRadius: 12,
+          background: c.s2, border: "1px solid " + c.b,
+        }}>
+          <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, lineHeight: 1.5, color: c.tx, marginBottom: 4 }}>{remix.jp}</div>
+          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 2 }}>{remix.romaji}</div>
+          <div style={{ fontSize: T.base, color: c.m }}>{remix.en}</div>
+          {remix.components && <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
+            {remix.components.map((comp, j) => <span key={j} style={{ padding: "2px 8px", borderRadius: 6, background: c.ac + "18", fontSize: T.xs, color: c.ac }}>{comp}</span>)}
+          </div>}
+          <button onClick={() => speak(remix.jp)} style={{ ...btn, marginTop: 8, padding: "4px 14px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊</button>
+        </div>)}
+      </div>
+      <button onClick={() => { setStoryData(null); setStoryLoading(false); advance(true); }}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Got it — Next →</button>
+    </>);
+  }
+
+  // ═══ EXERCISE: MISTAKE MEMORY (AI error analysis) ═══
+  if (ex.type === "mistake-memory") {
+    if (!storyData && !storyLoading) {
+      setStoryLoading(true);
+      const errorPatterns = ex.errorItems.map(e => ({
+        item: e.item, correct: e.correct, wrong: "unknown", count: e.count,
+      }));
+      fetch('/api/remix', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ errorPatterns }),
+      }).then(r => r.json()).then(result => {
+        if (result.analysis || result.tip) setStoryData(result);
+        else advance(true);
+        setStoryLoading(false);
+      }).catch(() => { advance(true); setStoryLoading(false); });
+    }
+
+    if (storyLoading) return withSenpai(<>
+      <div style={{ ...card, textAlign: "center", padding: "40px 20px" }}>
+        <img src={runFrames[loadingFrame % 4]} alt="" style={{ width: 60, height: 60, imageRendering: "pixelated", marginBottom: 12 }} />
+        <div style={{ fontSize: T.base, color: c.m }}>Senpai is analyzing your mistakes...</div>
+      </div>
+    </>);
+
+    if (!storyData) return null;
+
+    return withSenpai(<>
+      <div style={{ fontSize: T.xs, fontFamily: mono, color: c.a, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10 }}>MISTAKE ANALYSIS</div>
+      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+          <span style={{ fontSize: T.xl }}>🧠</span>
+          <div style={{ fontSize: T.base, fontWeight: 700, color: c.tx }}>Senpai noticed a pattern</div>
+        </div>
+        {/* Error items */}
+        <div style={{ marginBottom: 14 }}>
+          {ex.errorItems.map((e, i) => <div key={i} style={{
+            padding: "8px 12px", marginBottom: 6, borderRadius: 8,
+            background: c.rs, border: "1px solid " + c.a + "30",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}>
+            <div>
+              <span style={{ fontSize: T.base, fontWeight: 600, color: c.tx }}>{e.item}</span>
+              <span style={{ fontSize: T.sm, color: c.m, marginLeft: 8 }}>{e.correct}</span>
+            </div>
+            <span style={{ fontSize: T.xs, color: c.a }}>{e.count} errors</span>
+          </div>)}
+        </div>
+        {/* AI Analysis */}
+        {storyData.analysis && <div style={{ fontSize: T.sm, color: c.tx, lineHeight: 1.7, marginBottom: 14, whiteSpace: "pre-wrap" }}>
+          {storyData.analysis}
+        </div>}
+        {storyData.tip && <div style={{
+          padding: "12px 16px", borderRadius: 10, background: c.ac + "12",
+          border: "1px solid " + c.ac + "30",
+        }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ac, marginBottom: 4 }}>💡 TIP</div>
+          <div style={{ fontSize: T.base, color: c.tx, fontWeight: 600 }}>{storyData.tip}</div>
+        </div>}
+      </div>
+      <button onClick={() => { setStoryData(null); setStoryLoading(false); advance(true); }}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>I understand — Next →</button>
     </>);
   }
 
