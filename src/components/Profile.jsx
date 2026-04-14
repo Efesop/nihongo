@@ -36,6 +36,18 @@ export default function Profile({
           rows={2} style={{width:"100%",padding:"10px 12px",borderRadius:8,border:"1px solid "+c.b,background:c.s2,color:c.tx,fontFamily:font,fontSize:13,outline:"none",resize:"none",boxSizing:"border-box",lineHeight:1.5}}/>
         <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
 
+        <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Learn settings</div>
+        <div style={{padding:"10px 12px",background:c.s2,borderRadius:8,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:600}}>🎤 Shadow mode (speaking)</div>
+            <div style={{fontSize:11,color:c.m,marginTop:2}}>Turn off when in public or can't speak aloud</div>
+          </div>
+          <button onClick={()=>save({settings:{...data.settings,shadowDisabled:!data.settings?.shadowDisabled}})}
+            style={{...btn,padding:"6px 14px",borderRadius:20,background:data.settings?.shadowDisabled?c.s:c.a,color:data.settings?.shadowDisabled?c.m:"#fff",fontSize:12,fontWeight:600,border:"1px solid "+c.b}}>
+            {data.settings?.shadowDisabled?"Off":"On"}
+          </button>
+        </div>
+
         <div style={{display:"flex",gap:8,fontSize:12,color:c.m,marginBottom:18,padding:"10px 12px",background:c.s2,borderRadius:8}}>
           <span>🔥 {data.streak||1} day streak</span>
           <span style={{marginLeft:"auto"}}>📚 {data.sessions} sessions</span>

@@ -79,6 +79,7 @@ function smartPhraseOrder(unseen, phrData) {
 export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const queue = [];
   const now = Date.now();
+  const shadowDisabled = data.settings?.shadowDisabled;
   // Morning/evening asymmetry: morning favours new items, evening favours reviews
   // Research: new encoding is stronger in morning, consolidation in evening
   const hour = new Date().getHours();
@@ -247,19 +248,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       return { type: "phrase-scenario", item: p, hideRomaji };
     }
     if (adjusted <= 2) {
-      // Reviewing: reverse + shadow introduced here.
-      // Shadow mode at box 2: user can recognise, now start speaking.
       if (r > 0.6) return { type: "phrase-reverse", item: p, hideRomaji };
-      if (r > 0.35) return { type: "phrase-shadow", item: p };
+      if (r > 0.35 && !shadowDisabled) return { type: "phrase-shadow", item: p };
       if (r > 0.15) return { type: "phrase-listen", item: p, hideRomaji };
       return { type: "phrase-scenario", item: p, hideRomaji };
     }
-    // Mature (box 3+): production-heavy — recall over recognition
-    // Mix of kana typing, shadowing, production, and reverse
     if (r > 0.6) return { type: "phrase-reverse", item: p, hideRomaji };
     if (r > 0.4) return { type: "phrase-production", item: p, hideRomaji };
     if (r > 0.25) return { type: "phrase-kana-type", item: p };
-    if (r > 0.1) return { type: "phrase-shadow", item: p };
+    if (r > 0.1 && !shadowDisabled) return { type: "phrase-shadow", item: p };
     return { type: "phrase-listen", item: p, hideRomaji };
   }
 

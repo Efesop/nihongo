@@ -705,8 +705,8 @@ export default function SmartSession({
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
           reviewPhr(p[0], correct, ex.type, getResponseMs());
           speakPhraseWithEnglish(p[0], p[1], p[3]);
-        }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: answered && choiceAnswer.isTrick ? c.gs : answered && choiceAnswer.selected === "none" ? c.rs : "transparent", color: c.m, fontSize: T.sm, textAlign: "center" }}>
-          None of these
+        }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered && choiceAnswer.isTrick ? c.gs : answered && choiceAnswer.selected === "none" ? c.rs : c.a + "10", color: answered ? c.m : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4 }}>
+          🚫 None of these match
         </button>
         {answered && <div style={{ ...card, padding: "16px 20px", borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "visible" }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8 }}>✓ Correct answer</div>
@@ -789,7 +789,7 @@ export default function SmartSession({
           setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
           reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
-        }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: T.sm, textAlign: "center" }}>None of these</button>
+        }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered ? "transparent" : c.a + "10", color: answered ? c.m : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4 }}>🚫 None of these match</button>
         {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
             style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
@@ -858,7 +858,7 @@ export default function SmartSession({
         setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
         reviewPhr(p[0], correct, ex.type, getResponseMs());
         speakPhraseWithEnglish(p[0], p[1], p[3]);
-      }} style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 10, border: "1px solid " + c.b + "44", background: "transparent", color: c.m, fontSize: T.base, textAlign: "center", marginTop: 8 }}>None of these</button>}
+      }} style={{ ...btn, width: "100%", padding: "14px 16px", borderRadius: 10, border: "2px dashed " + c.a + "66", background: c.a + "10", color: c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 10 }}>🚫 None of these match</button>}
       {answered && <div style={{ ...card, padding: 0, borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "hidden" }}>
         <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
           style={{ width: "100%", height: isDesktop ? 160 : 130, objectFit: "cover", display: "block" }}
@@ -1333,19 +1333,24 @@ export default function SmartSession({
   // ═══ EXERCISE: SHADOW MODE (speak the phrase) ═══
   if (ex.type === "phrase-shadow") {
     const p = ex.item;
-    const supported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+    // Safari has SpeechRecognition API but ja-JP support is unreliable — treat as unsupported
+    const isSafari = typeof navigator !== "undefined" && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const hasAPI = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+    const supported = hasAPI && !isSafari;
 
     const startListening = () => {
       if (!supported) return;
+      setShadowResult(null); // clear any prior error
       setShadowState("listening");
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = "ja-JP";
       recognition.interimResults = false;
       recognition.maxAlternatives = 3;
+      let hasResult = false;
       recognition.onresult = (event) => {
+        hasResult = true;
         const results = event.results[0];
-        // Check all alternatives for a match
         let bestTranscript = results[0].transcript;
         let matched = false;
         const target = p[1].replace(/[。？！、\s]/g, "");
@@ -1357,7 +1362,6 @@ export default function SmartSession({
             break;
           }
         }
-        // Partial match: at least 60% of characters match
         if (!matched) {
           const targetChars = [...target];
           const spokenChars = [...bestTranscript.replace(/[。？！、\s]/g, "")];
@@ -1367,32 +1371,30 @@ export default function SmartSession({
           }
           matched = matchCount >= targetChars.length * 0.6;
         }
-        setShadowResult({ transcript: bestTranscript, correct: matched });
+        setShadowResult({ transcript: bestTranscript, correct: matched, graded: true });
         setShadowState("done");
         setScore(s => matched ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
         reviewPhr(p[0], matched, "phrase-shadow", getResponseMs());
         senpaiReact(matched);
         if (matched) speakPhrase(p[0], p[1]);
       };
-      recognition.onerror = () => {
+      recognition.onerror = (e) => {
+        // Don't mark wrong — mic errors, no speech etc shouldn't hurt SRS
         setShadowState("done");
-        setShadowResult({ transcript: "(couldn't hear you)", correct: false });
+        setShadowResult({
+          transcript: e.error === "no-speech" ? "didn't hear you" : e.error === "not-allowed" ? "mic blocked" : "recognition error",
+          correct: false, graded: false, errorType: e.error,
+        });
       };
       recognition.onend = () => {
-        if (shadowState === "listening") {
+        if (!hasResult) {
           setShadowState("done");
-          if (!shadowResult) setShadowResult({ transcript: "(no speech detected)", correct: false });
+          setShadowResult(r => r || { transcript: "didn't hear you", correct: false, graded: false });
         }
       };
       recognition.start();
-      // Auto-stop after 6 seconds
-      setTimeout(() => { try { recognition.stop(); } catch (e) {} }, 6000);
+      setTimeout(() => { try { recognition.stop(); } catch (e) {} }, 8000);
     };
-
-    // Auto-play the phrase on first render
-    if (shadowState === "idle" && !shadowResult) {
-      speakPhrase(p[0], p[1]);
-    }
 
     return withSenpai(<>
       {typeLabel}
@@ -1407,17 +1409,32 @@ export default function SmartSession({
         </div>
       </div>
 
-      {/* Recording state */}
+      {/* Unsupported browser */}
       {!supported && <div style={{ ...card, padding: "16px 20px", textAlign: "center" }}>
-        <div style={{ fontSize: T.sm, color: c.a }}>Speech recognition not available in this browser. Use Chrome for best results.</div>
-        <button onClick={() => { setScore(s => ({ ...s, c: s.c + 1 })); reviewPhr(p[0], true, "phrase-shadow", 3000); advance(true); }}
-          style={{ ...btn, marginTop: 12, padding: "12px 24px", borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>I said it — skip →</button>
+        <div style={{ fontSize: T.sm, color: c.m, marginBottom: 12 }}>
+          {isSafari ? "Safari doesn't support Japanese speech recognition. Open in Chrome for shadow mode, or skip."
+            : "Speech recognition not supported. Use Chrome for shadow mode, or skip."}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => { setScore(s => ({ ...s, c: s.c + 1 })); reviewPhr(p[0], true, "phrase-shadow", 3000); advance(true); }}
+            style={{ ...btn, flex: 1, padding: "12px 24px", borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>I said it →</button>
+          <button onClick={() => save({ settings: { ...data.settings, shadowDisabled: true } })}
+            style={{ ...btn, padding: "12px 16px", borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>Turn off shadow mode</button>
+        </div>
       </div>}
 
-      {supported && shadowState === "idle" && !shadowResult && <button onClick={startListening}
-        style={{ ...btn, width: "100%", padding: "18px 20px", borderRadius: 14, background: c.a, color: "#fff", fontSize: T.lg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-        🎤 Tap and say it
-      </button>}
+      {supported && shadowState === "idle" && !shadowResult && <>
+        <button onClick={startListening}
+          style={{ ...btn, width: "100%", padding: "18px 20px", borderRadius: 14, background: c.a, color: "#fff", fontSize: T.lg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          🎤 Tap and say it
+        </button>
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button onClick={() => { setScore(s => ({ ...s, c: s.c + 1 })); reviewPhr(p[0], true, "phrase-shadow", 3000); advance(true); }}
+            style={{ ...btn, flex: 1, padding: "10px 16px", borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm }}>Skip (I said it)</button>
+          <button onClick={() => save({ settings: { ...data.settings, shadowDisabled: true } })}
+            style={{ ...btn, padding: "10px 14px", borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm }}>🔕 turn off</button>
+        </div>
+      </>}
 
       {shadowState === "listening" && <div style={{ ...card, padding: "24px 20px", textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 8, animation: "pulse 1.5s infinite" }}>🎤</div>
@@ -1425,9 +1442,9 @@ export default function SmartSession({
         <div style={{ fontSize: T.sm, color: c.m, marginTop: 6 }}>Say the phrase now</div>
       </div>}
 
-      {shadowResult && <div style={{ ...card, padding: "20px", textAlign: "center", borderLeft: "3px solid " + (shadowResult.correct ? c.g : c.a) }}>
+      {shadowResult && shadowResult.graded && <div style={{ ...card, padding: "20px", textAlign: "center", borderLeft: "3px solid " + (shadowResult.correct ? c.g : c.a) }}>
         <div style={{ fontSize: T.lg, fontWeight: 700, color: shadowResult.correct ? c.g : c.a, marginBottom: 8 }}>
-          {shadowResult.correct ? "✓ Great pronunciation!" : "✗ Try again next time"}
+          {shadowResult.correct ? "✓ Great pronunciation!" : "✗ Not quite — try again"}
         </div>
         <div style={{ fontSize: T.sm, color: c.m, marginBottom: 4 }}>You said:</div>
         <div style={{ fontSize: T.lg, color: c.tx, marginBottom: 12 }}>{shadowResult.transcript}</div>
@@ -1436,13 +1453,22 @@ export default function SmartSession({
         </div>}
       </div>}
 
+      {/* Non-graded error: didn't hear, mic blocked, etc. No SRS impact. */}
+      {shadowResult && !shadowResult.graded && <div style={{ ...card, padding: "18px 20px", textAlign: "center", borderLeft: "3px solid " + c.m }}>
+        <div style={{ fontSize: T.base, fontWeight: 600, color: c.m, marginBottom: 6 }}>⚠️ {shadowResult.transcript}</div>
+        <div style={{ fontSize: T.sm, color: c.m }}>
+          {shadowResult.errorType === "not-allowed" ? "Allow mic access in browser settings, or skip below."
+            : "Tap retry and speak right after the mic appears."}
+        </div>
+      </div>}
+
       {shadowResult && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        {!shadowResult.correct && supported && <button onClick={() => { setShadowResult(null); setShadowState("idle"); speakPhrase(p[0], p[1]); }}
+        {supported && <button onClick={() => { setShadowResult(null); setShadowState("idle"); }}
           style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔄 retry</button>}
         <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
           style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
         <button onClick={() => advance(shadowResult.correct)}
-          style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
+          style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>{shadowResult.graded ? "Next →" : "Skip →"}</button>
       </div>}
     </>);
   }
