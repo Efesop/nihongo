@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { M, ROMAJI, YOON_PARTS } from "../data/kana.js";
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
-import { font, mono, T } from "../data/constants.js";
+import { font, fontJa, mono, T } from "../data/constants.js";
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 import { buildSmartSession, getDistractors } from "../utils/sessionEngine.js";
@@ -11,7 +11,7 @@ import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 import { KEY_WORDS, WORD_CATS } from "../data/keyWords.js";
-import { ActionBar, HintChip, RomajiReveal, TypeLabel, PlayButton, ResultMark, NoneOfThese, ensureSessionStyles } from "./SessionParts.jsx";
+import { ActionBar, HintChip, RomajiReveal, TypeLabel, PlayButton, ResultMark, NoneOfThese, ChoiceCard, ensureSessionStyles } from "./SessionParts.jsx";
 import { IconPlay, IconSlowPlay, IconEar, IconBulb, IconBlock, IconEye, IconSkip, IconBackspace, IconCheck, IconX, IconArrowRight, IconMic, IconSparkle, IconRefresh } from "./Icons.jsx";
 import { track as telemetryTrack, flush as telemetryFlush } from "../utils/telemetry.js";
 
@@ -710,26 +710,27 @@ export default function SmartSession({
         </div>}
       </div>
       {!answered && <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-        {choiceAnswer.choices.map((ch, i) => <button key={i} onClick={() => {
-          const ok = ch === ex.item;
-          setChoiceAnswer({ ...choiceAnswer, selected: ch });
-          setFb(ok ? "ok" : "no");
-          setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          updateKanaSRS(ex.item, ok, "kana-listen", getResponseMs());
-          // Longer delays for listening — user needs time to mentally repeat the sound
-          setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1500 : 2500) : 4000);
-        }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + c.b, background: c.s, color: c.tx, fontSize: T.xxl, textAlign: "center", transition: "all .15s" }}>
-          {ch}
-        </button>)}
+        {choiceAnswer.choices.map((ch, i) => (
+          <ChoiceCard key={i} c={c} btn={btn} align="center" onClick={() => {
+            const ok = ch === ex.item;
+            setChoiceAnswer({ ...choiceAnswer, selected: ch });
+            setFb(ok ? "ok" : "no");
+            setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            updateKanaSRS(ex.item, ok, "kana-listen", getResponseMs());
+            setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1500 : 2500) : 4000);
+          }}>
+            <span style={{ fontSize: T.xxl, fontFamily: fontJa }}>{ch}</span>
+          </ChoiceCard>
+        ))}
       </div>}
       {answered && <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
         {choiceAnswer.choices.map((ch, i) => {
           const isCorrect = ch === ex.item;
           const isSelected = ch === choiceAnswer.selected;
-          const bg = isCorrect ? c.g + "20" : isSelected ? c.rs : "transparent";
-          const border = isCorrect ? c.g + "55" : isSelected ? c.a + "55" : c.b;
-          const col = isCorrect ? c.g : isSelected ? c.a : c.m;
-          return <div key={i} style={{ padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: bg, fontSize: T.xxl, textAlign: "center", color: col }}>
+          const bg = isCorrect ? c.g + "22" : isSelected ? c.a + "18" : "transparent";
+          const border = isCorrect ? "2px solid " + c.g : isSelected ? "2px solid " + c.a : "1px solid " + c.b;
+          const col = isCorrect ? c.g : isSelected ? c.a : c.m2 || c.m;
+          return <div key={i} style={{ padding: "14px 8px", borderRadius: 10, border, background: bg, fontSize: T.xxl, fontFamily: fontJa, textAlign: "center", color: col }}>
             {ch}
           </div>;
         })}
@@ -771,27 +772,25 @@ export default function SmartSession({
         {choiceAnswer.choices.map((choice, i) => {
           const isCorrect = !choiceAnswer.isTrick && choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
-          let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
-          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
-          return <button key={i} onClick={() => {
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
-          }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? T.lg : T.md, fontWeight: 500, textAlign: "left" }}>
+          }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                {choice[1]}
+                <div style={{ fontSize: isDesktop ? T.lg : T.md, fontFamily: fontJa, fontWeight: 600 }}>{choice[1]}</div>
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 3, opacity: .9 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
             </div>
-          </button>;
+          </ChoiceCard>;
         })}
         <button onClick={() => {
           if (answered) return;
@@ -871,26 +870,24 @@ export default function SmartSession({
         {choiceAnswer.choices.map((choice, i) => {
           const isCorrect = !choiceAnswer.isTrick && choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
-          let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
-          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
-          return <button key={i} onClick={() => {
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             reviewPhr(p[0], correct, "phrase-listen", getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
-          }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.base, textAlign: "left" }}>
+          }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ color: col === c.tx ? c.tx : col, fontWeight: 500 }}>{choice[3]}</div>
-                {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 3 }}>{choice[1]}</div>}
+                <div style={{ fontWeight: 500 }}>{choice[3]}</div>
+                {answered && <div style={{ fontSize: T.sm, color: c.m2, fontFamily: fontJa, marginTop: 3 }}>{choice[1]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
             </div>
-          </button>;
+          </ChoiceCard>;
         })}
         <button onClick={() => {
           if (answered) return;
@@ -938,28 +935,25 @@ export default function SmartSession({
         {choiceAnswer.choices.map((choice, i) => {
           const isCorrect = !choiceAnswer.isTrick && choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
-          let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
-          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
-          return <button key={i} onClick={() => {
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             reviewPhr(p[0], correct, ex.type, getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
-          }} style={{ ...btn, padding: "12px 10px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? T.base : T.sm, fontWeight: 500, textAlign: "left", transition: "all .2s", lineHeight: 1.3 }}>
+          }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                {choice[1]}
-                {/* Romaji fading: hide in choices at higher box levels */}
+                <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.base : T.sm, fontWeight: 600 }}>{choice[1]}</div>
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 3 }}>{choice[2]}</div>}
-                {answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{choice[3]}</div>}
+                {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }}
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
                 style={{ padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></span>}
             </div>
-          </button>;
+          </ChoiceCard>;
         })}
       </div>
       {!answered && <button onClick={() => {
@@ -1186,13 +1180,11 @@ export default function SmartSession({
             {choices.map((choice, i) => {
               const isCorrect = choice[0] === p[0];
               const isPicked = storyAnswer === i;
-              let bg = "transparent", border = c.b, col = c.tx;
-              if (quizAnswered && isCorrect) { bg = c.gs; border = c.g + "55"; col = c.g; }
-              if (quizAnswered && isPicked && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
-              return <button key={i} onClick={() => {
+              const state = quizAnswered && isCorrect ? "correct" : quizAnswered && isPicked && !isCorrect ? "wrong" : quizAnswered ? "dim" : "idle";
+              return <ChoiceCard key={i} c={c} btn={btn} disabled={quizAnswered} state={state} onClick={() => {
                 if (quizAnswered) return;
                 setStoryAnswer(i);
-              }} style={{ ...btn, padding: "10px 14px", borderRadius: 8, border: "1px solid " + border, background: bg, color: col, fontSize: T.sm, textAlign: "left" }}>{choice[3]}</button>;
+              }}>{choice[3]}</ChoiceCard>;
             })}
           </div>
         </div>;
@@ -1478,17 +1470,13 @@ export default function SmartSession({
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {gs.comprehension.options.map((opt, i) => {
             const isThisCorrect = i === gs.comprehension.correctIndex;
-            let bg = "transparent", border = c.b, col = c.tx;
-            if (answered && isThisCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
-            if (answered && storyAnswer === i && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
-            return <button key={i} onClick={() => {
+            const state = answered && isThisCorrect ? "correct" : answered && storyAnswer === i && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+            return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
               if (answered) return;
               setStoryAnswer(i);
               const ok = i === gs.comprehension.correctIndex;
               setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.sm, textAlign: "left", transition: "all .2s" }}>
-              {opt}
-            </button>;
+            }}>{opt}</ChoiceCard>;
           })}
         </div>
         {answered && <div style={{ ...card, padding: "14px 18px", marginTop: 12, borderLeft: "3px solid " + (isCorrect ? c.g : c.a) }}>
@@ -1507,13 +1495,15 @@ export default function SmartSession({
           return <div style={{ marginTop: 14 }}>
             <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ac, textTransform: "uppercase", marginBottom: 8 }}>✍️ What would you say next?</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {options.map((p, i) => <button key={i} onClick={() => {
-                setConvoSubmitted(true);
-                speakPhrase(p[0], p[1]);
-              }} style={{ ...btn, padding: "12px 16px", borderRadius: 10, border: "1px solid " + c.b, background: c.s2, color: c.tx, fontSize: T.base, textAlign: "left" }}>
-                <div>{p[1]}</div>
-                <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{p[3]}</div>
-              </button>)}
+              {options.map((p, i) => (
+                <ChoiceCard key={i} c={c} btn={btn} onClick={() => {
+                  setConvoSubmitted(true);
+                  speakPhrase(p[0], p[1]);
+                }}>
+                  <div style={{ fontFamily: fontJa, fontWeight: 600 }}>{p[1]}</div>
+                  <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{p[3]}</div>
+                </ChoiceCard>
+              ))}
             </div>
           </div>;
         })()}
@@ -1709,16 +1699,10 @@ export default function SmartSession({
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {choices.map(q => {
             const isCorrect = q[0] === p[0];
-            const reveal = kanaMeaningWrong && isCorrect;
-            return <button key={q[0]} onClick={() => pickMeaning(q)}
-              disabled={kanaMeaningWrong}
-              style={{
-                ...btn, padding: "14px 16px", borderRadius: 10,
-                background: reveal ? c.gs : c.s,
-                border: "1px solid " + (reveal ? c.g : c.b),
-                color: reveal ? c.g : c.tx,
-                fontSize: T.md, fontWeight: 600, textAlign: "left",
-              }}>{q[3]}</button>;
+            const state = kanaMeaningWrong && isCorrect ? "revealed" : kanaMeaningWrong ? "dim" : "idle";
+            return <ChoiceCard key={q[0]} c={c} btn={btn} disabled={kanaMeaningWrong} state={state} onClick={() => pickMeaning(q)}>
+              <span style={{ fontSize: T.md, fontWeight: 600 }}>{q[3]}</span>
+            </ChoiceCard>;
           })}
         </div>
         {kanaMeaningWrong && <div style={{ textAlign: "center", marginTop: 10, fontSize: T.sm, color: c.m }}>
@@ -2377,29 +2361,25 @@ export default function SmartSession({
             if (!phrase) return null;
             const isCorrect = phrase[0] === currentStep.correctId;
             const isPicked = chainPicked === phrase[0];
-            let bg = "transparent", border = c.b, col = c.tx;
-            if (stepAnswered && isCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
-            if (stepAnswered && isPicked && !isCorrect) { bg = c.rs; border = c.a + "60"; col = c.a; }
-            return <button key={i} onClick={() => {
+            const state = stepAnswered && isCorrect ? "correct" : stepAnswered && isPicked && !isCorrect ? "wrong" : stepAnswered ? "dim" : "idle";
+            return <ChoiceCard key={i} c={c} btn={btn} disabled={stepAnswered} state={state} onClick={() => {
               if (stepAnswered) return;
               setChainPicked(phrase[0]);
               const ok = isCorrect;
               if (ok) { speakPhrase(phrase[0], phrase[1]); senpaiReact(true); }
               else senpaiReact(false);
-              // Record answer and auto-advance after delay
               const newAnswers = [...chainAnswers, { correct: ok, phraseId: phrase[0] }];
               setChainAnswers(newAnswers);
-              // Review the correct phrase's SRS
               reviewPhr(currentStep.correctId, ok, "phrase-chain", getResponseMs());
               setTimeout(() => {
                 setChainPicked(null);
                 setChainStep(chainStep + 1);
               }, ok ? 1200 : 2500);
-            }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.base, textAlign: "left", transition: "all .2s" }}>
-              <div>{phrase[1]}</div>
-              <div style={{ fontSize: T.sm, fontFamily: mono, color: c.m, marginTop: 2 }}>{phrase[2]}</div>
-              {stepAnswered && <div style={{ fontSize: T.sm, color: isCorrect ? c.g : c.m, marginTop: 2 }}>{phrase[3]}</div>}
-            </button>;
+            }}>
+              <div style={{ fontFamily: fontJa, fontWeight: 600 }}>{phrase[1]}</div>
+              <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 2 }}>{phrase[2]}</div>
+              {stepAnswered && <div style={{ fontSize: T.sm, color: isCorrect ? c.g : c.m2, marginTop: 2 }}>{phrase[3]}</div>}
+            </ChoiceCard>;
           })}
         </div>
       </>}
@@ -2781,20 +2761,18 @@ export default function SmartSession({
         {choiceAnswer.choices.map((w, i) => {
           const isCorrect = w[0] === word[0];
           const isSelected = choiceAnswer.selected === w[0];
-          let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
-          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
-          return <button key={i} onClick={() => {
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const ok = w[0] === word[0];
             setChoiceAnswer({ ...choiceAnswer, selected: w[0], correct: ok });
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             if (isReverse && ok) speak(w[0]);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isReverse ? T.lg : T.base, fontWeight: isReverse ? 600 : 500, textAlign: "left", transition: "all .2s" }}>
-            {isReverse ? w[0] : w[2]}
-            {isReverse && answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{w[2]}</div>}
-          </button>;
+          }}>
+            <span style={{ fontSize: isReverse ? T.lg : T.base, fontWeight: isReverse ? 600 : 500, fontFamily: isReverse ? fontJa : "inherit" }}>{isReverse ? w[0] : w[2]}</span>
+            {isReverse && answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{w[2]}</div>}
+          </ChoiceCard>;
         })}
       </div>
       {answered && <>
@@ -2889,10 +2867,7 @@ export default function SmartSession({
         {choiceAnswer.choices.map((choice, i) => {
           const isCorrect = choice === blankSeg[0];
           const isSelected = choiceAnswer.selected === choice;
-          let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
-          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
-          // Find the meaning of this choice from breakdowns
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
           let choiceMeaning = "";
           if (answered) {
             for (const [, segs] of Object.entries(PHRASE_BREAKDOWNS)) {
@@ -2900,7 +2875,7 @@ export default function SmartSession({
               if (found) { choiceMeaning = found[2]; break; }
             }
           }
-          return <button key={i} onClick={() => {
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const ok = choice === blankSeg[0];
             setChoiceAnswer({ ...choiceAnswer, selected: choice, correct: ok });
@@ -2908,10 +2883,10 @@ export default function SmartSession({
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             reviewPhr(p[0], ok, "phrase-build", getResponseMs());
             if (ok) speakPhrase(p[0], p[1]);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.lg, fontWeight: 600, textAlign: "left", transition: "all .2s" }}>
-            {choice}
-            {answered && choiceMeaning && <span style={{ fontSize: T.sm, color: c.m, fontWeight: 400, marginLeft: 8 }}>({choiceMeaning})</span>}
-          </button>;
+          }}>
+            <span style={{ fontSize: T.lg, fontWeight: 600, fontFamily: fontJa }}>{choice}</span>
+            {answered && choiceMeaning && <span style={{ fontSize: T.sm, color: c.m2, fontWeight: 400, marginLeft: 8 }}>({choiceMeaning})</span>}
+          </ChoiceCard>;
         })}
       </div>
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
@@ -3090,10 +3065,8 @@ export default function SmartSession({
         {choiceAnswer.choices.map((ch, i) => {
           const isCorrect = ch === ex.item;
           const isSelected = choiceAnswer.selected === ch;
-          let bg = c.s, border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = c.g + "20"; border = c.g + "55"; col = c.g; }
-          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
-          return <button key={i} onClick={() => {
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} align="center" onClick={() => {
             if (answered) return;
             const ok = ch === ex.item;
             setChoiceAnswer({ ...choiceAnswer, selected: ch });
@@ -3101,9 +3074,9 @@ export default function SmartSession({
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             updateKanaSRS(ex.item, ok, "kana-reverse", getResponseMs());
             setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1000 : 2000) : 4000);
-          }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: answered ? bg : c.s, color: answered ? col : c.tx, fontSize: T.xxl, textAlign: "center", transition: "all .15s" }}>
-            {ch}
-          </button>;
+          }}>
+            <span style={{ fontSize: T.xxl, fontFamily: fontJa }}>{ch}</span>
+          </ChoiceCard>;
         })}
       </div>
     </>);
@@ -3217,10 +3190,8 @@ export default function SmartSession({
         {choiceAnswer.choices.map((choice, i) => {
           const isCorrect = choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
-          let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
-          if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
-          return <button key={i} onClick={() => {
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const ok = choice[0] === p[0];
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
@@ -3228,16 +3199,16 @@ export default function SmartSession({
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             reviewPhr(p[0], ok, "phrase-reverse", getResponseMs());
             if (ok) speakPhraseWithEnglish(p[0], p[1], p[3]);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.lg, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
+          }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                {choice[1]}
-                {answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 3 }}>{choice[3]}</div>}
+                <div style={{ fontSize: T.lg, fontWeight: 600, fontFamily: fontJa }}>{choice[1]}</div>
+                {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 3 }}>{choice[3]}</div>}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }}
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></span>}
             </div>
-          </button>;
+          </ChoiceCard>;
         })}
       </div>
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
@@ -3317,19 +3288,18 @@ export default function SmartSession({
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {choiceAnswer.choices.map((choice, i) => {
-          let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && choice[0] === p[0]) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
-          if (answered && choiceAnswer.selected === choice[0] && choice[0] !== p[0]) { bg = c.rs; border = c.a + "55"; col = c.a; }
-          return <button key={i} onClick={() => {
+          const isCorrect = choice[0] === p[0];
+          const isSelected = choiceAnswer.selected === choice[0];
+          const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
             setFb(choice[0] === p[0] ? "ok" : "no");
-            // Play correct phrase audio so they hear it
             speakPhrase(p[0], p[1]);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.md, textAlign: "left", transition: "all .2s" }}>
-            {choice[1]}
-            {answered && choice[0] === p[0] && <span style={{ fontSize: T.sm, color: c.g, marginLeft: 8 }}>= {p[3]}</span>}
-          </button>;
+          }}>
+            <span style={{ fontSize: T.md, fontFamily: fontJa, fontWeight: 600 }}>{choice[1]}</span>
+            {answered && isCorrect && <span style={{ fontSize: T.sm, color: c.g, marginLeft: 8 }}>= {p[3]}</span>}
+          </ChoiceCard>;
         })}
       </div>
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
