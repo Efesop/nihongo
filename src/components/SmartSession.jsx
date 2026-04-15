@@ -809,7 +809,7 @@ export default function SmartSession({
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: isDesktop ? T.lg : T.md, fontFamily: fontJa, fontWeight: 600 }}>{choice[1]}</div>
+                <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontFamily: fontJa, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 3, opacity: .9 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
@@ -875,10 +875,10 @@ export default function SmartSession({
           <div style={{ fontSize: T.md, color: c.tx, fontWeight: 600, marginBottom: 2 }}>What did you hear?</div>
           <div style={{ fontSize: T.sm, color: c.m2, marginBottom: 14 }}>Listen carefully, then pick the meaning.</div>
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1])} className="ts-btn" style={{ ...btn, padding: "8px 16px", borderRadius: 999, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => speakPhrase(p[0], p[1])} className="ts-btn" style={{ ...btn, padding: "8px 16px", borderRadius: 999, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <IconPlay size={14} /> play again
             </button>
-            <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1], { slow: true })} className="ts-btn" style={{ ...btn, padding: "8px 16px", borderRadius: 999, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <button onClick={() => speakPhrase(p[0], p[1], { slow: true })} className="ts-btn" style={{ ...btn, padding: "8px 16px", borderRadius: 999, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, display: "inline-flex", alignItems: "center", gap: 6 }}>
               <IconSlowPlay size={14} /> slow
             </button>
           </div>
@@ -908,7 +908,7 @@ export default function SmartSession({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 500 }}>{choice[3]}</div>
-                {answered && <div style={{ fontSize: T.sm, color: c.m2, fontFamily: fontJa, marginTop: 3 }}>{choice[1]}</div>}
+                {answered && <div style={{ fontSize: T.md, color: c.m2, fontFamily: fontJa, marginTop: 3, fontWeight: 600 }}>{choice[1]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
@@ -978,7 +978,7 @@ export default function SmartSession({
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.base : T.sm, fontWeight: 600 }}>{choice[1]}</div>
+                <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 3 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
@@ -1525,7 +1525,7 @@ export default function SmartSession({
                   setConvoSubmitted(true);
                   speakPhrase(p[0], p[1]);
                 }}>
-                  <div style={{ fontFamily: fontJa, fontWeight: 600 }}>{p[1]}</div>
+                  <div style={{ fontFamily: fontJa, fontWeight: 700, fontSize: T.lg, lineHeight: 1.3 }}>{p[1]}</div>
                   <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{p[3]}</div>
                 </ChoiceCard>
               ))}
@@ -2401,7 +2401,7 @@ export default function SmartSession({
                 setChainStep(chainStep + 1);
               }, ok ? 1200 : 2500);
             }}>
-              <div style={{ fontFamily: fontJa, fontWeight: 600 }}>{phrase[1]}</div>
+              <div style={{ fontFamily: fontJa, fontWeight: 700, fontSize: T.lg, lineHeight: 1.3 }}>{phrase[1]}</div>
               <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 2 }}>{phrase[2]}</div>
               {stepAnswered && <div style={{ fontSize: T.sm, color: isCorrect ? c.g : c.m2, marginTop: 2 }}>{phrase[3]}</div>}
             </ChoiceCard>;
@@ -2795,7 +2795,7 @@ export default function SmartSession({
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             if (isReverse && ok) speak(w[0]);
           }}>
-            <span style={{ fontSize: isReverse ? T.lg : T.base, fontWeight: isReverse ? 600 : 500, fontFamily: isReverse ? fontJa : "inherit" }}>{isReverse ? w[0] : w[2]}</span>
+            <span style={{ fontSize: isReverse ? T.xl : T.base, fontWeight: isReverse ? 700 : 500, fontFamily: isReverse ? fontJa : "inherit", lineHeight: 1.3 }}>{isReverse ? w[0] : w[2]}</span>
             {isReverse && answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{w[2]}</div>}
           </ChoiceCard>;
         })}
@@ -2909,7 +2909,7 @@ export default function SmartSession({
             reviewPhr(p[0], ok, "phrase-build", getResponseMs());
             if (ok) speakPhrase(p[0], p[1]);
           }}>
-            <span style={{ fontSize: T.lg, fontWeight: 600, fontFamily: fontJa }}>{choice}</span>
+            <span style={{ fontSize: T.xl, fontWeight: 700, fontFamily: fontJa, lineHeight: 1.3 }}>{choice}</span>
             {answered && choiceMeaning && <span style={{ fontSize: T.sm, color: c.m2, fontWeight: 400, marginLeft: 8 }}>({choiceMeaning})</span>}
           </ChoiceCard>;
         })}
@@ -3227,7 +3227,7 @@ export default function SmartSession({
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: T.lg, fontWeight: 600, fontFamily: fontJa }}>{choice[1]}</div>
+                <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, fontFamily: fontJa, lineHeight: 1.3 }}>{choice[1]}</div>
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 3 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
@@ -3322,7 +3322,7 @@ export default function SmartSession({
             setFb(choice[0] === p[0] ? "ok" : "no");
             speakPhrase(p[0], p[1]);
           }}>
-            <span style={{ fontSize: T.md, fontFamily: fontJa, fontWeight: 600 }}>{choice[1]}</span>
+            <span style={{ fontSize: T.xl, fontFamily: fontJa, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</span>
             {answered && isCorrect && <span style={{ fontSize: T.sm, color: c.g, marginLeft: 8 }}>= {p[3]}</span>}
           </ChoiceCard>;
         })}
