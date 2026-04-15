@@ -1,7 +1,12 @@
 export const SRS_DAYS=[0,0.5,1,3,7,14];
 export const KEY="nihongo-v4";
 
-export const font='"Noto Sans JP","Hiragino Sans",system-ui,sans-serif';
+// Primary UI font — Zen Kaku Gothic New (Adobe-designed, distinctive geometric, full JP coverage)
+export const font='"Zen Kaku Gothic New","Hiragino Sans",system-ui,sans-serif';
+// Japanese display accent — Klee One (educational handwritten feel, use for prominent phrase/kana display)
+export const fontJa='"Klee One","Zen Kaku Gothic New","Hiragino Sans",serif';
+// Brand/hero font — Yuji Boku (brush calligraphy)
+export const fontBrand='"Yuji Boku","Zen Kaku Gothic New",serif';
 export const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
 
 // ═══ TYPOGRAPHY — single source of truth for font sizes ═══

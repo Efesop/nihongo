@@ -168,6 +168,52 @@ export function RomajiReveal({ visible, revealed, onReveal, romaji, c, btn }) {
 }
 
 /**
+ * ChoiceCard — uniform answer choice button.
+ * state: "idle" | "correct" | "wrong" | "dim" | "revealed"
+ * Use for multi-choice exercises (phrase-listen, phrase-scenario, kana-reverse, etc).
+ */
+export function ChoiceCard({ onClick, disabled, state = "idle", c, btn, children, title, subtitle, meta, align = "left" }) {
+  const bg = {
+    idle: c.s2,
+    correct: c.g + "22",
+    wrong: c.a + "18",
+    dim: c.s,
+    revealed: c.g + "18",
+  }[state];
+  const border = {
+    idle: "1px solid " + c.b,
+    correct: "2px solid " + c.g,
+    wrong: "2px solid " + c.a,
+    dim: "1px solid " + c.b,
+    revealed: "2px solid " + c.g + "88",
+  }[state];
+  const textCol = state === "dim" ? c.m : c.tx;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="ts-choice"
+      style={{
+        ...btn, width: "100%", padding: "12px 14px", borderRadius: 10,
+        background: bg, border: border, color: textCol,
+        fontSize: T.base, fontWeight: 500,
+        textAlign: align,
+        display: "block",
+        opacity: state === "dim" ? 0.55 : 1,
+      }}
+    >
+      {title !== undefined ? (
+        <>
+          <div style={{ fontSize: T.base, fontWeight: 600, color: textCol }}>{title}</div>
+          {subtitle && <div style={{ fontSize: T.sm, color: c.m2 || c.m, marginTop: 2 }}>{subtitle}</div>}
+          {meta && <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m2 || c.m, marginTop: 4 }}>{meta}</div>}
+        </>
+      ) : children}
+    </button>
+  );
+}
+
+/**
  * PlayButton — standard audio replay button.
  * size: "sm" (compact pill) | "md" (default) | "lg" (prominent)
  * slow: true → turtle/slow-play icon

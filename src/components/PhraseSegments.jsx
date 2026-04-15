@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
+import { fontJa } from "../data/constants.js";
 
 const GRAMMAR_COLORS = {
   particle: "#e8a838",
@@ -36,7 +37,7 @@ export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight 
           onMouseEnter={() => setActiveSegment(i)}
           onMouseLeave={() => setActiveSegment(null)}
           style={{
-            fontSize, fontWeight,
+            fontSize, fontWeight, fontFamily: fontJa,
             cursor: "pointer",
             padding: "2px 6px",
             borderRadius: 6,
