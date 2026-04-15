@@ -11,7 +11,8 @@ import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 import { KEY_WORDS, WORD_CATS } from "../data/keyWords.js";
-import { ActionBar, HintChip, RomajiReveal } from "./SessionParts.jsx";
+import { ActionBar, HintChip, RomajiReveal, TypeLabel, ensureSessionStyles } from "./SessionParts.jsx";
+import { IconPlay, IconSlowPlay, IconEar, IconBulb, IconBlock, IconEye, IconSkip, IconBackspace, IconCheck, IconArrowRight, IconMic, IconSparkle, IconRefresh } from "./Icons.jsx";
 import { track as telemetryTrack, flush as telemetryFlush } from "../utils/telemetry.js";
 
 export default function SmartSession({
@@ -146,6 +147,7 @@ export default function SmartSession({
     if (cards.length === 0 && !done) {
       // Build session right away — no waiting for API
       try {
+        ensureSessionStyles();
         const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
         if (session.length > 0) {
           setCards(session);
@@ -565,7 +567,7 @@ export default function SmartSession({
     <button onClick={() => setCoachDismissed(true)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", color: c.m, fontSize: T.base, flexShrink: 0 }}>✕</button>
   </div> : null;
 
-  const withSenpai = (content) => <div style={inner}>{header}{coachBanner}{content}{senpaiBar}</div>;
+  const withSenpai = (content) => <div className="ts-session" style={inner}>{header}{coachBanner}{content}{senpaiBar}</div>;
 
   const EXERCISE_LABELS = {
     "learn-card": "NEW KANA",
@@ -598,7 +600,7 @@ export default function SmartSession({
     "branch-convo": "CONVERSATION",
     "leech-review": "EXTRA REVIEW",
   };
-  const typeLabel = <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10 }}>{EXERCISE_LABELS[ex.type] || ex.type}</div>;
+  const typeLabel = <TypeLabel c={c}>{EXERCISE_LABELS[ex.type] || ex.type}</TypeLabel>;
 
   // Build hint text from the current exercise
   const buildHint = () => {
@@ -695,7 +697,7 @@ export default function SmartSession({
       <div style={{ ...card, textAlign: "center", padding: "32px 24px", marginBottom: 16 }}>
         <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 10 }}>What did you hear?</div>
         <div style={{ fontSize: 52, marginBottom: 14 }}>👂</div>
-        <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 play again</button>
+        <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊 play again</button>
         {answered && <div style={{ marginTop: 16, borderTop: "1px solid " + c.b, paddingTop: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
             <div>
@@ -758,7 +760,7 @@ export default function SmartSession({
             <span style={{ fontSize: T.base }}>{CAT_ICONS[p[4]]}</span>
             <span style={{ fontSize: T.sm, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
           </div>
-          <div style={{ fontSize: T.base, color: c.m, marginBottom: 8 }}>{situations[p[4]]}</div>
+          <div style={{ fontSize: T.base, color: c.m2, marginBottom: 8 }}>{situations[p[4]]}</div>
           <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx }}>{p[3]}</div>
           {!answered && <div style={{ marginTop: 4 }}>
             <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />
@@ -779,16 +781,15 @@ export default function SmartSession({
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? T.lg : T.md, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
+          }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? T.lg : T.md, fontWeight: 500, textAlign: "left" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 {choice[1]}
-                {/* Romaji fading: hide in choices at higher box levels to force reading Japanese */}
-                {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m) : c.a, marginTop: 3, opacity: .8 }}>{choice[2]}</div>}
-                {answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{choice[3]}</div>}
+                {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 3, opacity: .9 }}>{choice[2]}</div>}
+                {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }}
-                style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, cursor: "pointer", flexShrink: 0 }}>🔊</span>}
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
+                style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
             </div>
           </button>;
         })}
@@ -799,23 +800,21 @@ export default function SmartSession({
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
           reviewPhr(p[0], correct, ex.type, getResponseMs());
           speakPhraseWithEnglish(p[0], p[1], p[3]);
-        }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered && choiceAnswer.isTrick ? c.gs : answered && choiceAnswer.selected === "none" ? c.rs : c.a + "10", color: answered ? c.m : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4 }}>
-          🚫 None of these match
+        }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered && choiceAnswer.isTrick ? c.gs : answered && choiceAnswer.selected === "none" ? c.rs : c.a + "10", color: answered ? c.m2 : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <IconBlock size={16} /> <span>None of these match</span>
         </button>
         {answered && <div style={{ ...card, padding: "16px 20px", borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "visible" }}>
-          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8 }}>✓ Correct answer</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8, fontWeight: 600 }}><IconCheck size={12} /> <span>Correct answer</span></div>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8 }}>{p[2]}</div>
-          <div style={{ fontSize: T.base, color: c.m, marginTop: 4 }}>{p[3]}</div>
+          <div style={{ fontSize: T.base, color: c.tx, marginTop: 4, fontWeight: 500 }}>{p[3]}</div>
         </div>}
-        {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-            style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
-          <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
-            style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
-          <button onClick={() => advance(choiceAnswer.correct)}
-            style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
-        </div>}
+        {answered && <ActionBar
+          onPlay={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
+          onSlow={() => speakPhrase(p[0], p[1], { slow: true })}
+          onNext={() => advance(choiceAnswer.correct)}
+          c={c} btn={btn}
+        />}
       </div>
     </>);
   }
@@ -838,12 +837,25 @@ export default function SmartSession({
         {answered && <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
           style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block" }}
           onError={e => { e.target.style.display = "none"; }} />}
-        <div style={{ padding: "24px 20px", textAlign: "center", borderBottom: answered ? "1px solid " + c.b : "none" }}>
-          <div style={{ fontSize: T.huge, marginBottom: 8 }}>👂</div>
-          <div style={{ fontSize: T.sm, color: c.m, marginBottom: 12 }}>What did you hear?</div>
+        <div style={{ padding: "28px 20px", textAlign: "center", borderBottom: answered ? "1px solid " + c.b : "none" }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: "50%",
+            background: "radial-gradient(circle at 30% 30%, " + c.a + "22, " + c.a + "08)",
+            border: "1px solid " + c.a + "33",
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            color: c.a, marginBottom: 10,
+          }}>
+            <IconEar size={32} />
+          </div>
+          <div style={{ fontSize: T.md, color: c.tx, fontWeight: 600, marginBottom: 2 }}>What did you hear?</div>
+          <div style={{ fontSize: T.sm, color: c.m2, marginBottom: 14 }}>Listen carefully, then pick the meaning.</div>
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 play again</button>
-            <button onClick={() => speakPhrase(p[0], p[1], { slow: true })} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🐢 slow</button>
+            <button onClick={() => speakPhrase(p[0], p[1])} className="ts-btn" style={{ ...btn, padding: "8px 16px", borderRadius: 999, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <IconPlay size={14} /> play again
+            </button>
+            <button onClick={() => speakPhrase(p[0], p[1], { slow: true })} className="ts-btn" style={{ ...btn, padding: "8px 16px", borderRadius: 999, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <IconSlowPlay size={14} /> slow
+            </button>
           </div>
           {!answered && <div style={{ marginTop: 10 }}>
             <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />
@@ -869,14 +881,14 @@ export default function SmartSession({
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             reviewPhr(p[0], correct, "phrase-listen", getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.base, textAlign: "left", transition: "all .2s" }}>
+          }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.base, textAlign: "left" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                {choice[3]}
-                {answered && <div style={{ fontSize: T.base, color: c.m, marginTop: 3 }}>{choice[1]}</div>}
+                <div style={{ color: col === c.tx ? c.tx : col, fontWeight: 500 }}>{choice[3]}</div>
+                {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 3 }}>{choice[1]}</div>}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }}
-                style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, cursor: "pointer", flexShrink: 0 }}>🔊</span>}
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
+                style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
             </div>
           </button>;
         })}
@@ -886,15 +898,15 @@ export default function SmartSession({
           setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
           reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
-        }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered ? "transparent" : c.a + "10", color: answered ? c.m : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4 }}>🚫 None of these match</button>
-        {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-          <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-            style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
-          <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
-            style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
-          <button onClick={() => advance(choiceAnswer.correct)}
-            style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
-        </div>}
+        }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered ? "transparent" : c.a + "10", color: answered ? c.m2 : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <IconBlock size={16} /> <span>None of these match</span>
+        </button>
+        {answered && <ActionBar
+          onPlay={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
+          onSlow={() => speakPhrase(p[0], p[1], { slow: true })}
+          onNext={() => advance(choiceAnswer.correct)}
+          c={c} btn={btn}
+        />}
       </div>
     </>);
   }
@@ -945,7 +957,7 @@ export default function SmartSession({
                 {answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }}
-                style={{ padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, cursor: "pointer", flexShrink: 0 }}>🔊</span>}
+                style={{ padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</span>}
             </div>
           </button>;
         })}
@@ -992,9 +1004,9 @@ export default function SmartSession({
       })()}
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊</button>
         <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🐢</button>
         <button onClick={() => advance(choiceAnswer.correct)}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
       </div>}
@@ -1013,7 +1025,7 @@ export default function SmartSession({
           <div style={{ flex: "1 1 40%", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
             <div style={{ fontSize: isDesktop ? 100 : 80, lineHeight: 1 }}>{ex.item}</div>
             <div style={{ fontSize: isDesktop ? T.xxl : T.xl, fontWeight: 700, color: c.ro, fontFamily: mono }}>{ex.romaji}</div>
-            <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "5px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.base, color: c.m }}>🔊</button>
+            <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "5px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.base, color: c.tx }}>🔊</button>
           </div>
           <img src={imgPath} alt={m ? m[1] : ex.romaji} onError={e => { e.target.style.display = "none"; }}
             style={{ flex: "1 1 60%", maxWidth: "55%", borderRadius: 12, display: "block" }} />
@@ -1147,13 +1159,13 @@ export default function SmartSession({
                 <div style={{ fontSize: T.sm, color: c.m }}>{confusionNote.other[3]}</div>
               </div>
               <button onClick={e => { e.stopPropagation(); speakPhrase(confusionNote.other[0], confusionNote.other[1]); }}
-                style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
+                style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</button>
             </div>
             <div style={{ fontSize: T.sm, color: c.tx, lineHeight: 1.5 }}>{confusionNote.hint}</div>
           </div>}
           <div style={{ fontSize: T.sm, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
           <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}
-            style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, marginTop: 10 }}>🔊 hear again</button>
+            style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊 hear again</button>
         </div>
       </div>
       {/* Inline retrieval check — pick the right English meaning */}
@@ -1261,12 +1273,12 @@ export default function SmartSession({
             <div style={{ fontSize: T.xs, color: c.m, fontFamily: mono }}>{branchData.npcLine.speaker}</div>
             <div style={{ display: "flex", gap: 4 }}>
               <button onClick={() => speak(branchData.npcLine.japanese)}
-                style={{ ...btn, padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🔊</button>
+                style={{ ...btn, padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.xs, color: c.tx }}>🔊</button>
               <button onClick={() => { /* slow via playbackRate */
                 const utt = new SpeechSynthesisUtterance(branchData.npcLine.japanese);
                 utt.lang = "ja-JP"; utt.rate = 0.7;
                 window.speechSynthesis?.speak(utt);
-              }} style={{ ...btn, padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🐢</button>
+              }} style={{ ...btn, padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.xs, color: c.tx }}>🔊</button>
             </div>
           </div>
           <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, marginBottom: 4 }}>{branchData.npcLine.japanese}</div>
@@ -1355,7 +1367,7 @@ export default function SmartSession({
               setTimeout(playNext, 3000);
             };
             playNext();
-          }} style={{ ...btn, padding: "4px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🔊 read all</button>
+          }} style={{ ...btn, padding: "4px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.xs, color: c.tx }}>🔊 read all</button>
         </div>
         {storyData.sentences?.map((s, i) => <div key={i} style={{ marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
           <div style={{ flex: 1 }}>
@@ -1441,7 +1453,7 @@ export default function SmartSession({
             <span style={{ fontSize: T.base }}>📖</span>
             <span style={{ fontSize: T.xs, fontFamily: mono, color: c.g, textTransform: "uppercase", fontWeight: 600 }}>{gs.title}</span>
           </div>
-          <button onClick={playAll} style={{ ...btn, padding: "6px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it</button>
+          <button onClick={playAll} style={{ ...btn, padding: "6px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊 hear it</button>
         </div>
         {/* Conversation-style bubbles */}
         {gs.sentences.map((s, i) => {
@@ -1587,8 +1599,8 @@ export default function SmartSession({
         <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginBottom: 4 }}>{p[2]}</div>
         <div style={{ fontSize: T.base, color: c.m, marginBottom: 16 }}>{p[3]}</div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-          <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it</button>
-          <button onClick={() => speakPhrase(p[0], p[1], { slow: true })} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🐢 slow</button>
+          <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊 hear it</button>
+          <button onClick={() => speakPhrase(p[0], p[1], { slow: true })} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🐢 slow</button>
         </div>
       </div>
 
@@ -1649,7 +1661,7 @@ export default function SmartSession({
         {supported && <button onClick={() => { setShadowResult(null); setShadowState("idle"); }}
           style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔄 retry</button>}
         <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🐢</button>
         <button onClick={() => advance(shadowResult.correct)}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>{shadowResult.graded ? "Next →" : "Skip →"}</button>
       </div>}
@@ -1862,9 +1874,9 @@ export default function SmartSession({
       {/* Result + next button */}
       {kanaSubmitted && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🐢</button>
         <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊</button>
         <button onClick={() => advance(fb === "ok")}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
       </div>}
@@ -2134,7 +2146,7 @@ export default function SmartSession({
                 <div style={{ fontSize: T.sm, color: c.m }}>{phrase[3]}</div>
               </div>
               <button onClick={() => speakPhrase(id, phrase[1])}
-                style={{ ...btn, padding: "8px 12px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.base, color: c.m, flexShrink: 0 }}>🔊</button>
+                style={{ ...btn, padding: "8px 12px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.base, color: c.tx }}>🔊</button>
             </div>;
           })}
         </div>
@@ -2202,7 +2214,7 @@ export default function SmartSession({
           {remix.components && <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
             {remix.components.map((comp, j) => <span key={j} style={{ padding: "2px 8px", borderRadius: 6, background: c.ac + "18", fontSize: T.xs, color: c.ac }}>{comp}</span>)}
           </div>}
-          <button onClick={() => speak(remix.jp)} style={{ ...btn, marginTop: 8, padding: "4px 14px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊</button>
+          <button onClick={() => speak(remix.jp)} style={{ ...btn, marginTop: 8, padding: "4px 14px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</button>
         </div>)}
       </div>
 
@@ -2476,7 +2488,7 @@ export default function SmartSession({
               <span style={{ fontSize: T.sm, fontWeight: 600 }}>{convo.setting}</span>
             </div>
             <button onClick={playUpToBlank}
-              style={{ ...btn, padding: "4px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🔊 hear setup</button>
+              style={{ ...btn, padding: "4px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.xs, color: c.tx }}>🔊 hear setup</button>
           </div>
           {convo.lines.map((line, li) => {
             if (!line.blank) {
@@ -2485,7 +2497,7 @@ export default function SmartSession({
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <div style={{ fontSize: T.base, fontWeight: 500, flex: 1 }}>{line.text}</div>
-                    <button onClick={() => speak(line.text)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
+                    <button onClick={() => speak(line.text)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</button>
                   </div>
                 </div>
               </div>;
@@ -2580,7 +2592,7 @@ export default function SmartSession({
                   <span style={{ fontSize: T.base, fontWeight: 500 }}>{answeredPhrase?.[1]}</span>
                   <span style={{ fontSize: T.sm, color: c.m }}>{answeredPhrase?.[3]}</span>
                   <button onClick={() => speakPhrase(answered, answeredPhrase?.[1])}
-                    style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
+                    style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</button>
                 </div>
               </div>
               {/* Correct answer if wrong */}
@@ -2590,7 +2602,7 @@ export default function SmartSession({
                   <span style={{ fontSize: T.sm, fontWeight: 500, color: c.g }}>{correctPhrase?.[1]}</span>
                   <span style={{ fontSize: T.sm, color: c.m }}>{correctPhrase?.[3]}</span>
                   <button onClick={() => speakPhrase(line.correctId, correctPhrase?.[1])}
-                    style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
+                    style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</button>
                 </div>
               </div>}
             </div>
@@ -2642,7 +2654,7 @@ export default function SmartSession({
             </button>;
           })}
         </div>
-        <button onClick={() => speak(targetChar)} style={{ ...btn, marginTop: 12, padding: "6px 16px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.base, color: c.m }}>🔊 hear again</button>
+        <button onClick={() => speak(targetChar)} style={{ ...btn, marginTop: 12, padding: "6px 16px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.base, color: c.tx }}>🔊 hear again</button>
         {answered && <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b }}>
           <div style={{ fontSize: T.base, color: c.tx }}>{pair.hint}</div>
           <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
@@ -2696,7 +2708,7 @@ export default function SmartSession({
                   <div style={{ fontSize: T.base, color: c.tx, fontWeight: 500 }}>{p[3]}</div>
                 </div>
                 <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-                  style={{ ...btn, padding: "6px 12px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
+                  style={{ ...btn, padding: "6px 12px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</button>
               </div>
             </div>)}
           </div>
@@ -2761,7 +2773,7 @@ export default function SmartSession({
           {/* Normal: show Japanese, user picks English meaning */}
           <div style={{ fontSize: T.huge, fontWeight: 800, color: c.tx, marginBottom: 4 }}>{word[0]}</div>
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginBottom: 4 }}>{word[1]}</div>
-          <button onClick={() => speak(word[0])} style={{ ...btn, padding: "4px 14px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it</button>
+          <button onClick={() => speak(word[0])} style={{ ...btn, padding: "4px 14px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊 hear it</button>
         </>}
       </div>
       <div style={{ fontSize: T.base, color: c.m, marginBottom: 8, textAlign: "center" }}>{isReverse ? "Which Japanese word?" : "What does this mean?"}</div>
@@ -2809,7 +2821,7 @@ export default function SmartSession({
         </div>}
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button onClick={() => speak(word[0])}
-            style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊 hear again</button>
+            style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊 hear again</button>
           <button onClick={() => advance(choiceAnswer.correct)}
             style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
         </div>
@@ -2904,7 +2916,7 @@ export default function SmartSession({
       </div>
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhrase(p[0], p[1])}
-          style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊 hear again</button>
+          style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊 hear again</button>
         <button onClick={() => advance(choiceAnswer.correct)}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
       </div>}
@@ -3032,7 +3044,7 @@ export default function SmartSession({
       {assemblySubmitted && <>
         <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
           <button onClick={() => speak(correctSentence)}
-            style={{ ...btn, flex: 1, padding: 14, borderRadius: 12, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.base }}>🔊 hear it</button>
+            style={{ ...btn, flex: 1, padding: 14, borderRadius: 12, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊 hear it</button>
           <button onClick={() => advance(isCorrectAnswer)}
             style={{ ...btn, flex: 2, padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>
         </div>
@@ -3172,7 +3184,7 @@ export default function SmartSession({
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button onClick={() => speakPhraseWithEnglish(target[0], target[1], target[3])}
-            style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊 hear again</button>
+            style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊 hear again</button>
           <button onClick={() => advance(choiceAnswer.correct)}
             style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
         </div>
@@ -3223,16 +3235,16 @@ export default function SmartSession({
                 {answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 3 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }}
-                style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, cursor: "pointer", flexShrink: 0 }}>🔊</span>}
+                style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</span>}
             </div>
           </button>;
         })}
       </div>
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊</button>
         <button onClick={() => speakPhrase(p[0], p[1], { slow: true })}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🐢</button>
+          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🐢</button>
         <button onClick={() => advance(fb === "ok")}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
       </div>}
@@ -3254,7 +3266,7 @@ export default function SmartSession({
       <div style={{ ...card, textAlign: "center", padding: "28px 20px", marginBottom: 14, background: fb === "ok" ? c.g + "18" : fb === "no" ? c.rs : c.s }}>
         <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>What sound does this make?</div>
         <div style={{ fontSize: isDesktop ? 120 : 90, lineHeight: 1, marginBottom: 12 }}>{ex.item}</div>
-        <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "6px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, marginBottom: 8 }}>🔊 hear it</button>
+        <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "6px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊 hear it</button>
         {fb && <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: T.xl, fontWeight: 700, fontFamily: mono, color: fb === "ok" ? c.g : c.a }}>{ex.romaji}</div>
           <div style={{ fontSize: T.base, color: c.m, marginTop: 4 }}>{fb === "ok" ? "You already knew this!" : "No worries — you'll learn it next"}</div>
@@ -3322,7 +3334,7 @@ export default function SmartSession({
       </div>
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhrase(p[0], p[1])}
-          style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊 hear it</button>
+          style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}>🔊 hear it</button>
         <button onClick={() => advance(true)}
           style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Next →</button>
       </div>}
@@ -3347,7 +3359,7 @@ export default function SmartSession({
               <div style={{ flex: "1 1 40%", textAlign: "center" }}>
                 <div style={{ fontSize: 90, lineHeight: 1 }}>{ex.item}</div>
                 <div style={{ fontSize: T.xxl, fontWeight: 700, color: c.ro, fontFamily: mono, marginTop: 8 }}>{ex.romaji}</div>
-                <button onClick={() => speak(ex.item)} style={{ ...btn, marginTop: 8, padding: "5px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊</button>
+                <button onClick={() => speak(ex.item)} style={{ ...btn, marginTop: 8, padding: "5px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🔊</button>
               </div>
               <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }}
                 style={{ flex: "1 1 60%", maxWidth: "50%", borderRadius: 12 }} />
@@ -3425,7 +3437,7 @@ export default function SmartSession({
             <div style={{ fontSize: T.base, color: c.tx }}>Tap each word above to see what it means. Listen carefully to the pronunciation.</div>
           </div>
           <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-            style={{ ...btn, width: "100%", marginTop: 10, padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it slowly</button>
+            style={{ ...btn, width: "100%", marginTop: 10, padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}>🐢 hear it slowly</button>
           </div>
         </div>
         <button onClick={() => {
