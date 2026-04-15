@@ -4,6 +4,19 @@ import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { font, fontJa, mono, T } from "../data/constants.js";
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
+
+/**
+ * Deterministic ordering for MCQ choices — prevents jarring position shuffles between
+ * cards. Same items → same slot positions every time. Distractor variance still prevents
+ * pure position-memorization cheating since the correct answer's absolute slot depends
+ * on alphabet-order of whatever distractors landed in the pool this round.
+ */
+function stableChoices(arr) {
+  return [...arr].sort((a, b) => {
+    const keyOf = x => Array.isArray(x) ? String(x[1] ?? x[0] ?? "") : String(x);
+    return keyOf(a).localeCompare(keyOf(b));
+  });
+}
 import { buildSmartSession, getDistractors } from "../utils/sessionEngine.js";
 import PhraseSegments from "./PhraseSegments.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
@@ -292,6 +305,19 @@ export default function SmartSession({
 
   // Loading state — animated running mascot
   const runFrames = ["/images/tinysenpai/run/1.png", "/images/tinysenpai/run/2.png", "/images/tinysenpai/run/3.png", "/images/tinysenpai/run/4.png"];
+  // Auto-scroll to reveal Next button when an answer is submitted — avoids the "have to
+  // scroll down" frustration when the reveal card pushes the Next button out of viewport.
+  useEffect(() => {
+    if (choiceAnswer && (choiceAnswer.correct !== null && choiceAnswer.correct !== undefined)) {
+      const id = requestAnimationFrame(() => {
+        const el = document.querySelector('[data-ts-next="true"]');
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "end" });
+        else window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      });
+      return () => cancelAnimationFrame(id);
+    }
+  }, [choiceAnswer?.correct]);
+
   const loadingMessages = ["Preparing your training...", "Sharpening the blade...", "Setting up the dojo...", "Evaluating your weakness..."];
   const [loadingMsg] = useState(() => loadingMessages[Math.floor(Math.random() * loadingMessages.length)]);
   const [loadingFrame, setLoadingFrame] = useState(0);
@@ -687,7 +713,7 @@ export default function SmartSession({
       const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
       const sameScript = allKana.filter(ch => isHira ? ch.charCodeAt(0) >= 0x3040 && ch.charCodeAt(0) <= 0x309F : ch.charCodeAt(0) >= 0x30A0);
       const distractors = shuffle(sameScript).slice(0, 7);
-      const choices = shuffle([ex.item, ...distractors]);
+      const choices = stableChoices([ex.item, ...distractors]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
     }
@@ -913,10 +939,11 @@ export default function SmartSession({
     const p = ex.item;
     const catCol = CAT_COLORS[p[4]];
     if (!choiceAnswer) {
-      const isTrick = Math.random() < 0.15;
+      // Production requires the correct answer to be present — retrieval needs a target.
+      // No trick mode here (unlike phrase-scenario, where absence tests situational robustness).
       const distractors = getDistractors(p, 7);
-      const choices = isTrick ? shuffle(distractors).slice(0, 8) : shuffle([p, ...distractors.slice(0, 7)]);
-      setTimeout(() => setChoiceAnswer({ choices, selected: null, correct: null, isTrick }), 0);
+      const choices = stableChoices([p, ...distractors.slice(0, 7)]);
+      setTimeout(() => setChoiceAnswer({ choices, selected: null, correct: null, isTrick: false }), 0);
       return null;
     }
     const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
@@ -931,12 +958,17 @@ export default function SmartSession({
         {p[5] && <div style={{ fontSize: T.sm, color: c.m, fontStyle: "italic", marginTop: 6 }}>{p[5]}</div>}
         {!answered && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />}
       </div>
+      {/* Before answer: full 8-choice grid. After answer: collapse to just correct + user's
+         wrong pick (if any) — keeps the height stable so the Next button doesn't jump offscreen. */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-        {choiceAnswer.choices.map((choice, i) => {
+        {(answered
+          ? choiceAnswer.choices.filter(choice => choice[0] === p[0] || choice[0] === choiceAnswer.selected)
+          : choiceAnswer.choices
+        ).map((choice, i) => {
           const isCorrect = !choiceAnswer.isTrick && choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
           const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
-          return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
+          return <ChoiceCard key={choice[0]} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
@@ -956,13 +988,6 @@ export default function SmartSession({
           </ChoiceCard>;
         })}
       </div>
-      {!answered && <button onClick={() => {
-        const correct = !!choiceAnswer.isTrick;
-        setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
-        setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-        reviewPhr(p[0], correct, ex.type, getResponseMs());
-        speakPhraseWithEnglish(p[0], p[1], p[3]);
-      }} className="ts-btn" style={{ ...btn, width: "100%", padding: "14px 16px", borderRadius: 10, border: "2px dashed " + c.a + "66", background: c.a + "10", color: c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 10, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}><IconBlock size={14}/> None of these match</button>}
       {answered && <div style={{ ...card, padding: 0, borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "hidden" }}>
         <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
           style={{ width: "100%", height: isDesktop ? 160 : 130, objectFit: "cover", display: "block" }}
@@ -1676,7 +1701,7 @@ export default function SmartSession({
       const distractors = shuffle(
         PHRASES.filter(q => q[4] === p[4] && q[0] !== p[0])
       ).slice(0, 2);
-      const choices = shuffle([p, ...distractors]);
+      const choices = stableChoices([p, ...distractors]);
 
       const pickMeaning = (choice) => {
         if (choice[0] === p[0]) {
@@ -2734,7 +2759,7 @@ export default function SmartSession({
       const otherCat = KEY_WORDS.filter(w => w[3] !== word[3] && w[0] !== word[0]);
       const distractorPool = [...sameCat, ...shuffle(otherCat)].slice(0, 8);
       const distractors = shuffle(distractorPool).slice(0, 3);
-      const choices = shuffle([word, ...distractors]);
+      const choices = stableChoices([word, ...distractors]);
       if (!isReverse) speak(word[0]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
@@ -2825,7 +2850,7 @@ export default function SmartSession({
           }
         }
       }
-      const choices = shuffle([blankSeg[0], ...shuffle(sameType).slice(0, 3)]);
+      const choices = stableChoices([blankSeg[0], ...shuffle(sameType).slice(0, 3)]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
     }
@@ -3033,7 +3058,7 @@ export default function SmartSession({
       const allKana = Object.keys(ROMAJI).filter(ch => ch !== ex.item);
       const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
       const sameScript = allKana.filter(ch => isHira ? ch.charCodeAt(0) >= 0x3040 && ch.charCodeAt(0) <= 0x309F : ch.charCodeAt(0) >= 0x30A0);
-      const choices = shuffle([ex.item, ...shuffle(sameScript).slice(0, 7)]);
+      const choices = stableChoices([ex.item, ...shuffle(sameScript).slice(0, 7)]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
     }
@@ -3173,7 +3198,7 @@ export default function SmartSession({
       const box = data.phr?.[p[0]]?.box || 0;
       const distractorCount = box >= 3 ? 4 : 3;
       const distractors = getDistractors(p, distractorCount);
-      const choices = shuffle([p, ...distractors]);
+      const choices = stableChoices([p, ...distractors]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
     }
@@ -3260,7 +3285,7 @@ export default function SmartSession({
     const catCol = CAT_COLORS[p[4]];
     if (!choiceAnswer) {
       const distractors = getDistractors(p, 3);
-      const choices = shuffle([p, ...distractors]);
+      const choices = stableChoices([p, ...distractors]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
     }
@@ -3413,7 +3438,7 @@ export default function SmartSession({
         <button onClick={() => {
           // Set up the quiz: show English, pick the Japanese from 4 choices
           const distractors = getDistractors(p, 3);
-          const choices = shuffle([p, ...distractors]);
+          const choices = stableChoices([p, ...distractors]);
           setLeechChoices(choices);
           setLeechPhase("quiz");
           setLeechPicked(null);
