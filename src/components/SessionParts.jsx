@@ -12,6 +12,7 @@
 import { T, mono } from "../data/constants.js";
 import {
   IconPlay, IconSlowPlay, IconBulb, IconEye, IconArrowRight,
+  IconCheck, IconX, IconBlock,
 } from "./Icons.jsx";
 
 /**
@@ -162,6 +163,83 @@ export function RomajiReveal({ visible, revealed, onReveal, romaji, c, btn }) {
     }}>
       <IconEye size={12} />
       <span>reveal romaji</span>
+    </button>
+  );
+}
+
+/**
+ * PlayButton — standard audio replay button.
+ * size: "sm" (compact pill) | "md" (default) | "lg" (prominent)
+ * slow: true → turtle/slow-play icon
+ * label: optional text after icon ("hear it", "play again", etc)
+ */
+export function PlayButton({ onClick, slow = false, size = "md", label, c, btn, ariaLabel }) {
+  const sizes = {
+    sm: { padding: "4px 10px", borderRadius: 6, fontSize: T.xs, icon: 12 },
+    md: { padding: "8px 14px", borderRadius: 8, fontSize: T.sm, icon: 16 },
+    lg: { padding: "10px 18px", borderRadius: 10, fontSize: T.base, icon: 18 },
+  };
+  const s = sizes[size] || sizes.md;
+  const Icon = slow ? IconSlowPlay : IconPlay;
+  return (
+    <button
+      onClick={onClick}
+      className="ts-icon-btn"
+      aria-label={ariaLabel || (slow ? "Play slowly" : "Play")}
+      style={{
+        ...btn,
+        padding: s.padding,
+        borderRadius: s.borderRadius,
+        background: c.s2,
+        border: "1px solid " + c.b,
+        color: c.tx,
+        fontSize: s.fontSize,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: label ? 6 : 0,
+      }}
+    >
+      <Icon size={s.icon} />
+      {label && <span>{label}</span>}
+    </button>
+  );
+}
+
+/**
+ * ResultMark — inline ✓/✗ with optional label, themed colors.
+ */
+export function ResultMark({ correct, label, c, size = 14 }) {
+  const col = correct ? c.g : c.a;
+  const Icon = correct ? IconCheck : IconX;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      color: col, fontSize: T.sm, fontWeight: 600,
+    }}>
+      <Icon size={size} />
+      {label && <span>{label}</span>}
+    </span>
+  );
+}
+
+/**
+ * NoneOfThese — dashed red "none of these match" button.
+ */
+export function NoneOfThese({ onClick, c, btn, label = "None of these match" }) {
+  return (
+    <button
+      onClick={onClick}
+      className="ts-btn"
+      style={{
+        ...btn, width: "100%", padding: "14px 16px", borderRadius: 10,
+        border: "2px dashed " + c.a + "66", background: c.a + "10",
+        color: c.a, fontSize: T.base, fontWeight: 600,
+        textAlign: "center", marginTop: 10,
+        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+      }}
+    >
+      <IconBlock size={16} />
+      <span>{label}</span>
     </button>
   );
 }

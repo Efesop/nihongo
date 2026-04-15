@@ -97,3 +97,14 @@ export const IconRefresh = ({ size = 18 }) => (
     <path d="M20 8a8 8 0 00-14-4M4 6v4h4M4 16a8 8 0 0014 4M20 18v-4h-4"/>
   </svg>
 );
+
+export const IconX = ({ size = 18 }) => (
+  <svg {...base(size)}><path d="M6 6l12 12M18 6L6 18"/></svg>
+);
+
+export const IconVolume = ({ size = 18 }) => (
+  <svg {...base(size)}>
+    <path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" stroke="none"/>
+    <path d="M16 8a5 5 0 010 8M19 5a9 9 0 010 14"/>
+  </svg>
+);
