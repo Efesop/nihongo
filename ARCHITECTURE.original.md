@@ -1,6 +1,6 @@
 # TinySenpai — Architecture Guide
 
-Japanese learning app (kana + phrases + AI tutor + game). Single-page React app, Vercel.
+A Japanese learning app (kana + phrases + AI tutor + game) built as a single-page React app deployed on Vercel.
 
 **Live:** [tinysenpai.com](https://tinysenpai.com)
 
@@ -8,16 +8,16 @@ Japanese learning app (kana + phrases + AI tutor + game). Single-page React app,
 
 ## Product Vision
 
-TinySenpai — **fastest, most effective way to learn Japanese** — complete beginners and beyond. NOT traditional textbook app. Key principles:
+TinySenpai is the **fastest, most effective way to learn Japanese** — for complete beginners and beyond. It is NOT a traditional textbook app. Key principles:
 
 - **Phrases over isolated words** — learn grammar organically through real sentences
-- **Whatever method works**, not what's traditional. Mnemonic images, audio chains, trick questions — whatever locks in.
-- **Mnemonics everything** for kana. Every character has vivid visual story (apple for あ, boxer for う). Story audio pre-generated with ElevenLabs (Matilda voice).
-- **FSRS-5 drives all review**. Adaptive spaced repetition — per-item stability + difficulty, 85% target retention.
-- **Audio first-class**. Japanese pronunciation from Google TTS. English stories from ElevenLabs. Phrases from ElevenLabs.
-- **Smart Sessions** — AI-powered adaptive learning with coaching, stories, branching conversations, confused pair drilling, productive failure, cross-category variety.
-- **AI tutor (Senpai)** — harsh sensei character, knows user's progress, trip date, learning context. Roleplay scenarios, grammar explanations, personalised mnemonics.
-- **Mobile-first**, works great on desktop with sidebar nav.
+- **Use whatever method works best**, not what's traditional. Mnemonic images, audio chains, trick questions — whatever locks it in.
+- **Mnemonics are everything** for kana. Every character has a vivid visual story (apple for あ, boxer for う). Story audio pre-generated with ElevenLabs (Matilda voice).
+- **FSRS-5 drives all review**. Adaptive spaced repetition — per-item stability and difficulty tracking, 85% target retention.
+- **Audio is first-class**. Japanese pronunciation from Google TTS. English stories from ElevenLabs. Phrases from ElevenLabs.
+- **Smart Sessions** — AI-powered adaptive learning with coaching, stories, branching conversations, confused pair drilling, productive failure, and cross-category variety.
+- **The AI tutor (Senpai)** is a harsh sensei character who knows the user's progress, trip date, and learning context. Roleplay scenarios, grammar explanations, personalised mnemonics.
+- **Mobile-first** but works great on desktop with sidebar navigation.
 
 ---
 
@@ -27,7 +27,7 @@ TinySenpai — **fastest, most effective way to learn Japanese** — complete be
 # Deploy to production
 npx vercel --prod
 
-# Or push to main — Vercel auto-deploys
+# Or just push to main — Vercel auto-deploys
 
 # Generate audio files (one-time, needs ElevenLabs key)
 ELEVENLABS_API_KEY=xxx node scripts/generate-audio.mjs
@@ -47,8 +47,8 @@ npm run dev
 | Auth | Clerk (`@clerk/clerk-react`), `routing="virtual"` for embedded SignIn/SignUp |
 | Database | Neon PostgreSQL via `@neondatabase/serverless` |
 | Hosting | Vercel (static + serverless functions) |
-| TTS | Google Translate proxy (`/api/tts`) for Japanese, ElevenLabs static MP3s for stories + phrases |
-| SRS | FSRS-5 (Free Spaced Repetition Scheduler), 6-box back-compat |
+| TTS | Google Translate proxy (`/api/tts`) for Japanese, ElevenLabs pre-generated static MP3s for stories + phrases |
+| SRS | FSRS-5 (Free Spaced Repetition Scheduler) with 6-box backward compatibility |
 
 ---
 
@@ -75,25 +75,25 @@ src/
   data/
     kana.js              — M (mnemonics), H_GROUPS, K_GROUPS, ROMAJI, DAKUTEN_BASE, YOON_PARTS
     phrases.js           — 100 phrases, CATS, CAT_ICONS, CAT_COLORS (11 categories)
-    phraseBreakdowns.js  — Word-by-word: [japanese, romaji, meaning, grammar_type]
+    phraseBreakdowns.js  — Word-by-word breakdowns: [japanese, romaji, meaning, grammar_type]
     conversations.js     — Fill-in-the-blank dialogue scenarios
     confusedPairs.js     — 17 visually similar kana pairs (シ/ツ, は/ほ, etc.) with hints
     confusedPhrases.js   — 25+ structurally similar phrase pairs with hints
-    grammarPatterns.js   — 10 patterns auto-unlocking from phrase progress
-    kanaWords.js         — Vocab context words, 46 kana
-    regions.js           — Japan map (8 regions, cities, food, culture, linked phrases)
+    grammarPatterns.js   — 10 grammar patterns that auto-unlock from phrase progress
+    kanaWords.js         — Real vocabulary context words for 46 kana characters
+    regions.js           — Japan map data (8 regions, cities, food, culture, linked phrases)
     themes.js            — Dark/light theme color objects
     constants.js         — SRS_DAYS, fonts, typography scale (T), RP_SCENARIOS, LEVEL_THRESHOLDS
-    patternAssembly.js   — 10 grammar templates for sentence construction (pattern-assembly)
+    patternAssembly.js   — 10 grammar templates for sentence construction (pattern-assembly exercise)
 
   utils/
-    fsrs.js              — FSRS-5 (stability, difficulty, retrievability)
+    fsrs.js              — FSRS-5 implementation (stability, difficulty, retrievability)
     sessionEngine.js     — Smart session queue builder (~546 lines)
-    audio.js             — TTS playback (speak, speakPhrase, speakPhraseWithEnglish)
+    audio.js             — TTS playback functions (speak, speakPhrase, speakPhraseWithEnglish)
     storage.js           — localStorage + Neon DB sync (debounced)
     helpers.js           — shuffle, daysUntil
 
-  game/                  — Side-scroller game (separate chat, don't touch)
+  game/                  — Side-scroller game module (separate chat, don't touch)
     Game.jsx             — React wrapper
     engine.js            — Physics, combat, collision
     renderer.js          — Canvas drawing
@@ -108,13 +108,13 @@ api/
   coach.js               — Session coaching (plan + review)
   sync.js                — Neon DB read/write user data (Clerk auth)
   tts.js                 — Google Translate TTS proxy
-  story.js               — AI story generation, known phrases
+  story.js               — AI story generation using known phrases
   conversation.js        — AI branching dialogue scenarios
   mnemonic.js            — Personalised mnemonic generation
 
 scripts/
   generate-audio.mjs     — ElevenLabs audio generation (one-time)
-  generate-phrase-images.mjs  — Gemini scene image generation (100 phrases)
+  generate-phrase-images.mjs  — Gemini scene image generation (all 100 phrases)
   generate-scene-images.mjs   — Regenerate mismatched phrase scene images
   simulate-learning.mjs       — 60-session learning simulation (accuracy, progression)
   test-session-engine.mjs     — Unit tests for session engine (12 tests)
@@ -129,7 +129,7 @@ public/
     mnemonics/approved/  — Kana mnemonic images (hiragana/ + katakana/)
     tinysenpai/          — Game sprites (run, slash, jump, death, etc.)
     phrases/             — Category banner images
-    phrases/scenes/      — Per-phrase watercolor scene images (100, dual coding)
+    phrases/scenes/      — Per-phrase watercolor scene images (100, dual coding for learning)
     phrases/scenes/backup/ — Old scene images before regeneration
 ```
 
@@ -137,17 +137,17 @@ public/
 
 ## Smart Session Engine
 
-Core learning experience. `SmartSession.jsx` + `sessionEngine.js` together:
+The core learning experience. `SmartSession.jsx` + `sessionEngine.js` work together:
 
 ### Session Building (`sessionEngine.js` — ~600 lines)
 
-Builds adaptive 10-card exercise sessions via **specials-first** architecture:
+Builds adaptive 10-card exercise sessions through a **specials-first** architecture:
 
 #### Stage 1: Build Special Pool (reserved first)
-High-impact exercises reserved BEFORE reviews fill queue:
+High-impact exercises are reserved BEFORE reviews fill the queue:
 - **Pattern assembly** — generative sentence construction (3+ phrases, 10 templates)
-- **Phrase build** — fill missing segment
-- **Word quiz** — vocab in context
+- **Phrase build** — fill missing segment in a phrase
+- **Word quiz** — vocabulary in context
 - **Confused kana pair** — visual discrimination (20+ kana, 17 pairs)
 - **Confused phrase pair** — structural discrimination (5+ phrases, 25+ pairs)
 - **Grammar pattern** — auto-unlocked insights (10 patterns)
@@ -160,31 +160,31 @@ Up to 3 specials reserved per session (`maxSpecials = min(specialPool.length, 3)
 #### Stage 2: Fill Remaining Slots with Reviews
 `reviewSlots = sessionLength - reservedSpecials.length`
 
-Priority:
+Priority order:
 1. Help-requested items (up to 2 kana, 1 phrase)
 2. Frequent error items (up to 2 kana, 1 phrase)
 3. Easy wins — 1-2 high-box due items for confidence
-4. Due items — proportionally split kana/phrases by what's due
+4. Due items — proportionally split between kana/phrases based on what's actually due
 5. Recently learned — max 1 each (2-hour window, prevents cross-session repetition)
-6. Maintenance kana — high-box when too few kana in queue
+6. Maintenance kana — high-box items when too few kana in queue
 7. **Productive failure** — quiz BEFORE teaching new items:
    - `try-first-kana` → delayed `learn-card` (2+ cards later)
    - `try-first-phrase` → delayed `learn-phrase` (2+ cards later)
-8. Filler slots from remaining due/unseen
+8. Filler slots from remaining due/unseen items
 
 #### Stage 3: Interleaving with Randomized Placement
-Specials placed with spacing + ±1 jitter (not fixed positions). Kana/phrase exercises alternate to prevent clustering.
+Specials are placed with spacing and ±1 jitter (not fixed positions). Kana/phrase exercises alternate to prevent clustering.
 
 #### Smart Phrase Ordering
-New phrases ordered by: mission-critical first (+100 score), known building blocks (+15 per familiar word fragment), cross-category interleaving (no 3+ from same category in a row).
+New phrases are ordered by: mission-critical first (+100 score), known building blocks (+15 per familiar word fragment), cross-category interleaving (no 3+ from same category in a row).
 
 ### Exercise Type Selection
 
-Exercise types chosen from SRS box level + multi-dimensional skill tracking:
+Exercise types are chosen based on SRS box level + multi-dimensional skill tracking:
 
-**Skill-based routing**: Each item tracks `visual`, `listen`, `production` scores (0-5). If item has 3+ total tests, weakest skill gets prioritised.
+**Skill-based routing**: Each item tracks `visual`, `listen`, `production` scores (0-5). If an item has 3+ total tests, the weakest skill gets prioritised.
 
-**Default progression** (when skill data sparse):
+**Default progression** (when skill data is sparse):
 
 | Box | phrase-scenario | phrase-listen | phrase-reverse | phrase-production |
 |-----|----------------|---------------|----------------|-------------------|
@@ -193,7 +193,7 @@ Exercise types chosen from SRS box level + multi-dimensional skill tracking:
 | 2 | 25% | 25% | 25% | 25% |
 | 3+ | — | 10% | 60% | 30% |
 
-Key design: production softened at box 1 (15% reverse, not 30%) to keep accuracy in 80-88% zone. Full production ramps at box 2-3.
+Key design: production exercises softened at box 1 (15% reverse, not 30%) to keep accuracy in the 80-88% zone. Full production ramps up at box 2-3.
 
 ### 19 Exercise Types
 
@@ -212,16 +212,16 @@ Key design: production softened at box 1 (15% reverse, not 30%) to keep accuracy
 | `phrase-reverse` | See English + context, pick Japanese | Box 1+ |
 | `phrase-production` | English → pick from 8 Japanese choices | Box 2+ |
 | `phrase-pair` | Confused phrases: distinguish similar structures | 5+ phrases |
-| `pattern-assembly` | Tap-to-build sentence from grammar template + vocab | 3+ phrases |
-| `leech-review` | Special mnemonic treatment, 5+ errors | 5+ errors |
+| `pattern-assembly` | Tap-to-build sentence from grammar template + vocabulary | 3+ phrases |
+| `leech-review` | Special mnemonic treatment for items with 5+ errors | 5+ errors |
 | `grammar-pattern` | Auto-unlocked grammar insight | 5+ phrases |
 | `conversation` | Fill-in-the-blank scripted dialogue | 5+ phrases |
-| `story` | AI-generated narrative, known phrases | 3+ phrases |
+| `story` | AI-generated narrative using known phrases | 3+ phrases |
 | `branch-convo` | Interactive AI dialogue tree | 8+ phrases |
 
 ### Response Time Tracking
-Every answer records ms (`getResponseMs()`). Used for:
-- Adaptive auto-advance timing on kana (fast <2s = 1.5s display, normal = 2.5s, slow >5s = 4s)
+Every answer records milliseconds to respond (`getResponseMs()`). Used for:
+- Adaptive auto-advance timing on kana exercises (fast <2s = 1.5s display, normal = 2.5s, slow >5s = 4s)
 - Phrase exercises use manual "Next →" button instead of auto-advance (prevents audio cutoff)
 - Stored in `answerLog` for future AI analysis
 
@@ -230,23 +230,23 @@ Every answer records ms (`getResponseMs()`). Used for:
 - Hover for quips, click for floating chat (can ask about current exercise)
 - Performance grades: S/A/B/C with different sprites
 - Typewriter text animation for speech bubbles
-- Items discussed in chat flagged via `helpRequested` for priority review
+- Items discussed in chat get flagged via `helpRequested` for priority review
 
 ---
 
 ## SRS System
 
 ### FSRS-5 (`utils/fsrs.js`)
-Free Spaced Repetition Scheduler:
+Implements Free Spaced Repetition Scheduler:
 
 - **Stability (S)**: Time until recall drops to 90%
-- **Difficulty (D)**: Per-item (1-10)
+- **Difficulty (D)**: Per-item difficulty (1-10 scale)
 - **Retrievability (R)**: Current probability of recall
-- **Target**: 85% retention
+- **Target**: 85% retention rate
 - **Intervals**: Auto-calculated from stability curve
 - **`lastReview`**: Timestamp of last review — used for elapsed time and 2-hour recently-learned window
 
-Maps to 6-box system (0-5) for back-compat via `stabilityToBox()`. Box 0 reserved for truly new items (minimum return is box 1 after first review).
+Maps to 6-box system (0-5) for backward compatibility via `stabilityToBox()`. Box 0 is reserved for truly new items (minimum return is box 1 after first review).
 
 ### Data Shape
 ```js
@@ -260,9 +260,9 @@ Maps to 6-box system (0-5) for back-compat via `stabilityToBox()`. Box 0 reserve
   started: ISO string,
   onboarded: boolean,
   onboarding: { why, level, focus, tripDate },
-  errors: { [itemId]: number },        // wrong-answer count per item (leech at 5+)
+  errors: { [itemId]: number },        // wrong-answer count per item (leech detection at 5+)
   skills: { [itemId]: { visual: 0-5, listen: 0-5, production: 0-5 } },
-  answerLog: [{ item, correct, type, ts, ms }],  // rolling buffer, last 200
+  answerLog: [{ item, correct, type, ts, ms }],  // rolling buffer, last 200 answers
   settings: {
     badges: ["first-session", "streak-3", ...],   // earned badge IDs
     sessionCount: number,
@@ -275,12 +275,12 @@ Maps to 6-box system (0-5) for back-compat via `stabilityToBox()`. Box 0 reserve
 ```
 
 ### Multi-Dimensional Skill Tracking
-Each item tracks three skill dimensions independently:
-- **Visual**: kana-visual, phrase-scenario
-- **Listen**: kana-listen, phrase-listen
-- **Production**: kana-reverse, phrase-reverse, phrase-production
+Each item independently tracks three skill dimensions:
+- **Visual**: kana-visual, phrase-scenario exercises
+- **Listen**: kana-listen, phrase-listen exercises
+- **Production**: kana-reverse, phrase-reverse, phrase-production exercises
 
-Correct: +1 (max 5). Wrong: -1 (min 0). After 3+ total tests, exercises routed to weakest skill.
+Correct: +1 (max 5). Wrong: -1 (min 0). After 3+ total tests, exercises are routed to the weakest skill.
 
 Skill map:
 ```js
@@ -291,7 +291,7 @@ Skill map:
 ```
 
 ### XP & Levels
-11-tier leveling: `[0, 100, 300, 600, 1000, 1500, 2200, 3000, 4000, 5500, 7500]`
+11-tier leveling system: `[0, 100, 300, 600, 1000, 1500, 2200, 3000, 4000, 5500, 7500]`
 
 ### Badges (12 total)
 | Badge | Trigger |
@@ -311,24 +311,24 @@ Skill map:
 
 ### Persistence Flow
 1. `save(updates)` → merges with `defaultD()` + previous state
-2. Writes localStorage immediately
-3. Debounces (1.5s), syncs to Neon DB via `/api/sync`
-4. On load: DB source of truth, falls back to localStorage
+2. Writes to localStorage immediately
+3. Debounces (1.5s) then syncs to Neon DB via `/api/sync`
+4. On load: DB is source of truth, falls back to localStorage
 
 ---
 
 ## Confused Pairs & Phrases
 
 ### Kana Confused Pairs (`confusedPairs.js` — 17 pairs)
-Visually similar kana with discrimination hints:
+Visually similar kana characters with discrimination hints:
 - Katakana: シ/ツ, ソ/ン, ノ/メ, ク/タ, ウ/ワ, コ/ユ, ア/マ, ヌ/ス
 - Hiragana: は/ほ, き/さ, わ/れ, ね/れ, め/ぬ, る/ろ, い/り
 - Dakuten: は/ば, か/が
 
-Exercise: "Which one is **shi**?" — shows both as large buttons, reveals hint after answering.
+Exercise: "Which one is **shi**?" — shows both characters as large buttons, reveals hint after answering.
 
 ### Confused Phrase Pairs (`confusedPhrases.js` — 25+ pairs)
-Structurally similar phrases, different meanings:
+Structurally similar phrases with different meanings:
 - **Particle confusion**: これをください vs これはいくらですか (を vs は changes "give me" to "how much")
 - **Same pattern, different noun**: えきはどこですか vs トイレはどこですか
 - **Request styles**: ～をください (things) vs ～てください (actions)
@@ -337,17 +337,17 @@ Structurally similar phrases, different meanings:
 - **Verb patterns**: たべたいです vs のみたいです vs いきたいです
 - **Polarity**: わかります vs わかりません
 
-Exercise: "Which means **How much is this?**" — shows both phrases, reveals hint explaining key structural difference.
+Exercise: "Which one means **How much is this?**" — shows both phrases, reveals hint explaining the key structural difference.
 
 ---
 
 ## Grammar Patterns (`grammarPatterns.js` — 10 patterns)
 
-Auto-unlock from phrase progress. Implements Schmidt's Noticing Hypothesis — explicit attention to patterns after implicit exposure.
+Auto-unlock based on phrase progress. Implements Schmidt's Noticing Hypothesis — explicit attention to patterns after implicit exposure.
 
 | Pattern | Meaning | Unlocks when |
 |---------|---------|-------------|
-| ～をください | "please give me ~" | 3+ phrases with pattern |
+| ～をください | "please give me ~" | 3+ phrases with this pattern learned |
 | ～はどこですか | "where is ~?" | 3+ phrases |
 | ～おねがいします | polite "please" | 3+ phrases |
 | ～はなんですか | "what is ~?" | 2+ phrases |
@@ -366,7 +366,7 @@ Auto-unlock from phrase progress. Implements Schmidt's Noticing Hypothesis — e
 - **92 base**: 46 hiragana + 46 katakana — all with mnemonic images, stories, audio
 - **50 dakuten/handakuten**: Row-based learn mode
 - **66 yōon**: Row-based learn mode
-- **46 kana context words**: Real vocab on learn cards (e.g. あ → あめ "rain")
+- **46 kana context words**: Real vocabulary shown on learn cards (e.g. あ → あめ "rain")
 - **17 confused pairs**: Visual discrimination drills with hints
 
 ### Phrases (100 total, 11 categories)
@@ -402,12 +402,12 @@ Grammar types: particle, noun, verb, adjective, expression, counter, copula, suf
 ### Interactive Segments (`PhraseSegments.jsx`)
 - Color-coded by grammar type (particles=gold, nouns=blue, verbs=green, etc.)
 - Hover/tap shows tooltip with meaning, romaji, grammar type
-- Used in learn cards, correct answer reveals, phrase detail views
+- Used in learn cards, correct answer reveals, and phrase detail views
 
 ### Japan Map (`JapanMap.jsx` + `regions.js`)
 Interactive map of all 47 prefectures grouped into 8 regions:
-- Each region: cities, food specialties, cultural highlights, travel tips, linked phrases
-- Visiting all 8 regions earns "Explorer" badge
+- Each region has: cities, food specialties, cultural highlights, travel tips, linked phrases
+- Visiting all 8 regions earns the "Explorer" badge
 
 ---
 
@@ -421,15 +421,15 @@ Interactive map of all 47 prefectures grouped into 8 regions:
 | Row explanations | ElevenLabs | Lily | Static `/audio/rows/{id}.mp3` |
 
 **Why two systems?**
-- Google TTS better for single kana (always natural)
+- Google TTS better for single kana characters (always natural)
 - ElevenLabs better for longer content (warm, natural voice quality)
 
 ### Audio Playback
 - **Kana**: `speak(char)` → `/api/tts?lang=ja`
-- **Story chain**: JP pronunciation → Matilda story → JP again (preloaded)
+- **Story chain**: JP pronunciation → Matilda story → JP pronunciation again (preloaded)
 - **Phrase**: `/audio/phrase/{id}.mp3`, fallback to Google TTS
-- **Phrase with English**: `speakPhraseWithEnglish(id, jp, en)` — plays JP, then English via TTS
-- `_ttsAudio` module-level var tracks currently playing audio
+- **Phrase with English**: `speakPhraseWithEnglish(id, jp, en)` — plays JP then speaks English via TTS
+- `_ttsAudio` module-level variable tracks currently playing audio
 - `stopAudio()` kills audio on navigation (prevents overlap)
 
 ### File Naming
@@ -440,16 +440,16 @@ Interactive map of all 47 prefectures grouped into 8 regions:
 
 ## API Endpoints
 
-All use Clerk JWT auth.
+All use Clerk JWT authentication.
 
 | Endpoint | Method | AI Model | Purpose |
 |----------|--------|----------|---------|
 | `/api/chat` | POST | Claude Sonnet | Senpai AI tutor chat |
 | `/api/coach` | POST | Claude Sonnet | Session planning + performance review |
-| `/api/story` | POST | Claude Sonnet | AI-generated stories, known phrases |
+| `/api/story` | POST | Claude Sonnet | AI-generated stories using known phrases |
 | `/api/conversation` | POST | Claude Sonnet | Branching dialogue scenarios |
 | `/api/mnemonic` | POST | Claude Sonnet | Personalised kana mnemonics |
-| `/api/sync` | GET/POST | — | DB read/write user data |
+| `/api/sync` | GET/POST | — | Database read/write user data |
 | `/api/tts` | GET | — | Google Translate TTS proxy |
 
 ---
@@ -462,35 +462,35 @@ All use Clerk JWT auth.
 - `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` — auth
 
 ### Local / Scripts
-- `ELEVENLABS_API_KEY` — for `generate-audio.mjs` (one-time)
+- `ELEVENLABS_API_KEY` — for `generate-audio.mjs` (one-time generation)
 - Voice IDs: `VOICE_JA` (Lily: `pFZP5JQG7iQjIQuC4Bku`), `VOICE_EN` (Matilda: `XrExE9yKIg1WjnnlVkGX`)
 
 ---
 
 ## Known Gotchas & Past Bugs
 
-1. **Hooks at component top**: All `useState`/`useRef` at component top level, NEVER inside JSX vars, conditionals, render blocks. Caused multiple blank-screen crashes.
-2. **`save()` null spread**: `setD(prev => {...prev, ...u})` crashes when `prev` is null. Use `{...defaultD(), ...prev, ...u}`.
+1. **Hooks at component top**: All `useState`/`useRef` must be declared at component top level, NEVER inside JSX variables, conditionals, or render blocks. This has caused multiple blank-screen crashes.
+2. **`save()` null spread**: `setD(prev => {...prev, ...u})` crashes when `prev` is null. Always use `{...defaultD(), ...prev, ...u}`.
 3. **Clerk routing**: Must use `routing="virtual"`. Don't pass `signInUrl`/`signUpUrl` props.
 4. **Google TTS CORS**: Must proxy through `/api/tts.js`. Cannot call Google Translate directly from browser.
 5. **ElevenLabs language_code**: Must pass `language_code: "ja"` and `apply_language_text_normalization: true` for Japanese audio.
 6. **Audio overlap**: Call `stopAudio()` when navigating between cards. `_ttsAudio.src = ""` before releasing.
 7. **`migrate()` phr guard**: Always include `phr: raw.phr || {}` — old data may not have phr field.
-8. **Tooltip flickering**: PhraseSegments needs z-index on spans above mobile dismiss overlay.
-9. **Variable TDZ errors**: When reorganizing code, declare vars before first use (especially `sessionEngine.js`).
-10. **Pull before push**: Game module AI chat works simultaneously. Always `git stash && git pull --rebase && git stash pop` before committing.
-11. **recentPhrases filter**: Must use `d.next` not `p.next` — `p` is phrase tuple, not SRS data. Bug made filter always empty, caused cross-session repetition.
-12. **Box 0 invisible items**: `stabilityToBox()` minimum return is box 1. Box 0 reserved for truly unseen — else items with data but box 0 become neither "due" nor "unseen".
-13. **sessionCount scoping**: `sessionCount` must be declared at top of done-screen useEffect, not inside `.then()` callback. Wrong scoping caused ReferenceError crash on done screen.
-14. **Specials-first architecture**: Session engine reserves 2-3 slots for specials (pattern-assembly, grammar, confused pairs) BEFORE reviews. Old: reviews filled queue first, starved specials.
-15. **Production bonus**: FSRS gives 15% stability bonus for production types (kana-reverse, phrase-reverse, phrase-production, pattern-assembly). Defined in `PRODUCTION_TYPES` set, `fsrs.js`.
+8. **Tooltip flickering**: PhraseSegments needs z-index on spans above the mobile dismiss overlay.
+9. **Variable TDZ errors**: When reorganizing code, ensure variables are declared before first use (especially in `sessionEngine.js`).
+10. **Pull before push**: Another AI chat works on the game module simultaneously. Always `git stash && git pull --rebase && git stash pop` before committing.
+11. **recentPhrases filter**: Must use `d.next` not `p.next` — `p` is the phrase tuple, not SRS data. This bug made the filter always empty, causing cross-session repetition.
+12. **Box 0 invisible items**: `stabilityToBox()` minimum return is box 1. Box 0 is reserved for truly unseen items — otherwise items with data but box 0 become neither "due" nor "unseen".
+13. **sessionCount scoping**: `sessionCount` must be declared at the top of the done-screen useEffect, not inside a `.then()` callback. Wrong scoping caused a ReferenceError crash on the done screen.
+14. **Specials-first architecture**: The session engine reserves 2-3 slots for specials (pattern-assembly, grammar, confused pairs) BEFORE filling with reviews. Old approach: reviews filled the queue first and starved specials.
+15. **Production bonus**: FSRS gives 15% stability bonus for production exercise types (kana-reverse, phrase-reverse, phrase-production, pattern-assembly). Defined in `PRODUCTION_TYPES` set in `fsrs.js`.
 
 ---
 
 ## Style Conventions
 
-- All styles inline objects. No CSS files, no CSS-in-JS libraries.
-- Colors from `c` object (theme-aware): `c.bg`, `c.tx`, `c.a` (accent/red), `c.g` (green), `c.go` (gold), `c.m` (muted), `c.s` (surface), `c.s2` (surface2), `c.b` (border)
+- All styles are inline objects. No CSS files, no CSS-in-JS libraries.
+- Colors always from `c` object (theme-aware): `c.bg`, `c.tx`, `c.a` (accent/red), `c.g` (green), `c.go` (gold), `c.m` (muted), `c.s` (surface), `c.s2` (surface2), `c.b` (border)
 - **Typography**: Use `T` constants from `constants.js` — single source of truth for font sizes:
   - `T.xs` (11) — tiny accent labels, grammar tags
   - `T.sm` (13) — small labels, secondary info
@@ -508,7 +508,7 @@ All use Clerk JWT auth.
 
 ## Game Module (`src/game/`)
 
-Katana Zero-inspired side-scroller — **managed by separate AI chat**. Don't modify unless you're that chat.
+Katana Zero-inspired side-scroller — **managed by a separate AI chat**. Do not modify unless you're that chat.
 
 - 10 rooms, 1-hit kill, 3-hit slash combo
 - Wall jumping, dashing, slow-motion focus

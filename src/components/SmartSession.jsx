@@ -73,6 +73,9 @@ export default function SmartSession({
   const [kbTab, setKbTab] = useState(0); // kana keyboard tab: 0=basic, 1=dakuten, 2=katakana
   const [shadowState, setShadowState] = useState("idle"); // idle | listening | done
   const [shadowResult, setShadowResult] = useState(null); // { transcript, correct }
+  const [matchPicked, setMatchPicked] = useState(null); // number-match: currently selected left item
+  const [matchPairs, setMatchPairs] = useState([]); // number-match: completed {leftId, rightVal, correct}
+  const [matchWrong, setMatchWrong] = useState(null); // flash for wrong pair
   const [immersionIdx, setImmersionIdx] = useState(-1); // immersion: current phrase index
   const [immersionTaps, setImmersionTaps] = useState([]); // immersion: user tap timestamps
   const [immersionDone, setImmersionDone] = useState(false);
@@ -429,6 +432,7 @@ export default function SmartSession({
     setChainStep(0); setChainAnswers([]); setChainPicked(null);
     setKanaTyped([]); setKanaSubmitted(false); setKbTab(0);
     setShadowState("idle"); setShadowResult(null);
+    setMatchPicked(null); setMatchPairs([]); setMatchWrong(null);
     immersionTimers.current.forEach(t => clearTimeout(t)); immersionTimers.current = [];
     setImmersionIdx(-1); setImmersionTaps([]); setImmersionDone(false); setImmersionPlaying(false);
     cardStartTime.current = Date.now(); // Reset timer for next card
@@ -535,6 +539,7 @@ export default function SmartSession({
     "phrase-dj": "PHRASE REMIX",
     "mistake-memory": "MISTAKE ANALYSIS",
     "immersion": "IMMERSION LISTENING",
+    "number-match": "NUMBER MATCHING",
     "branch-convo": "CONVERSATION",
     "leech-review": "EXTRA REVIEW",
   };
@@ -1624,101 +1629,276 @@ export default function SmartSession({
     </>);
   }
 
+  // ═══ EXERCISE: NUMBER MATCH (tap-to-pair Japanese numbers ↔ numerals) ═══
+  if (ex.type === "number-match") {
+    // Build pool: known numbers + 1-2 distractors from unknowns to make harder
+    const NUMERAL_MAP = { n1: "1", n2: "2", n3: "3", n4: "4", n5: "5", n6: "6", n7: "7", n8: "8", n9: "9", n10: "10" };
+    const allNums = ["n1","n2","n3","n4","n5","n6","n7","n8","n9","n10"];
+    const known = ex.numberIds || [];
+    const unknown = allNums.filter(id => !known.includes(id));
+    // Use up to 6 known + up to 2 distractors (to challenge)
+    const roundIds = [...known.slice(0, 6), ...shuffle(unknown).slice(0, Math.min(2, 6 - Math.min(known.length, 6) + 2))].slice(0, 6);
+    if (roundIds.length === 0) { advance(true); return null; }
+
+    const phraseFor = id => PHRASES.find(p => p[0] === id);
+    const matchedLeftIds = new Set(matchPairs.map(m => m.leftId));
+    const matchedRightVals = new Set(matchPairs.map(m => m.rightVal));
+    const allMatched = matchedLeftIds.size >= roundIds.length;
+
+    // Stable shuffles per round (use roundIds as key)
+    const leftItems = roundIds.map(id => ({ id, jp: phraseFor(id)?.[1] || id, romaji: phraseFor(id)?.[2] || "" }));
+    const rightItems = shuffle([...roundIds]).map(id => ({ id, val: NUMERAL_MAP[id] }));
+
+    const tryPair = (leftId, rightId) => {
+      if (matchedLeftIds.has(leftId) || matchedRightVals.has(NUMERAL_MAP[rightId])) return;
+      const correct = leftId === rightId;
+      if (correct) {
+        const phrase = phraseFor(leftId);
+        if (phrase) speakPhrase(leftId, phrase[1]);
+        setMatchPairs(p => [...p, { leftId, rightVal: NUMERAL_MAP[rightId], correct: true }]);
+        setMatchPicked(null);
+        reviewPhr(leftId, true, "number-match", getResponseMs());
+        // All done?
+        if (matchedLeftIds.size + 1 >= roundIds.length) {
+          setScore(s => ({ ...s, c: s.c + 1 }));
+          senpaiReact(true);
+        }
+      } else {
+        setMatchWrong({ leftId, rightId });
+        reviewPhr(leftId, false, "number-match", getResponseMs());
+        setTimeout(() => { setMatchWrong(null); setMatchPicked(null); }, 800);
+      }
+    };
+
+    return withSenpai(<>
+      {typeLabel}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 12, textAlign: "center" }}>
+        <div style={{ fontSize: T.xl, marginBottom: 6 }}>🔢</div>
+        <div style={{ fontSize: T.base, fontWeight: 700, color: c.tx, marginBottom: 4 }}>Match the numbers</div>
+        <div style={{ fontSize: T.sm, color: c.m }}>Tap a Japanese word, then its number</div>
+      </div>
+
+      {!allMatched && <div style={{ display: "flex", gap: 10 }}>
+        {/* Left column — Japanese */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          {leftItems.map(item => {
+            const matched = matchedLeftIds.has(item.id);
+            const picked = matchPicked === item.id;
+            const wrong = matchWrong?.leftId === item.id;
+            let bg = c.s2, border = c.b, col = c.tx;
+            if (matched) { bg = c.gs; border = c.g + "60"; col = c.g; }
+            if (picked) { bg = c.ac + "20"; border = c.ac; col = c.ac; }
+            if (wrong) { bg = c.rs; border = c.a; col = c.a; }
+            return <button key={item.id} disabled={matched}
+              onClick={() => { if (!matched) setMatchPicked(item.id); }}
+              style={{ ...btn, padding: "14px 12px", borderRadius: 10, border: "2px solid " + border, background: bg, color: col, fontSize: T.lg, fontWeight: 600, transition: "all .15s", opacity: matched ? 0.5 : 1 }}>
+              <div>{item.jp}</div>
+              {matched && <div style={{ fontSize: T.xs, fontFamily: mono, marginTop: 2, opacity: 0.7 }}>{item.romaji}</div>}
+            </button>;
+          })}
+        </div>
+
+        {/* Right column — numerals */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+          {rightItems.map(item => {
+            const matched = matchedRightVals.has(item.val);
+            const wrong = matchWrong?.rightId === item.id;
+            let bg = c.s2, border = c.b, col = c.tx;
+            if (matched) { bg = c.gs; border = c.g + "60"; col = c.g; }
+            if (wrong) { bg = c.rs; border = c.a; col = c.a; }
+            return <button key={item.id + item.val} disabled={matched || !matchPicked}
+              onClick={() => { if (matchPicked && !matched) tryPair(matchPicked, item.id); }}
+              style={{ ...btn, padding: "14px 12px", borderRadius: 10, border: "2px solid " + border, background: bg, color: col, fontSize: T.xxl, fontWeight: 700, transition: "all .15s", opacity: matched ? 0.5 : matchPicked ? 1 : 0.6 }}>
+              {item.val}
+            </button>;
+          })}
+        </div>
+      </div>}
+
+      {/* Progress */}
+      <div style={{ marginTop: 12, fontSize: T.sm, color: c.m, textAlign: "center" }}>
+        {matchPairs.length} / {roundIds.length} matched
+      </div>
+
+      {allMatched && <div style={{ ...card, padding: "20px", marginTop: 14, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>🎉</div>
+        <div style={{ fontSize: T.lg, fontWeight: 700, color: c.tx, marginBottom: 4 }}>All matched!</div>
+        <div style={{ fontSize: T.sm, color: c.m, marginBottom: 14 }}>Numbers are sticking. Keep going.</div>
+        <button onClick={() => advance(true)}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>
+      </div>}
+    </>);
+  }
+
   // ═══ EXERCISE: IMMERSION (contextual listening) ═══
   if (ex.type === "immersion") {
     const scene = ex.scene;
     const knownIds = new Set(Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1));
+    const currentPhrase = immersionIdx >= 0 && immersionIdx < scene.phraseIds.length
+      ? PHRASES.find(p => p[0] === scene.phraseIds[immersionIdx]) : null;
+    const currentTap = immersionTaps.find(t => t.idx === immersionIdx);
+    const totalSteps = scene.phraseIds.length;
+    const tappedCount = immersionTaps.filter(t => t.correct).length;
+    const totalKnown = scene.phraseIds.filter(id => knownIds.has(id)).length;
 
-    // Start playing the scene
+    // Play current phrase
+    const playCurrent = () => {
+      if (!currentPhrase) return;
+      speakPhrase(currentPhrase[0], currentPhrase[1]);
+    };
+
+    // Start scene — auto-plays first phrase
     const startScene = () => {
       setImmersionPlaying(true);
       setImmersionIdx(0);
-      let cumulativeDelay = 500;
-      scene.phraseIds.forEach((id, i) => {
-        const timer = setTimeout(() => {
-          setImmersionIdx(i);
-          const phrase = PHRASES.find(p => p[0] === id);
-          if (phrase) speakPhrase(id, phrase[1]);
-        }, cumulativeDelay);
-        immersionTimers.current.push(timer);
-        cumulativeDelay += scene.delays[i] || 2500;
-      });
-      // End after all phrases played
-      const endTimer = setTimeout(() => {
-        setImmersionDone(true);
-        setImmersionPlaying(false);
-      }, cumulativeDelay + 1000);
-      immersionTimers.current.push(endTimer);
+      setTimeout(() => {
+        const first = PHRASES.find(p => p[0] === scene.phraseIds[0]);
+        if (first) speakPhrase(first[0], first[1]);
+      }, 400);
     };
 
-    // Calculate score
-    const recognizedIds = scene.phraseIds.filter(id => knownIds.has(id));
-    const tappedCount = immersionTaps.length;
-    const totalKnown = recognizedIds.length;
+    // Respond: did I know this?
+    const respond = (knew) => {
+      const phraseId = scene.phraseIds[immersionIdx];
+      const wasKnown = knownIds.has(phraseId);
+      // Correct tap = said "yes I knew it" AND actually knows it (box >= 1)
+      const correct = knew === wasKnown;
+      setImmersionTaps(t => [...t, { idx: immersionIdx, knew, correct }]);
+      // Don't auto-advance — user sees the answer then taps next
+    };
+
+    const advanceImmersion = () => {
+      if (immersionIdx + 1 >= totalSteps) {
+        setImmersionDone(true);
+        setImmersionPlaying(false);
+      } else {
+        const nextIdx = immersionIdx + 1;
+        setImmersionIdx(nextIdx);
+        setTimeout(() => {
+          const next = PHRASES.find(p => p[0] === scene.phraseIds[nextIdx]);
+          if (next) speakPhrase(next[0], next[1]);
+        }, 400);
+      }
+    };
 
     return withSenpai(<>
       <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10 }}>IMMERSION LISTENING</div>
-      <div style={{ ...card, padding: "20px", marginBottom: 14, textAlign: "center" }}>
-        <div style={{ fontSize: T.xxl, marginBottom: 8 }}>{scene.emoji}</div>
-        <div style={{ fontSize: T.lg, fontWeight: 700, color: c.tx, marginBottom: 4 }}>{scene.title}</div>
-        <div style={{ fontSize: T.sm, color: c.m, marginBottom: 16 }}>{scene.description}</div>
 
-        {!immersionPlaying && !immersionDone && <button onClick={startScene}
-          style={{ ...btn, padding: "16px 32px", borderRadius: 14, background: c.a, color: "#fff", fontSize: T.lg, fontWeight: 700 }}>
-          ▶ Start Listening
-        </button>}
-
-        {immersionPlaying && <>
-          {/* Animated listening indicator */}
-          <div style={{ fontSize: 52, marginBottom: 12, animation: "pulse 1.5s infinite" }}>👂</div>
-          <div style={{ fontSize: T.base, color: c.ac, fontWeight: 600, marginBottom: 4 }}>
-            Phrase {immersionIdx + 1} of {scene.phraseIds.length}
-          </div>
-          <div style={{ width: "100%", height: 4, background: c.b, borderRadius: 2, marginBottom: 16 }}>
-            <div style={{ width: ((immersionIdx + 1) / scene.phraseIds.length * 100) + "%", height: "100%", background: c.ac, borderRadius: 2, transition: "width .5s" }} />
-          </div>
-          {/* Big tap button */}
-          <button onClick={() => {
-            setImmersionTaps(t => [...t, { time: Date.now(), idx: immersionIdx }]);
-          }} style={{
-            ...btn, width: "100%", padding: "28px 20px", borderRadius: 16,
-            background: c.g + "15", border: "2px solid " + c.g + "40",
-            color: c.g, fontSize: T.xl, fontWeight: 700,
-          }}>
-            ✓ I heard one! ({tappedCount})
-          </button>
-        </>}
+      {/* Scene header */}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 12, textAlign: "center" }}>
+        <div style={{ fontSize: T.xl, marginBottom: 4 }}>{scene.emoji}</div>
+        <div style={{ fontSize: T.base, fontWeight: 700, color: c.tx }}>{scene.title}</div>
       </div>
 
-      {/* Results */}
-      {immersionDone && <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-        <div style={{ fontSize: T.lg, fontWeight: 700, color: c.tx, textAlign: "center", marginBottom: 14 }}>
-          {tappedCount >= totalKnown * 0.7 ? "🎉 Great ears!" : tappedCount >= totalKnown * 0.4 ? "👏 Not bad!" : "💪 Keep training!"}
+      {/* Setup — before starting */}
+      {!immersionPlaying && !immersionDone && <>
+        <div style={{ ...card, padding: "18px 20px", marginBottom: 12, borderLeft: "3px solid " + c.ac }}>
+          <div style={{ fontSize: T.sm, fontWeight: 700, color: c.tx, marginBottom: 8 }}>📋 How this works:</div>
+          <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.6 }}>
+            1. Listen to each phrase played out loud<br/>
+            2. Before reveal, say if you recognized it<br/>
+            3. Text appears after your answer — so you actually hear first<br/>
+            4. Tap 🔊 anytime to replay
+          </div>
         </div>
-        <div style={{ fontSize: T.sm, color: c.m, textAlign: "center", marginBottom: 14 }}>
-          You recognized {tappedCount} phrase{tappedCount !== 1 ? "s" : ""} — there were {totalKnown} you know in this scene.
-        </div>
-        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>Phrases in this scene:</div>
-        {scene.phraseIds.map((id, i) => {
-          const phrase = PHRASES.find(p => p[0] === id);
-          if (!phrase) return null;
-          const known = knownIds.has(id);
-          return <div key={i} style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "8px 12px", marginBottom: 4, borderRadius: 8,
-            background: known ? c.gs : c.s2, opacity: known ? 1 : 0.5,
-          }}>
-            <div>
-              <span style={{ fontSize: T.base, fontWeight: 600, color: c.tx }}>{phrase[1]}</span>
-              <span style={{ fontSize: T.sm, color: c.m, marginLeft: 8 }}>{phrase[3]}</span>
-            </div>
-            <button onClick={() => speakPhrase(id, phrase[1])} style={{ ...btn, padding: "4px 10px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊</button>
-          </div>;
-        })}
-      </div>}
+        <button onClick={startScene}
+          style={{ ...btn, width: "100%", padding: "16px 32px", borderRadius: 14, background: c.a, color: "#fff", fontSize: T.lg, fontWeight: 700 }}>
+          ▶ Start Scene
+        </button>
+      </>}
 
-      {immersionDone && <button onClick={() => advance(tappedCount >= totalKnown * 0.5)}
-        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>}
+      {/* Playing */}
+      {immersionPlaying && currentPhrase && <>
+        {/* Progress */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: T.xs, fontFamily: mono, color: c.m, marginBottom: 6 }}>
+            <span>PHRASE {immersionIdx + 1} OF {totalSteps}</span>
+            <span>✓ {tappedCount}</span>
+          </div>
+          <div style={{ width: "100%", height: 4, background: c.b, borderRadius: 2 }}>
+            <div style={{ width: ((immersionIdx) / totalSteps * 100) + "%", height: "100%", background: c.ac, borderRadius: 2, transition: "width .3s" }} />
+          </div>
+        </div>
+
+        {/* Audio card — hides text until answered */}
+        <div style={{ ...card, padding: "28px 20px", marginBottom: 12, textAlign: "center" }}>
+          <div style={{ fontSize: 44, marginBottom: 10 }}>👂</div>
+          <div style={{ fontSize: T.sm, color: c.m, marginBottom: 16 }}>What did you hear?</div>
+          <button onClick={playCurrent}
+            style={{ ...btn, padding: "10px 28px", borderRadius: 10, background: c.s2, border: "1px solid " + c.b, fontSize: T.base, color: c.m, fontWeight: 600 }}>
+            🔊 Play again
+          </button>
+
+          {/* Reveal text after answer */}
+          {currentTap && <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid " + c.b }}>
+            <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, color: c.tx, marginBottom: 4 }}>{currentPhrase[1]}</div>
+            <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 2 }}>{currentPhrase[2]}</div>
+            <div style={{ fontSize: T.base, color: c.m }}>{currentPhrase[3]}</div>
+            <div style={{ fontSize: T.sm, marginTop: 10, color: currentTap.correct ? c.g : c.a, fontWeight: 600 }}>
+              {currentTap.correct
+                ? (currentTap.knew ? "✓ Right — you knew it!" : "✓ Right — you hadn't learned it yet")
+                : (currentTap.knew ? "✗ You've seen this but it needed review" : "✗ Actually you do know this one")}
+            </div>
+          </div>}
+        </div>
+
+        {/* Response buttons — before answer */}
+        {!currentTap && <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => respond(true)}
+            style={{ ...btn, flex: 1, padding: "16px", borderRadius: 12, background: c.g + "18", border: "2px solid " + c.g + "40", color: c.g, fontSize: T.base, fontWeight: 700 }}>
+            ✓ I know this one
+          </button>
+          <button onClick={() => respond(false)}
+            style={{ ...btn, flex: 1, padding: "16px", borderRadius: 12, background: c.s2, border: "2px solid " + c.b, color: c.m, fontSize: T.base, fontWeight: 700 }}>
+            ? Don't know
+          </button>
+        </div>}
+
+        {/* Next button — after answer */}
+        {currentTap && <button onClick={advanceImmersion}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>
+          {immersionIdx + 1 >= totalSteps ? "Finish →" : "Next phrase →"}
+        </button>}
+      </>}
+
+      {/* Results */}
+      {immersionDone && <>
+        <div style={{ ...card, padding: "20px", marginBottom: 14, textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>
+            {tappedCount >= totalSteps * 0.7 ? "🎉" : tappedCount >= totalSteps * 0.4 ? "👏" : "💪"}
+          </div>
+          <div style={{ fontSize: T.lg, fontWeight: 700, color: c.tx, marginBottom: 4 }}>
+            {tappedCount}/{totalSteps} correct
+          </div>
+          <div style={{ fontSize: T.sm, color: c.m }}>
+            You know {totalKnown} of {totalSteps} phrases in this scene
+          </div>
+        </div>
+        <div style={{ ...card, padding: "16px 20px", marginBottom: 12 }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 10 }}>All phrases in scene:</div>
+          {scene.phraseIds.map((id, i) => {
+            const phrase = PHRASES.find(p => p[0] === id);
+            if (!phrase) return null;
+            const known = knownIds.has(id);
+            return <div key={i} style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "10px 12px", marginBottom: 4, borderRadius: 8,
+              background: known ? c.gs : c.s2,
+              borderLeft: "3px solid " + (known ? c.g : c.m + "44"),
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: T.base, fontWeight: 600, color: c.tx }}>{phrase[1]}</div>
+                <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a }}>{phrase[2]}</div>
+                <div style={{ fontSize: T.sm, color: c.m }}>{phrase[3]}</div>
+              </div>
+              <button onClick={() => speakPhrase(id, phrase[1])}
+                style={{ ...btn, padding: "8px 12px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.base, color: c.m, flexShrink: 0 }}>🔊</button>
+            </div>;
+          })}
+        </div>
+        <button onClick={() => advance(tappedCount >= totalSteps * 0.5)}
+          style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>
+      </>}
     </>);
   }
 

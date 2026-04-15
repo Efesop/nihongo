@@ -12,6 +12,7 @@ export const PHRASE_BREAKDOWNS = {
   "g8": [["おねがい", "onegai", "request / favor", "noun"], ["します", "shimasu", "do", "verb"]],
   "g9": [["だいじょうぶ", "daijoubu", "fine / okay", "adjective"], ["です", "desu", "is", "copula"]],
   "g10": [["さようなら", "sayounara", "goodbye", "expression"]],
+  "g11": [["わたし", "watashi", "I / me", "noun"], ["の", "no", "'s (possessive)", "particle"], ["なまえ", "namae", "name", "noun"], ["は", "wa", "about...", "particle"], ["...", "...", "(your name)", "noun"], ["です", "desu", "is", "copula"]],
 
   // === Food & Restaurants ===
   "f1": [["これ", "kore", "this", "noun"], ["を", "o", "(thing I want)", "particle"], ["ください", "kudasai", "please give", "verb"]],

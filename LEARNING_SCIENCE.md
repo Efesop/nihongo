@@ -1,12 +1,12 @@
 # Learning Science: What Actually Works
 
-> **The fastest path to Japanese fluency, backed by science.** Every feature must accelerate learning. Every decision is measured against: "Does this help the user understand Japanese faster?" If it doesn't, cut it.
+> **Fastest path to Japanese fluency, backed by science.** Every feature must accelerate learning. Every decision measured: "Does this help user understand Japanese faster?" If not, cut it.
 
 ---
 
 ## The Learning Journey
 
-Each layer unlocks naturally based on progress — no manual gates:
+Each layer unlocks from progress — no manual gates:
 
 ```
 Week 1-2:  Base kana (learn cards + visual quiz + listen grid)
@@ -35,117 +35,117 @@ Always:    Map connects language to places, SRS reviews everything,
 | Retrieval practice (quizzing) | **Shipped** | **Strong** | Roediger & Karpicke 2006 — 100%+ better than restudying |
 | FSRS-5 spaced repetition | **Shipped** | **Strong** | Ebbinghaus curve, Murre & Dros 2015 replication |
 | Confused pairs interleaving (kana) | **Shipped** | **Strong** | Kornell & Bjork 2008 — 43% better discrimination |
-| Confused phrase pairs | **Shipped** | **Strong** | Extension of Kornell & Bjork to sentence-level structures |
+| Confused phrase pairs | **Shipped** | **Strong** | Extension of Kornell & Bjork to sentence-level |
 | Productive failure (try-first) | **Shipped** | **Strong** | Kapur 2014 — struggle before instruction → better outcomes |
 | Desirable difficulties | **Shipped** | **Strong** | Bjork & Kroll 2015 — trick questions improve retention |
 | Production > recognition | **Shipped** | **Strong** | Karpicke & Roediger 2008, MacLeod et al 2010 |
 | Grammar pattern noticing | **Shipped** | **Strong** | Norris & Ortega 2000 — explicit d=1.13 vs implicit d=0.54 |
 | Context sentences for vocab | **Shipped** | **Moderate-Strong** | Nation 2001, Hulstijn & Laufer 2001 |
-| Dual coding (image + text) | **Shipped** | **Strong** | 89% better transfer in dual coding studies |
+| Dual coding (image + text) | **Shipped** | **Strong** | 89% better transfer |
 | Pattern assembly (generative production) | **Shipped** | **Strong** | Novel recombination strengthens grammar acquisition |
 | Emotional memory (stories) | **Shipped** | **Strong** | Zero forgetting at 1.5 months for emotional content |
 | Streaks / gamification | **Shipped** | **Moderate** | Duolingo: 7-day streak → 2.4x retention |
-| Leech detection + treatment | **Shipped** | **Strong** | Adaptive response to items with 5+ errors |
+| Leech detection + treatment | **Shipped** | **Strong** | Adaptive response, items with 5+ errors |
 | Multi-dimensional skill tracking | **Shipped** | **Strong** | Adaptive Difficulty Engine — visual/listen/production per item |
-| Interleaved daily mix | **Shipped** | **Strong** | 19% improvement on delayed tests (Ertekin 2023) |
+| Interleaved daily mix | **Shipped** | **Strong** | 19% improvement, delayed tests (Ertekin 2023) |
 | Conversation chains | **Shipped** | **Strong** | Contextual dialogue > isolated phrase practice |
 | Badges / achievements | **Shipped** | **Moderate** | Medium effect on motivation (Sauro & Smith 2023) |
 | Natural-speed listening | **Shipped** | **Moderate** | Chang & Millett 2014 — graduated approach |
-| Response time tracking | **Shipped** | **Moderate** | Infrastructure for future adaptive difficulty |
+| Response time tracking | **Shipped** | **Moderate** | Infrastructure for adaptive difficulty |
 | Handwriting / motor memory | Not yet | **Moderate** | Naka & Naoi 1995 — helps, especially complex characters |
-| Shadowing / voice input | Not yet | **Strong** | 25-40% improvement in 8 weeks |
+| Shadowing / voice input | Not yet | **Strong** | 25-40% improvement, 8 weeks |
 
 ---
 
 ## The Big Takeaways
 
 ### 1. Testing beats studying by >100%
-Retrieval practice (quizzing yourself) produces more than **double** the retention of passive review. This isn't marginal — it's the single most impactful thing we can do. Every feature should prioritise getting the user to RECALL, not just recognise.
+Retrieval practice (quizzing yourself) produces more than **double** retention vs passive review. Not marginal — single most impactful thing. Every feature should prioritise RECALL, not recognise.
 
-**What this means for us:**
-- Default to quiz/recall modes, not browse/read modes
-- Multiple choice is OK but free recall (typing) is better
-- Even wrong answers help — the act of trying to recall strengthens memory
-- Productive failure (try-first exercises) leverages this: quiz BEFORE teaching ✓
+**For us:**
+- Default to quiz/recall modes, not browse/read
+- Multiple choice OK but free recall (typing) better
+- Wrong answers help — act of trying strengthens memory
+- Productive failure (try-first) leverages this: quiz BEFORE teaching ✓
 
 ### 2. Production > Recognition (substantially)
-Producing language (typing, speaking, writing) creates stronger memories than recognising it (multiple choice, reading). Free recall scored 75% vs 60% for elaboration in studies.
+Producing language (typing, speaking, writing) creates stronger memories than recognising (multiple choice, reading). Free recall scored 75% vs 60% for elaboration.
 
-**What we've built:**
-- `phrase-reverse`: see English → pick Japanese (production) ✓
-- `phrase-production`: English → pick from 8 Japanese options ✓
-- `kana-reverse`: see romaji → pick character ✓
-- `pattern-assembly`: tap-to-build sentences from grammar templates + vocabulary ✓
-- Production exercises softened at box 1 (15%), full ramp at box 2-3 (85% accuracy target) ✓
-- Production types get 15% FSRS stability bonus (stronger evidence of learning) ✓
-- Multi-dimensional skill tracking routes to weakest skill (visual/listen/production) ✓
-- **Still to do**: voice input for speaking practice (Web Speech API)
+**What we built:**
+- `phrase-reverse`: English → pick Japanese (production) ✓
+- `phrase-production`: English → pick from 8 Japanese ✓
+- `kana-reverse`: romaji → pick character ✓
+- `pattern-assembly`: tap-to-build sentences from grammar templates + vocab ✓
+- Production softened at box 1 (15%), full ramp box 2-3 (85% accuracy target) ✓
+- Production types get 15% FSRS stability bonus ✓
+- Multi-dimensional skill tracking routes to weakest skill ✓
+- **Todo**: voice input for speaking practice (Web Speech API)
 
 ### 3. Short daily sessions beat occasional long ones
-20 minutes daily >> 2 hours weekly. The brain consolidates during sleep — spreading practice across days gives more consolidation cycles.
+20 min daily >> 2 hours weekly. Brain consolidates during sleep — spreading practice across days gives more cycles.
 
-**What this means for us:**
-- Design for 5-15 minute sessions, not 30+ minute marathons ✓
-- Smart sessions are 10 cards (~5-8 minutes) ✓
-- Show session time so users know they've done enough ✓
-- Streak system rewards consistency over intensity ✓
+**For us:**
+- Design 5-15 min sessions, not 30+ min marathons ✓
+- Smart sessions 10 cards (~5-8 min) ✓
+- Show session time so users know done enough ✓
+- Streak rewards consistency over intensity ✓
 
 ### 4. Desirable difficulties improve learning
-Making things HARDER (within reason) improves long-term retention. This seems counterintuitive but is well-established.
+Making things HARDER (within reason) improves long-term retention. Counterintuitive but well-established.
 
-**What we've built:**
+**What we built:**
 - "None of these" trick questions in phrase exercises ✓
-- Interleaving categories in practice (mix greetings + transport) ✓
-- Confused pair drills (visually similar kana AND structurally similar phrases) ✓
+- Interleaving categories (mix greetings + transport) ✓
+- Confused pair drills (visually similar kana, structurally similar phrases) ✓
 - Productive failure: quiz before teaching ✓
-- Manual "Next →" button: user must process the answer before moving on ✓
+- Manual "Next →" button: user processes answer before moving ✓
 
 ### 5. Context dramatically improves retention
-Phrases learned in realistic scenarios stick far better than isolated word lists. Knowledge is more easily acquired when associated with specific situations.
+Phrases learned in realistic scenarios stick better than isolated word lists. Knowledge more easily acquired when tied to specific situations.
 
-**What we've built:**
-- Scenario-based phrase practice with situational prompts ✓
+**What we built:**
+- Scenario-based phrase practice, situational prompts ✓
 - Fill-in-the-blank conversation dialogues ✓
-- AI branching conversations in realistic settings ✓
+- AI branching conversations, realistic settings ✓
 - AI-generated stories using known phrases ✓
 - Japan map connecting phrases to real places ✓
-- Kana context words showing real vocabulary ✓
+- Kana context words showing real vocab ✓
 
 ### 6. FSRS-5 targets optimal retention
-The optimal review time is individually calculated per item based on stability and difficulty — not fixed intervals.
+Optimal review time individually calculated per item from stability + difficulty — not fixed intervals.
 
-**What we've built:**
-- FSRS-5 adaptive algorithm: per-item stability + difficulty tracking ✓
+**What we built:**
+- FSRS-5 adaptive: per-item stability + difficulty tracking ✓
 - 85% target retention rate ✓
-- Backward-compatible 6-box mapping via `stabilityToBox()` ✓
-- Leech detection: items with 5+ errors get special mnemonic treatment instead of more quizzing ✓
+- Back-compat 6-box mapping via `stabilityToBox()` ✓
+- Leech detection: 5+ errors get mnemonic treatment instead of more quizzing ✓
 - Recently-learned window: 2-hour same-session reinforcement (was 24h — caused cross-session repetition) ✓
 
 ### 7. Streaks genuinely work (2.4x retention)
-Users who maintain a 7-day streak are 2.4x more likely to continue. Gamification effect size on cognitive learning: 0.49-0.82 (medium to large).
+7-day streak users 2.4x more likely to continue. Gamification effect size on cognitive learning: 0.49-0.82 (medium to large).
 
-**What we've built:**
-- Streak tracking with day-based counting ✓
+**What we built:**
+- Streak tracking, day-based counting ✓
 - 12 achievement badges (milestones, streaks, S-ranks, explorer) ✓
 - XP/Level system (11 tiers) ✓
 - S-rank tracking for perfect sessions ✓
 
 ### 8. For Japanese: combine audio + visual
-Pure audio doesn't work well for adult learners. For learning new material, visual reinforcement is essential.
+Pure audio poor for adult learners. Visual reinforcement essential for new material.
 
-**What we've built:**
+**What we built:**
 - Japanese text shown while hearing pronunciation ✓
-- PhraseSegments: interactive word-by-word breakdown with audio ✓
+- PhraseSegments: word-by-word breakdown with audio ✓
 - Romaji shown as training wheels (future: progressively hidden)
 - "Hear again" + "Next →" buttons: user controls audio pace ✓
 
 ### 9. Top learners use frequency, not intensity
-Polyglots succeed through high-frequency engagement and social strategies, not through willpower or long study sessions.
+Polyglots succeed through high-frequency engagement + social strategies, not willpower or long sessions.
 
-**What we've built:**
+**What we built:**
 - Senpai roleplay is social strategy in disguise ✓
-- Track and celebrate consistency via streaks/badges ✓
-- Quick sessions (~5 min) lower the barrier to daily practice ✓
+- Track + celebrate consistency via streaks/badges ✓
+- Quick sessions (~5 min) lower daily practice barrier ✓
 
 ---
 
@@ -155,29 +155,29 @@ Polyglots succeed through high-frequency engagement and social strategies, not t
 
 **Highest impact (retrieval practice + production):**
 1. ✅ **Smart Sessions** — adaptive quiz pulling from weakest items across kana + phrases, 5-15 min target
-2. ✅ **Production exercises** — see English, pick/type the Japanese (reverse + production modes)
+2. ✅ **Production exercises** — see English, pick/type Japanese (reverse + production modes)
 3. ✅ **Adaptive difficulty** — multi-dimensional skill tracking (visual/listen/production), weakest skill routing
 
 **High impact (spacing + context):**
-4. ✅ **Leech detection** — flag items wrong 5+ times, show special mnemonic treatment
+4. ✅ **Leech detection** — flag items wrong 5+ times, special mnemonic treatment
 5. ✅ **Interleaved practice** — kana/phrase alternation in sessions, cross-category variety
-6. ✅ **Mini-conversations** — fill-in-the-blank dialogue + AI branching conversations
-7. ✅ **Productive failure** — try-first exercises quiz BEFORE teaching
+6. ✅ **Mini-conversations** — fill-in-the-blank dialogue + AI branching
+7. ✅ **Productive failure** — try-first quiz BEFORE teaching
 
 **Medium impact (gamification + habit):**
 8. ✅ **Achievement badges** — 12 milestone rewards
-9. ✅ **Session timer** — shows elapsed time during session
+9. ✅ **Session timer** — shows elapsed time
 
 ### Not yet built (still worth considering):
 
 **High impact:**
-1. **Voice input / shadowing** — speak the phrase, compare to native (Web Speech API). Research shows 25-40% improvement in 8 weeks.
-2. **Progressive romaji hiding** — auto-hide romaji after X correct answers. Romaji creates pronunciation fossils after 1-2 weeks.
+1. **Voice input / shadowing** — speak phrase, compare to native (Web Speech API). 25-40% improvement, 8 weeks.
+2. **Progressive romaji hiding** — auto-hide after X correct. Romaji creates pronunciation fossils after 1-2 weeks.
 
 **Medium impact:**
 3. **Streak freeze** — miss one day without losing streak (reduces anxiety)
-4. **Bedtime review** — 3-minute audio-only review before sleep (consolidation is timing-dependent)
-5. **Character tracing** — canvas-based kana tracing for motor memory (handwriting > typing for retention)
+4. **Bedtime review** — 3-min audio-only review before sleep (consolidation timing-dependent)
+5. **Character tracing** — canvas-based kana tracing, motor memory (handwriting > typing)
 6. **Pitch accent indicators** — show high/low pitch on phrases
 
 **Lower impact:**
@@ -189,52 +189,52 @@ Polyglots succeed through high-frequency engagement and social strategies, not t
 ## Deep Research: Additional Findings (March 2026)
 
 ### 10. Dual coding: visual + verbal = 89% better transfer
-Combining images with words improved transfer test performance by 89% over text-only. This is why our watercolor mnemonic images work — they're not decoration, they're dual coding in action.
+Images + words improved transfer test 89% over text-only. Why watercolor mnemonic images work — not decoration, dual coding in action.
 
 ### 11. Emotional memory shows ZERO forgetting over 1.5 months
-Participants exposed to emotional arousal showed no forgetting over a 1.5-month delay. Neutral content showed substantial forgetting. Emotionally-charged content in foreign languages improves vocabulary memory significantly.
+Emotional arousal → no forgetting at 1.5-month delay. Neutral content substantial forgetting. Emotionally-charged L2 content improves vocab memory significantly.
 
 ### 12. Handwriting beats everything for character retention
-Students who wrote characters by hand demonstrated better memory retention AND faster recall than typing. Recognition for typed characters gradually decreased over 3 weeks; handwritten recognition remained stable. Pen > stylus > keyboard.
+Hand-written characters → better retention AND faster recall than typing. Typed character recognition decreased over 3 weeks; handwritten stable. Pen > stylus > keyboard.
 
 ### 13. Microlearning: 3-5 min modules = 20% better performance
-Students with chunked learning performed 20% better and took 28% less time. Knowledge retention improved up to 80% with frequent repetition + spaced intervals. 3-5 minutes is the optimal module length.
+Chunked learners performed 20% better, took 28% less time. Retention up to 80% with frequent repetition + spaced intervals. 3-5 min = optimal module length.
 
 ### 14. 1000 Japanese words = 80% of all conversations
-Top 1000 words cover 76-80% of daily Japanese. The next 2000 words add only 10% more. Our 100 phrases cover survival needs; the building-block system (`BUILDING_BLOCKS` in sessionEngine) helps learners recognise shared patterns across phrases.
+Top 1000 words cover 76-80% of daily Japanese. Next 2000 add only 10% more. Our 100 phrases cover survival; building-block system (`BUILDING_BLOCKS` in sessionEngine) helps recognise shared patterns.
 
 ### 15. Shadowing: 25-40% improvement in 8 weeks
-Simultaneous listening + repeating aloud produces dramatic listening comprehension gains. Especially effective for Japanese pitch accent and natural rhythm.
+Simultaneous listening + repeating aloud → dramatic listening comprehension gains. Especially effective for Japanese pitch accent + natural rhythm.
 
 ### 16. Productive failure beats direct instruction ✅ IMPLEMENTED
-Students who struggled with problems BEFORE receiving instruction outperformed those who received instruction first — on both immediate and delayed tests. **Now shipping as `try-first-kana` and `try-first-phrase` exercises.**
+Struggling with problems BEFORE instruction outperformed instruction-first — on immediate AND delayed tests. **Now shipping as `try-first-kana` and `try-first-phrase`.**
 
 ### 17. Sleep consolidation is timing-dependent
-Procedural skills (speaking, listening) best learned in evening before sleep. Declarative knowledge (vocabulary, grammar rules) better in afternoon. Sleep immediately after learning is critical — can't be made up.
+Procedural skills (speaking, listening) best learned evening before sleep. Declarative (vocab, grammar rules) better in afternoon. Sleep immediately after learning critical — can't be made up.
 
 ### 18. Romaji: useful bridge, becomes hindrance
-Romaji creates fossilized pronunciation errors. Expert recommendation: 1-2 weeks on hiragana/katakana, then abandon romaji. Our progressive romaji toggle (hide as learner improves) is the right approach.
+Romaji creates fossilized pronunciation errors. Expert rec: 1-2 weeks on hiragana/katakana, then abandon. Our progressive romaji toggle (hide as learner improves) is right approach.
 
 ### 19. Japanese-specific: listening is hardest (78% agree)
-No audible word boundaries in Japanese speech — it sounds like one continuous stream. Mora-based segmentation is alien to English ears. Dedicated listening training is essential and under-served.
+No audible word boundaries in Japanese speech — sounds like continuous stream. Mora-based segmentation alien to English ears. Dedicated listening training essential + under-served.
 
 ### 20. The plateau hits at 6-12 months
-Most learners stall at intermediate level. Solution: change methods (don't keep doing the same thing), force active production, and increase immersion ratio.
+Most learners stall at intermediate. Solution: change methods, force active production, increase immersion ratio.
 
 ---
 
-## What NOT to do (anti-patterns from research):
+## What NOT to do (anti-patterns):
 
-- **Don't make browsing the default** — it's passive and produces minimal learning
-- **Don't rely on multiple choice alone** — free recall is substantially better
-- **Don't show the answer too quickly** — the struggle of trying to recall IS the learning (manual Next button helps here)
+- **Don't default to browsing** — passive, minimal learning
+- **Don't rely on multiple choice alone** — free recall substantially better
+- **Don't show answer too quickly** — struggle of trying to recall IS the learning (manual Next button helps)
 - **Don't let users skip difficulty** — desirable difficulties improve outcomes
 - **Don't gamify without substance** — points without retrieval practice = engaging but not effective
-- **Don't do long sessions** — 15 minutes of quizzing beats 60 minutes of reading
-- **Don't teach romaji-first** — it creates pronunciation fossils
-- **Don't ignore listening** — it's the hardest skill and most under-served
-- **Don't enforce a silent period** — let beginners speak when they want to
-- **Don't auto-advance phrase exercises** — audio gets cut off, user doesn't process the answer
+- **Don't do long sessions** — 15 min quizzing beats 60 min reading
+- **Don't teach romaji-first** — creates pronunciation fossils
+- **Don't ignore listening** — hardest skill, most under-served
+- **Don't enforce silent period** — let beginners speak when they want
+- **Don't auto-advance phrase exercises** — audio cut off, user doesn't process answer
 
 ---
 

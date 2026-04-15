@@ -2,31 +2,31 @@
 
 ## Critical: Read before doing anything
 
-**Multiple Claude chats on project.** Before assumptions:
-1. **Check filesystem** — files may exist from other chat
-2. **Read latest code** before changes — may be refactored
-3. **Never assume unchanged codebase** — pull first
-4. **Check git log** for unknown commits
-5. **Pull before push** — `git stash && git pull --rebase origin main && git stash pop`
+**Multiple Claude chats work on this project.** Before making assumptions about what exists or doesn't exist:
+1. **Always check the actual filesystem** — files may have been created in another chat
+2. **Always read the latest code** before suggesting changes — another chat may have refactored
+3. **Never assume the codebase is the same as when you last saw it** — pull latest first
+4. **Check git log** for recent commits you may not know about
+5. **Always pull before pushing** — `git stash && git pull --rebase origin main && git stash pop`
 
 ## Shell Environment — IMPORTANT
 
-Bash tool sandboxed shell, minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`). Dotfiles NOT sourced. `npm`, `node`, `npx` not found.
+The Bash tool runs in a sandboxed shell with a minimal PATH (`/usr/bin:/bin:/usr/sbin:/sbin`). User dotfiles are NOT sourced. This means `npm`, `node`, `npx` are not found by default.
 
-**Prefix npm/node commands:**
+**Always prefix npm/node commands with:**
 ```bash
 PATH="/usr/local/bin:$PATH" npm run build
 PATH="/usr/local/bin:$PATH" node script.mjs
 ```
 
-**Do NOT:**
-- `export PATH=...` separately (state doesn't persist between Bash calls)
-- Modify `.zshenv` (sandbox ignores)
-- Remove `.git/index.lock` unless git says exists — check `ls` first
+**Do NOT try to fix this by:**
+- `export PATH=...` in a separate command (state doesn't persist between Bash calls)
+- Modifying `.zshenv` (not sourced by the sandbox)
+- Removing `.git/index.lock` unless git explicitly tells you it exists — check first with `ls` before `rm`
 
 ## Project Overview
 
-TinySenpai — Japanese learning app, everyone (not just travelers). React SPA on Vercel.
+TinySenpai — Japanese learning app for everyone (not just travelers). React SPA on Vercel.
 
 **Live:** https://tinysenpai.com
 
@@ -51,16 +51,16 @@ src/
   data/
     kana.js              — mnemonics (M), groups, ROMAJI, dakuten/yōon mappings
     phrases.js           — 100 phrases, 11 categories, icons, colors
-    phraseBreakdowns.js  — word-by-word translations + grammar types
+    phraseBreakdowns.js  — word-by-word translations + grammar types for all phrases
     conversations.js     — fill-in-the-blank dialogue scenarios
     confusedPairs.js     — 17 visually similar kana pairs with hints
     confusedPhrases.js   — 25+ structurally similar phrase pairs with hints
     grammarPatterns.js   — 10 auto-unlocking grammar patterns
-    kanaWords.js         — vocab context words, 46 kana
+    kanaWords.js         — real vocabulary context words for 46 kana characters
     regions.js           — Japan map data (8 regions, cities, food, culture, phrases)
     themes.js            — dark/light themes
     constants.js         — SRS config, fonts, typography (T), roleplay scenarios
-    patternAssembly.js   — 10 grammar templates, sentence construction
+    patternAssembly.js   — 10 grammar templates for sentence construction exercises
   utils/
     audio.js             — TTS playback functions
     storage.js           — localStorage + DB sync
@@ -80,11 +80,11 @@ api/
 
 ## Key Technical Details
 
-- **State in App.jsx** — props to components (no Context/Redux)
-- **SRS**: FSRS-5 adaptive (stability/difficulty per item), back-compat with 6-box
+- **State lives in App.jsx** — passed as props to components (no Context/Redux)
+- **SRS**: FSRS-5 adaptive algorithm (stability/difficulty per item), backward-compatible with 6-box system
 - **Smart Sessions**: 19 exercise types, AI coaching, interleaved kana/phrase queue, productive failure, confused pair drilling, pattern assembly
-- **Skill tracking**: Multi-dimensional per item (visual, listen, production) — weakest skill prioritised
-- **XP/Levels**: 11-tier (0→7500 XP). **Badges**: 12 achievements (streaks, milestones, S-ranks, explorer)
+- **Skill tracking**: Multi-dimensional per item (visual, listen, production) — weakest skill gets prioritised
+- **XP/Levels**: 11-tier system (0→7500 XP). **Badges**: 12 achievements (streaks, milestones, S-ranks, explorer)
 - **Audio**: Google TTS proxy for kana, ElevenLabs static MP3s for stories + phrases
 - **Images**: Mnemonic images in `public/images/mnemonics/approved/{hiragana|katakana}/`
 - **Auth**: Clerk. **DB**: Neon PostgreSQL. **Hosting**: Vercel
@@ -94,8 +94,8 @@ api/
 
 | Type | Description | Unlocks at |
 |------|-------------|------------|
-| `learn-card` | New kana: mnemonic image + story + context words | Always |
-| `learn-phrase` | New phrase: breakdown + building block connections | Always |
+| `learn-card` | New kana with mnemonic image + story + context words | Always |
+| `learn-phrase` | New phrase with breakdown + building block connections | Always |
 | `try-first-kana` | Productive failure: quiz BEFORE teaching kana | Always |
 | `try-first-phrase` | Productive failure: "what would you say?" before reveal | Always |
 | `kana-visual` | See character, type romaji | Box 0+ |
@@ -107,26 +107,26 @@ api/
 | `phrase-reverse` | See English, pick Japanese (production) | Box 1+ |
 | `phrase-production` | English → pick from 8 Japanese choices | Box 2+ |
 | `phrase-pair` | Confused phrases: distinguish similar structures | 5+ phrases |
-| `pattern-assembly` | Tap-to-build sentence from grammar pattern + vocab | 3+ phrases |
-| `leech-review` | Special mnemonic treatment, 5+ errors | 5+ errors |
-| `grammar-pattern` | Auto-unlocked grammar insight | 5+ phrases |
+| `pattern-assembly` | Tap-to-build sentence from grammar pattern + vocabulary | 3+ phrases |
+| `leech-review` | Special mnemonic treatment for items with 5+ errors | 5+ errors |
+| `grammar-pattern` | Auto-unlocked grammar insight ("You've seen です in 6 phrases") | 5+ phrases |
 | `conversation` | Fill-in-the-blank dialogue scenarios | 5+ phrases |
-| `story` | AI-generated narrative, known phrases (25% chance) | 3+ phrases |
+| `story` | AI-generated narrative using known phrases (25% chance) | 3+ phrases |
 | `branch-convo` | Interactive AI dialogue tree (20% chance) | 8+ phrases |
 
 ## Content Status
 
-- **92 base kana**: mnemonic images, stories, audio ✓
+- **92 base kana**: All have mnemonic images, stories, and audio ✓
 - **50 dakuten/handakuten**: Row-based learn mode ✓
 - **66 yōon combinations**: Row-based learn mode ✓
 - **100 phrases**: 11 categories, SRS, word breakdowns, scenario quizzes ✓
 - **Categories**: Greetings, Restaurants, Transport, Hotels, Shopping, Directions, Emergencies, Numbers, Time & Days, Daily Life, Describing
-- **Mnemonic images**: Watercolor + red calligraphy (Gemini Pro)
-- **17 confused kana pairs**, visual discrimination hints ✓
-- **25+ confused phrase pairs**, structural difference explanations ✓
-- **10 grammar patterns**, auto-unlocking from phrase progress ✓
-- **46 kana context words**, real vocab on learn cards ✓
-- **8 Japan regions**, cities, food, culture, travel tips ✓
+- **Mnemonic images**: Watercolor + red calligraphy style (Gemini Pro)
+- **17 confused kana pairs** with visual discrimination hints ✓
+- **25+ confused phrase pairs** with structural difference explanations ✓
+- **10 grammar patterns** auto-unlocking from phrase progress ✓
+- **46 kana context words** (real vocabulary on learn cards) ✓
+- **8 Japan regions** with cities, food, culture, travel tips ✓
 
 ## Important Files
 
@@ -138,9 +138,9 @@ api/
 
 ## Critical Rules
 
-- **React hooks at component top** — never inside JSX vars or conditionals
-- **Pull before push** — other chats push concurrently
-- **Don't touch `src/game/`** — separate AI chat manages
+- **React hooks at component top** — never inside JSX variables or conditionals
+- **Always pull before pushing** — other chats push concurrently
+- **Don't touch `src/game/`** — managed by a separate AI chat
 - **Inline styles only** — no CSS files, colors from theme `c` object
 - **Mobile-first** — responsive at 768px breakpoint
-- **Proactive approach** — suggest alternatives, flag issues, don't execute blindly
+- **Proactive approach** — suggest alternatives, flag issues, don't just execute blindly

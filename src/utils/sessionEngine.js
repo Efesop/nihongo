@@ -146,7 +146,12 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // before adding more. This prevents the "seen everything, mastered nothing" problem.
   const shakyPhrases = PHRASES.filter(p => phrData[p[0]] && phrData[p[0]].box <= 1).length;
   const blockNewPhrases = shakyPhrases >= 10;
-  const unseenPhrases = blockNewPhrases ? [] : smartPhraseOrder(PHRASES.filter(p => !phrData[p[0]]), phrData);
+  // Even when consolidation gate is active, still allow unseen mission-critical phrases —
+  // survival basics shouldn't be blocked by non-critical backlog
+  const unseenAllPhrases = PHRASES.filter(p => !phrData[p[0]]);
+  const unseenPhrases = blockNewPhrases
+    ? smartPhraseOrder(unseenAllPhrases.filter(p => p[6]), phrData)
+    : smartPhraseOrder(unseenAllPhrases, phrData);
 
   // ═══ PICK EXERCISE TYPE BASED ON MASTERY ═══
 
@@ -426,6 +431,13 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
+  // Number match — all-numbers drill (unlocks once any n1-n10 seen, 20% chance)
+  const knownNumbers = ["n1","n2","n3","n4","n5","n6","n7","n8","n9","n10"]
+    .filter(id => phrData[id] && phrData[id].box >= 0);
+  if (knownNumbers.length >= 3 && Math.random() < 0.2) {
+    specialPool.push({ type: "number-match", numberIds: knownNumbers });
+  }
+
   // Immersion scenes — contextual listening (8+ phrases, 30% chance)
   if (phrasesLearned >= 8 && Math.random() < 0.3) {
     const eligible = IMMERSION_SCENES.filter(scene => {
@@ -532,7 +544,15 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const phrDueCap = dueCap - kanaDueCap;
 
   shuffle(dueKana).slice(0, kanaDueCap).forEach(ch => addKana(ch, queue));
-  shuffle(duePhrases).slice(0, phrDueCap).forEach(p => addPhrase(p, queue));
+  // Mission-critical phrases (p[6]=true) dominate when user hasn't mastered them yet.
+  // Unmastered mc (box < 3) go first. Keeps beginners drilling survival phrases.
+  const duePhrasesSorted = [...duePhrases].sort((a, b) => {
+    const aMc = a[6] && (phrData[a[0]]?.box || 0) < 3 ? 1 : 0;
+    const bMc = b[6] && (phrData[b[0]]?.box || 0) < 3 ? 1 : 0;
+    if (aMc !== bMc) return bMc - aMc; // mc first
+    return Math.random() - 0.5; // shuffle within tier
+  });
+  duePhrasesSorted.slice(0, phrDueCap).forEach(p => addPhrase(p, queue));
 
   // Recently learned — max 1 each
   shuffle(recentKana).slice(0, 1).forEach(ch => addKana(ch, queue));
@@ -694,7 +714,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const t = item.type || "";
     if (t.includes("learn") || t.includes("try-first") || t === "grammar-pattern" ||
         t === "kana-pair" || t === "phrase-pair" || t === "phrase-build" || t === "word-quiz" ||
-        t === "pattern-assembly" || t === "story" || t === "graded-reader" || t === "phrase-chain" || t === "phrase-kana-type" || t === "phrase-shadow" || t === "phrase-dj" || t === "mistake-memory" || t === "immersion" || t === "branch-convo" || t === "conversation" ||
+        t === "pattern-assembly" || t === "story" || t === "graded-reader" || t === "phrase-chain" || t === "phrase-kana-type" || t === "phrase-shadow" || t === "phrase-dj" || t === "mistake-memory" || t === "immersion" || t === "number-match" || t === "branch-convo" || t === "conversation" ||
         t === "leech-review") return true;
     if (t.startsWith("phrase-") && item.item && item.item[0]) {
       const d = phrData[item.item[0]];

@@ -80,6 +80,32 @@ export default function Home({
         })}
       </div>
     </div>}
+    {/* ═══ Core Survival Phrases ═══ */}
+    {(()=>{
+      const mc=PHRASES.filter(p=>p[6]);
+      const phrData=data.phr||{};
+      const mastered=mc.filter(p=>(phrData[p[0]]?.box||0)>=3).length;
+      const learning=mc.filter(p=>phrData[p[0]]&&(phrData[p[0]]?.box||0)<3);
+      const unseen=mc.filter(p=>!phrData[p[0]]);
+      const pct=Math.round(mastered/mc.length*100);
+      const todo=[...learning,...unseen].slice(0,6);
+      return <div style={{...card,marginBottom:10,padding:"12px 16px"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+          <div style={{fontSize:T.xs,color:c.m,textTransform:"uppercase",fontFamily:mono,letterSpacing:".06em"}}>🎯 Core Survival Phrases</div>
+          <div style={{fontSize:T.xs,fontFamily:mono,color:mastered===mc.length?c.g:c.a,fontWeight:700}}>{mastered}/{mc.length}</div>
+        </div>
+        <div style={{height:6,background:c.s2,borderRadius:3,overflow:"hidden",marginBottom:todo.length>0?10:0}}>
+          <div style={{width:pct+"%",height:"100%",background:mastered===mc.length?c.g:c.a,borderRadius:3,transition:"width .3s"}}/>
+        </div>
+        {todo.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+          {todo.map(p=>{
+            const seen=!!phrData[p[0]];
+            return <span key={p[0]} title={p[3]} style={{padding:"3px 8px",borderRadius:6,fontSize:T.xs,background:seen?c.s2:"transparent",border:"1px solid "+c.b,color:seen?c.tx:c.m+"99"}}>{p[1]}</span>;
+          })}
+          {(learning.length+unseen.length)>todo.length&&<span style={{padding:"3px 8px",borderRadius:6,fontSize:T.xs,color:c.m}}>+{(learning.length+unseen.length)-todo.length} more</span>}
+        </div>}
+      </div>;
+    })()}
     {/* ═══ Struggling With ═══ */}
     {(()=>{
       const errors=data.errors||{};

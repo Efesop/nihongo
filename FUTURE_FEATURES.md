@@ -1,60 +1,60 @@
 # Future Features (Backlog)
 
-Research-backed improvements not yet implemented. Ranked by impact.
+Research-backed improvements not yet built. Ranked by impact.
 
 ## High Impact
 
 ### 1. Progressive Romaji Hiding
-After 5+ correct answers for an item, stop showing romaji on choices. Romaji creates fossilized pronunciation errors after 1-2 weeks (LEARNING_SCIENCE.md #18). The single most important feature for intermediate learners.
+After 5+ correct for item, stop showing romaji on choices. Romaji creates fossilized pronunciation errors after 1-2 weeks (LEARNING_SCIENCE.md #18). Most important feature for intermediate learners.
 
 ### 2. Hint System for Long Struggles
-After 10-15 seconds on a question, show a "hint" button that reveals partial info (first word, grammar pattern, or category). Data shows users spending 44-94 seconds before getting wrong — that's frustration, not learning.
+After 10-15s on question, show "hint" button revealing partial info (first word, grammar pattern, category). Data: users spend 44-94s before wrong — frustration, not learning.
 
 ### 3. Struggling-Item Focus Mode
-When 5+ phrases are at box 1, suppress new content introduction and focus on review + word-level drilling of weak items. Currently sessions can still introduce new items while a pile of struggling ones exists.
+When 5+ phrases at box 1, suppress new content, focus review + word-level drilling of weak items. Current sessions introduce new items while struggling pile exists.
 
 ### 4. Special Exercise Rotation Tracking
-Track which grammar patterns, confused pairs, and word quizzes have been shown. Use lightweight SRS to ensure even coverage instead of random selection that repeats some while missing others.
+Track which grammar patterns, confused pairs, word quizzes shown. Lightweight SRS for even coverage vs random repetition.
 
 ### 5. Interactive Grammar Patterns
-After showing the pattern explanation, add a comprehension quiz — e.g., "In これをください, what does を do?" with 3 choices. Currently passive read-and-dismiss.
+After pattern explanation, comprehension quiz — e.g. "In これをください, what does を do?" 3 choices. Currently passive read-and-dismiss.
 
 ## Medium Impact
 
 ### 6. Phrase Reconstruction
-Given phrase segments in wrong order, arrange them correctly. Different from phrase-build (fill blank) — tests understanding of sentence structure.
+Phrase segments in wrong order, arrange correctly. Different from phrase-build (fill blank) — tests sentence structure understanding.
 
 ### 7. Audio-Only Production
-Hear the English, speak/type the Japanese from memory with no visual choices. The hardest and most effective exercise type.
+Hear English, speak/type Japanese from memory, no visual choices. Hardest + most effective.
 
 ### 8. Weak Word Targeting
-When a phrase is wrong, identify which WORD caused the confusion and drill that word specifically in the next session.
+When phrase wrong, identify which WORD caused confusion, drill that word next session.
 
 ### 9. Session Focus Themes
-"This session focuses on shopping" to build category-specific fluency rather than always mixing everything.
+"This session focuses on shopping" — category fluency vs always mixing.
 
 ### 10. Adaptive Session Length
-If many due items, extend to 12 cards. If few due, 8 cards is enough.
+Many due → 12 cards. Few due → 8 cards.
 
 ## Nice to Have
 
 ### 11. Streak Freeze
-Miss one day without losing streak (reduces anxiety).
+Miss one day without losing streak. Reduces anxiety.
 
 ### 12. Bedtime Review Mode
-3-minute audio-only review before sleep. Research: sleep consolidation is timing-dependent.
+3-min audio-only review before sleep. Research: sleep consolidation timing-dependent.
 
 ### 13. Character Tracing
-Canvas-based kana tracing for motor memory. Handwriting > typing for retention.
+Canvas-based kana tracing, motor memory. Handwriting > typing for retention.
 
 ### 14. Pitch Accent Indicators
 Show high/low pitch on phrases.
 
 ### 15. Error Count Decay
-Errors older than 30 days count as half, older than 90 days as zero.
+Errors >30 days = half. >90 days = zero.
 
 ### 16. Separate Leech Thresholds with Decay
 5 for kana, 7-8 for phrases. Time-based decay so early struggles don't haunt forever.
 
 ### 17. Voice Input / Shadowing
-Speak the phrase, compare to native (Web Speech API). Research: 25-40% improvement in 8 weeks.
+Speak phrase, compare to native (Web Speech API). Research: 25-40% improvement, 8 weeks.

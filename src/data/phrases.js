@@ -10,6 +10,7 @@ export const PHRASES = [
 ["g8","おねがいします","o-ne-gai-shi-ma-su","Please","greet","Add after any request",true],
 ["g9","だいじょうぶです","dai-jou-bu de-su","I'm fine / no thank you","greet","Polite way to decline",true],
 ["g10","さようなら","sa-you-na-ra","Goodbye (formal)","greet","For when you won't see them again soon"],
+["g11","わたしのなまえは...です","wa-ta-shi no na-ma-e wa ... de-su","My name is ...","greet","Fill your name where the dots are",true],
 ["f1","これをください","ko-re o ku-da-sai","This one please","food","Point at menu + say this",true],
 ["f2","おかんじょうおねがいします","o-kan-jou o-ne-gai-shi-ma-su","Bill please","food","Or gesture writing in air",true],
 ["f3","みずをください","mi-zu o ku-da-sai","Water please","food","Water is free at restaurants",true],
