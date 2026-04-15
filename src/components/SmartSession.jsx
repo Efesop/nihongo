@@ -11,6 +11,7 @@ import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 import { KEY_WORDS, WORD_CATS } from "../data/keyWords.js";
+import { ActionBar, HintChip, RomajiReveal } from "./SessionParts.jsx";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -76,6 +77,9 @@ export default function SmartSession({
   const [matchPicked, setMatchPicked] = useState(null); // number-match: currently selected left item
   const [matchPairs, setMatchPairs] = useState([]); // number-match: completed {leftId, rightVal, correct}
   const [matchWrong, setMatchWrong] = useState(null); // flash for wrong pair
+  const [hintAvailable, setHintAvailable] = useState(false); // 15s timer for hint chip
+  const [hintShown, setHintShown] = useState(false); // user tapped hint
+  const hintTimer = useRef(null);
   const [immersionIdx, setImmersionIdx] = useState(-1); // immersion: current phrase index
   const [immersionTaps, setImmersionTaps] = useState([]); // immersion: user tap timestamps
   const [immersionDone, setImmersionDone] = useState(false);
@@ -375,6 +379,24 @@ export default function SmartSession({
           </div>
         </div>}
 
+        {/* MC focus prompt — show unmastered survival phrases */}
+        {(() => {
+          const mcUnmastered = PHRASES.filter(p => p[6] && (data.phr?.[p[0]]?.box || 0) < 3);
+          if (mcUnmastered.length === 0) return null;
+          const showSlice = mcUnmastered.slice(0, 4);
+          return <div style={{ marginBottom: 16, padding: "12px 16px", background: c.go + "12", borderRadius: 10, border: "1px solid " + c.go + "33", textAlign: "left" }}>
+            <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8, fontWeight: 700 }}>🎯 Survival phrases to focus on</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {showSlice.map(p => <span key={p[0]} style={{ fontSize: T.sm, padding: "4px 10px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, color: c.tx }}>
+                <span style={{ fontWeight: 600 }}>{p[1]}</span>
+                <span style={{ color: c.m, marginLeft: 6 }}>{p[3]}</span>
+              </span>)}
+              {mcUnmastered.length > showSlice.length && <span style={{ fontSize: T.sm, color: c.m, padding: "4px 8px" }}>+{mcUnmastered.length - showSlice.length} more</span>}
+            </div>
+            <div style={{ fontSize: T.xs, color: c.m, marginTop: 8 }}>These are mission-critical for travel. Next session will keep drilling them.</div>
+          </div>;
+        })()}
+
         {/* AI coaching feedback */}
         {reviewCoaching && <div style={{ marginBottom: 16, padding: "12px 16px", background: c.s2, borderRadius: 10, border: "1px solid " + c.b, textAlign: "left" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -433,6 +455,9 @@ export default function SmartSession({
     setKanaTyped([]); setKanaSubmitted(false); setKbTab(0);
     setShadowState("idle"); setShadowResult(null);
     setMatchPicked(null); setMatchPairs([]); setMatchWrong(null);
+    setHintAvailable(false); setHintShown(false);
+    if (hintTimer.current) clearTimeout(hintTimer.current);
+    hintTimer.current = setTimeout(() => setHintAvailable(true), 15000);
     immersionTimers.current.forEach(t => clearTimeout(t)); immersionTimers.current = [];
     setImmersionIdx(-1); setImmersionTaps([]); setImmersionDone(false); setImmersionPlaying(false);
     cardStartTime.current = Date.now(); // Reset timer for next card
@@ -545,6 +570,37 @@ export default function SmartSession({
   };
   const typeLabel = <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 10 }}>{EXERCISE_LABELS[ex.type] || ex.type}</div>;
 
+  // Build hint text from the current exercise
+  const buildHint = () => {
+    if (ex.type === "phrase-scenario" || ex.type === "phrase-reverse" || ex.type === "phrase-production") {
+      const p = ex.item;
+      const segs = PHRASE_BREAKDOWNS[p?.[0]];
+      if (segs?.[0]) return `Starts with ${segs[0][0]} (${segs[0][2]})`;
+      return p?.[1]?.charAt(0) ? `Starts with ${p[1].charAt(0)}` : "Look at the scene image";
+    }
+    if (ex.type === "pattern-assembly") {
+      return `Build the sentence meaning: "${ex.translation || ex.item?.[3] || ""}"`;
+    }
+    if (ex.type === "phrase-listen") {
+      const p = ex.item;
+      const segs = PHRASE_BREAKDOWNS[p?.[0]];
+      if (segs?.[0]) return `First word: ${segs[0][0]} = ${segs[0][2]}`;
+      return "Replay slowly and listen for familiar sounds";
+    }
+    if (ex.type === "phrase-kana-type") {
+      const p = ex.item;
+      const segs = PHRASE_BREAKDOWNS[p?.[0]];
+      if (segs?.[0]) return `Starts with ${segs[0][0]}`;
+      return p?.[1]?.charAt(0) || "Try the first character";
+    }
+    if (ex.type === "kana-visual" || ex.type === "kana-listen" || ex.type === "kana-reverse") {
+      const m = M[ex.item];
+      if (m) return `${m[0]} ${m[1]}`;
+      return ex.romaji ? `Sounds like "${ex.romaji[0]}..."` : "Replay it";
+    }
+    return "Take your time and break it down";
+  };
+
   // Romaji fading — progressive removal to force reading Japanese text directly
   // hideRomaji flag comes from sessionEngine based on SRS box level
   // Applied to choice buttons in phrase-scenario and phrase-reverse (where reading Japanese matters)
@@ -559,7 +615,7 @@ export default function SmartSession({
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
       updateKanaSRS(ex.item, ok, "kana-visual", getResponseMs());
       setTimeout(() => speak(ex.item), 250);
-      setTimeout(() => advance(ok), ok ? 1800 : 4000); // Longer for wrong — study the image
+      setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1000 : 2000) : 4000); // Longer for wrong — study the image
     };
     const isHira = ex.item.charCodeAt(0) >= 0x3040 && ex.item.charCodeAt(0) <= 0x309F;
     const imgPath = `/images/mnemonics/approved/${isHira ? "hiragana" : "katakana"}/${ex.item.codePointAt(0).toString(16)}.png`;
@@ -577,7 +633,7 @@ export default function SmartSession({
             </div>
             <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }} style={{ width: "45%", maxWidth: 200, borderRadius: 12 }} />
           </div>
-          {fb === "no" && m && <div style={{ fontSize: T.sm, color: c.m, marginTop: 12, fontStyle: "italic" }}>{m[0]} {m[1]}: {m[2]}</div>}
+          {m && <div style={{ fontSize: T.sm, color: c.m, marginTop: 12, fontStyle: "italic" }}>{m[0]} {m[1]}: {m[2]}</div>}
         </div>
         : <div style={{ fontSize: 130, lineHeight: 1, marginBottom: 16 }}>{ex.item}</div>}
       </div>
@@ -614,7 +670,7 @@ export default function SmartSession({
           <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "center" }}>
             <div>
               <div style={{ fontSize: T.huge, lineHeight: 1 }}>{ex.item}</div>
-              <div style={{ fontSize: T.lg, fontWeight: 700, color: choiceAnswer.selected === ex.item ? "#4caf50" : c.a, fontFamily: mono, marginTop: 4 }}>{ex.romaji}</div>
+              <div style={{ fontSize: T.lg, fontWeight: 700, color: choiceAnswer.selected === ex.item ? c.g : c.a, fontFamily: mono, marginTop: 4 }}>{ex.romaji}</div>
               <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{choiceAnswer.selected === ex.item ? "✓ Correct!" : "✗ Wrong"}</div>
             </div>
             {(()=>{const isH=ex.item.charCodeAt(0)>=0x3040&&ex.item.charCodeAt(0)<=0x309F;return <img src={`/images/mnemonics/approved/${isH?"hiragana":"katakana"}/${ex.item.codePointAt(0).toString(16)}.png`} alt="" onError={e=>{e.target.style.display="none";}} style={{width:"35%",maxWidth:130,borderRadius:10}}/>;})()}
@@ -629,7 +685,7 @@ export default function SmartSession({
           setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
           updateKanaSRS(ex.item, ok, "kana-listen", getResponseMs());
           // Longer delays for listening — user needs time to mentally repeat the sound
-          setTimeout(() => advance(ok), ok ? (getResponseMs() < 2000 ? 2500 : 3500) : (getResponseMs() > 5000 ? 5000 : 4000));
+          setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1500 : 2500) : 4000);
         }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + c.b, background: c.s, color: c.tx, fontSize: T.xxl, textAlign: "center", transition: "all .15s" }}>
           {ch}
         </button>)}
@@ -638,9 +694,9 @@ export default function SmartSession({
         {choiceAnswer.choices.map((ch, i) => {
           const isCorrect = ch === ex.item;
           const isSelected = ch === choiceAnswer.selected;
-          const bg = isCorrect ? "#4caf5018" : isSelected ? c.rs : "transparent";
-          const border = isCorrect ? "#4caf5055" : isSelected ? c.a + "55" : c.b;
-          const col = isCorrect ? "#4caf50" : isSelected ? c.a : c.m;
+          const bg = isCorrect ? c.g + "20" : isSelected ? c.rs : "transparent";
+          const border = isCorrect ? c.g + "55" : isSelected ? c.a + "55" : c.b;
+          const col = isCorrect ? c.g : isSelected ? c.a : c.m;
           return <div key={i} style={{ padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: bg, fontSize: T.xxl, textAlign: "center", color: col }}>
             {ch}
           </div>;
@@ -674,6 +730,9 @@ export default function SmartSession({
           </div>
           <div style={{ fontSize: T.base, color: c.m, marginBottom: 8 }}>{situations[p[4]]}</div>
           <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx }}>{p[3]}</div>
+          {!answered && <div style={{ marginTop: 4 }}>
+            <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />
+          </div>}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -756,6 +815,9 @@ export default function SmartSession({
             <button onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 play again</button>
             <button onClick={() => speakPhrase(p[0], p[1], { slow: true })} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🐢 slow</button>
           </div>
+          {!answered && <div style={{ marginTop: 10 }}>
+            <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />
+          </div>}
         </div>
         {answered && <div style={{ padding: "16px 20px" }}>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
@@ -828,6 +890,7 @@ export default function SmartSession({
         </div>
         <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx, lineHeight: 1.5 }}>{p[3]}</div>
         {p[5] && <div style={{ fontSize: T.sm, color: c.m, fontStyle: "italic", marginTop: 6 }}>{p[5]}</div>}
+        {!answered && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
         {choiceAnswer.choices.map((choice, i) => {
@@ -875,6 +938,28 @@ export default function SmartSession({
           <div style={{ fontSize: T.base, color: c.m, marginTop: 2 }}>{p[3]}</div>
         </div>
       </div>}
+      {/* Show confused-word diff when wrong */}
+      {answered && choiceAnswer.selected && choiceAnswer.selected !== "none" && choiceAnswer.selected !== p[0] && !choiceAnswer.isTrick && (() => {
+        const wrongPhrase = PHRASES.find(pp => pp[0] === choiceAnswer.selected);
+        const correctSegs = PHRASE_BREAKDOWNS[p[0]] || [];
+        const wrongSegs = wrongPhrase ? (PHRASE_BREAKDOWNS[wrongPhrase[0]] || []) : [];
+        const correctWords = correctSegs.map(s => s[0]);
+        const wrongWords = wrongSegs.map(s => s[0]);
+        const onlyInWrong = wrongSegs.filter(s => !correctWords.includes(s[0]));
+        const onlyInCorrect = correctSegs.filter(s => !wrongWords.includes(s[0]));
+        if (!onlyInWrong.length && !onlyInCorrect.length) return null;
+        return <div style={{ ...card, padding: "12px 16px", marginTop: 8, borderLeft: "3px solid " + c.a }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.a, marginBottom: 6 }}>You picked: {wrongPhrase?.[3]}</div>
+          <div style={{ fontSize: T.sm, color: c.m }}>
+            <span style={{ color: c.a }}>Differs in: </span>
+            {onlyInWrong.map(s => <span key={s[0]} style={{ background: c.a + "22", padding: "1px 5px", borderRadius: 4, marginRight: 4, color: c.a }}>{s[0]} ({s[2]})</span>)}
+            {onlyInCorrect.length > 0 && <>
+              <span style={{ color: c.g, marginLeft: 6 }}>vs correct: </span>
+              {onlyInCorrect.map(s => <span key={s[0]} style={{ background: c.gs, padding: "1px 5px", borderRadius: 4, marginRight: 4, color: c.g }}>{s[0]} ({s[2]})</span>)}
+            </>}
+          </div>
+        </div>;
+      })()}
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
           style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔊</button>
@@ -1041,8 +1126,44 @@ export default function SmartSession({
             style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, marginTop: 10 }}>🔊 hear again</button>
         </div>
       </div>
-      <button onClick={() => { reviewPhr(p[0], true, "learn-phrase"); advance(true); setScore(s => ({ ...s, c: s.c + 1 })); }}
-        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Got it — Next →</button>
+      {/* Inline retrieval check — pick the right English meaning */}
+      {(() => {
+        const quizAnswered = storyAnswer !== null;
+        // 2 distractor English meanings from same category
+        const sameCat = PHRASES.filter(pp => pp[4] === p[4] && pp[0] !== p[0]);
+        const distractors = shuffle(sameCat).slice(0, 1);
+        if (distractors.length === 0) return null;
+        const choices = (() => {
+          if (!ex._learnQuizChoices) ex._learnQuizChoices = shuffle([p, ...distractors]);
+          return ex._learnQuizChoices;
+        })();
+        return <div style={{ ...card, padding: "16px 20px", marginBottom: 12, borderLeft: "3px solid " + c.go }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
+          <div style={{ fontSize: T.base, color: c.tx, marginBottom: 10 }}>What does <span style={{ fontWeight: 700 }}>{p[1]}</span> mean?</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {choices.map((choice, i) => {
+              const isCorrect = choice[0] === p[0];
+              const isPicked = storyAnswer === i;
+              let bg = "transparent", border = c.b, col = c.tx;
+              if (quizAnswered && isCorrect) { bg = c.gs; border = c.g + "55"; col = c.g; }
+              if (quizAnswered && isPicked && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
+              return <button key={i} onClick={() => {
+                if (quizAnswered) return;
+                setStoryAnswer(i);
+              }} style={{ ...btn, padding: "10px 14px", borderRadius: 8, border: "1px solid " + border, background: bg, color: col, fontSize: T.sm, textAlign: "left" }}>{choice[3]}</button>;
+            })}
+          </div>
+        </div>;
+      })()}
+      <button onClick={() => {
+        const quizAnswered = storyAnswer !== null;
+        const choices = ex._learnQuizChoices;
+        const wasCorrect = quizAnswered && choices && choices[storyAnswer]?.[0] === p[0];
+        reviewPhr(p[0], wasCorrect || !quizAnswered, "learn-phrase");
+        setStoryAnswer(null);
+        advance(true);
+        setScore(s => ({ ...s, c: s.c + 1 }));
+      }} style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Got it — Next →</button>
     </>);
   }
 
@@ -1106,7 +1227,18 @@ export default function SmartSession({
         <div style={{ fontSize: T.base, color: c.m, marginBottom: 14, fontStyle: "italic" }}>{branchData.scene}</div>
         {/* NPC line */}
         {branchData.npcLine && <div style={{ padding: "12px 16px", background: c.s2, borderRadius: "4px 12px 12px 12px", marginBottom: 16 }}>
-          <div style={{ fontSize: T.xs, color: c.m, fontFamily: mono, marginBottom: 4 }}>{branchData.npcLine.speaker}</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <div style={{ fontSize: T.xs, color: c.m, fontFamily: mono }}>{branchData.npcLine.speaker}</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              <button onClick={() => speak(branchData.npcLine.japanese)}
+                style={{ ...btn, padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🔊</button>
+              <button onClick={() => { /* slow via playbackRate */
+                const utt = new SpeechSynthesisUtterance(branchData.npcLine.japanese);
+                utt.lang = "ja-JP"; utt.rate = 0.7;
+                window.speechSynthesis?.speak(utt);
+              }} style={{ ...btn, padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🐢</button>
+            </div>
+          </div>
           <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, marginBottom: 4 }}>{branchData.npcLine.japanese}</div>
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a }}>{branchData.npcLine.romaji}</div>
           <div style={{ fontSize: T.base, color: c.m, marginTop: 4 }}>{branchData.npcLine.english}</div>
@@ -1119,11 +1251,11 @@ export default function SmartSession({
           const picked = branchHistory.length > 0 && branchHistory[branchHistory.length - 1] === opt;
           const anyPicked = branchData._picked !== undefined;
           const isThisPicked = branchData._picked === i;
-          const qualityCol = opt.quality === "best" ? "#4caf50" : opt.quality === "okay" ? c.go : c.a;
+          const qualityCol = opt.quality === "best" ? c.g : opt.quality === "okay" ? c.go : c.a;
           const qualityLabel = opt.quality === "best" ? "✓ Perfect" : opt.quality === "okay" ? "~ Okay — works but not ideal" : "✗ Not quite right";
           let bg = "transparent", border = c.b;
           if (anyPicked && isThisPicked) { bg = opt.quality === "best" ? c.gs : opt.quality === "okay" ? c.go + "15" : c.rs; border = qualityCol + "55"; }
-          if (anyPicked && !isThisPicked && opt.quality === "best") { bg = c.gs; border = "#4caf5044"; }
+          if (anyPicked && !isThisPicked && opt.quality === "best") { bg = c.gs; border = c.g + "44"; }
           return <button key={i} onClick={() => {
             if (anyPicked) return;
             // Show feedback on this turn before advancing
@@ -1181,11 +1313,27 @@ export default function SmartSession({
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, textTransform: "uppercase", marginBottom: 10 }}>{storyData.title}</div>
-        {storyData.sentences?.map((s, i) => <div key={i} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, lineHeight: 1.5, marginBottom: 4 }}>{s.japanese}</div>
-          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 2 }}>{s.romaji}</div>
-          <div style={{ fontSize: T.base, color: c.m }}>{s.english}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, textTransform: "uppercase" }}>{storyData.title}</div>
+          <button onClick={() => {
+            // Play all sentences sequentially
+            let i = 0;
+            const playNext = () => {
+              if (i >= (storyData.sentences?.length || 0)) return;
+              speak(storyData.sentences[i].japanese);
+              i++;
+              setTimeout(playNext, 3000);
+            };
+            playNext();
+          }} style={{ ...btn, padding: "4px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🔊 read all</button>
+        </div>
+        {storyData.sentences?.map((s, i) => <div key={i} style={{ marginBottom: 14, display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, lineHeight: 1.5, marginBottom: 4 }}>{s.japanese}</div>
+            <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 2 }}>{s.romaji}</div>
+            <div style={{ fontSize: T.base, color: c.m }}>{s.english}</div>
+          </div>
+          <button onClick={() => speak(s.japanese)} style={{ ...btn, padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0, marginTop: 4 }} aria-label="Play sentence">🔊</button>
         </div>)}
       </div>
       {/* Comprehension question */}
@@ -1209,7 +1357,7 @@ export default function SmartSession({
         </div>
         {/* Show explanation after answering — no more silent auto-advance */}
         {answered && <div style={{ ...card, padding: "14px 18px", marginTop: 12, borderLeft: "3px solid " + (isCorrect ? c.g : c.a) }}>
-          <div style={{ fontSize: T.sm, fontWeight: 600, color: isCorrect ? "#4caf50" : c.a, marginBottom: 6 }}>
+          <div style={{ fontSize: T.sm, fontWeight: 600, color: isCorrect ? c.g : c.a, marginBottom: 6 }}>
             {isCorrect ? "✓ Correct!" : "✗ The answer was: " + storyData.comprehensionQuestion.options[storyData.comprehensionQuestion.correctIndex]}
           </div>
           {storyData.comprehensionQuestion.explanation && <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.5 }}>{storyData.comprehensionQuestion.explanation}</div>}
@@ -1302,7 +1450,7 @@ export default function SmartSession({
           })}
         </div>
         {answered && <div style={{ ...card, padding: "14px 18px", marginTop: 12, borderLeft: "3px solid " + (isCorrect ? c.g : c.a) }}>
-          <div style={{ fontSize: T.sm, fontWeight: 600, color: isCorrect ? "#4caf50" : c.a, marginBottom: 6 }}>
+          <div style={{ fontSize: T.sm, fontWeight: 600, color: isCorrect ? c.g : c.a, marginBottom: 6 }}>
             {isCorrect ? "✓ Correct!" : "✗ The answer was: " + gs.comprehension.options[gs.comprehension.correctIndex]}
           </div>
           {gs.comprehension.explanation && <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.5 }}>{gs.comprehension.explanation}</div>}
@@ -1597,6 +1745,10 @@ export default function SmartSession({
 
       {/* On-screen keyboard — horizontal flow, no tabs */}
       {!kanaSubmitted && <>
+        {/* Hint chip — shows after 15s */}
+        <div style={{ textAlign: "center", marginBottom: 8 }}>
+          <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />
+        </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
           {charPool.map((ch, i) =>
             <button key={i} onClick={() => setKanaTyped(t => [...t, ch])} style={{
@@ -1614,6 +1766,13 @@ export default function SmartSession({
             style={{ ...btn, flex: 1, padding: "12px 8px", borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: kanaTyped.length > 0 ? c.tx : c.m, fontSize: T.sm, fontWeight: 600, opacity: kanaTyped.length > 0 ? 1 : 0.4 }}>⌫ delete</button>
           <button onClick={handleSubmit} disabled={kanaTyped.length === 0}
             style={{ ...btn, flex: 2, padding: "12px 8px", borderRadius: 10, background: kanaTyped.length > 0 ? c.a : c.b, color: kanaTyped.length > 0 ? "#fff" : c.m, fontSize: T.base, fontWeight: 700, opacity: kanaTyped.length > 0 ? 1 : 0.5 }}>Check ✓</button>
+        </div>
+        {/* Escape hatch — show me + skip */}
+        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <button onClick={() => { setKanaTyped(targetChars); setHintShown(true); }}
+            style={{ ...btn, flex: 1, padding: "8px", borderRadius: 8, background: "transparent", border: "1px dashed " + c.b, color: c.m, fontSize: T.sm }}>👁 show answer</button>
+          <button onClick={() => { setKanaSubmitted(true); setFb("no"); setScore(s => ({ ...s, w: s.w + 1 })); reviewPhr(p[0], false, "phrase-kana-type", getResponseMs()); }}
+            style={{ ...btn, flex: 1, padding: "8px", borderRadius: 8, background: "transparent", border: "1px dashed " + c.b, color: c.m, fontSize: T.sm }}>⏭ skip this one</button>
         </div>
       </>}
 
@@ -1925,6 +2084,21 @@ export default function SmartSession({
 
     if (!storyData?.remixes) return null;
 
+    // Quiz on first remix (active retrieval, not passive read)
+    const quizRemix = storyData.remixes[0];
+    const quizDistractors = storyData.remixes.slice(1, 4).map(r => r.jp);
+    while (quizDistractors.length < 3) {
+      const random = ex.knownPhrases?.[Math.floor(Math.random() * ex.knownPhrases.length)];
+      if (random && !quizDistractors.includes(random.jp) && random.jp !== quizRemix.jp) quizDistractors.push(random.jp);
+      else break;
+    }
+    const quizChoices = (() => {
+      // Stable shuffle per render — use storyData reference
+      if (!storyData._quizChoices) storyData._quizChoices = shuffle([quizRemix.jp, ...quizDistractors]);
+      return storyData._quizChoices;
+    })();
+    const quizAnswered = storyAnswer !== null;
+
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: "16px 20px", marginBottom: 14 }}>
@@ -1948,8 +2122,30 @@ export default function SmartSession({
           <button onClick={() => speak(remix.jp)} style={{ ...btn, marginTop: 8, padding: "4px 14px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊</button>
         </div>)}
       </div>
-      <button onClick={() => { setStoryData(null); setStoryLoading(false); advance(true); }}
-        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Got it — Next →</button>
+
+      {/* Active retrieval quiz on the first remix */}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: "3px solid " + c.go }}>
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
+        <div style={{ fontSize: T.base, color: c.tx, marginBottom: 12 }}>How would you say: <span style={{ fontWeight: 700 }}>"{quizRemix.en}"</span>?</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {quizChoices.map((choice, i) => {
+            const isCorrect = choice === quizRemix.jp;
+            const isPicked = storyAnswer === i;
+            let bg = "transparent", border = c.b, col = c.tx;
+            if (quizAnswered && isCorrect) { bg = c.gs; border = c.g + "55"; col = c.g; }
+            if (quizAnswered && isPicked && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
+            return <button key={i} onClick={() => {
+              if (quizAnswered) return;
+              setStoryAnswer(i);
+              setScore(s => isCorrect ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+              if (isCorrect) speak(choice);
+            }} style={{ ...btn, padding: "12px 16px", borderRadius: 8, border: "1px solid " + border, background: bg, color: col, fontSize: T.base, textAlign: "left" }}>{choice}</button>;
+          })}
+        </div>
+      </div>
+
+      <button onClick={() => { setStoryData(null); setStoryLoading(false); setStoryAnswer(null); advance(true); }}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>{quizAnswered ? "Next →" : "Skip quiz — Next →"}</button>
     </>);
   }
 
@@ -2124,6 +2320,20 @@ export default function SmartSession({
             : correctCount >= totalSteps * 0.7 ? "Great job! A few stumbles but you got through it."
             : "Keep practising — you'll get the flow down!"}
         </div>
+        {/* Continuous play of full chain for listening practice */}
+        <button onClick={() => {
+          let i = 0;
+          const playNext = () => {
+            if (i >= chain.steps.length) return;
+            const phrase = PHRASES.find(p => p[0] === chain.steps[i].correctId);
+            if (phrase) speakPhrase(phrase[0], phrase[1]);
+            i++;
+            setTimeout(playNext, 2500);
+          };
+          playNext();
+        }} style={{ ...btn, width: "100%", padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm, marginBottom: 8 }}>
+          🔊 Hear the whole conversation again
+        </button>
         <button onClick={() => advance(correctCount >= totalSteps * 0.5)}
           style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>
       </div>}
@@ -2159,12 +2369,31 @@ export default function SmartSession({
         setSelectedBlank(null);
       };
 
+      // Autoplay all NPC lines up to the first blank for context
+      const playUpToBlank = () => {
+        const firstBlankIdx = convo.lines.findIndex(l => l.blank);
+        const linesToPlay = firstBlankIdx === -1 ? convo.lines : convo.lines.slice(0, firstBlankIdx);
+        let i = 0;
+        const playNext = () => {
+          if (i >= linesToPlay.length) return;
+          const line = linesToPlay[i];
+          if (line.text) speak(line.text);
+          i++;
+          setTimeout(playNext, 2500);
+        };
+        playNext();
+      };
+
       return withSenpai(<>
         {typeLabel}
         <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <span style={{ fontSize: T.lg }}>{convo.icon}</span>
-            <span style={{ fontSize: T.sm, fontWeight: 600 }}>{convo.setting}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: T.lg }}>{convo.icon}</span>
+              <span style={{ fontSize: T.sm, fontWeight: 600 }}>{convo.setting}</span>
+            </div>
+            <button onClick={playUpToBlank}
+              style={{ ...btn, padding: "4px 12px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.xs, color: c.m }}>🔊 hear setup</button>
           </div>
           {convo.lines.map((line, li) => {
             if (!line.blank) {
@@ -2237,7 +2466,7 @@ export default function SmartSession({
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
           <span style={{ fontSize: T.lg }}>{convo.icon}</span>
           <span style={{ fontSize: T.sm, fontWeight: 600 }}>{convo.setting}</span>
-          <span style={{ marginLeft: "auto", fontSize: T.base, fontWeight: 700, color: correct === total ? "#4caf50" : c.a }}>{correct}/{total}</span>
+          <span style={{ marginLeft: "auto", fontSize: T.base, fontWeight: 700, color: correct === total ? c.g : c.a }}>{correct}/{total}</span>
         </div>
         {convo.lines.map((line, li) => {
           if (!line.blank) {
@@ -2255,14 +2484,14 @@ export default function SmartSession({
           const isCorrect = answered === line.correctId;
           const answeredPhrase = phraseById(answered);
           const correctPhrase = phraseById(line.correctId);
-          const resultCol = isCorrect ? "#4caf50" : c.a;
+          const resultCol = isCorrect ? c.g : c.a;
           return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "flex-start" }}>
             <div style={{ fontSize: 10, fontFamily: mono, width: 28, flexShrink: 0, textAlign: "right", marginTop: 6 }}>
               <span style={{ display: "inline-block", width: 20, height: 20, lineHeight: "20px", borderRadius: "50%", textAlign: "center", fontSize: T.xs, fontWeight: 700, background: resultCol + "22", color: resultCol, border: "1px solid " + resultCol + "44" }}>{blankNum}</span>
             </div>
             <div style={{ flex: 1 }}>
               {/* Your answer */}
-              <div style={{ padding: "10px 14px", borderRadius: 8, background: isCorrect ? "#4caf5012" : c.rs, border: "1px solid " + resultCol + "33", marginBottom: isCorrect ? 0 : 6 }}>
+              <div style={{ padding: "10px 14px", borderRadius: 8, background: isCorrect ? c.g + "18" : c.rs, border: "1px solid " + resultCol + "33", marginBottom: isCorrect ? 0 : 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ fontSize: T.base, fontWeight: 600, color: resultCol }}>{isCorrect ? "✓" : "✗"}</span>
                   <span style={{ fontSize: T.base, fontWeight: 500 }}>{answeredPhrase?.[1]}</span>
@@ -2272,10 +2501,10 @@ export default function SmartSession({
                 </div>
               </div>
               {/* Correct answer if wrong */}
-              {!isCorrect && <div style={{ padding: "8px 14px", borderRadius: 8, background: "#4caf5010", border: "1px solid #4caf5022" }}>
+              {!isCorrect && <div style={{ padding: "8px 14px", borderRadius: 8, background: c.g + "12", border: "1px solid " + c.g + "22" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: T.sm, color: "#4caf50", fontWeight: 600 }}>correct:</span>
-                  <span style={{ fontSize: T.sm, fontWeight: 500, color: "#4caf50" }}>{correctPhrase?.[1]}</span>
+                  <span style={{ fontSize: T.sm, color: c.g, fontWeight: 600 }}>correct:</span>
+                  <span style={{ fontSize: T.sm, fontWeight: 500, color: c.g }}>{correctPhrase?.[1]}</span>
                   <span style={{ fontSize: T.sm, color: c.m }}>{correctPhrase?.[3]}</span>
                   <button onClick={() => speakPhrase(line.correctId, correctPhrase?.[1])}
                     style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.m, flexShrink: 0 }}>🔊</button>
@@ -2315,7 +2544,7 @@ export default function SmartSession({
             const isTarget = i === targetIdx;
             const isSelected = choiceAnswer.selected === i;
             let bg = c.s2, border = c.b, col = c.tx;
-            if (answered && isTarget) { bg = "#4caf5018"; border = "#4caf5055"; col = "#4caf50"; }
+            if (answered && isTarget) { bg = c.g + "20"; border = c.g + "55"; col = c.g; }
             if (answered && isSelected && !isTarget) { bg = c.rs; border = c.a + "55"; col = c.a; }
             return <button key={i} onClick={() => {
               if (answered) return;
@@ -2324,7 +2553,7 @@ export default function SmartSession({
               setFb(ok ? "ok" : "no");
               setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
               updateKanaSRS(targetChar, ok, "kana-pair", getResponseMs());
-              setTimeout(() => advance(ok), ok ? (getResponseMs() < 2000 ? 1500 : 2500) : (getResponseMs() > 5000 ? 4000 : 3500));
+              setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1000 : 2000) : 3500);
             }} style={{ ...btn, width: 120, height: 120, borderRadius: 16, border: "2px solid " + border, background: bg, fontSize: T.huge, color: col, transition: "all .2s" }}>
               {ch}
             </button>;
@@ -2347,9 +2576,24 @@ export default function SmartSession({
   // ═══ EXERCISE: GRAMMAR PATTERN ═══
   if (ex.type === "grammar-pattern") {
     const gp = ex.pattern;
-    // Find example phrases the user has learned that contain this pattern
     const exPhraseIds = (gp.examples || []).filter(id => data.phr?.[id]);
     const exPhrases = exPhraseIds.map(id => PHRASES.find(p => p[0] === id)).filter(Boolean).slice(0, 3);
+
+    // Quiz answered via storyAnswer (reuse state)
+    const quizAnswered = storyAnswer !== null;
+    // Pick first example phrase for quiz, find target word
+    const quizPhrase = exPhrases[0];
+    const quizSegs = quizPhrase ? PHRASE_BREAKDOWNS[quizPhrase[0]] : null;
+    // Find the segment that's part of the pattern (matches gp.pattern minus ~)
+    const patternKey = gp.pattern.replace(/~/g, "").replace(/\.\.\./g, "");
+    const targetSeg = quizSegs?.find(s => patternKey.includes(s[0]) || s[0].includes(patternKey.charAt(0)));
+    const quizOptions = quizSegs && targetSeg ? (() => {
+      const correct = `${targetSeg[2]} (${targetSeg[3]})`;
+      const otherSegs = quizSegs.filter(s => s !== targetSeg).map(s => `${s[2]} (${s[3]})`);
+      return shuffle([correct, ...otherSegs.slice(0, 2)]);
+    })() : null;
+    const correctAnswer = targetSeg ? `${targetSeg[2]} (${targetSeg[3]})` : null;
+
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
@@ -2375,44 +2619,75 @@ export default function SmartSession({
           </div>
         </>}
       </div>
-      <button onClick={() => { advance(true); /* grammar patterns don't count toward score — informational only */ }}
-        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Got it — Next →</button>
+
+      {/* Comprehension quiz — active not passive */}
+      {quizPhrase && targetSeg && quizOptions && <div style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: "3px solid " + c.go }}>
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
+        <div style={{ fontSize: T.base, color: c.tx, marginBottom: 12 }}>
+          In <span style={{ fontWeight: 700 }}>{quizPhrase[1]}</span>, what role does <span style={{ fontWeight: 700, color: c.a }}>{targetSeg[0]}</span> play?
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {quizOptions.map((opt, i) => {
+            const isCorrect = opt === correctAnswer;
+            const isPicked = storyAnswer === i;
+            let bg = "transparent", border = c.b, col = c.tx;
+            if (quizAnswered && isCorrect) { bg = c.gs; border = c.g + "55"; col = c.g; }
+            if (quizAnswered && isPicked && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
+            return <button key={i} onClick={() => {
+              if (quizAnswered) return;
+              setStoryAnswer(i);
+              setScore(s => isCorrect ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            }} style={{ ...btn, padding: "10px 14px", borderRadius: 8, border: "1px solid " + border, background: bg, color: col, fontSize: T.sm, textAlign: "left" }}>{opt}</button>;
+          })}
+        </div>
+      </div>}
+
+      <button onClick={() => { setStoryAnswer(null); advance(true); }}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>
+        {quizPhrase && targetSeg && !quizAnswered ? "Skip quiz — Next →" : "Got it — Next →"}
+      </button>
     </>);
   }
 
   // ═══ EXERCISE: WORD QUIZ (learn building block words individually) ═══
   if (ex.type === "word-quiz") {
     const word = ex.word; // [japanese, romaji, meaning, category, phraseExamples[]]
+    const isReverse = ex.reverse; // English meaning → pick Japanese (production)
     const catInfo = WORD_CATS[word[3]] || { label: "Word", color: c.m };
     if (!choiceAnswer) {
-      // Build distractors from same category
       const sameCat = KEY_WORDS.filter(w => w[3] === word[3] && w[0] !== word[0]);
       const otherCat = KEY_WORDS.filter(w => w[3] !== word[3] && w[0] !== word[0]);
       const distractorPool = [...sameCat, ...shuffle(otherCat)].slice(0, 8);
       const distractors = shuffle(distractorPool).slice(0, 3);
       const choices = shuffle([word, ...distractors]);
-      speak(word[0]);
+      if (!isReverse) speak(word[0]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
     }
     const answered = choiceAnswer.selected !== null;
-    // Find example phrases this word appears in (that the user knows)
     const exIds = (word[4] || []).filter(id => data.phr?.[id]);
     const exPhrases = exIds.map(id => PHRASES.find(p => p[0] === id)).filter(Boolean).slice(0, 2);
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: "24px 20px", marginBottom: 14, textAlign: "center" }}>
-        <div style={{ fontSize: T.huge, fontWeight: 800, color: c.tx, marginBottom: 4 }}>{word[0]}</div>
-        <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 4 }}>{word[1]}</div>
-        <button onClick={() => speak(word[0])} style={{ ...btn, padding: "4px 14px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it</button>
+        {isReverse ? <>
+          {/* Reverse: show English, user picks Japanese */}
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>Pick the Japanese word for:</div>
+          <div style={{ fontSize: T.xxl, fontWeight: 700, color: c.tx, marginBottom: 4 }}>{word[2]}</div>
+        </> : <>
+          {/* Normal: show Japanese, user picks English meaning */}
+          <div style={{ fontSize: T.huge, fontWeight: 800, color: c.tx, marginBottom: 4 }}>{word[0]}</div>
+          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.a, marginBottom: 4 }}>{word[1]}</div>
+          <button onClick={() => speak(word[0])} style={{ ...btn, padding: "4px 14px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m }}>🔊 hear it</button>
+        </>}
       </div>
-      <div style={{ fontSize: T.base, color: c.m, marginBottom: 8, textAlign: "center" }}>What does this mean?</div>
+      <div style={{ fontSize: T.base, color: c.m, marginBottom: 8, textAlign: "center" }}>{isReverse ? "Which Japanese word?" : "What does this mean?"}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {choiceAnswer.choices.map((w, i) => {
           const isCorrect = w[0] === word[0];
           const isSelected = choiceAnswer.selected === w[0];
           let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isCorrect) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
           if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
           return <button key={i} onClick={() => {
             if (answered) return;
@@ -2420,8 +2695,10 @@ export default function SmartSession({
             setChoiceAnswer({ ...choiceAnswer, selected: w[0], correct: ok });
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.base, fontWeight: 500, textAlign: "left", transition: "all .2s" }}>
-            {w[2]}
+            if (isReverse && ok) speak(w[0]);
+          }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: isReverse ? T.lg : T.base, fontWeight: isReverse ? 600 : 500, textAlign: "left", transition: "all .2s" }}>
+            {isReverse ? w[0] : w[2]}
+            {isReverse && answered && <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{w[2]}</div>}
           </button>;
         })}
       </div>
@@ -2481,7 +2758,7 @@ export default function SmartSession({
     }
     const answered = choiceAnswer.selected !== null;
     // Build the phrase with a blank
-    const gramCol = { particle: c.go, noun: "#5a9ec4", verb: "#4caf50", adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m, question: c.go };
+    const gramCol = { particle: c.go, noun: "#5a9ec4", verb: c.g, adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m, question: c.go };
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
@@ -2493,9 +2770,9 @@ export default function SmartSession({
               return <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
                 <div style={{
                   padding: "8px 14px", borderRadius: 8, fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700,
-                  background: showAnswer ? (choiceAnswer.correct ? "#4caf5018" : c.rs) : c.s2,
-                  border: "2px dashed " + (showAnswer ? (choiceAnswer.correct ? "#4caf50" : c.a) : c.a),
-                  color: showAnswer ? (choiceAnswer.correct ? "#4caf50" : c.a) : c.a,
+                  background: showAnswer ? (choiceAnswer.correct ? c.g + "20" : c.rs) : c.s2,
+                  border: "2px dashed " + (showAnswer ? (choiceAnswer.correct ? c.g : c.a) : c.a),
+                  color: showAnswer ? (choiceAnswer.correct ? c.g : c.a) : c.a,
                   minWidth: 40, textAlign: "center"
                 }}>
                   {showAnswer ? blankSeg[0] : "?"}
@@ -2518,7 +2795,7 @@ export default function SmartSession({
           const isCorrect = choice === blankSeg[0];
           const isSelected = choiceAnswer.selected === choice;
           let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isCorrect) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
           if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
           // Find the meaning of this choice from breakdowns
           let choiceMeaning = "";
@@ -2572,7 +2849,7 @@ export default function SmartSession({
     const isCorrectAnswer = assemblySlots.length === correctOrder.length &&
       assemblySlots.every((s, i) => s.japanese === correctOrder[i]);
 
-    const gramCol = { particle: "#c49a5a", noun: "#5a9ec4", verb: "#4caf50", question: "#ff9800", copula: c.m, suffix: "#9c27b0", adjective: "#c45a9e" };
+    const gramCol = { particle: "#c49a5a", noun: "#5a9ec4", verb: c.g, question: "#ff9800", copula: c.m, suffix: "#9c27b0", adjective: "#c45a9e" };
 
     // Build the full correct sentence for TTS
     const correctSentence = ch.correctPieces.map(p => p.japanese).join("");
@@ -2610,11 +2887,13 @@ export default function SmartSession({
       <div style={{ ...card, padding: isDesktop ? "28px 24px" : "22px 18px", marginBottom: 16 }}>
         <div style={{ fontSize: T.base, color: c.m, marginBottom: 12 }}>{ch.situation}</div>
         <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, color: c.tx, lineHeight: 1.3 }}>"{ch.englishPrompt}"</div>
+        <div style={{ fontSize: T.sm, color: c.m, marginTop: 8 }}>Tap pieces below in the right order to build this sentence in Japanese.</div>
         {ch.isNovel && !assemblySubmitted && <div style={{ fontSize: T.sm, color: c.a, marginTop: 8, opacity: 0.8 }}>✨ New combination</div>}
+        {!assemblySubmitted && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={`First piece: ${ch.correctPieces[0]?.japanese || ""}`} c={c} btn={btn} />}
       </div>
 
       {/* Drop zone — where pieces go */}
-      <div style={{ minHeight: 64, padding: "14px 16px", borderRadius: 14, border: "2px dashed " + (assemblySubmitted ? (isCorrectAnswer ? "#4caf50" : c.a) : c.b + "88"), background: assemblySubmitted ? (isCorrectAnswer ? "#4caf5008" : c.rs) : c.s2, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+      <div style={{ minHeight: 64, padding: "14px 16px", borderRadius: 14, border: "2px dashed " + (assemblySubmitted ? (isCorrectAnswer ? c.g : c.a) : c.b + "88"), background: assemblySubmitted ? (isCorrectAnswer ? c.g + "12" : c.rs) : c.s2, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         {assemblySlots.length === 0 && !assemblySubmitted && <div style={{ color: c.m, fontSize: T.base, fontStyle: "italic", width: "100%", textAlign: "center", padding: "8px 0" }}>Tap pieces below to build the sentence</div>}
         {assemblySlots.map((piece, i) => {
           let pieceColor = c.tx;
@@ -2622,7 +2901,7 @@ export default function SmartSession({
           let pieceBorder = c.b;
           if (assemblySubmitted) {
             if (i < correctOrder.length && piece.japanese === correctOrder[i]) {
-              pieceColor = "#4caf50"; pieceBg = "#4caf5015"; pieceBorder = "#4caf5066";
+              pieceColor = c.g; pieceBg = c.g + "20"; pieceBorder = c.g + "55";
             } else {
               pieceColor = c.a; pieceBg = c.rs; pieceBorder = c.a + "55";
             }
@@ -2635,8 +2914,8 @@ export default function SmartSession({
       </div>
 
       {/* Correct answer — always show the actual generated pieces, not the template's example phrase */}
-      {assemblySubmitted && <div style={{ ...card, padding: "14px 18px", marginBottom: 16, borderLeft: "3px solid #4caf50" }}>
-        <div style={{ fontSize: T.sm, color: isCorrectAnswer ? "#4caf50" : c.m, marginBottom: 8, fontWeight: 600 }}>{isCorrectAnswer ? "✓ Correct!" : "Correct answer:"}</div>
+      {assemblySubmitted && <div style={{ ...card, padding: "14px 18px", marginBottom: 16, borderLeft: "3px solid " + c.g }}>
+        <div style={{ fontSize: T.sm, color: isCorrectAnswer ? c.g : c.m, marginBottom: 8, fontWeight: 600 }}>{isCorrectAnswer ? "✓ Correct!" : "Correct answer:"}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
           {ch.correctPieces.map((p, i) => <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
             <span style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, color: c.tx, padding: "4px 8px" }}>{p.japanese}</span>
@@ -2703,8 +2982,8 @@ export default function SmartSession({
             <div style={{ display: "flex", alignItems: "center", gap: 14, justifyContent: "center" }}>
               <div>
                 <div style={{ fontSize: T.huge, lineHeight: 1 }}>{ex.item}</div>
-                <div style={{ fontSize: T.lg, fontWeight: 700, color: wasCorrect ? "#4caf50" : c.a, fontFamily: mono, marginTop: 4 }}>{ex.romaji}</div>
-                <div style={{ fontSize: T.sm, color: wasCorrect ? "#4caf50" : c.a, marginTop: 2 }}>{wasCorrect ? "✓ Correct!" : "✗ Wrong"}</div>
+                <div style={{ fontSize: T.lg, fontWeight: 700, color: wasCorrect ? c.g : c.a, fontFamily: mono, marginTop: 4 }}>{ex.romaji}</div>
+                <div style={{ fontSize: T.sm, color: wasCorrect ? c.g : c.a, marginTop: 2 }}>{wasCorrect ? "✓ Correct!" : "✗ Wrong"}</div>
               </div>
               <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }} style={{ width: "35%", maxWidth: 130, borderRadius: 10 }} />
             </div>
@@ -2717,7 +2996,7 @@ export default function SmartSession({
           const isCorrect = ch === ex.item;
           const isSelected = choiceAnswer.selected === ch;
           let bg = c.s, border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = "#4caf5018"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isCorrect) { bg = c.g + "20"; border = c.g + "55"; col = c.g; }
           if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
           return <button key={i} onClick={() => {
             if (answered) return;
@@ -2726,7 +3005,7 @@ export default function SmartSession({
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             updateKanaSRS(ex.item, ok, "kana-reverse", getResponseMs());
-            setTimeout(() => advance(ok), ok ? (getResponseMs() < 2000 ? 1500 : 2500) : 4000);
+            setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1000 : 2000) : 4000);
           }} style={{ ...btn, padding: "14px 8px", borderRadius: 10, border: "1px solid " + border, background: answered ? bg : c.s, color: answered ? col : c.tx, fontSize: T.xxl, textAlign: "center", transition: "all .15s" }}>
             {ch}
           </button>;
@@ -2762,7 +3041,7 @@ export default function SmartSession({
           const isTarget = i === targetIdx;
           const isSelected = choiceAnswer.selected === i;
           let bg = c.s2, border = c.b, col = c.tx;
-          if (answered && isTarget) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isTarget) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
           if (answered && isSelected && !isTarget) { bg = c.rs; border = c.a + "55"; col = c.a; }
           return <button key={i} onClick={() => {
             if (answered) return;
@@ -2775,7 +3054,7 @@ export default function SmartSession({
           }} style={{ ...btn, padding: "16px", borderRadius: 12, border: "2px solid " + border, background: bg, textAlign: "left", transition: "all .2s" }}>
             <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, color: col }}>{p[1]}</div>
             <div style={{ fontSize: T.sm, fontFamily: mono, color: c.m, marginTop: 4 }}>{p[2]}</div>
-            {answered && <div style={{ fontSize: T.base, color: isTarget ? "#4caf50" : c.m, marginTop: 4, fontWeight: isTarget ? 600 : 400 }}>{p[3]}</div>}
+            {answered && <div style={{ fontSize: T.base, color: isTarget ? c.g : c.m, marginTop: 4, fontWeight: isTarget ? 600 : 400 }}>{p[3]}</div>}
           </button>;
         })}
       </div>
@@ -2792,7 +3071,7 @@ export default function SmartSession({
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "baseline" }}>
                 {segs.map((seg, si) => {
                   const isDiff = !otherTexts.includes(seg[0]);
-                  const segCol = { particle: c.go, noun: "#5a9ec4", verb: "#4caf50", adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m }[seg[3]] || c.m;
+                  const segCol = { particle: c.go, noun: "#5a9ec4", verb: c.g, adjective: "#c45a9e", expression: c.m, counter: "#c49a5a", copula: c.m, suffix: c.m }[seg[3]] || c.m;
                   return <span key={si} style={{
                     display: "inline-flex", flexDirection: "column", alignItems: "center",
                     padding: "4px 6px", borderRadius: 6,
@@ -2822,7 +3101,10 @@ export default function SmartSession({
   if (ex.type === "phrase-reverse") {
     const p = ex.item;
     if (!choiceAnswer) {
-      const distractors = getDistractors(p, 3);
+      // 5 choices at box 3+ for harder retrieval, 4 below
+      const box = data.phr?.[p[0]]?.box || 0;
+      const distractorCount = box >= 3 ? 4 : 3;
+      const distractors = getDistractors(p, distractorCount);
       const choices = shuffle([p, ...distractors]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null }), 0);
       return null;
@@ -2834,13 +3116,14 @@ export default function SmartSession({
         <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>Find the Japanese</div>
         <div style={{ fontSize: T.xl, fontWeight: 700, color: c.tx, marginBottom: 6 }}>{p[3]}</div>
         <div style={{ fontSize: T.base, color: c.m, fontStyle: "italic" }}>{p[5]}</div>
+        {!answered && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {choiceAnswer.choices.map((choice, i) => {
           const isCorrect = choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
           let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && isCorrect) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && isCorrect) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
           if (answered && isSelected && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
           return <button key={i} onClick={() => {
             if (answered) return;
@@ -2885,12 +3168,12 @@ export default function SmartSession({
     };
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, textAlign: "center", padding: "28px 20px", marginBottom: 14, background: fb === "ok" ? "#4caf5012" : fb === "no" ? c.rs : c.s }}>
+      <div style={{ ...card, textAlign: "center", padding: "28px 20px", marginBottom: 14, background: fb === "ok" ? c.g + "18" : fb === "no" ? c.rs : c.s }}>
         <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>What sound does this make?</div>
         <div style={{ fontSize: isDesktop ? 120 : 90, lineHeight: 1, marginBottom: 12 }}>{ex.item}</div>
         <button onClick={() => speak(ex.item)} style={{ ...btn, padding: "6px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.m, marginBottom: 8 }}>🔊 hear it</button>
         {fb && <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: T.xl, fontWeight: 700, fontFamily: mono, color: fb === "ok" ? "#4caf50" : c.a }}>{ex.romaji}</div>
+          <div style={{ fontSize: T.xl, fontWeight: 700, fontFamily: mono, color: fb === "ok" ? c.g : c.a }}>{ex.romaji}</div>
           <div style={{ fontSize: T.base, color: c.m, marginTop: 4 }}>{fb === "ok" ? "You already knew this!" : "No worries — you'll learn it next"}</div>
         </div>}
       </div>
@@ -2932,7 +3215,7 @@ export default function SmartSession({
         </div>
         {p[5] && <div style={{ fontSize: T.sm, color: c.tx, marginBottom: 10, padding: "8px 12px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
         <div style={{ fontSize: T.lg, fontWeight: 700, color: c.tx }}>{p[3]}</div>
-        {answered && <div style={{ marginTop: 12, fontSize: T.base, color: wasCorrect ? "#4caf50" : c.a }}>
+        {answered && <div style={{ marginTop: 12, fontSize: T.base, color: wasCorrect ? c.g : c.a }}>
           {wasCorrect ? "You already knew this!" : "Good try — you'll learn this phrase next"}
         </div>}
         </div>
@@ -2940,7 +3223,7 @@ export default function SmartSession({
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {choiceAnswer.choices.map((choice, i) => {
           let bg = "transparent", border = c.b, col = c.tx;
-          if (answered && choice[0] === p[0]) { bg = "#4caf5012"; border = "#4caf5055"; col = "#4caf50"; }
+          if (answered && choice[0] === p[0]) { bg = c.g + "18"; border = c.g + "55"; col = c.g; }
           if (answered && choiceAnswer.selected === choice[0] && choice[0] !== p[0]) { bg = c.rs; border = c.a + "55"; col = c.a; }
           return <button key={i} onClick={() => {
             if (answered) return;
@@ -2950,7 +3233,7 @@ export default function SmartSession({
             speakPhrase(p[0], p[1]);
           }} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "1px solid " + border, background: bg, color: col, fontSize: T.md, textAlign: "left", transition: "all .2s" }}>
             {choice[1]}
-            {answered && choice[0] === p[0] && <span style={{ fontSize: T.sm, color: "#4caf50", marginLeft: 8 }}>= {p[3]}</span>}
+            {answered && choice[0] === p[0] && <span style={{ fontSize: T.sm, color: c.g, marginLeft: 8 }}>= {p[3]}</span>}
           </button>;
         })}
       </div>

@@ -96,6 +96,39 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const frequentErrorKana = ALL_KANA.filter(ch => (errors[ch] || 0) >= 5 && kanaData[ch]);
   const frequentErrorPhrases = PHRASES.filter(p => (errors[p[0]] || 0) >= 5 && phrData[p[0]]);
 
+  // ═══ ADAPTIVE ROUTING — answerLog signals ═══
+  // Build per-item stats from recent answer log (last 200 entries)
+  const answerLog = data.answerLog || [];
+  const itemStats = {}; // { itemId: { recent: [], avgMs: 0, accuracy: 0 } }
+  // Walk log in reverse — newest first, take up to 10 per item
+  for (let i = answerLog.length - 1; i >= 0; i--) {
+    const e = answerLog[i];
+    if (!e.item) continue;
+    if (!itemStats[e.item]) itemStats[e.item] = { recent: [], totalMs: 0 };
+    if (itemStats[e.item].recent.length < 10) {
+      itemStats[e.item].recent.push(e);
+      itemStats[e.item].totalMs += e.ms || 0;
+    }
+  }
+  Object.keys(itemStats).forEach(id => {
+    const s = itemStats[id];
+    const correct = s.recent.filter(e => e.correct).length;
+    s.accuracy = s.recent.length > 0 ? correct / s.recent.length : 1;
+    s.avgMs = s.recent.length > 0 ? s.totalMs / s.recent.length : 0;
+  });
+
+  // Adaptive priority: items with <50% accuracy in last N attempts get force-pushed
+  const lowAccuracyPhrases = PHRASES.filter(p => {
+    const s = itemStats[p[0]];
+    return s && s.recent.length >= 4 && s.accuracy < 0.5 && phrData[p[0]];
+  });
+
+  // Response time leech candidates: avg >15s in last 10 attempts
+  const slowResponsePhrases = PHRASES.filter(p => {
+    const s = itemStats[p[0]];
+    return s && s.recent.length >= 3 && s.avgMs > 15000 && phrData[p[0]];
+  });
+
   // 1. Due for review — include ALL items past their due date (even box 0)
   // Box 0 items were getting stuck invisible — they exist in data but the old
   // filter (box >= 1) excluded them, making them neither "due" nor "unseen"
@@ -322,7 +355,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     // Even beginners get a word quiz if they know any phrases
     if (phrasesLearned >= 3) {
       const knownWords = KEY_WORDS.filter(w => (w[4] || []).some(id => phrData[id]?.box >= 1));
-      if (knownWords.length > 0) queue.push({ type: "word-quiz", word: shuffle(knownWords)[0] });
+      if (knownWords.length > 0) queue.push({ type: "word-quiz", word: shuffle(knownWords)[0], reverse: Math.random() < 0.4 });
     }
     return queue.slice(0, sessionLength);
   }
@@ -379,7 +412,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   if (phrasesLearned >= 3) {
     const knownWords = KEY_WORDS.filter(w => (w[4] || []).some(id => phrData[id]?.box >= 1));
     if (knownWords.length > 0) {
-      specialPool.push({ type: "word-quiz", word: shuffle(knownWords)[0] });
+      specialPool.push({ type: "word-quiz", word: shuffle(knownWords)[0], reverse: Math.random() < 0.4 });
     }
   }
 
@@ -449,6 +482,13 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
+  // ADAPTIVE PRIORITY — items struggling in answerLog go first
+  // Don't add to special pool (those compete for slots) — instead force into review queue.
+  // We'll surface these as a priority list the queue builder reads.
+  const adaptivePriorityPhrases = [...lowAccuracyPhrases, ...slowResponsePhrases]
+    .filter((p, i, arr) => arr.findIndex(x => x[0] === p[0]) === i) // dedupe
+    .slice(0, 3);
+
   // Phrase DJ — AI remixes known components into new phrases (10+ phrases known)
   if (phrasesLearned >= 10 && Math.random() < 0.25) {
     const knownPhraseData = PHRASES.filter(p => phrData[p[0]] && phrData[p[0]].box >= 2)
@@ -458,10 +498,13 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
-  // Mistake Memory — AI error analysis (when user has 3+ error items)
-  if (frequentErrorPhrases.length >= 2 && Math.random() < 0.2) {
-    // Build error patterns from answer log
-    const answerLog = data.answerLog || [];
+  // Mistake Memory — AI error analysis
+  // Auto-trigger every 5 sessions if any errors exist (forced).
+  // Otherwise random 20% chance when 3+ error items.
+  const sessionCount = data.settings?.sessionCount || 0;
+  const forceMistakeMemory = sessionCount > 0 && sessionCount % 5 === 0 && frequentErrorPhrases.length >= 1;
+  const randomMistakeMemory = frequentErrorPhrases.length >= 2 && Math.random() < 0.2;
+  if (forceMistakeMemory || randomMistakeMemory) {
     const errorItems = frequentErrorPhrases.slice(0, 5).map(p => ({
       item: p[1], correct: p[3], id: p[0], count: errors[p[0]] || 0,
     }));
@@ -544,15 +587,21 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const phrDueCap = dueCap - kanaDueCap;
 
   shuffle(dueKana).slice(0, kanaDueCap).forEach(ch => addKana(ch, queue));
-  // Mission-critical phrases (p[6]=true) dominate when user hasn't mastered them yet.
-  // Unmastered mc (box < 3) go first. Keeps beginners drilling survival phrases.
+  // Adaptive priority phrases first (low accuracy / slow response in last 10 attempts).
+  // Then mission-critical unmastered. Then everything else.
+  const adaptiveIds = new Set(adaptivePriorityPhrases.map(p => p[0]));
   const duePhrasesSorted = [...duePhrases].sort((a, b) => {
+    const aAdaptive = adaptiveIds.has(a[0]) ? 1 : 0;
+    const bAdaptive = adaptiveIds.has(b[0]) ? 1 : 0;
+    if (aAdaptive !== bAdaptive) return bAdaptive - aAdaptive; // adaptive first
     const aMc = a[6] && (phrData[a[0]]?.box || 0) < 3 ? 1 : 0;
     const bMc = b[6] && (phrData[b[0]]?.box || 0) < 3 ? 1 : 0;
-    if (aMc !== bMc) return bMc - aMc; // mc first
-    return Math.random() - 0.5; // shuffle within tier
+    if (aMc !== bMc) return bMc - aMc; // then mc
+    return Math.random() - 0.5;
   });
-  duePhrasesSorted.slice(0, phrDueCap).forEach(p => addPhrase(p, queue));
+  // Force-include adaptive priority phrases even when not in due (struggling needs work)
+  const forcedAdaptive = adaptivePriorityPhrases.filter(p => !duePhrasesSorted.find(d => d[0] === p[0]));
+  [...forcedAdaptive, ...duePhrasesSorted].slice(0, phrDueCap).forEach(p => addPhrase(p, queue));
 
   // Recently learned — max 1 each
   shuffle(recentKana).slice(0, 1).forEach(ch => addKana(ch, queue));
@@ -727,8 +776,18 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     return true;
   });
 
+  // Cap leech-review at 1 per session — clusters demoralise
+  let leechCount = 0;
+  const leechCapped = safeQueue.filter(item => {
+    if (item.type === "leech-review") {
+      if (leechCount >= 1) return false;
+      leechCount++;
+    }
+    return true;
+  });
+
   // Trim to session length
-  return safeQueue.slice(0, sessionLength);
+  return leechCapped.slice(0, sessionLength);
 }
 
 /**
