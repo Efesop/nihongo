@@ -807,10 +807,12 @@ export default function SmartSession({
             reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontFamily: fontJa, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>
-                {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 3, opacity: .9 }}>{choice[2]}</div>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {answered && PHRASE_BREAKDOWNS[choice[0]]
+                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+                  : <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontFamily: fontJa, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>}
+                {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 4, opacity: .9 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
@@ -908,7 +910,9 @@ export default function SmartSession({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 500 }}>{choice[3]}</div>
-                {answered && <div style={{ fontSize: T.md, color: c.m2, fontFamily: fontJa, marginTop: 3, fontWeight: 600 }}>{choice[1]}</div>}
+                {answered && (PHRASE_BREAKDOWNS[choice[0]]
+                  ? <div style={{ marginTop: 6 }}><PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.lg : T.md} /></div>
+                  : <div style={{ fontSize: T.md, color: c.m2, fontFamily: fontJa, marginTop: 3, fontWeight: 600 }}>{choice[1]}</div>)}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
@@ -976,14 +980,16 @@ export default function SmartSession({
             reviewPhr(p[0], correct, ex.type, getResponseMs());
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>
-                {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 3 }}>{choice[2]}</div>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {answered && PHRASE_BREAKDOWNS[choice[0]]
+                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+                  : <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>}
+                {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
-                style={{ padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></span>}
+                style={{ padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, flexShrink: 0 }}><IconPlay size={14}/></span>}
             </div>
           </ChoiceCard>;
         })}
@@ -1443,21 +1449,35 @@ export default function SmartSession({
       }
     }
 
-    // Play all sentences in sequence using TTS
+    // Play a single sentence — try pre-generated ElevenLabs file, fall back to phrase match, then speak().
+    const playSentence = (i) => {
+      const url = `/audio/graded/${gs.id}-${i}.mp3`;
+      const a = new Audio(url);
+      a.play().catch(() => {
+        // Fallback: match phrase or Google TTS
+        const s = gs.sentences[i];
+        const matchedPhrase = PHRASES.find(p => s.jp.replace(/[。？！、（）()]/g, '').includes(p[1]));
+        if (matchedPhrase) speakPhrase(matchedPhrase[0], matchedPhrase[1]);
+        else speak(s.jp);
+      });
+    };
+    // Play all sentences in sequence, waiting for each to end.
     const playAll = () => {
       let i = 0;
       const playNext = () => {
         if (i >= gs.sentences.length) return;
-        const s = gs.sentences[i];
-        // Find matching phrase for pre-recorded audio
-        const matchedPhrase = PHRASES.find(p => s.jp.replace(/[。？！、]/g, '').includes(p[1]));
-        if (matchedPhrase) {
-          speakPhrase(matchedPhrase[0], matchedPhrase[1]);
-        } else {
-          speak(s.jp);
-        }
-        i++;
-        setTimeout(playNext, 2500);
+        const url = `/audio/graded/${gs.id}-${i}.mp3`;
+        const a = new Audio(url);
+        const advance = () => { i++; setTimeout(playNext, 400); };
+        a.onended = advance;
+        a.onerror = () => {
+          const s = gs.sentences[i];
+          const matchedPhrase = PHRASES.find(p => s.jp.replace(/[。？！、（）()]/g, '').includes(p[1]));
+          if (matchedPhrase) speakPhrase(matchedPhrase[0], matchedPhrase[1]);
+          else speak(s.jp);
+          setTimeout(advance, 2200);
+        };
+        a.play().catch(a.onerror);
       };
       playNext();
     };
@@ -1484,10 +1504,20 @@ export default function SmartSession({
               borderBottomRightRadius: leftSide ? 16 : 4,
               background: leftSide ? c.s2 : c.ac + "18",
               border: "1px solid " + (leftSide ? c.b : c.ac + "30"),
+              position: "relative",
             }}>
-              <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.4, color: c.tx, fontFamily: fontJa }}>{s.jp}</div>
-              <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{s.romaji}</div>
-              {answered && <div style={{ fontSize: T.sm, color: c.m2 || c.m, marginTop: 3, fontStyle: "italic" }}>{s.en}</div>}
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.4, color: c.tx, fontFamily: fontJa }}>{s.jp}</div>
+                  <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{s.romaji}</div>
+                  {answered && <div style={{ fontSize: T.sm, color: c.m2 || c.m, marginTop: 3, fontStyle: "italic" }}>{s.en}</div>}
+                </div>
+                <button onClick={() => playSentence(i)} className="ts-icon-btn"
+                  aria-label="Play line"
+                  style={{ ...btn, padding: "6px 8px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, flexShrink: 0, alignSelf: "center" }}>
+                  <IconPlay size={14} />
+                </button>
+              </div>
             </div>
           </div>;
         })}
@@ -3228,13 +3258,15 @@ export default function SmartSession({
             reviewPhr(p[0], ok, "phrase-reverse", getResponseMs());
             if (ok) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, fontFamily: fontJa, lineHeight: 1.3 }}>{choice[1]}</div>
-                {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 3 }}>{choice[3]}</div>}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {answered && PHRASE_BREAKDOWNS[choice[0]]
+                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+                  : <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, fontFamily: fontJa, lineHeight: 1.3 }}>{choice[1]}</div>}
+                {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 6 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
-                style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></span>}
+                style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, flexShrink: 0 }}><IconPlay size={14}/></span>}
             </div>
           </ChoiceCard>;
         })}

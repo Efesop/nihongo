@@ -13,6 +13,8 @@
  *   slow       — all 100 phrases at 0.85x speed → public/audio/phrase-slow/
  *   test-voice — generate 5 sample phrases with 3 different native JP voices for comparison
  *   missing    — only generate phrases that don't have audio files yet
+ *   graded     — generate per-sentence audio for every graded-reader story
+ *                (two voices: speaker "a" = konoha, speaker "b" = akira)
  *
  * Voice override: VOICE_JA=voiceId node scripts/generate-audio.mjs
  * Model override: MODEL=eleven_v3 node scripts/generate-audio.mjs
@@ -273,7 +275,7 @@ async function main() {
   }
 
   // Create output dirs
-  ['kana','story','story2','story3','phrase','phrase-slow'].forEach(d =>
+  ['kana','story','story2','story3','phrase','phrase-slow','graded'].forEach(d =>
     mkdirSync(join(OUT, d), { recursive: true })
   );
 
@@ -312,6 +314,26 @@ async function main() {
     console.log('\n\n🐢 Phrases (Japanese, slow 0.85x)…');
     for (const [id, text] of PHRASES) {
       await generate(text, VOICE_JA, join(OUT, 'phrase-slow', `${id}.mp3`), { isJapanese: true, speed: 0.85 });
+    }
+  }
+
+  // ── GRADED READER SENTENCES ──
+  if (mode === 'all' || mode === 'graded') {
+    console.log('\n\n📚 Graded reader sentences (two voices)…');
+    const { GRADED_STORIES } = await import(join(ROOT, 'src/data/gradedStories.js'));
+    const VOICE_A = VOICES_JA.konoha; // NPC / staff / local
+    const VOICE_B = VOICES_JA.akira;  // "You"
+    for (const gs of GRADED_STORIES) {
+      console.log(`\n  ${gs.id} — ${gs.title}`);
+      for (let i = 0; i < gs.sentences.length; i++) {
+        const s = gs.sentences[i];
+        const voice = s.speaker === 'b' ? VOICE_B : VOICE_A;
+        // Strip parenthetical stage directions like (...arrived) or (eating)
+        const text = s.jp.replace(/[（(][^）)]*[）)]/g, '').replace(/\s+/g, ' ').trim();
+        if (!text) { process.stdout.write('∅'); continue; }
+        const outPath = join(OUT, 'graded', `${gs.id}-${i}.mp3`);
+        await generate(text, voice, outPath, { isJapanese: true });
+      }
     }
   }
 
