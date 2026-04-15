@@ -19,6 +19,7 @@ import { fsrsUpdate, stabilityToBox } from "./utils/fsrs.js";
 
 // Utils
 import { store, syncLoad, syncSave, defaultD, migrate } from "./utils/storage.js";
+import { configureTelemetry, track as telemetryTrack } from "./utils/telemetry.js";
 import { _ttsAudio, setTtsAudio, _playAudio, speak, speakPhrase } from "./utils/audio.js";
 import { shuffle, daysUntil } from "./utils/helpers.js";
 
@@ -170,6 +171,10 @@ function AuthedApp({ user, getToken }){
     window.speechSynthesis?.addEventListener?.("voiceschanged",h);
     return()=>window.speechSynthesis?.removeEventListener?.("voiceschanged",h);
   },[]);
+
+  useEffect(()=>{
+    configureTelemetry({ getToken });
+  },[getToken]);
 
   useEffect(()=>{
     const init=async()=>{
@@ -364,6 +369,7 @@ function AuthedApp({ user, getToken }){
       curSkill[skill]=correct?Math.min((curSkill[skill]||0)+1,5):Math.max((curSkill[skill]||0)-1,0);
       skills[id]=curSkill;
       const answerLog=logAnswer(prev,id,correct,exerciseType||"phrase",responseMs);
+      telemetryTrack("attempt",{kind:"phrase",item:id,correct,type:exerciseType||"phrase",ms:responseMs||0,box:newBox});
       const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog,skills,totalC:correct?prev.totalC+1:prev.totalC};
       store.set(KEY,nd);
       clearTimeout(syncTimer.current);
@@ -391,6 +397,7 @@ function AuthedApp({ user, getToken }){
       curSkill[skill]=correct?Math.min((curSkill[skill]||0)+1,5):Math.max((curSkill[skill]||0)-1,0);
       skills[ch]=curSkill;
       const answerLog=logAnswer(prev,ch,correct,exerciseType||"kana",responseMs);
+      telemetryTrack("attempt",{kind:"kana",item:ch,correct,type:exerciseType||"kana",ms:responseMs||0,box:newBox});
       const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog,skills};
       store.set(KEY,nd);
       clearTimeout(syncTimer.current);

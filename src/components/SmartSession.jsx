@@ -12,6 +12,7 @@ import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 import { KEY_WORDS, WORD_CATS } from "../data/keyWords.js";
 import { ActionBar, HintChip, RomajiReveal } from "./SessionParts.jsx";
+import { track as telemetryTrack, flush as telemetryFlush } from "../utils/telemetry.js";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
@@ -78,7 +79,15 @@ export default function SmartSession({
   const [matchPairs, setMatchPairs] = useState([]); // number-match: completed {leftId, rightVal, correct}
   const [matchWrong, setMatchWrong] = useState(null); // flash for wrong pair
   const [hintAvailable, setHintAvailable] = useState(false); // 15s timer for hint chip
-  const [hintShown, setHintShown] = useState(false); // user tapped hint
+  const [hintShown, _setHintShown] = useState(false); // user tapped hint
+  const setHintShown = (v) => {
+    if (v === true && !hintShown) {
+      const ex = cards[ci];
+      const item = typeof ex?.item === "string" ? ex.item : ex?.item?.[0];
+      telemetryTrack("hint_revealed", { type: ex?.type, item });
+    }
+    _setHintShown(v);
+  };
   const hintTimer = useRef(null);
   const [immersionIdx, setImmersionIdx] = useState(-1); // immersion: current phrase index
   const [immersionTaps, setImmersionTaps] = useState([]); // immersion: user tap timestamps
@@ -136,7 +145,17 @@ export default function SmartSession({
       // Build session right away — no waiting for API
       try {
         const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
-        if (session.length > 0) setCards(session);
+        if (session.length > 0) {
+          setCards(session);
+          telemetryTrack("session_start", {
+            cards: session.length,
+            types: session.map(c => c.type),
+            phrasesKnown: Object.keys(data.phr || {}).length,
+            kanaKnown: Object.keys(data.kana || {}).length,
+            sessionCount: data.settings?.sessionCount || 0,
+            difficulty: data.settings?.sessionDifficulty || 0,
+          });
+        }
         else setDone(true);
       } catch (e) {
         console.error("Session build failed:", e);
@@ -169,6 +188,15 @@ export default function SmartSession({
     if (done && score.c + score.w > 0 && !sessionFeedback) {
       // Session count — computed once for use in both review and error analysis
       const sessionCount = (data.settings?.sessionCount || 0) + 1;
+      telemetryTrack("session_end", {
+        c: score.c, w: score.w,
+        accuracy: Math.round(score.c / Math.max(1, score.c + score.w) * 100),
+        elapsedSec: Math.round((Date.now() - startTime) / 1000),
+        totalCards: cards.length,
+        struggled: struggled.map(s => s.label),
+        sessionCount,
+      });
+      telemetryFlush();
 
       // Regular post-session review
       fetch('/api/coach', {
