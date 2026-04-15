@@ -1472,23 +1472,26 @@ export default function SmartSession({
           </div>
           <button onClick={playAll} style={{ ...btn, padding: "6px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/> hear it</button>
         </div>
-        {/* Conversation-style bubbles */}
+        {/* Conversation-style bubbles — speaker-aligned (a=left, b=right). Fallback to alternating for legacy stories. */}
         {gs.sentences.map((s, i) => {
-          const isEven = i % 2 === 0;
-          return <div key={i} style={{ display: "flex", justifyContent: isEven ? "flex-start" : "flex-end", marginBottom: 10 }}>
+          const leftSide = s.speaker ? s.speaker === "a" : i % 2 === 0;
+          const role = s.role; // optional label: "Customer", "Staff", "Friend" etc
+          return <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: leftSide ? "flex-start" : "flex-end", marginBottom: 10 }}>
+            {role && <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 3, padding: "0 6px" }}>{role}</div>}
             <div style={{
               maxWidth: "85%", padding: "12px 16px", borderRadius: 16,
-              borderBottomLeftRadius: isEven ? 4 : 16,
-              borderBottomRightRadius: isEven ? 16 : 4,
-              background: isEven ? c.s2 : c.ac + "18",
-              border: "1px solid " + (isEven ? c.b : c.ac + "30"),
+              borderBottomLeftRadius: leftSide ? 4 : 16,
+              borderBottomRightRadius: leftSide ? 16 : 4,
+              background: leftSide ? c.s2 : c.ac + "18",
+              border: "1px solid " + (leftSide ? c.b : c.ac + "30"),
             }}>
-              <div style={{ fontSize: isDesktop ? T.lg : T.base, fontWeight: 600, lineHeight: 1.5, color: c.tx }}>{s.jp}</div>
-              <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro, marginTop: 3 }}>{s.romaji}</div>
-              <div style={{ fontSize: T.sm, color: c.m, marginTop: 2 }}>{s.en}</div>
+              <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.4, color: c.tx, fontFamily: fontJa }}>{s.jp}</div>
+              <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{s.romaji}</div>
+              {answered && <div style={{ fontSize: T.sm, color: c.m2 || c.m, marginTop: 3, fontStyle: "italic" }}>{s.en}</div>}
             </div>
           </div>;
         })}
+        {!answered && <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textAlign: "center", marginTop: 8, opacity: 0.7 }}>English hidden — read the Japanese, then answer below</div>}
       </div>
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: T.sm, fontWeight: 600, color: c.tx, marginBottom: 10 }}>{gs.comprehension.question}</div>
@@ -2501,7 +2504,7 @@ export default function SmartSession({
                 <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ fontSize: T.base, fontWeight: 500, flex: 1 }}>{line.text}</div>
+                    <div style={{ fontSize: isDesktop ? T.lg : T.md, fontWeight: 600, flex: 1, fontFamily: fontJa, lineHeight: 1.4 }}>{line.text}</div>
                     <button className="ts-icon-btn" onClick={() => speak(line.text)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></button>
                   </div>
                 </div>
