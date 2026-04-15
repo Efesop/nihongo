@@ -94,7 +94,7 @@ export function RomajiReveal({ visible, revealed, onReveal, romaji, c, btn }) {
   if (revealed) {
     return (
       <div style={{
-        fontSize: T.sm, fontFamily: mono, color: c.a,
+        fontSize: T.sm, fontFamily: mono, color: c.ro,
         marginTop: 6, opacity: 0.85,
       }}>
         {romaji}

@@ -636,7 +636,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       queue.push({ type: "try-first-kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch] });
       // Delayed items use _triggerIdx to track position relative to try-first card
       queue.push({ type: "_delayed_learn_kana", item: ch, romaji: ROMAJI[ch], mnemonic: M[ch], _triggerIdx: queue.length - 1, delay: 2 });
-      queue.push({ type: "_delayed_kana", item: ch, _triggerIdx: queue.length - 2, delay: 5 });
+      queue.push({ type: "_delayed_kana", item: ch, _triggerIdx: queue.length - 2, delay: 4 });
       newItemCount++;
     });
   }
@@ -648,7 +648,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       usedPhrases.add(np[0]);
       queue.push({ type: "try-first-phrase", item: np });
       queue.push({ type: "_delayed_learn_phrase", item: np, _triggerIdx: queue.length - 1, delay: 2 });
-      queue.push({ type: "_delayed_phrase", item: np, _triggerIdx: queue.length - 2, delay: 5 });
+      queue.push({ type: "_delayed_phrase", item: np, _triggerIdx: queue.length - 2, delay: 4 });
       newItemCount++;
     });
   }
