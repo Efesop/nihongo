@@ -9,6 +9,7 @@
  *
  * All components take theme `c`, button base `btn`, card base `card`, T sizes.
  */
+import { useState, useRef, useEffect, useCallback } from "react";
 import { T, mono, fontJa, JP, SCENE_IMG } from "../data/constants.js";
 import {
   IconPlay, IconSlowPlay, IconBulb, IconEye, IconArrowRight,
@@ -37,6 +38,44 @@ export function ensureSessionStyles() {
     @keyframes pulse  { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
     @keyframes tapPulse { 0%,100% { opacity: 1; } 50% { opacity: .6; transform: scale(1.03); } }
     .ts-tap-reveal { animation: tapPulse 2s ease-in-out infinite; }
+
+    /* Audio orb — liquid glass with morphing blobs */
+    @keyframes orbFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes orbGlow  { 0%,100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.15); } }
+    @keyframes orbHue   { 0% { filter: hue-rotate(0deg); } 50% { filter: hue-rotate(20deg); } 100% { filter: hue-rotate(0deg); } }
+    @keyframes orbWobble {
+      0%   { border-radius: 50%; }
+      12%  { border-radius: 47% 53% 51% 49% / 51% 49% 53% 47%; }
+      25%  { border-radius: 53% 47% 48% 52% / 48% 52% 50% 50%; }
+      37%  { border-radius: 49% 51% 53% 47% / 52% 48% 47% 53%; }
+      50%  { border-radius: 52% 48% 47% 53% / 47% 53% 52% 48%; }
+      62%  { border-radius: 48% 52% 52% 48% / 53% 47% 48% 52%; }
+      75%  { border-radius: 51% 49% 48% 52% / 49% 51% 53% 47%; }
+      100% { border-radius: 50%; }
+    }
+    /* Idle blobs — slow calm drift */
+    @keyframes idleB1{0%{border-radius:40% 60% 55% 45%/55% 45% 60% 40%;transform:translate(0,0) scale(1)}33%{border-radius:55% 45% 40% 60%/45% 60% 45% 55%;transform:translate(8px,-5px) scale(1.05)}66%{border-radius:45% 55% 60% 40%/60% 40% 55% 45%;transform:translate(-5px,7px) scale(0.95)}100%{border-radius:40% 60% 55% 45%/55% 45% 60% 40%;transform:translate(0,0) scale(1)}}
+    @keyframes idleB2{0%{border-radius:50% 50% 45% 55%/55% 45% 50% 50%;transform:translate(0,0) scale(1)}33%{border-radius:45% 55% 50% 50%/50% 50% 55% 45%;transform:translate(-6px,8px) scale(0.95)}66%{border-radius:55% 45% 50% 50%/45% 55% 50% 50%;transform:translate(7px,-6px) scale(1.05)}100%{border-radius:50% 50% 45% 55%/55% 45% 50% 50%;transform:translate(0,0) scale(1)}}
+    @keyframes idleB3{0%{border-radius:55% 45% 50% 50%/45% 55% 50% 50%;transform:translate(0,0) scale(1)}50%{border-radius:45% 55% 55% 45%/55% 45% 45% 55%;transform:translate(5px,5px) scale(1.08)}100%{border-radius:55% 45% 50% 50%/45% 55% 50% 50%;transform:translate(0,0) scale(1)}}
+    /* Listening blobs — medium pulse */
+    @keyframes listenB1{0%{border-radius:40% 60% 55% 45%/55% 45% 60% 40%;transform:translate(0,0) scale(1)}25%{border-radius:55% 45% 40% 60%/40% 60% 45% 55%;transform:translate(12px,-8px) scale(1.15)}50%{border-radius:45% 55% 60% 40%/60% 40% 55% 45%;transform:translate(-8px,12px) scale(0.9)}75%{border-radius:60% 40% 45% 55%/45% 55% 60% 40%;transform:translate(10px,6px) scale(1.08)}100%{border-radius:40% 60% 55% 45%/55% 45% 60% 40%;transform:translate(0,0) scale(1)}}
+    @keyframes listenB2{0%{border-radius:50% 50% 45% 55%/55% 45% 50% 50%;transform:translate(0,0) scale(1)}33%{border-radius:42% 58% 55% 45%/48% 52% 58% 42%;transform:translate(-10px,10px) scale(0.92)}66%{border-radius:58% 42% 48% 52%/42% 58% 45% 55%;transform:translate(10px,-8px) scale(1.1)}100%{border-radius:50% 50% 45% 55%/55% 45% 50% 50%;transform:translate(0,0) scale(1)}}
+    @keyframes listenB3{0%{border-radius:55% 45% 50% 50%/45% 55% 50% 50%;transform:translate(0,0) scale(1.02)}50%{border-radius:45% 55% 55% 45%/55% 45% 45% 55%;transform:translate(8px,8px) scale(1.12)}100%{border-radius:55% 45% 50% 50%/45% 55% 50% 50%;transform:translate(0,0) scale(1.02)}}
+    /* Speaking blobs — chaotic fast */
+    @keyframes speakB1{0%{border-radius:30% 70% 60% 40%/65% 35% 70% 30%;transform:translate(0,0) scale(1)}12%{border-radius:65% 35% 30% 70%/35% 65% 40% 60%;transform:translate(22px,-18px) scale(1.4)}25%{border-radius:40% 60% 70% 30%/50% 50% 35% 65%;transform:translate(-18px,22px) scale(0.6)}37%{border-radius:70% 30% 40% 60%/30% 70% 60% 40%;transform:translate(15px,12px) scale(1.3)}50%{border-radius:35% 65% 55% 45%/60% 40% 45% 55%;transform:translate(-22px,-14px) scale(0.75)}62%{border-radius:60% 40% 35% 65%/40% 60% 65% 35%;transform:translate(18px,-22px) scale(1.35)}75%{border-radius:45% 55% 65% 35%/55% 45% 35% 65%;transform:translate(-12px,18px) scale(0.7)}87%{border-radius:55% 45% 40% 60%/35% 65% 55% 45%;transform:translate(20px,8px) scale(1.25)}100%{border-radius:30% 70% 60% 40%/65% 35% 70% 30%;transform:translate(0,0) scale(1)}}
+    @keyframes speakB2{0%{border-radius:50% 50% 40% 60%/60% 40% 50% 50%;transform:translate(0,0) scale(1)}16%{border-radius:35% 65% 60% 40%/40% 60% 35% 65%;transform:translate(-20px,15px) scale(1.35)}33%{border-radius:60% 40% 35% 65%/55% 45% 65% 35%;transform:translate(18px,-20px) scale(0.65)}50%{border-radius:40% 60% 55% 45%/35% 65% 45% 55%;transform:translate(-14px,-18px) scale(1.3)}66%{border-radius:65% 35% 45% 55%/60% 40% 55% 45%;transform:translate(22px,10px) scale(0.7)}83%{border-radius:45% 55% 65% 35%/45% 55% 40% 60%;transform:translate(-18px,20px) scale(1.25)}100%{border-radius:50% 50% 40% 60%/60% 40% 50% 50%;transform:translate(0,0) scale(1)}}
+    @keyframes speakB3{0%{border-radius:55% 45% 50% 50%/45% 55% 50% 50%;transform:translate(0,0) scale(1.1)}20%{border-radius:40% 60% 65% 35%/60% 40% 35% 65%;transform:translate(15px,20px) scale(0.6)}40%{border-radius:65% 35% 40% 60%/35% 65% 60% 40%;transform:translate(-20px,-15px) scale(1.4)}60%{border-radius:45% 55% 55% 45%/55% 45% 45% 55%;transform:translate(18px,-18px) scale(0.75)}80%{border-radius:55% 45% 35% 65%/40% 60% 55% 45%;transform:translate(-10px,14px) scale(1.3)}100%{border-radius:55% 45% 50% 50%/45% 55% 50% 50%;transform:translate(0,0) scale(1.1)}}
+    @keyframes speakB4{0%{border-radius:60% 40% 50% 50%;transform:translate(0,0) scale(0.8);opacity:0.8}25%{border-radius:40% 60% 45% 55%;transform:translate(-15px,-20px) scale(1.5);opacity:1}50%{border-radius:55% 45% 60% 40%;transform:translate(20px,15px) scale(0.5);opacity:0.6}75%{border-radius:35% 65% 45% 55%;transform:translate(12px,20px) scale(1.4);opacity:1}100%{border-radius:60% 40% 50% 50%;transform:translate(0,0) scale(0.8);opacity:0.8}}
+    /* Particles flying off orb */
+    @keyframes pFly1{0%{transform:translate(0,0) scale(1);opacity:.8}100%{transform:translate(-35px,-50px) scale(0);opacity:0}}
+    @keyframes pFly2{0%{transform:translate(0,0) scale(1);opacity:.8}100%{transform:translate(45px,-30px) scale(0);opacity:0}}
+    @keyframes pFly3{0%{transform:translate(0,0) scale(1);opacity:.7}100%{transform:translate(-25px,45px) scale(0);opacity:0}}
+    @keyframes pFly4{0%{transform:translate(0,0) scale(1);opacity:.7}100%{transform:translate(40px,35px) scale(0);opacity:0}}
+    @keyframes pFly5{0%{transform:translate(0,0) scale(1);opacity:.8}100%{transform:translate(-50px,-8px) scale(0);opacity:0}}
+    @keyframes pFly6{0%{transform:translate(0,0) scale(1);opacity:.75}100%{transform:translate(20px,-55px) scale(0);opacity:0}}
+    @keyframes pFly7{0%{transform:translate(0,0) scale(1);opacity:.65}100%{transform:translate(50px,5px) scale(0);opacity:0}}
+    @keyframes pFly8{0%{transform:translate(0,0) scale(1);opacity:.7}100%{transform:translate(-10px,50px) scale(0);opacity:0}}
+    @keyframes ringPulse{0%{transform:scale(1);opacity:.35}100%{transform:scale(1.6);opacity:0}}
 
     .ts-btn, .ts-icon-btn, .ts-choice, .ts-chip {
       transition: transform .12s ease, background-color .15s ease,
@@ -324,6 +363,142 @@ export function TypeLabel({ children, c }) {
  *   c.s2   — surface 2 (raised)
  *   c.bg   — page background
  */
+
+/**
+ * AudioOrb — liquid glass orb for listening/speaking exercises.
+ *
+ * Props:
+ *   mode: "idle" | "listening" | "speaking" — controls animation intensity
+ *   active: boolean — alias for speaking mode (back-compat)
+ *   size: number — diameter in px (default 120)
+ *   onClick: optional click handler
+ *
+ * Vibrant cyan/magenta/purple liquid blobs morph organically inside a glass sphere.
+ * Speaking mode: chaotic fast blobs, wobbling boundary, particles flying off, ring pulses.
+ * Listening mode: medium-speed blobs, inner glow breathing.
+ * Idle: slow calm drift.
+ */
+export function AudioOrb({ mode: modeProp, active = false, size = 120, onClick }) {
+  const mode = modeProp || (active ? "speaking" : "idle");
+  const bp = mode === "idle" ? "idle" : mode === "listening" ? "listen" : "speak";
+  const speeds = mode === "idle" ? [9, 11, 10] : mode === "listening" ? [4.5, 5.5, 5] : [1.2, 1.4, 1.6];
+  const isSpeaking = mode === "speaking";
+  const blur = size * 0.04;
+  const cSize = size * 1.5;
+
+  // Generate particles for speaking mode
+  const particles = [];
+  if (isSpeaking) {
+    const pColors = [
+      "rgba(0,220,255,0.8)","rgba(255,40,200,0.8)","rgba(180,120,255,0.75)",
+      "rgba(220,200,255,0.7)","rgba(0,220,255,0.75)","rgba(255,40,200,0.7)",
+      "rgba(180,120,255,0.8)","rgba(255,255,255,0.5)",
+    ];
+    for (let i = 0; i < 8; i++) {
+      const ps = 2 + (i % 3);
+      const angle = (i / 8) * Math.PI * 2;
+      const px = Math.cos(angle) * size * 0.46;
+      const py = Math.sin(angle) * size * 0.46;
+      particles.push(
+        <div key={`p${i}`} style={{
+          position: "absolute", width: ps, height: ps, borderRadius: "50%",
+          background: pColors[i], boxShadow: `0 0 ${ps * 2.5}px ${pColors[i]}`,
+          left: `calc(50% + ${px}px)`, top: `calc(50% + ${py}px)`,
+          animation: `pFly${i + 1} ${0.7 + (i % 4) * 0.15}s ease-out infinite`,
+          animationDelay: `${i * 0.15}s`,
+        }} />
+      );
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", justifyContent: "center", padding: "12px 0" }}
+      onClick={onClick} role={onClick ? "button" : undefined}>
+      <div style={{
+        width: cSize, height: cSize,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        position: "relative",
+        animation: `orbFloat ${isSpeaking ? "1.8s" : "5s"} ease-in-out infinite`,
+        cursor: onClick ? "pointer" : "default",
+      }}>
+        {/* Ambient glow */}
+        <div style={{
+          position: "absolute",
+          width: size * 1.3, height: size * 1.3, borderRadius: "50%",
+          background: `radial-gradient(circle, rgba(140,80,255,${isSpeaking ? 0.7 : mode === "listening" ? 0.45 : 0.3}) 0%, rgba(255,50,200,${isSpeaking ? 0.35 : 0.15}) 35%, rgba(0,180,255,${isSpeaking ? 0.2 : 0.1}) 55%, transparent 70%)`,
+          filter: `blur(${size * 0.16}px)`,
+          animation: `orbGlow ${isSpeaking ? "0.8s" : "3.5s"} ease-in-out infinite`,
+        }} />
+        {/* Ring pulses (speaking only) */}
+        {isSpeaking && [0, 1, 2].map(i => (
+          <div key={`r${i}`} style={{
+            position: "absolute", width: size, height: size, borderRadius: "50%",
+            border: "1px solid rgba(180,120,255,0.25)",
+            animation: `ringPulse 2s ease-out infinite`,
+            animationDelay: `${i * 0.65}s`,
+          }} />
+        ))}
+        {/* Main sphere */}
+        <div style={{
+          position: "relative", width: size, height: size, overflow: "hidden",
+          ...(isSpeaking
+            ? { animation: "orbWobble 0.5s ease-in-out infinite, orbHue 2s ease-in-out infinite" }
+            : { borderRadius: "50%", animation: `orbHue ${mode === "idle" ? "8s" : "5s"} ease-in-out infinite` }),
+          background: "radial-gradient(circle at 30% 25%, rgba(60,30,90,0.6), rgba(25,10,50,0.9) 55%, rgba(12,5,30,1) 85%)",
+          boxShadow: `inset 0 0 ${size * 0.25}px rgba(140,80,255,0.2), 0 0 ${size * 0.12}px rgba(140,80,255,0.15)`,
+        }}>
+          {/* Blob 1 — cyan */}
+          <div style={{
+            position: "absolute", width: "70%", height: "70%", top: "5%", left: "8%",
+            background: "radial-gradient(circle, rgba(0,220,255,0.95) 0%, rgba(60,160,255,0.6) 30%, transparent 65%)",
+            filter: `blur(${blur}px)`,
+            animation: `${bp}B1 ${speeds[0]}s ease-in-out infinite`,
+            mixBlendMode: "screen",
+          }} />
+          {/* Blob 2 — magenta */}
+          <div style={{
+            position: "absolute", width: "60%", height: "60%", bottom: "5%", right: "5%",
+            background: "radial-gradient(circle, rgba(255,40,200,0.95) 0%, rgba(240,60,160,0.6) 30%, transparent 65%)",
+            filter: `blur(${blur}px)`,
+            animation: `${bp}B2 ${speeds[1]}s ease-in-out infinite`,
+            mixBlendMode: "screen",
+          }} />
+          {/* Blob 3 — purple */}
+          <div style={{
+            position: "absolute", width: "50%", height: "50%", top: "22%", left: "22%",
+            background: "radial-gradient(circle, rgba(180,120,255,0.95) 0%, rgba(155,100,240,0.5) 30%, transparent 60%)",
+            filter: `blur(${blur * 0.85}px)`,
+            animation: `${bp}B3 ${speeds[2]}s ease-in-out infinite`,
+            mixBlendMode: "screen",
+          }} />
+          {/* Blob 4 — white-hot flash (speaking only) */}
+          {isSpeaking && <div style={{
+            position: "absolute", width: "35%", height: "35%", top: "18%", left: "38%",
+            background: "radial-gradient(circle, rgba(220,200,255,0.9) 0%, rgba(180,160,255,0.4) 35%, transparent 60%)",
+            filter: `blur(${blur * 0.6}px)`,
+            animation: "speakB4 1s ease-in-out infinite",
+            mixBlendMode: "screen",
+          }} />}
+          {/* Specular highlights */}
+          <div style={{
+            position: "absolute", width: "28%", height: "16%", top: "12%", left: "18%",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse, rgba(255,255,255,0.5) 0%, transparent 70%)",
+            transform: "rotate(-15deg)", pointerEvents: "none",
+          }} />
+          <div style={{
+            position: "absolute", width: "8%", height: "6%", top: "20%", left: "55%",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse, rgba(255,255,255,0.3) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }} />
+        </div>
+        {/* Particles (speaking only) */}
+        {particles}
+      </div>
+    </div>
+  );
+}
 
 /**
  * SceneImage — phrase scene illustration, consistent sizing everywhere.

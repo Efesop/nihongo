@@ -24,7 +24,7 @@ import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 import { KEY_WORDS, WORD_CATS } from "../data/keyWords.js";
-import { ActionBar, HintChip, RomajiReveal, TypeLabel, PlayButton, ResultMark, NoneOfThese, ChoiceCard, ensureSessionStyles, SceneImage, JpText } from "./SessionParts.jsx";
+import { ActionBar, HintChip, RomajiReveal, TypeLabel, PlayButton, ResultMark, NoneOfThese, ChoiceCard, ensureSessionStyles, SceneImage, JpText, AudioOrb } from "./SessionParts.jsx";
 import { IconPlay, IconSlowPlay, IconEar, IconBulb, IconBlock, IconEye, IconSkip, IconBackspace, IconCheck, IconX, IconArrowRight, IconMic, IconSparkle, IconRefresh } from "./Icons.jsx";
 import { track as telemetryTrack, flush as telemetryFlush } from "../utils/telemetry.js";
 
@@ -909,16 +909,8 @@ export default function SmartSession({
       <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
         {/* Scene image — visual context while listening, reinforces dual coding */}
         <SceneImage phraseId={p[0]} isDesktop={isDesktop} />
-        <div style={{ padding: "28px 20px", textAlign: "center", borderBottom: answered ? "1px solid " + c.b : "none" }}>
-          <div style={{
-            width: 64, height: 64, borderRadius: "50%",
-            background: "radial-gradient(circle at 30% 30%, " + c.a + "22, " + c.a + "08)",
-            border: "1px solid " + c.a + "33",
-            display: "inline-flex", alignItems: "center", justifyContent: "center",
-            color: c.a, marginBottom: 10,
-          }}>
-            <IconEar size={32} />
-          </div>
+        <div style={{ padding: "20px 20px", textAlign: "center", borderBottom: answered ? "1px solid " + c.b : "none" }}>
+          <AudioOrb active={!answered} size={100} c={c} />
           <div style={{ fontSize: T.md, color: c.tx, fontWeight: 600, marginBottom: 2 }}>What did you hear?</div>
           <div style={{ fontSize: T.sm, color: c.m2, marginBottom: 14 }}>Listen carefully, then pick the meaning.</div>
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
