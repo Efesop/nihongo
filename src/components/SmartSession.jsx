@@ -827,8 +827,8 @@ export default function SmartSession({
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: 0, marginBottom: 14 }}>
-        {/* Scene image as situational context — reinforces dual coding during review */}
-        <SceneImage phraseId={p[0]} isDesktop={isDesktop} />
+        {/* Scene image — show during learning (box<3) to build association, hide at box 3+ to test recall, always show after answering */}
+        {(answered || (data.phr?.[p[0]]?.box || 0) < 3) && <SceneImage phraseId={p[0]} isDesktop={isDesktop} />}
         <div style={{ padding: "16px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: T.base }}>{CAT_ICONS[p[4]]}</span>
@@ -907,10 +907,9 @@ export default function SmartSession({
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
-        {/* Scene image — visual context while listening, reinforces dual coding */}
-        <SceneImage phraseId={p[0]} isDesktop={isDesktop} />
+        {/* Scene image — show during learning (box<3) to build association, hide at box 3+ to test recall, always show after answering */}
+        {(answered || (data.phr?.[p[0]]?.box || 0) < 3) && <SceneImage phraseId={p[0]} isDesktop={isDesktop} />}
         <div style={{ padding: "20px 20px", textAlign: "center", borderBottom: answered ? "1px solid " + c.b : "none" }}>
-          <AudioOrb active={!answered} size={100} c={c} />
           <div style={{ fontSize: T.md, color: c.tx, fontWeight: 600, marginBottom: 2 }}>What did you hear?</div>
           <div style={{ fontSize: T.sm, color: c.m2, marginBottom: 14 }}>Listen carefully, then pick the meaning.</div>
           <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
@@ -991,7 +990,8 @@ export default function SmartSession({
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
-        <SceneImage phraseId={p[0]} isDesktop={isDesktop} />
+        {/* Scene image — show during learning (box<3), hide at box 3+ to test recall, always after answering */}
+        {(answered || (data.phr?.[p[0]]?.box || 0) < 3) && <SceneImage phraseId={p[0]} isDesktop={isDesktop} />}
         <div style={{ padding: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <span style={{ fontSize: T.sm }}>{CAT_ICONS[p[4]]}</span>
