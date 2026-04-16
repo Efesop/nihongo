@@ -3,8 +3,8 @@ export const KEY="nihongo-v4";
 
 // Primary UI font — Zen Kaku Gothic New (Adobe-designed, distinctive geometric, full JP coverage)
 export const font='"Zen Kaku Gothic New","Hiragino Sans",system-ui,sans-serif';
-// Japanese display accent — Klee One (educational handwritten feel, use for prominent phrase/kana display)
-export const fontJa='"Klee One","Zen Kaku Gothic New","Hiragino Sans",serif';
+// Japanese display — clean system JP font (reverted from Klee One per user preference)
+export const fontJa='"Hiragino Sans","Noto Sans JP","Zen Kaku Gothic New",system-ui,sans-serif';
 // Brand/hero font — Yuji Boku (brush calligraphy)
 export const fontBrand='"Yuji Boku","Zen Kaku Gothic New",serif';
 export const mono='"JetBrains Mono","SF Mono","Fira Code",monospace';
@@ -20,6 +20,23 @@ export const T = {
   xl:    24,  // main content (Japanese text on desktop)
   xxl:   32,  // hero text, big kana display
   huge:  48,  // single character display
+};
+
+// ═══ JAPANESE TEXT — single source of truth for JP display sizes ═══
+// Change here → updates every exercise automatically
+export const JP = {
+  // Font size for Japanese content in choice cards, prompts, dialogues
+  size:     { desktop: 24, mobile: 20 },   // T.xl / T.lg
+  // Font size for big JP (pattern tiles, kana keyboard, typed chars)
+  sizeBig:  { desktop: 32, mobile: 24 },   // T.xxl / T.xl
+  // Font weight for JP text
+  weight:   700,
+  lineHeight: 1.3,
+};
+
+// ═══ SCENE IMAGE — single source of truth for scene image display ═══
+export const SCENE_IMG = {
+  height: { desktop: 240, mobile: 180 },
 };
 
 // ═══ ROLE-PLAY SCENARIOS ═══

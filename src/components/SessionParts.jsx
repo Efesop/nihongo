@@ -9,7 +9,7 @@
  *
  * All components take theme `c`, button base `btn`, card base `card`, T sizes.
  */
-import { T, mono } from "../data/constants.js";
+import { T, mono, fontJa, JP, SCENE_IMG } from "../data/constants.js";
 import {
   IconPlay, IconSlowPlay, IconBulb, IconEye, IconArrowRight,
   IconCheck, IconX, IconBlock,
@@ -111,7 +111,7 @@ export function ActionBar({ onPlay, onSlow, onNext, nextLabel = "Next", c, btn }
  * Hint chip — appears after 15s if user is stuck.
  */
 export function HintChip({ visible, shown, onReveal, hintText, c, btn }) {
-  if (!visible) return null;
+  // Always render to prevent layout shift — use opacity/visibility to hide before ready
   if (shown) {
     return (
       <div style={{
@@ -127,12 +127,15 @@ export function HintChip({ visible, shown, onReveal, hintText, c, btn }) {
     );
   }
   return (
-    <button onClick={onReveal} className="ts-chip" style={{
+    <button onClick={visible ? onReveal : undefined} className="ts-chip" style={{
       ...btn, padding: "6px 12px", borderRadius: 999,
       background: c.go + "12", border: "1px dashed " + c.go + "55",
       color: c.go, fontSize: T.sm, fontWeight: 500,
-      marginTop: 8, animation: "fadeIn 0.5s ease-in",
+      marginTop: 8,
       display: "inline-flex", alignItems: "center", gap: 6,
+      opacity: visible ? 1 : 0,
+      pointerEvents: visible ? "auto" : "none",
+      transition: "opacity 0.4s ease-in",
     }}>
       <IconBulb size={14} />
       <span>Need a hint?</span>
@@ -321,3 +324,45 @@ export function TypeLabel({ children, c }) {
  *   c.s2   — surface 2 (raised)
  *   c.bg   — page background
  */
+
+/**
+ * SceneImage — phrase scene illustration, consistent sizing everywhere.
+ * Change SCENE_IMG in constants.js to resize all scene images at once.
+ * header: true → top of card (no border-radius bottom), false → standalone rounded
+ */
+export function SceneImage({ phraseId, isDesktop, header = true }) {
+  return (
+    <img
+      src={`/images/phrases/scenes/${phraseId}.png`}
+      alt=""
+      style={{
+        width: "100%",
+        height: isDesktop ? SCENE_IMG.height.desktop : SCENE_IMG.height.mobile,
+        objectFit: "cover",
+        display: "block",
+        borderRadius: header ? "12px 12px 0 0" : 12,
+      }}
+      onError={e => { e.target.style.display = "none"; }}
+    />
+  );
+}
+
+/**
+ * JpText — Japanese text display with consistent font, size, weight.
+ * Change JP in constants.js to resize all Japanese text at once.
+ * size: "normal" (choice cards, prompts) | "big" (tiles, keyboard) | number (override)
+ */
+export function JpText({ children, isDesktop, size = "normal", style = {}, as: Tag = "div" }) {
+  const sz = typeof size === "number" ? size
+    : size === "big" ? (isDesktop ? JP.sizeBig.desktop : JP.sizeBig.mobile)
+    : (isDesktop ? JP.size.desktop : JP.size.mobile);
+  return (
+    <Tag style={{
+      fontFamily: fontJa,
+      fontSize: sz,
+      fontWeight: JP.weight,
+      lineHeight: JP.lineHeight,
+      ...style,
+    }}>{children}</Tag>
+  );
+}
