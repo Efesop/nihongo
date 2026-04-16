@@ -64,6 +64,20 @@ function RoleAvatar({ role, size = 32 }) {
   }}>{av.emoji}</div>;
 }
 
+function RecallCard({ english, japanese, c, isDesktop, onReveal }) {
+  const [revealed, setRevealed] = useState(false);
+  return <div onClick={() => { if (!revealed) { setRevealed(true); onReveal?.(); } }}
+    style={{
+      padding: "10px 14px", borderRadius: 8, marginBottom: 6, cursor: revealed ? "default" : "pointer",
+      background: revealed ? c.g + "12" : c.s2, border: "1px solid " + (revealed ? c.g + "33" : c.b),
+      transition: "all .2s",
+    }}>
+    <div style={{ fontSize: T.sm, color: c.m, marginBottom: revealed ? 4 : 0 }}>{english}</div>
+    {revealed && <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: JP.weight, fontFamily: fontJa, color: c.tx }}>{japanese}</div>}
+    {!revealed && <div style={{ fontSize: T.xs, color: c.go, fontStyle: "italic" }}>tap to reveal →</div>}
+  </div>;
+}
+
 function ColoredJP({ phraseId, fallbackText, fontSize, fontWeight = 700 }) {
   const breakdown = PHRASE_BREAKDOWNS[phraseId];
   if (!breakdown) return <span style={{ fontFamily: fontJa, fontSize, fontWeight, lineHeight: 1.3 }}>{fallbackText}</span>;
@@ -2692,6 +2706,15 @@ export default function SmartSession({
           </div>;
         })}
       </div>
+      {/* Recall check — tap English to reveal Japanese, forces production recall */}
+      {correct === total && <div style={{ ...card, padding: "16px 20px", marginBottom: 12, borderLeft: "3px solid " + c.go }}>
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 10 }}>🧠 Quick recall — can you remember each phrase?</div>
+        {blanks.map((b, i) => {
+          const p = phraseById(b.correctId);
+          if (!p) return null;
+          return <RecallCard key={i} english={p[3]} japanese={p[1]} c={c} isDesktop={isDesktop} onReveal={() => speakPhrase(p[0], p[1])} />;
+        })}
+      </div>}
       <button onClick={() => {
         blanks.forEach((b, i) => reviewPhr(b.correctId, convoAnswers[i] === b.correctId, "conversation"));
         setScore(s => ({ ...s, c: s.c + correct, w: s.w + (total - correct) }));

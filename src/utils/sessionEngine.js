@@ -520,7 +520,8 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const scenarios = ["restaurant", "hotel", "train station", "convenience store", "asking directions"];
     specialPool.push({ type: "branch-convo", scenario: scenarios[Math.floor(Math.random() * scenarios.length)] });
   }
-  if (phrasesLearned >= 5 && Math.random() < 0.4) {
+  // Conversations — boosted frequency, user loves these
+  if (phrasesLearned >= 3 && Math.random() < 0.65) {
     const eligible = CONVERSATIONS.filter(conv =>
       conv.lines.filter(l => l.blank).every(l => (phrData[l.correctId]?.box || 0) >= 1)
     );
