@@ -29,8 +29,8 @@ export const JP = {
   size:     { desktop: 24, mobile: 20 },   // T.xl / T.lg
   // Font size for big JP (pattern tiles, kana keyboard, typed chars)
   sizeBig:  { desktop: 32, mobile: 24 },   // T.xxl / T.xl
-  // Font weight for JP text
-  weight:   700,
+  // Font weight for JP text — 500 (medium) for clear dakuten/particles, 700 was too heavy
+  weight:   500,
   lineHeight: 1.3,
 };
 

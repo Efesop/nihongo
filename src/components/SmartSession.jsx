@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { M, ROMAJI, YOON_PARTS } from "../data/kana.js";
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
-import { font, fontJa, mono, T } from "../data/constants.js";
+import { font, fontJa, mono, T, JP } from "../data/constants.js";
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 
@@ -1035,7 +1035,6 @@ export default function SmartSession({
         })}
       </div>
       {answered && <div style={{ ...card, padding: 0, borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "hidden" }}>
-        <SceneImage phraseId={p[0]} isDesktop={isDesktop} />
         <div style={{ padding: "14px 18px" }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8 }}>✓ Correct answer</div>
           <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
@@ -1262,7 +1261,7 @@ export default function SmartSession({
           })();
           return <div style={{ ...card, padding: "16px 20px", marginBottom: 12, borderLeft: "3px solid " + c.go, animation: "fadeIn .35s ease .15s both" }}>
             <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
-            <div style={{ fontSize: T.base, color: c.tx, marginBottom: 10 }}>What does <span style={{ fontWeight: 700, fontFamily: fontJa, fontSize: T.lg }}>{p[1]}</span> mean?</div>
+            <div style={{ fontSize: T.base, color: c.tx, marginBottom: 10 }}>What does <span style={{ fontWeight: JP.weight, fontFamily: fontJa, fontSize: T.lg }}>{p[1]}</span> mean?</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {choices.map((choice, i) => {
                 const isCorrect = choice[0] === p[0];
@@ -1571,7 +1570,7 @@ export default function SmartSession({
               }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.4, color: c.tx, fontFamily: fontJa }}>{s.jp}</div>
+                    <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: JP.weight, lineHeight: 1.4, color: c.tx, fontFamily: fontJa }}>{s.jp}</div>
                     <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{s.romaji}</div>
                     {answered && <div style={{ fontSize: T.sm, color: c.m2 || c.m, marginTop: 3, fontStyle: "italic" }}>{s.en}</div>}
                   </div>
@@ -1683,7 +1682,7 @@ export default function SmartSession({
       {typeLabel}
       <div style={{ ...card, padding: "24px 20px", marginBottom: 14, textAlign: "center" }}>
         <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 10 }}>Listen, then say it out loud</div>
-        <div style={{ fontSize: isDesktop ? T.xxl : T.xl, fontWeight: 700, lineHeight: 1.5, color: c.tx, marginBottom: 6, fontFamily: fontJa }}>{p[1]}</div>
+        <div style={{ fontSize: isDesktop ? T.xxl : T.xl, fontWeight: JP.weight, lineHeight: 1.5, color: c.tx, marginBottom: 6, fontFamily: fontJa }}>{p[1]}</div>
         <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginBottom: 4 }}>{p[2]}</div>
         <div style={{ fontSize: T.base, color: c.m, marginBottom: 16 }}>{p[3]}</div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
@@ -1791,7 +1790,7 @@ export default function SmartSession({
         {typeLabel}
         <div style={{ ...card, padding: "20px", marginBottom: 14, textAlign: "center" }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>First — what does this mean?</div>
-          <div style={{ fontSize: T.xxl, fontWeight: 700, color: c.tx, marginBottom: 8, fontFamily: fontJa, lineHeight: 1.3 }}>{p[1]}</div>
+          <div style={{ fontSize: T.xxl, fontWeight: JP.weight, color: c.tx, marginBottom: 8, fontFamily: fontJa, lineHeight: 1.3 }}>{p[1]}</div>
           <div style={{ fontSize: T.base, fontFamily: mono, color: c.m }}>{p[2]}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1906,7 +1905,7 @@ export default function SmartSession({
               display: "inline-block", padding: "4px 8px", borderRadius: 6,
               background: kanaSubmitted ? (charColor === c.g ? c.gs : c.rs) : c.s2,
               border: "1px solid " + (kanaSubmitted ? charColor + "40" : c.b),
-              fontSize: T.xxl, fontFamily: fontJa, color: charColor, fontWeight: 700,
+              fontSize: T.xxl, fontFamily: fontJa, color: charColor, fontWeight: JP.weight,
               transition: "all .2s",
             }}>{ch}</span>;
           })}
@@ -1915,7 +1914,7 @@ export default function SmartSession({
         {kanaSubmitted && fb === "no" && <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + c.b }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 6 }}>Correct:</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, justifyContent: "center" }}>
-            {targetChars.map((ch, i) => <span key={i} style={{ display: "inline-block", padding: "4px 8px", borderRadius: 6, background: c.gs, fontSize: T.xxl, fontFamily: fontJa, color: c.g, fontWeight: 700 }}>{ch}</span>)}
+            {targetChars.map((ch, i) => <span key={i} style={{ display: "inline-block", padding: "4px 8px", borderRadius: 6, background: c.gs, fontSize: T.xxl, fontFamily: fontJa, color: c.g, fontWeight: JP.weight }}>{ch}</span>)}
           </div>
         </div>}
       </div>
@@ -2874,7 +2873,7 @@ export default function SmartSession({
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
             if (isReverse && ok) speak(w[0]);
           }}>
-            <span style={{ fontSize: isReverse ? T.xl : T.base, fontWeight: isReverse ? 700 : 500, fontFamily: isReverse ? fontJa : "inherit", lineHeight: 1.3 }}>{isReverse ? w[0] : w[2]}</span>
+            <span style={{ fontSize: isReverse ? T.xl : T.base, fontWeight: isReverse ? JP.weight : 500, fontFamily: isReverse ? fontJa : "inherit", lineHeight: 1.3 }}>{isReverse ? w[0] : w[2]}</span>
             {isReverse && answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{w[2]}</div>}
           </ChoiceCard>;
         })}
@@ -2988,7 +2987,7 @@ export default function SmartSession({
             reviewPhr(p[0], ok, "phrase-build", getResponseMs());
             if (ok) speakPhrase(p[0], p[1]);
           }}>
-            <span style={{ fontSize: T.xl, fontWeight: 700, fontFamily: fontJa, lineHeight: 1.3 }}>{choice}</span>
+            <span style={{ fontSize: T.xl, fontWeight: JP.weight, fontFamily: fontJa, lineHeight: 1.3 }}>{choice}</span>
             {answered && choiceMeaning && <span style={{ fontSize: T.sm, color: c.m2, fontWeight: 400, marginLeft: 8 }}>({choiceMeaning})</span>}
           </ChoiceCard>;
         })}
@@ -3081,7 +3080,7 @@ export default function SmartSession({
             }
           }
           return <button key={piece.id} onClick={() => removePiece(piece)}
-            style={{ ...btn, padding: "12px 18px", borderRadius: 10, fontSize: isDesktop ? T.xxl : T.xl, fontFamily: fontJa, fontWeight: 700, color: pieceColor, background: pieceBg, border: "1px solid " + pieceBorder, cursor: assemblySubmitted ? "default" : "pointer", transition: "all .15s" }}>
+            style={{ ...btn, padding: "12px 18px", borderRadius: 10, fontSize: isDesktop ? T.xxl : T.xl, fontFamily: fontJa, fontWeight: JP.weight, color: pieceColor, background: pieceBg, border: "1px solid " + pieceBorder, cursor: assemblySubmitted ? "default" : "pointer", transition: "all .15s" }}>
             {piece.japanese}
           </button>;
         })}
