@@ -35,6 +35,8 @@ export function ensureSessionStyles() {
   s.textContent = `
     @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
     @keyframes pulse  { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+    @keyframes tapPulse { 0%,100% { opacity: 1; } 50% { opacity: .6; transform: scale(1.03); } }
+    .ts-tap-reveal { animation: tapPulse 2s ease-in-out infinite; }
 
     .ts-btn, .ts-icon-btn, .ts-choice, .ts-chip {
       transition: transform .12s ease, background-color .15s ease,

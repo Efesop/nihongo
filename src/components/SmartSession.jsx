@@ -28,6 +28,54 @@ import { ActionBar, HintChip, RomajiReveal, TypeLabel, PlayButton, ResultMark, N
 import { IconPlay, IconSlowPlay, IconEar, IconBulb, IconBlock, IconEye, IconSkip, IconBackspace, IconCheck, IconX, IconArrowRight, IconMic, IconSparkle, IconRefresh } from "./Icons.jsx";
 import { track as telemetryTrack, flush as telemetryFlush } from "../utils/telemetry.js";
 
+const GRAMMAR_COLORS = {
+  particle: "#e8a838",
+  noun: "#5a9ec4",
+  verb: "#5ac48a",
+  adjective: "#c45a8b",
+  expression: "#8b8b8b",
+  counter: "#8b6ec4",
+  copula: "#c4985a",
+  suffix: "#6e8bc4",
+  question: "#e8a838",
+};
+
+const ROLE_AVATARS = {
+  "You":     { emoji: "🎒", bg: "#5a9ec4" },
+  "Staff":   { emoji: "👨‍🍳", bg: "#e8a838" },
+  "Clerk":   { emoji: "🏪", bg: "#8b6ec4" },
+  "Hotel staff": { emoji: "🏨", bg: "#c4985a" },
+  "Driver":  { emoji: "🚕", bg: "#5ac48a" },
+  "Local":   { emoji: "🗾", bg: "#c45a8b" },
+  "Friend":  { emoji: "☕", bg: "#e8a838" },
+  "Passerby": { emoji: "🚶", bg: "#8b8b8b" },
+  "staff":   { emoji: "👨‍🍳", bg: "#e8a838" },
+  "you":     { emoji: "🎒", bg: "#5a9ec4" },
+  "local":   { emoji: "🗾", bg: "#c45a8b" },
+};
+
+function RoleAvatar({ role, size = 32 }) {
+  const av = ROLE_AVATARS[role] || { emoji: "💬", bg: "#666" };
+  return <div style={{
+    width: size, height: size, borderRadius: "50%",
+    background: av.bg + "33", border: "2px solid " + av.bg,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: size * 0.5, flexShrink: 0,
+  }}>{av.emoji}</div>;
+}
+
+function ColoredJP({ phraseId, fallbackText, fontSize, fontWeight = 700 }) {
+  const breakdown = PHRASE_BREAKDOWNS[phraseId];
+  if (!breakdown) return <span style={{ fontFamily: fontJa, fontSize, fontWeight, lineHeight: 1.3 }}>{fallbackText}</span>;
+  return <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 2, alignItems: "baseline", lineHeight: 1.3 }}>
+    {breakdown.map((seg, i) => {
+      const [jp, , , type] = seg;
+      const col = GRAMMAR_COLORS[type] || "#888";
+      return <span key={i} style={{ fontFamily: fontJa, fontSize, fontWeight, borderBottom: "2px solid " + col + "40", padding: "0 1px" }}>{jp}</span>;
+    })}
+  </span>;
+}
+
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
   updateKanaSRS, reviewPhr,
@@ -62,6 +110,7 @@ export default function SmartSession({
   const [streak, setStreak] = useState(0);
   const [convoAnswers, setConvoAnswers] = useState({});
   const [convoSubmitted, setConvoSubmitted] = useState(false);
+  const [cardFlipped, setCardFlipped] = useState(false);
   const [selectedBlank, setSelectedBlank] = useState(null);
   const [draggingId, setDraggingId] = useState(null);
   const [storyData, setStoryData] = useState(null);
@@ -508,7 +557,7 @@ export default function SmartSession({
     setBranchData(null); setBranchHistory([]); setBranchTurn(1); setBranchScore(0); setBranchLoading(false);
     setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null); setLeechChoices([]);
     setAssemblySlots([]); setAssemblyPool([]); setAssemblySubmitted(false);
-    setRomajiRevealed(false);
+    setRomajiRevealed(false); setCardFlipped(false);
     setChainStep(0); setChainAnswers([]); setChainPicked(null);
     setKanaTyped([]); setKanaSubmitted(false); setKbTab(0); setKanaPrePhase("meaning"); setKanaMeaningWrong(false);
     setShadowState("idle"); setShadowResult(null);
@@ -811,7 +860,7 @@ export default function SmartSession({
               <div style={{ flex: 1, minWidth: 0 }}>
                 {answered && PHRASE_BREAKDOWNS[choice[0]]
                   ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
-                  : <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontFamily: fontJa, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>}
+                  : <ColoredJP phraseId={choice[0]} fallbackText={choice[1]} fontSize={isDesktop ? T.xl : T.lg} />}
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 4, opacity: .9 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
@@ -860,10 +909,10 @@ export default function SmartSession({
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
-        {/* Scene image — full bleed when answered, hidden until then so it doesn't give away the phrase */}
-        {answered && <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
-          style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block" }}
-          onError={e => { e.target.style.display = "none"; }} />}
+        {/* Scene image — visual context while listening, reinforces dual coding */}
+        <img src={`/images/phrases/scenes/${p[0]}.png`} alt=""
+          style={{ width: "100%", height: isDesktop ? 180 : 140, objectFit: "cover", display: "block" }}
+          onError={e => { e.target.style.display = "none"; }} />
         <div style={{ padding: "28px 20px", textAlign: "center", borderBottom: answered ? "1px solid " + c.b : "none" }}>
           <div style={{
             width: 64, height: 64, borderRadius: "50%",
@@ -953,14 +1002,17 @@ export default function SmartSession({
     const answered = choiceAnswer.correct !== null && choiceAnswer.correct !== undefined;
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "20px", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: T.sm }}>{CAT_ICONS[p[4]]}</span>
-          <span style={{ fontSize: T.sm, color: catCol, fontWeight: 600 }}>Which phrase means...</span>
+      <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
+        <img src={`/images/phrases/scenes/${p[0]}.png`} alt="" style={{ width: "100%", height: isDesktop ? 180 : 140, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }} onError={e => { e.target.style.display = "none"; }} />
+        <div style={{ padding: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: T.sm }}>{CAT_ICONS[p[4]]}</span>
+            <span style={{ fontSize: T.sm, color: catCol, fontWeight: 600 }}>Which phrase means...</span>
+          </div>
+          <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx, lineHeight: 1.5 }}>{p[3]}</div>
+          {p[5] && <div style={{ fontSize: T.sm, color: c.m, fontStyle: "italic", marginTop: 6 }}>{p[5]}</div>}
+          {!answered && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />}
         </div>
-        <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx, lineHeight: 1.5 }}>{p[3]}</div>
-        {p[5] && <div style={{ fontSize: T.sm, color: c.m, fontStyle: "italic", marginTop: 6 }}>{p[5]}</div>}
-        {!answered && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />}
       </div>
       {/* Before answer: full 8-choice grid. After answer: collapse to just correct + user's
          wrong pick (if any) — keeps the height stable so the Next button doesn't jump offscreen. */}
@@ -984,7 +1036,7 @@ export default function SmartSession({
               <div style={{ flex: 1, minWidth: 0 }}>
                 {answered && PHRASE_BREAKDOWNS[choice[0]]
                   ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
-                  : <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.3 }}>{choice[1]}</div>}
+                  : <ColoredJP phraseId={choice[0]} fallbackText={choice[1]} fontSize={isDesktop ? T.xl : T.lg} />}
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
@@ -1133,102 +1185,125 @@ export default function SmartSession({
       }
       return null;
     })();
-    // Autoplay on mount
-    if (!fb) setTimeout(() => speakPhraseWithEnglish(p[0], p[1], p[3]), 500);
+    // Autoplay on flip (not on mount — wait for tap)
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: 0, marginBottom: 14 }}>
-        {/* Phrase scene image — specific to this phrase, falls back to category */}
-        <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
-          style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
-          onError={e => { e.target.src = `/images/phrases/${p[4]}.png`; e.target.onerror = () => { e.target.style.display = "none"; }; }} />
-        <div style={{ padding: "16px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: T.base }}>{CAT_ICONS[p[4]]}</span>
-            <span style={{ fontSize: T.base, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
+      {!cardFlipped ? (
+        /* ── FRONT: scene image + "tap to reveal" ── */
+        <div onClick={() => { setCardFlipped(true); setTimeout(() => speakPhraseWithEnglish(p[0], p[1], p[3]), 300); }}
+          style={{ ...card, padding: 0, marginBottom: 14, cursor: "pointer", position: "relative", overflow: "hidden" }}>
+          <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
+            style={{ width: "100%", height: isDesktop ? 260 : 220, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+            onError={e => { e.target.src = `/images/phrases/${p[4]}.png`; e.target.onerror = () => { e.target.style.display = "none"; }; }} />
+          <div style={{ padding: "16px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: T.base }}>{CAT_ICONS[p[4]]}</span>
+              <span style={{ fontSize: T.base, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
+            </div>
           </div>
-          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.tx, marginTop: 4 }}>Learn this phrase</div>
+          <div style={{ padding: "20px 20px", textAlign: "center" }}>
+            <div style={{ fontSize: T.base, color: c.m, marginBottom: 6 }}>New phrase</div>
+            <div className="ts-tap-reveal" style={{ fontSize: T.sm, color: c.a, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              👆 Tap to reveal
+            </div>
+          </div>
         </div>
-        <div style={{ padding: "20px 20px" }}>
-          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xxl : T.xl} />
-          <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8, marginBottom: 6 }}>{p[2]}</div>
-          <div style={{ fontSize: T.base, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
-          {p[5] && <div style={{ fontSize: T.base, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
-          {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.as, borderRadius: 8, border: "1px solid " + c.a + "20" }}>
-            <div style={{ fontSize: T.sm, color: c.a, fontWeight: 700, marginBottom: 6 }}>Familiar patterns</div>
-            {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: T.base, color: c.tx, marginBottom: 4 }}>
-              <span style={{ fontWeight: 700, color: c.a, padding: "1px 5px", borderRadius: 4, background: c.a + "18" }}>{fp.block}</span>
-              {blockMeaning[fp.block] && <span style={{ color: c.tx, fontSize: T.sm, marginLeft: 4 }}>{blockMeaning[fp.block]}</span>}
-              <span style={{ color: c.m, fontSize: T.sm, marginLeft: 4 }}>— from "{fp.from}"</span>
-            </div>)}
-          </div>}
-          {yoonInPhrase.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, border: "1px solid " + c.b }}>
-            <div style={{ fontSize: T.sm, fontWeight: 700, color: c.tx, marginBottom: 8 }}>Combined kana in this phrase</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-              {yoonInPhrase.map(({ combo, romaji, isSpecial }) => <div key={combo} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, background: c.a + "10", border: "1px solid " + c.a + "22" }}>
-                <span style={{ fontSize: T.xl, fontWeight: 700 }}>{combo}</span>
-                <span style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, fontWeight: 600 }}>{romaji}</span>
-                {isSpecial && <span style={{ fontSize: T.xs, color: c.m, fontStyle: "italic" }}>loanword</span>}
+      ) : (
+        /* ── BACK: full phrase content (existing) ── */
+        <div style={{ ...card, padding: 0, marginBottom: 14, animation: "fadeIn .35s ease" }}>
+          <img src={`/images/phrases/scenes/${p[0]}.png`} alt={p[3]}
+            style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }}
+            onError={e => { e.target.src = `/images/phrases/${p[4]}.png`; e.target.onerror = () => { e.target.style.display = "none"; }; }} />
+          <div style={{ padding: "16px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: T.base }}>{CAT_ICONS[p[4]]}</span>
+              <span style={{ fontSize: T.base, color: catCol, fontWeight: 600 }}>{CATS[p[4]]}</span>
+            </div>
+            <div style={{ fontSize: T.sm, fontFamily: mono, color: c.tx, marginTop: 4 }}>Learn this phrase</div>
+          </div>
+          <div style={{ padding: "20px 20px" }}>
+            <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xxl : T.xl} />
+            <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8, marginBottom: 6 }}>{p[2]}</div>
+            <div style={{ fontSize: T.base, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
+            {p[5] && <div style={{ fontSize: T.base, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
+            {familiarParts.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.as, borderRadius: 8, border: "1px solid " + c.a + "20" }}>
+              <div style={{ fontSize: T.sm, color: c.a, fontWeight: 700, marginBottom: 6 }}>Familiar patterns</div>
+              {familiarParts.slice(0, 2).map((fp, i) => <div key={i} style={{ fontSize: T.base, color: c.tx, marginBottom: 4 }}>
+                <span style={{ fontWeight: 700, color: c.a, padding: "1px 5px", borderRadius: 4, background: c.a + "18" }}>{fp.block}</span>
+                {blockMeaning[fp.block] && <span style={{ color: c.tx, fontSize: T.sm, marginLeft: 4 }}>{blockMeaning[fp.block]}</span>}
+                <span style={{ color: c.m, fontSize: T.sm, marginLeft: 4 }}>— from "{fp.from}"</span>
               </div>)}
-            </div>
-            <div style={{ fontSize: T.xs, color: c.m, lineHeight: 1.5 }}>
-              {yoonInPhrase.some(y => !y.isSpecial) && "Two kana that blend into one sound — a large kana + small や/ゆ/よ. "}
-              {yoonInPhrase.some(y => y.isSpecial) && "Loanword combos use a large + small vowel kana for foreign sounds."}
-            </div>
-          </div>}
-          {confusionNote && <div style={{ marginTop: 10, padding: "12px 14px", background: "#ff980008", borderRadius: 8, border: "1px solid #ff980025" }}>
-            <div style={{ fontSize: T.sm, fontWeight: 700, color: "#ff9800", marginBottom: 8 }}>Don't mix up with...</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, padding: "8px 12px", background: c.s2, borderRadius: 8, border: "1px solid " + c.b }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: T.base, fontWeight: 600, color: c.tx }}>{confusionNote.other[1]}</div>
-                <div style={{ fontSize: T.sm, color: c.m }}>{confusionNote.other[3]}</div>
+            </div>}
+            {yoonInPhrase.length > 0 && <div style={{ marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, border: "1px solid " + c.b }}>
+              <div style={{ fontSize: T.sm, fontWeight: 700, color: c.tx, marginBottom: 8 }}>Combined kana in this phrase</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                {yoonInPhrase.map(({ combo, romaji, isSpecial }) => <div key={combo} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, background: c.a + "10", border: "1px solid " + c.a + "22" }}>
+                  <span style={{ fontSize: T.xl, fontWeight: 700 }}>{combo}</span>
+                  <span style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, fontWeight: 600 }}>{romaji}</span>
+                  {isSpecial && <span style={{ fontSize: T.xs, color: c.m, fontStyle: "italic" }}>loanword</span>}
+                </div>)}
               </div>
-              <button onClick={e => { e.stopPropagation(); speakPhrase(confusionNote.other[0], confusionNote.other[1]); }}
-                style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></button>
-            </div>
-            <div style={{ fontSize: T.sm, color: c.tx, lineHeight: 1.5 }}>{confusionNote.hint}</div>
-          </div>}
-          <div style={{ fontSize: T.sm, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
-          <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}
-            style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/> hear again</button>
-        </div>
-      </div>
-      {/* Inline retrieval check — pick the right English meaning */}
-      {(() => {
-        const quizAnswered = storyAnswer !== null;
-        // 2 distractor English meanings from same category
-        const sameCat = PHRASES.filter(pp => pp[4] === p[4] && pp[0] !== p[0]);
-        const distractors = shuffle(sameCat).slice(0, 1);
-        if (distractors.length === 0) return null;
-        const choices = (() => {
-          if (!ex._learnQuizChoices) ex._learnQuizChoices = shuffle([p, ...distractors]);
-          return ex._learnQuizChoices;
-        })();
-        return <div style={{ ...card, padding: "16px 20px", marginBottom: 12, borderLeft: "3px solid " + c.go }}>
-          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
-          <div style={{ fontSize: T.base, color: c.tx, marginBottom: 10 }}>What does <span style={{ fontWeight: 700 }}>{p[1]}</span> mean?</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {choices.map((choice, i) => {
-              const isCorrect = choice[0] === p[0];
-              const isPicked = storyAnswer === i;
-              const state = quizAnswered && isCorrect ? "correct" : quizAnswered && isPicked && !isCorrect ? "wrong" : quizAnswered ? "dim" : "idle";
-              return <ChoiceCard key={i} c={c} btn={btn} disabled={quizAnswered} state={state} onClick={() => {
-                if (quizAnswered) return;
-                setStoryAnswer(i);
-              }}>{choice[3]}</ChoiceCard>;
-            })}
+              <div style={{ fontSize: T.xs, color: c.m, lineHeight: 1.5 }}>
+                {yoonInPhrase.some(y => !y.isSpecial) && "Two kana that blend into one sound — a large kana + small や/ゆ/よ. "}
+                {yoonInPhrase.some(y => y.isSpecial) && "Loanword combos use a large + small vowel kana for foreign sounds."}
+              </div>
+            </div>}
+            {confusionNote && <div style={{ marginTop: 10, padding: "12px 14px", background: "#ff980008", borderRadius: 8, border: "1px solid #ff980025" }}>
+              <div style={{ fontSize: T.sm, fontWeight: 700, color: "#ff9800", marginBottom: 8 }}>Don't mix up with...</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, padding: "8px 12px", background: c.s2, borderRadius: 8, border: "1px solid " + c.b }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: T.base, fontWeight: 600, color: c.tx }}>{confusionNote.other[1]}</div>
+                  <div style={{ fontSize: T.sm, color: c.m }}>{confusionNote.other[3]}</div>
+                </div>
+                <button onClick={e => { e.stopPropagation(); speakPhrase(confusionNote.other[0], confusionNote.other[1]); }}
+                  style={{ ...btn, padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></button>
+              </div>
+              <div style={{ fontSize: T.sm, color: c.tx, lineHeight: 1.5 }}>{confusionNote.hint}</div>
+            </div>}
+            <div style={{ fontSize: T.sm, color: c.m, marginTop: 10 }}>Tap each word to see what it means</div>
+            <button onClick={e => { e.stopPropagation(); speakPhraseWithEnglish(p[0], p[1], p[3]); }}
+              style={{ ...btn, width: "100%", padding: "10px 16px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/> hear again</button>
           </div>
-        </div>;
-      })()}
-      <button onClick={() => {
-        const quizAnswered = storyAnswer !== null;
-        const choices = ex._learnQuizChoices;
-        const wasCorrect = quizAnswered && choices && choices[storyAnswer]?.[0] === p[0];
-        reviewPhr(p[0], wasCorrect || !quizAnswered, "learn-phrase");
-        setStoryAnswer(null);
-        advance(true);
-        setScore(s => ({ ...s, c: s.c + 1 }));
-      }} style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Got it — Next →</button>
+        </div>
+      )}
+      {cardFlipped && <>
+        {/* Inline retrieval check — pick the right English meaning */}
+        {(() => {
+          const quizAnswered = storyAnswer !== null;
+          // 2 distractor English meanings from same category
+          const sameCat = PHRASES.filter(pp => pp[4] === p[4] && pp[0] !== p[0]);
+          const distractors = shuffle(sameCat).slice(0, 1);
+          if (distractors.length === 0) return null;
+          const choices = (() => {
+            if (!ex._learnQuizChoices) ex._learnQuizChoices = shuffle([p, ...distractors]);
+            return ex._learnQuizChoices;
+          })();
+          return <div style={{ ...card, padding: "16px 20px", marginBottom: 12, borderLeft: "3px solid " + c.go, animation: "fadeIn .35s ease .15s both" }}>
+            <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
+            <div style={{ fontSize: T.base, color: c.tx, marginBottom: 10 }}>What does <span style={{ fontWeight: 700 }}>{p[1]}</span> mean?</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {choices.map((choice, i) => {
+                const isCorrect = choice[0] === p[0];
+                const isPicked = storyAnswer === i;
+                const state = quizAnswered && isCorrect ? "correct" : quizAnswered && isPicked && !isCorrect ? "wrong" : quizAnswered ? "dim" : "idle";
+                return <ChoiceCard key={i} c={c} btn={btn} disabled={quizAnswered} state={state} onClick={() => {
+                  if (quizAnswered) return;
+                  setStoryAnswer(i);
+                }}>{choice[3]}</ChoiceCard>;
+              })}
+            </div>
+          </div>;
+        })()}
+        <button onClick={() => {
+          const quizAnswered = storyAnswer !== null;
+          const choices = ex._learnQuizChoices;
+          const wasCorrect = quizAnswered && choices && choices[storyAnswer]?.[0] === p[0];
+          reviewPhr(p[0], wasCorrect || !quizAnswered, "learn-phrase");
+          setStoryAnswer(null);
+          advance(true);
+          setScore(s => ({ ...s, c: s.c + 1 }));
+        }} style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Got it — Next →</button>
+      </>}
     </>);
   }
 
@@ -1484,45 +1559,52 @@ export default function SmartSession({
 
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "16px 20px", marginBottom: 14 }}>
+      <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
+        {/* Manga panel header image */}
+        <img src={`/images/graded/${gs.id}.png`} alt=""
+          style={{ width: "100%", height: isDesktop ? 200 : 160, objectFit: "cover", display: "block" }}
+          onError={e => { e.target.style.display = "none"; }} />
+        <div style={{ padding: "16px 20px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: T.base }}>📖</span>
             <span style={{ fontSize: T.xs, fontFamily: mono, color: c.g, textTransform: "uppercase", fontWeight: 600 }}>{gs.title}</span>
           </div>
-          <button onClick={playAll} style={{ ...btn, padding: "6px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/> hear it</button>
+          <button onClick={playAll} className="ts-btn" style={{ ...btn, padding: "6px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/> hear it</button>
         </div>
         {/* Conversation-style bubbles — speaker-aligned (a=left, b=right). Fallback to alternating for legacy stories. */}
         {gs.sentences.map((s, i) => {
           const leftSide = s.speaker ? s.speaker === "a" : i % 2 === 0;
           const role = s.role; // optional label: "Customer", "Staff", "Friend" etc
           return <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: leftSide ? "flex-start" : "flex-end", marginBottom: 10 }}>
-            {role && <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 3, padding: "0 6px" }}>{role}</div>}
-            <div style={{
-              maxWidth: "85%", padding: "12px 16px", borderRadius: 16,
-              borderBottomLeftRadius: leftSide ? 4 : 16,
-              borderBottomRightRadius: leftSide ? 16 : 4,
-              background: leftSide ? c.s2 : c.ac + "18",
-              border: "1px solid " + (leftSide ? c.b : c.ac + "30"),
-              position: "relative",
-            }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.4, color: c.tx, fontFamily: fontJa }}>{s.jp}</div>
-                  <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{s.romaji}</div>
-                  {answered && <div style={{ fontSize: T.sm, color: c.m2 || c.m, marginTop: 3, fontStyle: "italic" }}>{s.en}</div>}
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexDirection: leftSide ? "row" : "row-reverse", maxWidth: "90%" }}>
+              <RoleAvatar role={role || (leftSide ? "Staff" : "You")} size={28} />
+              <div style={{
+                flex: 1, padding: "12px 16px", borderRadius: 16,
+                borderBottomLeftRadius: leftSide ? 4 : 16,
+                borderBottomRightRadius: leftSide ? 16 : 4,
+                background: leftSide ? c.s2 : c.ac + "18",
+                border: "1px solid " + (leftSide ? c.b : c.ac + "30"),
+                position: "relative",
+              }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, lineHeight: 1.4, color: c.tx, fontFamily: fontJa }}>{s.jp}</div>
+                    <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{s.romaji}</div>
+                    {answered && <div style={{ fontSize: T.sm, color: c.m2 || c.m, marginTop: 3, fontStyle: "italic" }}>{s.en}</div>}
+                  </div>
+                  <button onClick={() => playSentence(i)} className="ts-icon-btn"
+                    aria-label="Play line"
+                    style={{ ...btn, padding: "6px 8px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, flexShrink: 0, alignSelf: "center" }}>
+                    <IconPlay size={14} />
+                  </button>
                 </div>
-                <button onClick={() => playSentence(i)} className="ts-icon-btn"
-                  aria-label="Play line"
-                  style={{ ...btn, padding: "6px 8px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, flexShrink: 0, alignSelf: "center" }}>
-                  <IconPlay size={14} />
-                </button>
               </div>
             </div>
           </div>;
         })}
         {!answered && <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textAlign: "center", marginTop: 8, opacity: 0.7 }}>English hidden — read the Japanese, then answer below</div>}
-      </div>
+      </div></div>
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: T.sm, fontWeight: 600, color: c.tx, marginBottom: 10 }}>{gs.comprehension.question}</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -2531,7 +2613,7 @@ export default function SmartSession({
           {convo.lines.map((line, li) => {
             if (!line.blank) {
               return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-                <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
+                <RoleAvatar role={line.speaker} size={24} />
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <div style={{ fontSize: isDesktop ? T.lg : T.md, fontWeight: 600, flex: 1, fontFamily: fontJa, lineHeight: 1.4 }}>{line.text}</div>
@@ -2546,7 +2628,7 @@ export default function SmartSession({
             const isTarget = selectedBlank === blankIdx;
             const isDragOver = draggingId && !selectedPhrase;
             return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 10, color: c.ro, fontFamily: mono, width: 40, flexShrink: 0, textAlign: "right", marginTop: 4 }}>you</div>
+              <RoleAvatar role="you" size={24} />
               <div style={{ flex: 1 }}
                 onDragOver={e => e.preventDefault()}
                 onDrop={e => { e.preventDefault(); if (draggingId) { handleDrop(blankIdx, draggingId); setDraggingId(null); } }}>
@@ -2604,7 +2686,7 @@ export default function SmartSession({
         {convo.lines.map((line, li) => {
           if (!line.blank) {
             return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 10, alignItems: "flex-start" }}>
-              <div style={{ fontSize: 10, color: c.m, fontFamily: mono, width: 28, flexShrink: 0, textAlign: "right", marginTop: 4 }}>{line.speaker}</div>
+              <RoleAvatar role={line.speaker} size={24} />
               <div>
                 <div style={{ fontSize: T.base, fontWeight: 500 }}>{line.text}</div>
                 <div style={{ fontSize: T.sm, color: c.m }}>{line.translation}</div>
@@ -3238,11 +3320,14 @@ export default function SmartSession({
     const answered = choiceAnswer.selected !== null;
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
-        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>Find the Japanese</div>
-        <div style={{ fontSize: T.xl, fontWeight: 700, color: c.tx, marginBottom: 6 }}>{p[3]}</div>
-        <div style={{ fontSize: T.base, color: c.m, fontStyle: "italic" }}>{p[5]}</div>
-        {!answered && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />}
+      <div style={{ ...card, padding: 0, marginBottom: 14, overflow: "hidden" }}>
+        <img src={`/images/phrases/scenes/${p[0]}.png`} alt="" style={{ width: "100%", height: isDesktop ? 180 : 140, objectFit: "cover", display: "block", borderRadius: "12px 12px 0 0" }} onError={e => { e.target.style.display = "none"; }} />
+        <div style={{ padding: "24px 20px" }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 8 }}>Find the Japanese</div>
+          <div style={{ fontSize: T.xl, fontWeight: 700, color: c.tx, marginBottom: 6 }}>{p[3]}</div>
+          <div style={{ fontSize: T.base, color: c.m, fontStyle: "italic" }}>{p[5]}</div>
+          {!answered && <HintChip visible={hintAvailable} shown={hintShown} onReveal={() => setHintShown(true)} hintText={buildHint()} c={c} btn={btn} />}
+        </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {choiceAnswer.choices.map((choice, i) => {
@@ -3262,7 +3347,7 @@ export default function SmartSession({
               <div style={{ flex: 1, minWidth: 0 }}>
                 {answered && PHRASE_BREAKDOWNS[choice[0]]
                   ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
-                  : <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, fontFamily: fontJa, lineHeight: 1.3 }}>{choice[1]}</div>}
+                  : <ColoredJP phraseId={choice[0]} fallbackText={choice[1]} fontSize={isDesktop ? T.xl : T.lg} />}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 6 }}>{choice[3]}</div>}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
