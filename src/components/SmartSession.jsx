@@ -1607,32 +1607,8 @@ export default function SmartSession({
           </div>
           {gs.comprehension.explanation && <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.5 }}>{gs.comprehension.explanation}</div>}
         </div>}
-        {/* Story continuation: after answering, pick a phrase to continue the story */}
-        {answered && !convoSubmitted && (() => {
-          // Pick 4 random known phrases as continuation options
-          const knownIds = Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1);
-          const knownPhrases = PHRASES.filter(p => knownIds.includes(p[0]));
-          if (knownPhrases.length < 3) return null;
-          const options = shuffle(knownPhrases).slice(0, 4);
-          return <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ac, textTransform: "uppercase", marginBottom: 8 }}>✍️ What would you say next?</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {options.map((p, i) => (
-                <ChoiceCard key={i} c={c} btn={btn} onClick={() => {
-                  setConvoSubmitted(true);
-                  speakPhrase(p[0], p[1]);
-                }}>
-                  <JpText isDesktop={isDesktop}>{p[1]}</JpText>
-                  <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{p[3]}</div>
-                </ChoiceCard>
-              ))}
-            </div>
-          </div>;
-        })()}
-        {answered && (convoSubmitted || !Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1).length) && <button onClick={() => { setStoryData(null); setStoryAnswer(null); advance(isCorrect); }}
+        {answered && <button onClick={() => { setStoryData(null); setStoryAnswer(null); advance(isCorrect); }}
           style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600, marginTop: 12 }}>Next →</button>}
-        {answered && !convoSubmitted && Object.keys(data.phr || {}).filter(id => (data.phr[id]?.box || 0) >= 1).length >= 3 && <button onClick={() => { setStoryData(null); setStoryAnswer(null); advance(isCorrect); }}
-          style={{ ...btn, width: "100%", padding: 10, borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm, marginTop: 8 }}>Skip →</button>}
       </div>
     </>);
   }
@@ -2117,14 +2093,21 @@ export default function SmartSession({
       }, 400);
     };
 
-    // Respond: did I know this?
-    const respond = (knew) => {
-      const phraseId = scene.phraseIds[immersionIdx];
-      const wasKnown = knownIds.has(phraseId);
-      // Correct tap = said "yes I knew it" AND actually knows it (box >= 1)
-      const correct = knew === wasKnown;
-      setImmersionTaps(t => [...t, { idx: immersionIdx, knew, correct }]);
-      // Don't auto-advance — user sees the answer then taps next
+    // Build MCQ choices for current phrase
+    const immersionChoices = (() => {
+      if (!currentPhrase) return [];
+      // Use stable choices so they don't reshuffle on re-render
+      if (currentTap) return currentTap.choices || [];
+      const distractors = getDistractors(currentPhrase, 3);
+      return stableChoices([currentPhrase, ...distractors]);
+    })();
+
+    // Respond: pick an answer from MCQ
+    const respond = (selected) => {
+      const correct = selected[0] === currentPhrase[0];
+      if (correct) reviewPhr(currentPhrase[0], true, "phrase-listen", getResponseMs());
+      else reviewPhr(currentPhrase[0], false, "phrase-listen", getResponseMs());
+      setImmersionTaps(t => [...t, { idx: immersionIdx, correct, selectedId: selected[0], choices: immersionChoices }]);
     };
 
     const advanceImmersion = () => {
@@ -2195,24 +2178,23 @@ export default function SmartSession({
             <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginBottom: 2 }}>{currentPhrase[2]}</div>
             <div style={{ fontSize: T.base, color: c.m }}>{currentPhrase[3]}</div>
             <div style={{ fontSize: T.sm, marginTop: 10, color: currentTap.correct ? c.g : c.a, fontWeight: 600 }}>
-              {currentTap.correct
-                ? (currentTap.knew ? "✓ Right — you knew it!" : "✓ Right — you hadn't learned it yet")
-                : (currentTap.knew ? "✗ You've seen this but it needed review" : "✗ Actually you do know this one")}
+              {currentTap.correct ? "✓ Correct!" : "✗ Not quite — listen again next time"}
             </div>
           </div>}
         </div>
 
-        {/* Response buttons — before answer */}
-        {!currentTap && <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => respond(true)}
-            style={{ ...btn, flex: 1, padding: "16px", borderRadius: 12, background: c.g + "18", border: "2px solid " + c.g + "40", color: c.g, fontSize: T.base, fontWeight: 700 }}>
-            ✓ I know this one
-          </button>
-          <button onClick={() => respond(false)}
-            style={{ ...btn, flex: 1, padding: "16px", borderRadius: 12, background: c.s2, border: "2px solid " + c.b, color: c.m, fontSize: T.base, fontWeight: 700 }}>
-            ? Don't know
-          </button>
-        </div>}
+        {/* MCQ choices */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {immersionChoices.map((choice, i) => {
+            const isCorrect = choice[0] === currentPhrase[0];
+            const isSelected = currentTap?.selectedId === choice[0];
+            const state = currentTap ? (isCorrect ? "correct" : isSelected ? "wrong" : "dim") : "idle";
+            return <ChoiceCard key={i} c={c} btn={btn} disabled={!!currentTap} state={state}
+              onClick={() => respond(choice)}>
+              <span style={{ fontSize: T.base }}>{choice[3]}</span>
+            </ChoiceCard>;
+          })}
+        </div>
 
         {/* Next button — after answer */}
         {currentTap && <button onClick={advanceImmersion}
