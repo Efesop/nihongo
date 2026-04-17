@@ -177,6 +177,8 @@ export default function SmartSession({
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
   const convoShuffledRef = useRef({ blankIdx: -1, options: [] });
+  const quizShuffledRef = useRef({ key: null, options: [] });
+  const chainShuffledRef = useRef({ step: -1, choices: [] });
 
   // Typewriter effect for senpai speech
   const typeOut = (text, displayMs = 3000) => {
@@ -876,7 +878,7 @@ export default function SmartSession({
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 4, opacity: .9 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhrase(choice[0], choice[1]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
             </div>
           </ChoiceCard>;
@@ -964,7 +966,7 @@ export default function SmartSession({
                   ? <div style={{ marginTop: 6 }}><PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} /></div>
                   : <div style={{ fontSize: isDesktop ? T.xl : T.lg, color: c.m2, fontFamily: fontJa, marginTop: 3, fontWeight: 600 }}>{choice[1]}</div>)}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhrase(choice[0], choice[1]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, color: c.tx, cursor: "pointer", flexShrink: 0, display: "inline-flex", alignItems: "center" }}><IconPlay size={14} /></span>}
             </div>
           </ChoiceCard>;
@@ -1042,7 +1044,7 @@ export default function SmartSession({
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhrase(choice[0], choice[1]); }} className="ts-icon-btn"
                 style={{ padding: "4px 8px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, flexShrink: 0 }}><IconPlay size={14}/></span>}
             </div>
           </ChoiceCard>;
@@ -1611,7 +1613,9 @@ export default function SmartSession({
               setStoryAnswer(i);
               const ok = i === gs.comprehension.correctIndex;
               setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            }}>{opt}</ChoiceCard>;
+            }}>
+              <JpText isDesktop={isDesktop} size={isDesktop ? T.xl : T.lg}>{opt}</JpText>
+            </ChoiceCard>;
           })}
         </div>
         {answered && <div style={{ ...card, padding: "14px 18px", marginTop: 12, borderLeft: "3px solid " + (isCorrect ? c.g : c.a) }}>
@@ -2417,11 +2421,14 @@ export default function SmartSession({
     const currentStep = !allDone ? chain.steps[chainStep] : null;
     const correctCount = chainAnswers.filter(a => a.correct).length;
 
-    // Build shuffled choices for current step (stable per step via chainStep as key)
+    // Memo shuffled choices by chainStep — prevents re-shuffle on re-render (senpai banter etc).
     const choices = currentStep ? (() => {
-      const correctPhrase = PHRASES.find(p => p[0] === currentStep.correctId);
-      const distractors = currentStep.distractorIds.map(id => PHRASES.find(p => p[0] === id)).filter(Boolean);
-      return shuffle([correctPhrase, ...distractors]);
+      if (chainShuffledRef.current.step !== chainStep) {
+        const correctPhrase = PHRASES.find(p => p[0] === currentStep.correctId);
+        const distractors = currentStep.distractorIds.map(id => PHRASES.find(p => p[0] === id)).filter(Boolean);
+        chainShuffledRef.current = { step: chainStep, choices: shuffle([correctPhrase, ...distractors]) };
+      }
+      return chainShuffledRef.current.choices;
     })() : [];
 
     const stepAnswered = chainPicked !== null;
@@ -2561,15 +2568,15 @@ export default function SmartSession({
         setSelectedBlank(null);
       };
 
-      // Autoplay all NPC lines up to the first blank for context
+      // Play all NPC (non-blank) lines in order for full context.
+      // Previously sliced up to first blank — broke when convo started with user blank (empty = silent).
       const playUpToBlank = () => {
-        const firstBlankIdx = convo.lines.findIndex(l => l.blank);
-        const linesToPlay = firstBlankIdx === -1 ? convo.lines : convo.lines.slice(0, firstBlankIdx);
+        const linesToPlay = convo.lines.filter(l => !l.blank && l.text);
+        if (linesToPlay.length === 0) return;
         let i = 0;
         const playNext = () => {
           if (i >= linesToPlay.length) return;
-          const line = linesToPlay[i];
-          if (line.text) speak(line.text);
+          speak(linesToPlay[i].text);
           i++;
           setTimeout(playNext, 2500);
         };
@@ -2788,10 +2795,16 @@ export default function SmartSession({
     // Find the segment that's part of the pattern (matches gp.pattern minus ~)
     const patternKey = gp.pattern.replace(/~/g, "").replace(/\.\.\./g, "");
     const targetSeg = quizSegs?.find(s => patternKey.includes(s[0]) || s[0].includes(patternKey.charAt(0)));
+    // Memo shuffled options by (phrase id + target seg) — prevents re-shuffle on re-render
+    // (senpai banter state changes would otherwise reorder options mid-answer).
     const quizOptions = quizSegs && targetSeg ? (() => {
-      const correct = `${targetSeg[2]} (${targetSeg[3]})`;
-      const otherSegs = quizSegs.filter(s => s !== targetSeg).map(s => `${s[2]} (${s[3]})`);
-      return shuffle([correct, ...otherSegs.slice(0, 2)]);
+      const key = `${quizPhrase[0]}:${targetSeg[0]}`;
+      if (quizShuffledRef.current.key !== key) {
+        const correct = `${targetSeg[2]} (${targetSeg[3]})`;
+        const otherSegs = quizSegs.filter(s => s !== targetSeg).map(s => `${s[2]} (${s[3]})`);
+        quizShuffledRef.current = { key, options: shuffle([correct, ...otherSegs.slice(0, 2)]) };
+      }
+      return quizShuffledRef.current.options;
     })() : null;
     const correctAnswer = targetSeg ? `${targetSeg[2]} (${targetSeg[3]})` : null;
 
@@ -3336,7 +3349,7 @@ export default function SmartSession({
                   : <ColoredJP phraseId={choice[0]} fallbackText={choice[1]} fontSize={isDesktop ? T.xl : T.lg} />}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 6 }}>{choice[3]}</div>}
               </div>
-              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(choice[0], choice[1], choice[3]); }} className="ts-icon-btn"
+              {answered && <span onClick={(e) => { e.stopPropagation(); speakPhrase(choice[0], choice[1]); }} className="ts-icon-btn"
                 style={{ padding: "6px 10px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx, flexShrink: 0 }}><IconPlay size={14}/></span>}
             </div>
           </ChoiceCard>;
