@@ -12,6 +12,7 @@ import { getUnlockedTemplates, generateAssemblyChallenge } from "../data/pattern
 import { GRADED_STORIES } from "../data/gradedStories.js";
 import { PHRASE_CHAINS } from "../data/phraseChains.js";
 import { IMMERSION_SCENES } from "../data/immersionScenes.js";
+import { buildBucketSort } from "../data/bucketSort.js";
 
 // All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -480,6 +481,13 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (eligible.length > 0) {
       specialPool.push({ type: "immersion", scene: eligible[Math.floor(Math.random() * eligible.length)] });
     }
+  }
+
+  // Bucket sort — categorize words by grammatical function (30% chance, 3+ phrases)
+  if (phrasesLearned >= 3 && Math.random() < 0.30) {
+    const knownPhraseIds = Object.keys(phrData).filter(id => (phrData[id]?.box || 0) >= 1);
+    const payload = buildBucketSort({ phrasesLearned, knownPhraseIds });
+    if (payload) specialPool.push({ type: "bucket-sort", payload });
   }
 
   // ADAPTIVE PRIORITY — items struggling in answerLog go first

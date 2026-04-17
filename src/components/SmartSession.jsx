@@ -157,6 +157,9 @@ export default function SmartSession({
   const [matchPicked, setMatchPicked] = useState(null); // number-match: currently selected left item
   const [matchPairs, setMatchPairs] = useState([]); // number-match: completed {leftId, rightVal, correct}
   const [matchWrong, setMatchWrong] = useState(null); // flash for wrong pair
+  const [bucketPicked, setBucketPicked] = useState(null); // bucket-sort: selected word jp
+  const [bucketAssign, setBucketAssign] = useState({}); // bucket-sort: { [wordJp]: bucketId }
+  const [bucketSubmitted, setBucketSubmitted] = useState(false); // bucket-sort: submitted
   const [hintAvailable, setHintAvailable] = useState(false); // 15s timer for hint chip
   const [hintShown, _setHintShown] = useState(false); // user tapped hint
   const setHintShown = (v) => {
@@ -578,6 +581,7 @@ export default function SmartSession({
     setKanaTyped([]); setKanaSubmitted(false); setKbTab(0); setKanaPrePhase("meaning"); setKanaMeaningWrong(false);
     setShadowState("idle"); setShadowResult(null);
     setMatchPicked(null); setMatchPairs([]); setMatchWrong(null);
+    setBucketPicked(null); setBucketAssign({}); setBucketSubmitted(false);
     setHintAvailable(false); setHintShown(false);
     if (hintTimer.current) clearTimeout(hintTimer.current);
     hintTimer.current = setTimeout(() => setHintAvailable(true), 15000);
@@ -688,6 +692,7 @@ export default function SmartSession({
     "mistake-memory": "MISTAKE ANALYSIS",
     "immersion": "IMMERSION LISTENING",
     "number-match": "NUMBER MATCHING",
+    "bucket-sort": "SORT INTO BUCKETS",
     "branch-convo": "CONVERSATION",
     "leech-review": "EXTRA REVIEW",
   };
@@ -2080,6 +2085,120 @@ export default function SmartSession({
         <button className="ts-btn" onClick={() => advance(true)}
           style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>
       </div>}
+    </>);
+  }
+
+  // ═══ EXERCISE: BUCKET SORT (categorize words by function) ═══
+  if (ex.type === "bucket-sort") {
+    const payload = ex.payload;
+    const { title, subtitle, buckets, words } = payload;
+    const unassigned = words.filter(w => !bucketAssign[w.jp]);
+    const allAssigned = unassigned.length === 0;
+
+    const placeInBucket = (bucketId) => {
+      if (!bucketPicked || bucketSubmitted) return;
+      setBucketAssign(a => ({ ...a, [bucketPicked]: bucketId }));
+      setBucketPicked(null);
+    };
+    const removeFromBucket = (jp) => {
+      if (bucketSubmitted) return;
+      setBucketAssign(a => { const n = { ...a }; delete n[jp]; return n; });
+      setBucketPicked(null);
+    };
+    const submit = () => {
+      if (!allAssigned) return;
+      setBucketSubmitted(true);
+      const allCorrect = words.every(w => bucketAssign[w.jp] === w.bucket);
+      setScore(s => ({ ...s, c: s.c + (allCorrect ? 1 : 0) }));
+      senpaiReact(allCorrect);
+    };
+    const correctCount = bucketSubmitted ? words.filter(w => bucketAssign[w.jp] === w.bucket).length : 0;
+
+    const wordBtn = (w, placed) => {
+      const picked = bucketPicked === w.jp;
+      const submittedCorrect = bucketSubmitted && bucketAssign[w.jp] === w.bucket;
+      const submittedWrong = bucketSubmitted && bucketAssign[w.jp] !== w.bucket;
+      let bg = c.s2, border = c.b, col = c.tx;
+      if (picked) { bg = c.ac + "20"; border = c.ac; col = c.ac; }
+      if (submittedCorrect) { bg = c.gs; border = c.g + "60"; col = c.g; }
+      if (submittedWrong) { bg = c.rs; border = c.a; col = c.a; }
+      return <button key={w.jp} className="ts-btn"
+        onClick={() => {
+          if (bucketSubmitted) return;
+          if (placed) removeFromBucket(w.jp);
+          else setBucketPicked(picked ? null : w.jp);
+        }}
+        style={{ ...btn, padding: "10px 12px", borderRadius: 10, border: "2px solid " + border, background: bg, color: col, fontSize: T.md, fontWeight: 600, fontFamily: fontJa, display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 72 }}>
+        <div>{w.jp}</div>
+        <div style={{ fontSize: T.xs, fontFamily: mono, opacity: 0.7 }}>{w.romaji}</div>
+      </button>;
+    };
+
+    return withSenpai(<>
+      {typeLabel}
+      <div style={{ ...card, padding: "16px 20px", marginBottom: 12, textAlign: "center" }}>
+        <div style={{ fontSize: T.xl, marginBottom: 6 }}>🗂️</div>
+        <div style={{ fontSize: T.base, fontWeight: 700, color: c.tx, marginBottom: 4 }}>{title}</div>
+        <div style={{ fontSize: T.sm, color: c.m }}>{subtitle}</div>
+        {!bucketSubmitted && <div style={{ fontSize: T.xs, color: c.m, marginTop: 6, opacity: 0.8 }}>
+          {bucketPicked ? "Now tap a bucket ↓" : "Tap a word, then tap a bucket"}
+        </div>}
+      </div>
+
+      {/* Buckets */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginBottom: 12 }}>
+        {buckets.map(b => {
+          const inBucket = words.filter(w => bucketAssign[w.jp] === b.id);
+          const canDrop = bucketPicked && !bucketSubmitted;
+          return <div key={b.id}
+            onClick={() => placeInBucket(b.id)}
+            style={{ ...card, padding: 10, minHeight: 72, cursor: canDrop ? "pointer" : "default", border: "2px dashed " + (canDrop ? c.ac : c.b), background: canDrop ? c.ac + "10" : c.s2, transition: "all .15s" }}>
+            <div style={{ fontSize: T.xs, fontWeight: 700, color: c.m, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{b.label}</div>
+            {b.hint && <div style={{ fontSize: T.xs, color: c.m, opacity: 0.7, marginBottom: 6 }}>{b.hint}</div>}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {inBucket.map(w => wordBtn(w, true))}
+            </div>
+          </div>;
+        })}
+      </div>
+
+      {/* Word pool */}
+      {!bucketSubmitted && unassigned.length > 0 && <div style={{ ...card, padding: 12, marginBottom: 12 }}>
+        <div style={{ fontSize: T.xs, fontWeight: 700, color: c.m, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Words</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {unassigned.map(w => wordBtn(w, false))}
+        </div>
+      </div>}
+
+      {/* Submit / Results */}
+      {!bucketSubmitted && <button className="ts-btn" disabled={!allAssigned}
+        onClick={submit}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: allAssigned ? c.a : c.s2, color: allAssigned ? "#fff" : c.m, fontSize: T.md, fontWeight: 600, opacity: allAssigned ? 1 : 0.6 }}>
+        {allAssigned ? "Check answers" : `${words.length - unassigned.length} / ${words.length} placed`}
+      </button>}
+
+      {bucketSubmitted && <div style={{ ...card, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: T.md, fontWeight: 700, color: c.tx, marginBottom: 8, textAlign: "center" }}>
+          {correctCount} / {words.length} correct
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {words.filter(w => bucketAssign[w.jp] !== w.bucket).map(w => {
+            const correctBucket = buckets.find(b => b.id === w.bucket);
+            return <div key={w.jp} style={{ fontSize: T.sm, color: c.m, padding: "6px 0", borderTop: "1px solid " + c.b }}>
+              <span style={{ fontFamily: fontJa, fontWeight: 600, color: c.tx }}>{w.jp}</span>
+              <span style={{ opacity: 0.7 }}> ({w.en})</span>
+              <span> → </span>
+              <span style={{ color: c.g, fontWeight: 600 }}>{correctBucket?.label}</span>
+            </div>;
+          })}
+          {correctCount === words.length && <div style={{ fontSize: T.sm, color: c.g, textAlign: "center", padding: 8 }}>
+            Perfect sort! 🎉
+          </div>}
+        </div>
+      </div>}
+
+      {bucketSubmitted && <button className="ts-btn" onClick={() => advance(correctCount === words.length)}
+        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>}
     </>);
   }
 
