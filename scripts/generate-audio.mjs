@@ -6,20 +6,24 @@
  *   ELEVENLABS_API_KEY=your_key node scripts/generate-audio.mjs
  *
  * Modes (MODE env var):
- *   all        — kana + stories + phrases (default)
- *   kana       — kana characters only
- *   story      — mnemonic stories only
- *   phrase     — all 100 phrases (normal speed)
- *   slow       — all 100 phrases at 0.85x speed → public/audio/phrase-slow/
- *   test-voice — generate 5 sample phrases with 3 different native JP voices for comparison
- *   missing    — only generate phrases that don't have audio files yet
- *   graded     — generate per-sentence audio for every graded-reader story
- *                (two voices: speaker "a" = konoha, speaker "b" = akira)
+ *   all               — kana + stories + phrases (default)
+ *   kana              — kana characters only
+ *   story             — mnemonic stories only
+ *   phrase            — all phrases (normal speed)
+ *   phrases-v2        — only phrases past the original 100 (food items, verbs, etc.)
+ *   slow              — all phrases at 0.85x speed → public/audio/phrase-slow/
+ *   test-voice        — 5 sample phrases × 3 JP voices for comparison
+ *   missing           — only generate phrases that don't have audio files yet
+ *   graded            — per-sentence audio for every graded-reader story (two voices)
+ *   stories-v2        — only new graded stories (gs7 and above)
+ *   scenes            — 2-voice scene conversations (no timestamps)
+ *   scenes-timestamps — scenes + character-level alignment JSON for karaoke word sync
+ *                       BATCH=1 for casual register only, BATCH=2 for polite+mixed only
  *
  * Voice override: VOICE_JA=voiceId node scripts/generate-audio.mjs
  * Model override: MODEL=eleven_v3 node scripts/generate-audio.mjs
  *
- * Outputs to public/audio/{kana,story,phrase,phrase-slow}/
+ * Outputs to public/audio/{kana,story,phrase,phrase-slow,graded,scenes}/
  */
 import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
@@ -147,58 +151,14 @@ const STORIES = {
   'ン': "A spacecraft streaking into Earth's atmosphere — wider and flatter than ソ, like a capsule heating up on re-entry.",
 };
 
-// All 100 phrases — complete list
-const PHRASES = [
-  // Greetings (10)
-  ['g1','こんにちは'],['g2','おはようございます'],['g3','こんばんは'],
-  ['g4','ありがとうございます'],['g5','すみません'],['g6','はい'],
-  ['g7','いいえ'],['g8','おねがいします'],['g9','だいじょうぶです'],
-  ['g10','さようなら'],['g11','わたしのなまえは...です'],
-  // Restaurants (10)
-  ['f1','これをください'],['f2','おかんじょうおねがいします'],
-  ['f3','みずをください'],['f4','おいしいです'],['f5','いただきます'],
-  ['f6','ごちそうさまでした'],['f7','おすすめはなんですか'],
-  ['f8','ひとりです'],['f9','ふたりです'],['f10','アレルギーがあります'],
-  // Transport (8)
-  ['t1','えきはどこですか'],['t2','までいくらですか'],
-  ['t3','つぎのえきはなんですか'],['t4','のりかえはどこですか'],
-  ['t5','までおねがいします'],['t6','ここでおろしてください'],
-  ['t7','スイカ'],['t8','しゅうでんはなんじですか'],
-  // Hotels (6)
-  ['h1','チェックインおねがいします'],['h2','よやくがあります'],
-  ['h3','チェックアウトはなんじですか'],['h4','WiFiのパスワードはなんですか'],
-  ['h5','かぎ'],['h6','もういっぱくおねがいします'],
-  // Shopping (7)
-  ['s1','これはいくらですか'],['s2','ふくろはいらないです'],
-  ['s3','カードでおねがいします'],['s4','げんきんでおねがいします'],
-  ['s5','あたためますか'],['s6','これをふたつください'],['s7','レシートはいらないです'],
-  // Directions (8)
-  ['d1','はどこですか'],['d2','みぎ'],['d3','ひだり'],['d4','まっすぐ'],
-  ['d5','ちかいですか'],['d6','あるいていけますか'],['d7','ちずをみせてください'],
-  ['d8','トイレはどこですか'],
-  // Emergencies (6)
-  ['e1','たすけてください'],['e2','びょういんはどこですか'],
-  ['e3','けいさつをよんでください'],['e4','えいごをはなせますか'],
-  ['e5','にほんごがわかりません'],['e6','もういちどいってください'],
-  // Numbers (13)
-  ['n1','いち'],['n2','に'],['n3','さん'],['n4','よん'],['n5','ご'],
-  ['n6','ろく'],['n7','なな'],['n8','はち'],['n9','きゅう'],['n10','じゅう'],
-  ['n11','ひゃくえんです'],['n12','せんえんです'],['n13','なんじですか'],
-  // Time & Days (10)
-  ['tm1','きょう'],['tm2','あした'],['tm3','きのう'],
-  ['tm4','いま'],['tm5','あとで'],['tm6','なんようびですか'],
-  ['tm7','げつようび'],['tm8','あさ'],['tm9','よる'],['tm10','まいにち'],
-  // Daily Life (12)
-  ['dl1','たべたいです'],['dl2','のみたいです'],['dl3','いきたいです'],
-  ['dl4','これがすきです'],['dl5','にほんごをべんきょうしています'],
-  ['dl6','しごとはなんですか'],['dl7','どこからきましたか'],
-  ['dl8','わかります'],['dl9','しゃしんをとってもいいですか'],
-  ['dl10','たのしいです'],['dl11','つかれました'],['dl12','おなかがすきました'],
-  // Describing (10)
-  ['dc1','おおきい'],['dc2','ちいさい'],['dc3','たかい'],['dc4','やすい'],
-  ['dc5','あつい'],['dc6','さむい'],['dc7','とおい'],['dc8','ちかい'],
-  ['dc9','あたらしい'],['dc10','ふるい'],
-];
+// Imported lazily from src/data/phrases.js (source of truth — all 380+ phrases)
+let PHRASES = null;
+async function loadPhrases() {
+  if (PHRASES) return PHRASES;
+  const m = await import(join(ROOT, 'src/data/phrases.js'));
+  PHRASES = m.PHRASES.map(p => [p[0], p[1]]);
+  return PHRASES;
+}
 
 // Subset for voice comparison tests
 const TEST_PHRASES = [
@@ -211,16 +171,22 @@ const TEST_PHRASES = [
 
 // ── API ─────────────────────────────────────────────────────────────────────
 
-async function generate(text, voiceId, outPath, { isJapanese = false, speed = 1.0, force = false } = {}) {
+const STYLE_PRESETS = {
+  learn:   { stability: 0.7,  similarity_boost: 0.8,  style: 0.1 },  // flat, clear — drills
+  narrate: { stability: 0.55, similarity_boost: 0.8,  style: 0.25 }, // storytelling lilt
+  convo:   { stability: 0.45, similarity_boost: 0.85, style: 0.4 },  // natural dialogue
+  polite:  { stability: 0.55, similarity_boost: 0.85, style: 0.35 }, // polite register
+};
+
+async function generate(text, voiceId, outPath, { isJapanese = false, speed = 1.0, force = false, preset = 'learn' } = {}) {
   if (!force && existsSync(outPath)) { process.stdout.write('·'); return; }
 
+  const s = STYLE_PRESETS[preset] || STYLE_PRESETS.learn;
   const body = {
     text,
     model_id: MODEL,
     voice_settings: {
-      stability: 0.7,           // higher = clearer pronunciation
-      similarity_boost: 0.8,
-      style: 0.1,               // low = less stylistic, clearer for learning
+      ...s,
       ...(speed !== 1.0 && { speed }),
       use_speaker_boost: true,
     },
@@ -246,6 +212,43 @@ async function generate(text, voiceId, outPath, { isJapanese = false, speed = 1.
   process.stdout.write('✓');
 
   await new Promise(r => setTimeout(r, 350)); // ~3 req/s rate limit
+}
+
+// Variant that returns character-level timestamps alongside audio.
+// Writes {outPath}.json with { chars: [...], timings_ms: [...] }.
+async function generateWithTimestamps(text, voiceId, outPath, { force = false, preset = 'convo' } = {}) {
+  const jsonPath = outPath.replace(/\.mp3$/, '.json');
+  if (!force && existsSync(outPath) && existsSync(jsonPath)) { process.stdout.write('·'); return; }
+
+  const s = STYLE_PRESETS[preset] || STYLE_PRESETS.convo;
+  const body = {
+    text,
+    model_id: MODEL,
+    voice_settings: { ...s, use_speaker_boost: true },
+    language_code: 'ja',
+    apply_language_text_normalization: true,
+  };
+
+  const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/with-timestamps`, {
+    method: 'POST',
+    headers: { 'xi-api-key': API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`ElevenLabs ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  // Response: { audio_base64, alignment: { characters, character_start_times_seconds, character_end_times_seconds }, normalized_alignment: {...} }
+  const audioBuf = Buffer.from(data.audio_base64, 'base64');
+  writeFileSync(outPath, audioBuf);
+  const align = data.alignment || data.normalized_alignment || null;
+  if (align) {
+    writeFileSync(jsonPath, JSON.stringify({
+      characters: align.characters,
+      startMs: align.character_start_times_seconds.map(t => Math.round(t * 1000)),
+      endMs: align.character_end_times_seconds.map(t => Math.round(t * 1000)),
+    }));
+  }
+  process.stdout.write('✓');
+  await new Promise(r => setTimeout(r, 400));
 }
 
 // ── MAIN ─────────────────────────────────────────────────────────────────────
@@ -275,7 +278,7 @@ async function main() {
   }
 
   // Create output dirs
-  ['kana','story','story2','story3','phrase','phrase-slow','graded'].forEach(d =>
+  ['kana','story','story2','story3','phrase','phrase-slow','graded','scenes'].forEach(d =>
     mkdirSync(join(OUT, d), { recursive: true })
   );
 
@@ -300,39 +303,88 @@ async function main() {
   }
 
   // ── PHRASES (normal speed) ──
-  if (mode === 'all' || mode === 'phrase' || mode === 'missing') {
+  // Modes: phrase (all), missing (skip existing), phrases-v2 (only new IDs not in first 100)
+  if (mode === 'all' || mode === 'phrase' || mode === 'missing' || mode === 'phrases-v2') {
     console.log('\n\n💬 Phrases (Japanese, normal speed)…');
-    for (const [id, text] of PHRASES) {
+    const allPhrases = await loadPhrases();
+    const LEGACY_PREFIXES = ['g','f','t','h','s','d','e','n','tm','dl','dc']; // first 100 phrases
+    const isLegacy = (id) => LEGACY_PREFIXES.some(p => id.startsWith(p) && /\d+$/.test(id.slice(p.length)));
+    const phrasesToRun = mode === 'phrases-v2'
+      ? allPhrases.filter(([id]) => !isLegacy(id))
+      : allPhrases;
+    console.log(`  → ${phrasesToRun.length} phrases queued`);
+    for (const [id, text] of phrasesToRun) {
       const outPath = join(OUT, 'phrase', `${id}.mp3`);
-      if (mode === 'missing' && existsSync(outPath)) { process.stdout.write('·'); continue; }
-      await generate(text, VOICE_JA, outPath, { isJapanese: true });
+      if ((mode === 'missing' || mode === 'phrases-v2') && existsSync(outPath)) { process.stdout.write('·'); continue; }
+      await generate(text, VOICE_JA, outPath, { isJapanese: true, preset: 'learn' });
     }
   }
 
   // ── PHRASES (slow speed for learning) ──
   if (mode === 'all' || mode === 'slow') {
     console.log('\n\n🐢 Phrases (Japanese, slow 0.85x)…');
-    for (const [id, text] of PHRASES) {
-      await generate(text, VOICE_JA, join(OUT, 'phrase-slow', `${id}.mp3`), { isJapanese: true, speed: 0.85 });
+    const allPhrases = await loadPhrases();
+    for (const [id, text] of allPhrases) {
+      await generate(text, VOICE_JA, join(OUT, 'phrase-slow', `${id}.mp3`), { isJapanese: true, speed: 0.85, preset: 'learn' });
     }
   }
 
   // ── GRADED READER SENTENCES ──
-  if (mode === 'all' || mode === 'graded') {
+  // Modes: graded (all stories), stories-v2 (only gs7+)
+  if (mode === 'all' || mode === 'graded' || mode === 'stories-v2') {
     console.log('\n\n📚 Graded reader sentences (two voices)…');
     const { GRADED_STORIES } = await import(join(ROOT, 'src/data/gradedStories.js'));
-    const VOICE_A = VOICES_JA.konoha; // NPC / staff / local
-    const VOICE_B = VOICES_JA.akira;  // "You"
-    for (const gs of GRADED_STORIES) {
+    const VOICE_A = VOICES_JA.konoha;
+    const VOICE_B = VOICES_JA.akira;
+    const isNew = (id) => {
+      const n = parseInt(id.replace(/^gs/, ''), 10);
+      return Number.isFinite(n) && n >= 7;
+    };
+    const pool = mode === 'stories-v2' ? GRADED_STORIES.filter(gs => isNew(gs.id)) : GRADED_STORIES;
+    console.log(`  → ${pool.length} stories queued`);
+    for (const gs of pool) {
       console.log(`\n  ${gs.id} — ${gs.title}`);
       for (let i = 0; i < gs.sentences.length; i++) {
         const s = gs.sentences[i];
         const voice = s.speaker === 'b' ? VOICE_B : VOICE_A;
-        // Strip parenthetical stage directions like (...arrived) or (eating)
         const text = s.jp.replace(/[（(][^）)]*[）)]/g, '').replace(/\s+/g, ' ').trim();
         if (!text) { process.stdout.write('∅'); continue; }
         const outPath = join(OUT, 'graded', `${gs.id}-${i}.mp3`);
-        await generate(text, voice, outPath, { isJapanese: true });
+        await generate(text, voice, outPath, { isJapanese: true, preset: 'narrate' });
+      }
+    }
+  }
+
+  // ── SCENE STUDIES (2-voice conversations) ──
+  // Modes: scenes (no timestamps), scenes-timestamps (with karaoke alignment JSON)
+  // BATCH=1 = casual register, BATCH=2 = polite+mixed register
+  if (mode === 'scenes' || mode === 'scenes-timestamps') {
+    const withTimestamps = (mode === 'scenes-timestamps');
+    const batch = process.env.BATCH; // '1', '2', or empty = all
+    console.log(`\n\n🎬 Scene studies${withTimestamps ? ' (with timestamps)' : ''}${batch ? ` BATCH=${batch}` : ''}…`);
+    const { SCENE_STUDIES } = await import(join(ROOT, 'src/data/sceneStudies.js'));
+    const VOICE_A = VOICES_JA.konoha;
+    const VOICE_B = VOICES_JA.akira;
+
+    let pool = SCENE_STUDIES;
+    if (batch === '1') pool = SCENE_STUDIES.filter(sc => sc.register === 'casual');
+    if (batch === '2') pool = SCENE_STUDIES.filter(sc => sc.register !== 'casual');
+    console.log(`  → ${pool.length} scenes queued`);
+
+    for (const sc of pool) {
+      console.log(`\n  ${sc.id} — ${sc.title} [${sc.register}]`);
+      const preset = sc.register === 'casual' ? 'convo' : 'polite';
+      for (let i = 0; i < sc.lines.length; i++) {
+        const ln = sc.lines[i];
+        const voice = ln.speaker === 'b' ? VOICE_B : VOICE_A;
+        const text = ln.jp.replace(/[（(][^）)]*[）)]/g, '').replace(/\s+/g, ' ').trim();
+        if (!text) { process.stdout.write('∅'); continue; }
+        const outPath = join(OUT, 'scenes', `${sc.id}-${String(i).padStart(2, '0')}.mp3`);
+        if (withTimestamps) {
+          await generateWithTimestamps(text, voice, outPath, { preset });
+        } else {
+          await generate(text, voice, outPath, { isJapanese: true, preset });
+        }
       }
     }
   }

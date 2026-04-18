@@ -13,6 +13,7 @@ import { GRADED_STORIES } from "../data/gradedStories.js";
 import { PHRASE_CHAINS } from "../data/phraseChains.js";
 import { IMMERSION_SCENES } from "../data/immersionScenes.js";
 import { buildBucketSort } from "../data/bucketSort.js";
+import { SCENE_STUDIES } from "../data/sceneStudies.js";
 
 // All kana including dakuten and yōon
 const ALL_BASE_KANA = [...H_GROUPS, ...K_GROUPS]
@@ -490,6 +491,44 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (payload) specialPool.push({ type: "bucket-sort", payload });
   }
 
+  // Scene study — 2-voice conversational scenes. 4 modes per scene, user progresses through them.
+  // Max 1 scene per session (longer than drill cards).
+  if (phrasesLearned >= 3 && Math.random() < 0.4) {
+    const sceneProgress = data.scenes || {};
+    const eligible = SCENE_STUDIES.filter(sc => {
+      const prereqMet = sc.requires.every(id => (phrData[id]?.box || 0) >= 1);
+      if (!prereqMet) return false;
+      const state = sceneProgress[sc.id];
+      // Not started, or not done yet
+      return !state || state.mode !== "done";
+    });
+    if (eligible.length > 0) {
+      // Each scene has a 4-stage progression: watch → cloze → shadow → roleplay → done.
+      // Prefer scenes that haven't been started yet (user discovers new content),
+      // then scenes mid-progression (finish what you started).
+      const unstarted = eligible.filter(sc => !(sceneProgress[sc.id]?.mode));
+      const inProgress = eligible.filter(sc => sceneProgress[sc.id]?.mode && sceneProgress[sc.id].mode !== "done");
+
+      // 60/40 split favoring new scenes when both available, else whichever exists
+      let chosen = null;
+      if (unstarted.length && inProgress.length) {
+        chosen = (Math.random() < 0.6 ? unstarted : inProgress)[Math.floor(Math.random() * (Math.random() < 0.6 ? unstarted.length : inProgress.length))];
+        // (simpler: just pick from the chosen pool cleanly)
+        const pool = Math.random() < 0.6 ? unstarted : inProgress;
+        chosen = pool[Math.floor(Math.random() * pool.length)];
+      } else if (unstarted.length) {
+        chosen = unstarted[Math.floor(Math.random() * unstarted.length)];
+      } else if (inProgress.length) {
+        chosen = inProgress[Math.floor(Math.random() * inProgress.length)];
+      }
+
+      if (chosen) {
+        const mode = sceneProgress[chosen.id]?.mode || "watch";
+        specialPool.push({ type: `scene-${mode}`, scene: chosen });
+      }
+    }
+  }
+
   // ADAPTIVE PRIORITY — items struggling in answerLog go first
   // Don't add to special pool (those compete for slots) — instead force into review queue.
   // We'll surface these as a priority list the queue builder reads.
@@ -592,7 +631,16 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const dueKanaCount = dueKana.length;
   const duePhrCount = duePhrases.length;
   const dueTotal = dueKanaCount + duePhrCount;
-  const kanaDueCap = dueTotal > 0 ? Math.max(Math.round(dueCap * dueKanaCount / dueTotal), 1) : Math.floor(dueCap / 2);
+  let kanaDueCap = dueTotal > 0 ? Math.max(Math.round(dueCap * dueKanaCount / dueTotal), 1) : Math.floor(dueCap / 2);
+
+  // Queue rebalance (2026-04): soft-reduce standalone kana drill for learners with decent phrase
+  // coverage — they see kana through phrase context via breakdowns, so pure kana drill is lower
+  // leverage. Phrase-first pacing.
+  //   < 20 phrases learned: no change (kana still the main course)
+  //   >= 20 phrases learned: reduce kana slots by ~40%
+  if (phrasesLearned >= 20 && kanaDueCap > 1) {
+    kanaDueCap = Math.max(1, Math.floor(kanaDueCap * 0.6));
+  }
   const phrDueCap = dueCap - kanaDueCap;
 
   shuffle(dueKana).slice(0, kanaDueCap).forEach(ch => addKana(ch, queue));

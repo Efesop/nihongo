@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio Probe — TinySenpai</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; background: #0f0f12; color: #eee; margin: 0; padding: 24px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #888; font-size: 13px; margin-bottom: 24px; }
+  h2 { font-size: 16px; margin: 32px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #333; color: #fff; }
+  .note { font-size: 12px; color: #888; margin-bottom: 12px; font-style: italic; }
+  .row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #1a1a1f; border-radius: 8px; margin-bottom: 6px; }
+  .label { flex: 0 0 180px; font-size: 13px; color: #ccc; }
+  .jp { font-family: "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 15px; color: #fff; min-width: 180px; }
+  audio { flex: 1; height: 32px; }
+  .voice-row { display: grid; grid-template-columns: 200px 1fr 1fr 1fr; gap: 8px; align-items: center; padding: 8px 12px; background: #1a1a1f; border-radius: 8px; margin-bottom: 4px; }
+  .vh { display: grid; grid-template-columns: 200px 1fr 1fr 1fr; gap: 8px; padding: 0 12px; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+  .convo-line { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: #1a1a1f; border-radius: 6px; margin-bottom: 4px; }
+  .spk-k { border-left: 3px solid #f48fb1; }
+  .spk-a { border-left: 3px solid #64b5f6; }
+  .spk-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; min-width: 70px; }
+  .spk-k .spk-label { color: #f48fb1; }
+  .spk-a .spk-label { color: #64b5f6; }
+  .convo-play { background: #2a2a30; border: 1px solid #444; color: #fff; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; margin: 8px 0; }
+  .convo-play:hover { background: #3a3a40; }
+  .convo-play.playing { background: #e91e63; border-color: #e91e63; }
+  .status { font-size: 12px; color: #888; margin-left: 12px; }
+</style>
+</head>
+<body>
+<h1>🎧 Audio Probe</h1>
+<div class="sub">Judge voices, convo pacing, narration feel. 493 chars / $0.05 used.</div>
+
+<h2>1. Voices × 5 phrases</h2>
+<div class="note">Same phrase in 3 voices. Pick your favourite female + male.</div>
+<div class="vh">
+  <div>Phrase</div>
+  <div>Konoha (F)</div>
+  <div>Akira (M)</div>
+  <div>Fumi (F)</div>
+</div>
+<div id="voices"></div>
+
+<h2>2. Narration — Graded Reader</h2>
+<div class="note">Single voice telling a short Saturday-in-Shibuya story. Engaging or flat?</div>
+<div class="jp" style="padding: 12px; background: #1a1a1f; border-radius: 8px; margin-bottom: 8px; line-height: 1.6;">
+きょうはどようびです。わたしはともだちとしぶやにいきました。でんしゃのなかはとてもこんでいました。しぶやえきについて、ハチこうのまえでともだちとあいました。ちかくのレストランにはいって、ラーメンをちゅうもんしました。とてもおいしかったです。ごちそうさまでした。
+</div>
+<audio controls src="/audio/probe/narration.mp3" style="width: 100%;"></audio>
+
+<h2>3. Monologue — Scene</h2>
+<div class="note">Waiter greeting. Believable?</div>
+<div class="jp" style="padding: 12px; background: #1a1a1f; border-radius: 8px; margin-bottom: 8px; line-height: 1.6;">
+いらっしゃいませ、おきゃくさま。こちらのせきへどうぞ。メニューをごらんください。おすすめはてんぷらていしょくです。おのみものはなにになさいますか？おまちしております。
+</div>
+<audio controls src="/audio/probe/monologue.mp3" style="width: 100%;"></audio>
+
+<h2>4. Conversation — 2 voices alternating</h2>
+<div class="note">Restaurant exchange. Konoha (F, staff) ↔ Akira (M, customer). Natural convo pacing or choppy?</div>
+<button class="convo-play" id="playAll">▶ Play full conversation</button>
+<span class="status" id="status"></span>
+<div id="convo"></div>
+
+<script>
+const voicePhrases = [
+  { id: 'g1',  jp: 'こんにちは' },
+  { id: 'f2',  jp: 'おかんじょうおねがいします' },
+  { id: 't3',  jp: 'つぎのえきはなんですか' },
+  { id: 'dl5', jp: 'にほんごをべんきょうしています' },
+  { id: 'g4',  jp: 'ありがとうございます' },
+];
+const vEl = document.getElementById('voices');
+for (const p of voicePhrases) {
+  const row = document.createElement('div');
+  row.className = 'voice-row';
+  row.innerHTML = `
+    <div class="jp">${p.jp}</div>
+    <audio controls src="/audio/probe/phrase-konoha-${p.id}.mp3" style="width: 100%;"></audio>
+    <audio controls src="/audio/probe/phrase-akira-${p.id}.mp3" style="width: 100%;"></audio>
+    <audio controls src="/audio/probe/phrase-fumi-${p.id}.mp3" style="width: 100%;"></audio>
+  `;
+  vEl.appendChild(row);
+}
+
+const convo = [
+  { v: 'konoha', spk: 'A', jp: 'いらっしゃいませ！なんめいさまですか？', en: 'Welcome! How many in your party?' },
+  { v: 'akira',  spk: 'B', jp: 'ふたりです。おねがいします。', en: 'Two people, please.' },
+  { v: 'konoha', spk: 'A', jp: 'こちらへどうぞ。メニューです。', en: 'This way please. Here\'s the menu.' },
+  { v: 'akira',  spk: 'B', jp: 'すみません、おすすめはなんですか？', en: 'Excuse me, what do you recommend?' },
+  { v: 'konoha', spk: 'A', jp: 'きょうはまぐろがとてもしんせんです。', en: 'Today the tuna is very fresh.' },
+  { v: 'akira',  spk: 'B', jp: 'じゃあ、それをふたつください。', en: 'Then two of those please.' },
+  { v: 'konoha', spk: 'A', jp: 'かしこまりました。すこしおまちください。', en: 'Understood. Please wait a moment.' },
+];
+const cEl = document.getElementById('convo');
+const audios = [];
+convo.forEach((c, i) => {
+  const cls = c.v === 'konoha' ? 'spk-k' : 'spk-a';
+  const row = document.createElement('div');
+  row.className = 'convo-line ' + cls;
+  const idx = String(i + 1).padStart(2, '0');
+  row.innerHTML = `
+    <span class="spk-label">${c.v.toUpperCase()}</span>
+    <div style="flex: 1;">
+      <div class="jp">${c.jp}</div>
+      <div style="font-size: 11px; color: #888; margin-top: 2px;">${c.en}</div>
+    </div>
+    <audio controls src="/audio/probe/convo-${idx}-${c.v}.mp3" style="width: 260px; height: 28px;"></audio>
+  `;
+  cEl.appendChild(row);
+  const a = new Audio(`/audio/probe/convo-${idx}-${c.v}.mp3`);
+  audios.push(a);
+});
+
+const playBtn = document.getElementById('playAll');
+const statusEl = document.getElementById('status');
+let playing = false;
+playBtn.addEventListener('click', async () => {
+  if (playing) {
+    audios.forEach(a => { a.pause(); a.currentTime = 0; });
+    playBtn.textContent = '▶ Play full conversation';
+    playBtn.classList.remove('playing');
+    statusEl.textContent = '';
+    playing = false;
+    return;
+  }
+  playing = true;
+  playBtn.textContent = '⏹ Stop';
+  playBtn.classList.add('playing');
+  for (let i = 0; i < audios.length; i++) {
+    if (!playing) return;
+    statusEl.textContent = `Line ${i + 1} / ${audios.length} — ${convo[i].v}`;
+    await new Promise(resolve => {
+      audios[i].onended = resolve;
+      audios[i].play();
+    });
+    if (!playing) return;
+    await new Promise(r => setTimeout(r, 400)); // natural gap
+  }
+  playBtn.textContent = '▶ Play full conversation';
+  playBtn.classList.remove('playing');
+  statusEl.textContent = '✓ Done';
+  playing = false;
+});
+</script>
+</body>
+</html>

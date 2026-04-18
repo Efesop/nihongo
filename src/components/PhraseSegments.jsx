@@ -18,10 +18,15 @@ const GRAMMAR_COLORS = {
  * Renders Japanese phrase text with interactive word segments.
  * Each segment is color-coded by grammar type.
  * Hover/tap shows a tooltip with meaning and romaji.
+ *
+ * Pass either:
+ *   - `phraseId` — looks up breakdown from PHRASE_BREAKDOWNS
+ *   - `breakdown` — raw breakdown array [[jp, romaji, meaning, type], ...]
+ *                   (used for scene lines, dynamic content)
  */
-export default function PhraseSegments({ phraseId, c, fontSize = 24, fontWeight = 700 }) {
+export default function PhraseSegments({ phraseId, breakdown: rawBreakdown, c, fontSize = 24, fontWeight = 700 }) {
   const [activeSegment, setActiveSegment] = useState(null);
-  const breakdown = PHRASE_BREAKDOWNS[phraseId];
+  const breakdown = rawBreakdown || (phraseId ? PHRASE_BREAKDOWNS[phraseId] : null);
 
   if (!breakdown) return null;
 

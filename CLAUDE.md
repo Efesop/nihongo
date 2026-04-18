@@ -144,3 +144,34 @@ api/
 - **Inline styles only** — no CSS files, colors from theme `c` object
 - **Mobile-first** — responsive at 768px breakpoint
 - **Proactive approach** — suggest alternatives, flag issues, don't execute blindly
+
+## Component Architecture Rules (2026-04+)
+
+New code MUST follow these. SmartSession.jsx (3600+ lines) is admitted tech debt — do not extend it; extract.
+
+- **Max ~400 lines per component.** If bigger, split into a subfolder with one shell + multiple subcomponents.
+- **One component per file.** File name matches the export.
+- **Subfolder patterns** for multi-mode screens: e.g., `src/components/scene/SceneWatch.jsx`, `SceneCloze.jsx`, `SceneShadow.jsx`, `SceneRolePlay.jsx`, plus `SceneIntro.jsx` shared primitive.
+- **Reuse `SessionParts.jsx` primitives** — never duplicate `ActionBar`, `ChoiceCard`, `AudioOrb`, `PlayButton`, `HintChip`, `TypeLabel`, `ResultMark`, `NoneOfThese`, `SceneImage`, `JpText`.
+- **Reuse `PhraseSegments.jsx`** for word-by-word breakdowns. It accepts either a phraseId or a raw breakdown array.
+- **Extract shared logic** (mic capture → `ShadowExercise.jsx`; karaoke sync → `KaraokeText.jsx`) into dedicated components/utils.
+- **Icons from `Icons.jsx`** — don't inline SVG in components.
+- **Never add exercise types to SmartSession.jsx** — create a component, import it, call from the render switch.
+
+## UI Polish Conventions
+
+Beautiful UI is non-negotiable. New components MUST:
+
+- **Colors from theme `c`.** Never hardcode hex. Tokens: `c.bg`, `c.s` (surface), `c.s2` (raised), `c.b` (border), `c.tx` (text), `c.m` (muted), `c.m2` (muted-light), `c.a` (accent red), `c.g` (green), `c.go` (gold/hint), `c.ro` (romaji coral), `c.ac` (accent UI blue), `c.gs` (green surface), `c.rs` (red surface), `c.as` (active surface).
+- **Typography from `T` constants.** Never hardcode px. `T.xs` (11) / `T.sm` (13) / `T.base` (15) / `T.md` (17) / `T.lg` (20) / `T.xl` (24) / `T.xxl` (32) / `T.huge` (48).
+- **Japanese text uses `fontJa`,** `JP.weight` (500), `JP.lineHeight` (1.3). Size via `JP.size.desktop`/`.mobile`.
+- **Spacing scale:** 6 / 8 / 10 / 12 / 16 / 20 / 24 / 32. No in-between values.
+- **Border radius:** 8 (chip) / 10 (button) / 12 (card) / 16 (major panel).
+- **Borders:** `1px solid ${c.b}` standard. Dashed `2px dashed ${c.ac}` for drop targets.
+- **Cards:** `{ background: c.s, border: "1px solid " + c.b, borderRadius: 12, padding: 16 }`.
+- **Transitions:** `.15s` standard (buttons, state changes); `.3s` for larger reveals.
+- **Motion for reveal:** fade + 4px slide up, 200ms ease-out.
+- **Speaker color coding in dialogue:** Konoha (female voice) = `#f48fb1` accent / left stripe 3px; Akira (male voice) = `#64b5f6`.
+- **Touch targets:** min 44px on mobile.
+- **Use `className="ts-btn"`** for interactive buttons — gets hover/active micro-animations defined in `SessionParts.jsx`.
+- **Japanese first, English second.** When showing both, JP is the hero (bigger font, darker), EN is support (`c.m`, smaller).

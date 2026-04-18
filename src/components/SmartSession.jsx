@@ -19,6 +19,11 @@ function stableChoices(arr) {
 }
 import { buildSmartSession, getDistractors } from "../utils/sessionEngine.js";
 import PhraseSegments from "./PhraseSegments.jsx";
+import SceneWatch from "./scene/SceneWatch.jsx";
+import SceneCloze from "./scene/SceneCloze.jsx";
+import SceneShadow from "./scene/SceneShadow.jsx";
+import SceneRolePlay from "./scene/SceneRolePlay.jsx";
+import ShadowExercise from "./ShadowExercise.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
@@ -693,6 +698,10 @@ export default function SmartSession({
     "immersion": "IMMERSION LISTENING",
     "number-match": "NUMBER MATCHING",
     "bucket-sort": "SORT INTO BUCKETS",
+    "scene-watch": "SCENE — WATCH",
+    "scene-cloze": "SCENE — FILL THE BLANKS",
+    "scene-shadow": "SCENE — REPEAT AFTER ME",
+    "scene-roleplay": "SCENE — ROLE PLAY",
     "branch-convo": "CONVERSATION",
     "leech-review": "EXTRA REVIEW",
   };
@@ -1638,143 +1647,36 @@ export default function SmartSession({
   // ═══ EXERCISE: SHADOW MODE (speak the phrase) ═══
   if (ex.type === "phrase-shadow") {
     const p = ex.item;
-    // Safari has SpeechRecognition API but ja-JP support is unreliable — treat as unsupported
-    const isSafari = typeof navigator !== "undefined" && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const hasAPI = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
-    const supported = hasAPI && !isSafari;
-
-    const startListening = () => {
-      if (!supported) return;
-      setShadowResult(null); // clear any prior error
-      setShadowState("listening");
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.lang = "ja-JP";
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 3;
-      let hasResult = false;
-      recognition.onresult = (event) => {
-        hasResult = true;
-        const results = event.results[0];
-        let bestTranscript = results[0].transcript;
-        let matched = false;
-        const target = p[1].replace(/[。？！、\s]/g, "");
-        for (let i = 0; i < results.length; i++) {
-          const t = results[i].transcript.replace(/[。？！、\s]/g, "");
-          if (t === target || t.includes(target) || target.includes(t)) {
-            bestTranscript = results[i].transcript;
-            matched = true;
-            break;
-          }
-        }
-        if (!matched) {
-          const targetChars = [...target];
-          const spokenChars = [...bestTranscript.replace(/[。？！、\s]/g, "")];
-          let matchCount = 0;
-          for (const ch of spokenChars) {
-            if (targetChars.includes(ch)) matchCount++;
-          }
-          matched = matchCount >= targetChars.length * 0.6;
-        }
-        setShadowResult({ transcript: bestTranscript, correct: matched, graded: true });
-        setShadowState("done");
-        setScore(s => matched ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-        reviewPhr(p[0], matched, "phrase-shadow", getResponseMs());
-        senpaiReact(matched);
-        if (matched) speakPhrase(p[0], p[1]);
-      };
-      recognition.onerror = (e) => {
-        // Don't mark wrong — mic errors, no speech etc shouldn't hurt SRS
-        setShadowState("done");
-        setShadowResult({
-          transcript: e.error === "no-speech" ? "didn't hear you" : e.error === "not-allowed" ? "mic blocked" : "recognition error",
-          correct: false, graded: false, errorType: e.error,
-        });
-      };
-      recognition.onend = () => {
-        if (!hasResult) {
-          setShadowState("done");
-          setShadowResult(r => r || { transcript: "didn't hear you", correct: false, graded: false });
-        }
-      };
-      recognition.start();
-      setTimeout(() => { try { recognition.stop(); } catch (e) {} }, 8000);
-    };
+    const hero = <div style={{ ...card, padding: "24px 20px", marginBottom: 14, textAlign: "center" }}>
+      <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 10 }}>Listen, then say it out loud</div>
+      <div style={{ fontSize: isDesktop ? T.xxl : T.xl, fontWeight: JP.weight, lineHeight: 1.5, color: c.tx, marginBottom: 6, fontFamily: fontJa }}>{p[1]}</div>
+      <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginBottom: 4 }}>{p[2]}</div>
+      <div style={{ fontSize: T.base, color: c.m, marginBottom: 16 }}>{p[3]}</div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+        <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/> hear it</button>
+        <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1], { slow: true })} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconSlowPlay size={14}/> slow</button>
+      </div>
+    </div>;
 
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "24px 20px", marginBottom: 14, textAlign: "center" }}>
-        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 10 }}>Listen, then say it out loud</div>
-        <div style={{ fontSize: isDesktop ? T.xxl : T.xl, fontWeight: JP.weight, lineHeight: 1.5, color: c.tx, marginBottom: 6, fontFamily: fontJa }}>{p[1]}</div>
-        <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginBottom: 4 }}>{p[2]}</div>
-        <div style={{ fontSize: T.base, color: c.m, marginBottom: 16 }}>{p[3]}</div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-          <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1])} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/> hear it</button>
-          <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1], { slow: true })} style={{ ...btn, padding: "8px 20px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconSlowPlay size={14}/> slow</button>
-        </div>
-      </div>
-
-      {/* Unsupported browser */}
-      {!supported && <div style={{ ...card, padding: "16px 20px", textAlign: "center" }}>
-        <div style={{ fontSize: T.sm, color: c.m, marginBottom: 12 }}>
-          {isSafari ? "Safari doesn't support Japanese speech recognition. Open in Chrome for shadow mode, or skip."
-            : "Speech recognition not supported. Use Chrome for shadow mode, or skip."}
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => { setScore(s => ({ ...s, c: s.c + 1 })); reviewPhr(p[0], true, "phrase-shadow", 3000); advance(true); }}
-            style={{ ...btn, flex: 1, padding: "12px 24px", borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>I said it →</button>
-          <button onClick={() => save({ settings: { ...data.settings, shadowDisabled: true } })}
-            style={{ ...btn, padding: "12px 16px", borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>Turn off shadow mode</button>
-        </div>
-      </div>}
-
-      {supported && shadowState === "idle" && !shadowResult && <>
-        <button onClick={startListening}
-          style={{ ...btn, width: "100%", padding: "18px 20px", borderRadius: 14, background: c.a, color: "#fff", fontSize: T.lg, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-          🎤 Tap and say it
-        </button>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button onClick={() => { setScore(s => ({ ...s, c: s.c + 1 })); reviewPhr(p[0], true, "phrase-shadow", 3000); advance(true); }}
-            style={{ ...btn, flex: 1, padding: "10px 16px", borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm }}>Skip (I said it)</button>
-          <button onClick={() => save({ settings: { ...data.settings, shadowDisabled: true } })}
-            style={{ ...btn, padding: "10px 14px", borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm }}>🔕 turn off</button>
-        </div>
-      </>}
-
-      {shadowState === "listening" && <div style={{ ...card, padding: "24px 20px", textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 8, animation: "pulse 1.5s infinite" }}>🎤</div>
-        <div style={{ fontSize: T.base, color: c.a, fontWeight: 600 }}>Listening...</div>
-        <div style={{ fontSize: T.sm, color: c.m, marginTop: 6 }}>Say the phrase now</div>
-      </div>}
-
-      {shadowResult && shadowResult.graded && <div style={{ ...card, padding: "20px", textAlign: "center", borderLeft: "3px solid " + (shadowResult.correct ? c.g : c.a) }}>
-        <div style={{ fontSize: T.lg, fontWeight: 700, color: shadowResult.correct ? c.g : c.a, marginBottom: 8 }}>
-          {shadowResult.correct ? "✓ Great pronunciation!" : "✗ Not quite — try again"}
-        </div>
-        <div style={{ fontSize: T.sm, color: c.m, marginBottom: 4 }}>You said:</div>
-        <div style={{ fontSize: T.lg, color: c.tx, marginBottom: 12 }}>{shadowResult.transcript}</div>
-        {!shadowResult.correct && <div style={{ fontSize: T.sm, color: c.m }}>
-          Target: <span style={{ color: c.g, fontWeight: 600 }}>{p[1]}</span>
-        </div>}
-      </div>}
-
-      {/* Non-graded error: didn't hear, mic blocked, etc. No SRS impact. */}
-      {shadowResult && !shadowResult.graded && <div style={{ ...card, padding: "18px 20px", textAlign: "center", borderLeft: "3px solid " + c.m }}>
-        <div style={{ fontSize: T.base, fontWeight: 600, color: c.m, marginBottom: 6 }}>⚠️ {shadowResult.transcript}</div>
-        <div style={{ fontSize: T.sm, color: c.m }}>
-          {shadowResult.errorType === "not-allowed" ? "Allow mic access in browser settings, or skip below."
-            : "Tap retry and speak right after the mic appears."}
-        </div>
-      </div>}
-
-      {shadowResult && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        {supported && <button onClick={() => { setShadowResult(null); setShadowState("idle"); }}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.m, fontSize: T.sm }}>🔄 retry</button>}
-        <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1], { slow: true })}
-          style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}><IconSlowPlay size={14}/></button>
-        <button className="ts-btn" onClick={() => advance(shadowResult.correct)}
-          style={{ ...btn, flex: 2, padding: 12, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>{shadowResult.graded ? "Next →" : "Skip →"}</button>
-      </div>}
+      <ShadowExercise
+        targetJp={p[1]}
+        onComplete={(matched, graded) => {
+          if (graded) {
+            setScore(s => matched ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+            reviewPhr(p[0], matched, "phrase-shadow", getResponseMs());
+            senpaiReact(matched);
+            if (matched) speakPhrase(p[0], p[1]);
+          }
+          advance(matched);
+        }}
+        onDisable={() => save({ settings: { ...data.settings, shadowDisabled: true } })}
+        onSlowPlay={() => speakPhrase(p[0], p[1], { slow: true })}
+        c={c} btn={btn} card={card}
+      >
+        {hero}
+      </ShadowExercise>
     </>);
   }
 
@@ -2200,6 +2102,50 @@ export default function SmartSession({
       {bucketSubmitted && <button className="ts-btn" onClick={() => advance(correctCount === words.length)}
         style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>}
     </>);
+  }
+
+  // ═══ EXERCISE: SCENE MODES (watch → cloze → shadow → roleplay → done) ═══
+  if (ex.type === "scene-watch" || ex.type === "scene-cloze" || ex.type === "scene-shadow" || ex.type === "scene-roleplay") {
+    const sc = ex.scene;
+
+    // Known words: vocab from prerequisite phrase breakdowns user has seen
+    const knownWords = [];
+    const seenJp = new Set();
+    for (const pId of sc.requires) {
+      const bd = PHRASE_BREAKDOWNS[pId] || [];
+      for (const [jp, romaji, en] of bd) {
+        if (seenJp.has(jp) || jp === '...' || jp === '/') continue;
+        seenJp.add(jp);
+        knownWords.push({ jp, romaji, en });
+      }
+    }
+
+    // Mode progression: watch → cloze → shadow → roleplay → done
+    const NEXT_MODE = { "scene-watch": "cloze", "scene-cloze": "shadow", "scene-shadow": "roleplay", "scene-roleplay": "done" };
+
+    const onComplete = (pass) => {
+      const scenes = { ...(data.scenes || {}) };
+      // Progress forward on pass; stay on current mode on fail (user gets another shot next session).
+      const currentMode = ex.type.replace("scene-", "");
+      const nextMode = pass ? NEXT_MODE[ex.type] : currentMode;
+      scenes[sc.id] = { mode: nextMode, lastSeen: Date.now() };
+      save({ ...data, scenes });
+      setScore(s => ({ ...s, c: s.c + (pass ? 1 : 0) }));
+      senpaiReact(pass);
+      advance(pass);
+    };
+
+    const commonProps = {
+      scene: sc,
+      knownWords: knownWords.slice(0, 6),
+      onComplete,
+      c, btn, card, isDesktop,
+    };
+
+    if (ex.type === "scene-watch")     return withSenpai(<SceneWatch    {...commonProps} />);
+    if (ex.type === "scene-cloze")     return withSenpai(<SceneCloze    {...commonProps} />);
+    if (ex.type === "scene-shadow")    return withSenpai(<SceneShadow   {...commonProps} />);
+    if (ex.type === "scene-roleplay")  return withSenpai(<SceneRolePlay {...commonProps} />);
   }
 
   // ═══ EXERCISE: IMMERSION (contextual listening) ═══
