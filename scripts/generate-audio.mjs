@@ -19,6 +19,9 @@
  *   scenes            — 2-voice scene conversations (no timestamps)
  *   scenes-timestamps — scenes + character-level alignment JSON for karaoke word sync
  *                       BATCH=1 for casual register only, BATCH=2 for polite+mixed only
+ *   grammar           — English one-liner + Japanese example per grammar pattern
+ *                       (for the GrammarInsight card "hear it" button). Writes
+ *                       public/audio/grammar/{id}-en.mp3 and {id}-ja.mp3
  *
  * Voice override: VOICE_JA=voiceId node scripts/generate-audio.mjs
  * Model override: MODEL=eleven_v3 node scripts/generate-audio.mjs
@@ -278,7 +281,7 @@ async function main() {
   }
 
   // Create output dirs
-  ['kana','story','story2','story3','phrase','phrase-slow','graded','scenes'].forEach(d =>
+  ['kana','story','story2','story3','phrase','phrase-slow','graded','scenes','grammar'].forEach(d =>
     mkdirSync(join(OUT, d), { recursive: true })
   );
 
@@ -385,6 +388,32 @@ async function main() {
         } else {
           await generate(text, voice, outPath, { isJapanese: true, preset });
         }
+      }
+    }
+  }
+
+  // ── GRAMMAR PATTERN EXPLAINERS ──
+  // For each pattern: one EN narration of the plain-English oneLiner + one JA
+  // narration of the speakExample. Powers the "hear it" button on GrammarInsight.
+  if (mode === 'grammar') {
+    console.log('\n\n📚 Grammar pattern explainers…');
+    const { GRAMMAR_PATTERNS } = await import(join(ROOT, 'src/data/grammarPatterns.js'));
+    console.log(`  → ${GRAMMAR_PATTERNS.length} patterns queued`);
+    for (const gp of GRAMMAR_PATTERNS) {
+      console.log(`\n  ${gp.id} — ${gp.shortTitle || gp.pattern}`);
+      // English explanation — Matilda voice, narrate preset (light storytelling lilt)
+      const enText = gp.oneLiner || gp.explanation || '';
+      if (enText) {
+        process.stdout.write('    EN: ');
+        await generate(enText, VOICE_EN, join(OUT, 'grammar', `${gp.id}-en.mp3`), { preset: 'narrate' });
+        console.log('');
+      }
+      // Japanese example — konoha voice, learn preset (clear, drill-friendly)
+      const jaText = gp.speakExample || '';
+      if (jaText) {
+        process.stdout.write('    JA: ');
+        await generate(jaText, VOICES_JA.konoha, join(OUT, 'grammar', `${gp.id}-ja.mp3`), { isJapanese: true, preset: 'learn' });
+        console.log('');
       }
     }
   }

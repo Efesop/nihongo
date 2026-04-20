@@ -24,6 +24,7 @@ import SceneCloze from "./scene/SceneCloze.jsx";
 import SceneShadow from "./scene/SceneShadow.jsx";
 import SceneRolePlay from "./scene/SceneRolePlay.jsx";
 import ShadowExercise from "./ShadowExercise.jsx";
+import GrammarInsight from "./grammar/GrammarInsight.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
@@ -187,6 +188,10 @@ export default function SmartSession({
   const convoShuffledRef = useRef({ blankIdx: -1, options: [] });
   const quizShuffledRef = useRef({ key: null, options: [] });
   const chainShuffledRef = useRef({ step: -1, choices: [] });
+  // Cache kana-type keyboard pool by phrase id so it doesn't re-shuffle on every
+  // keytap render. Without this, each state change re-picks random fillers and
+  // the keyboard reorders under the user's finger.
+  const kanaPoolRef = useRef({ key: null, pool: [] });
 
   // Typewriter effect for senpai speech
   const typeOut = (text, displayMs = 3000) => {
@@ -1777,25 +1782,30 @@ export default function SmartSession({
       return [];
     };
 
-    // Build pool: target chars + row-mates as distractors + some random extras
-    const poolSet = new Set(uniqueTarget);
-    // Add row-mates for each target char
-    uniqueTarget.forEach(ch => getRowMates(ch).forEach(m => poolSet.add(m)));
-    // Add special chars if needed
-    if (targetChars.includes("っ")) poolSet.add("っ");
-    if (targetChars.includes("ー")) poolSet.add("ー");
-    // Ensure minimum pool size (~30 chars) by adding random hiragana
+    // Build pool: target chars + row-mates as distractors + some random extras.
+    // Cache by phrase id via ref so re-renders (each key tap is a state update)
+    // don't re-shuffle the random fillers and reorder the keyboard.
     const allChars = allHiragana + allDakuten + allKatakana + allSpecial;
-    const shuffledAll = shuffle([...allChars]);
-    for (const ch of shuffledAll) {
-      if (poolSet.size >= 35) break;
-      poolSet.add(ch);
+    let charPool;
+    if (kanaPoolRef.current.key === p[0]) {
+      charPool = kanaPoolRef.current.pool;
+    } else {
+      const poolSet = new Set(uniqueTarget);
+      uniqueTarget.forEach(ch => getRowMates(ch).forEach(m => poolSet.add(m)));
+      if (targetChars.includes("っ")) poolSet.add("っ");
+      if (targetChars.includes("ー")) poolSet.add("ー");
+      const shuffledAll = shuffle([...allChars]);
+      for (const ch of shuffledAll) {
+        if (poolSet.size >= 35) break;
+        poolSet.add(ch);
+      }
+      // Sort by script order for clean layout
+      charPool = [...poolSet].sort((a, b) => {
+        const order = allHiragana + allSpecial + allDakuten + allKatakana;
+        return order.indexOf(a) - order.indexOf(b);
+      });
+      kanaPoolRef.current = { key: p[0], pool: charPool };
     }
-    // Sort by script order for clean layout
-    const charPool = [...poolSet].sort((a, b) => {
-      const order = allHiragana + allSpecial + allDakuten + allKatakana;
-      return order.indexOf(a) - order.indexOf(b);
-    });
 
     const handleSubmit = () => {
       if (kanaSubmitted || kanaTyped.length === 0) return;
@@ -2846,85 +2856,21 @@ export default function SmartSession({
     </>);
   }
 
-  // ═══ EXERCISE: GRAMMAR PATTERN ═══
+  // ═══ EXERCISE: GRAMMAR PATTERN — delegates to GrammarInsight subcomponent ═══
   if (ex.type === "grammar-pattern") {
-    const gp = ex.pattern;
-    const exPhraseIds = (gp.examples || []).filter(id => data.phr?.[id]);
-    const exPhrases = exPhraseIds.map(id => PHRASES.find(p => p[0] === id)).filter(Boolean).slice(0, 3);
-
-    // Quiz answered via storyAnswer (reuse state)
-    const quizAnswered = storyAnswer !== null;
-    // Pick first example phrase for quiz, find target word
-    const quizPhrase = exPhrases[0];
-    const quizSegs = quizPhrase ? PHRASE_BREAKDOWNS[quizPhrase[0]] : null;
-    // Find the segment that's part of the pattern (matches gp.pattern minus ~)
-    const patternKey = gp.pattern.replace(/~/g, "").replace(/\.\.\./g, "");
-    const targetSeg = quizSegs?.find(s => patternKey.includes(s[0]) || s[0].includes(patternKey.charAt(0)));
-    // Memo shuffled options by (phrase id + target seg) — prevents re-shuffle on re-render
-    // (senpai banter state changes would otherwise reorder options mid-answer).
-    const quizOptions = quizSegs && targetSeg ? (() => {
-      const key = `${quizPhrase[0]}:${targetSeg[0]}`;
-      if (quizShuffledRef.current.key !== key) {
-        const correct = `${targetSeg[2]} (${targetSeg[3]})`;
-        const otherSegs = quizSegs.filter(s => s !== targetSeg).map(s => `${s[2]} (${s[3]})`);
-        quizShuffledRef.current = { key, options: shuffle([correct, ...otherSegs.slice(0, 2)]) };
-      }
-      return quizShuffledRef.current.options;
-    })() : null;
-    const correctAnswer = targetSeg ? `${targetSeg[2]} (${targetSeg[3]})` : null;
-
     return withSenpai(<>
       {typeLabel}
-      <div style={{ ...card, padding: "24px 20px", marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 12 }}>
-          <div style={{ fontSize: 40, fontWeight: 800, color: c.a, fontFamily: fontJa }}>{gp.pattern}</div>
-          <div style={{ fontSize: T.lg, color: c.tx, fontWeight: 600 }}>{gp.meaning}</div>
-        </div>
-        <div style={{ fontSize: T.sm, color: c.tx, lineHeight: 1.7, marginBottom: 16 }}>{gp.explanation}</div>
-        {exPhrases.length > 0 && <>
-          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, marginBottom: 8 }}>You already know these:</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {exPhrases.map(p => <div key={p[0]} style={{ padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b }}>
-              <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
-                <div>
-                  <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro }}>{p[2]}</div>
-                  <div style={{ fontSize: T.base, color: c.tx, fontWeight: 500 }}>{p[3]}</div>
-                </div>
-                <button className="ts-icon-btn" onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
-                  style={{ ...btn, padding: "6px 12px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></button>
-              </div>
-            </div>)}
-          </div>
-        </>}
-      </div>
-
-      {/* Comprehension quiz — active not passive */}
-      {quizPhrase && targetSeg && quizOptions && <div style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: "3px solid " + c.go }}>
-        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
-        <div style={{ fontSize: T.base, color: c.tx, marginBottom: 12 }}>
-          In <span style={{ fontWeight: 700 }}>{quizPhrase[1]}</span>, what role does <span style={{ fontWeight: 700, color: c.a }}>{targetSeg[0]}</span> play?
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {quizOptions.map((opt, i) => {
-            const isCorrect = opt === correctAnswer;
-            const isPicked = storyAnswer === i;
-            let bg = "transparent", border = c.b, col = c.tx;
-            if (quizAnswered && isCorrect) { bg = c.gs; border = c.g + "55"; col = c.g; }
-            if (quizAnswered && isPicked && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
-            return <button key={i} onClick={() => {
-              if (quizAnswered) return;
-              setStoryAnswer(i);
-              setScore(s => isCorrect ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            }} style={{ ...btn, padding: "10px 14px", borderRadius: 8, border: "1px solid " + border, background: bg, color: col, fontSize: T.sm, textAlign: "left" }}>{opt}</button>;
-          })}
-        </div>
-      </div>}
-
-      <button onClick={() => { setStoryAnswer(null); advance(true); }}
-        style={{ ...btn, width: "100%", padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>
-        {quizPhrase && targetSeg && !quizAnswered ? "Skip quiz — Next →" : "Got it — Next →"}
-      </button>
+      <GrammarInsight
+        gp={ex.pattern}
+        c={c}
+        btn={btn}
+        isDesktop={isDesktop}
+        PHRASES={PHRASES}
+        data={data}
+        card={card}
+        onAdvance={(ok) => { setStoryAnswer(null); advance(ok); }}
+        setScore={setScore}
+      />
     </>);
   }
 
