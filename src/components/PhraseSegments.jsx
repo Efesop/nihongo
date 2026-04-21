@@ -23,17 +23,45 @@ const GRAMMAR_COLORS = {
  *   - `phraseId` — looks up breakdown from PHRASE_BREAKDOWNS
  *   - `breakdown` — raw breakdown array [[jp, romaji, meaning, type], ...]
  *                   (used for scene lines, dynamic content)
+ *
+ * `chunk` prop (bool): when true, renders the full phrase as a single
+ * unsegmented chunk with no interactions — plus a small "break it down" toggle
+ * to opt-in. This supports Lewis's lexical-approach: above box 3, showing
+ * auto-parsed segments becomes a retrieval crutch that slows native-like
+ * chunked storage. Frozen expressions (g1-g10 greetings, etc.) should chunk
+ * regardless of box.
  */
-export default function PhraseSegments({ phraseId, breakdown: rawBreakdown, c, fontSize = 24, fontWeight = 700 }) {
+export default function PhraseSegments({ phraseId, breakdown: rawBreakdown, c, fontSize = 24, fontWeight = 700, chunk = false }) {
   const [activeSegment, setActiveSegment] = useState(null);
+  const [chunkView, setChunkView] = useState(chunk);
   const breakdown = rawBreakdown || (phraseId ? PHRASE_BREAKDOWNS[phraseId] : null);
 
   if (!breakdown) return null;
 
+  // Chunk mode — render concatenated phrase as one unit.
+  if (chunkView) {
+    const fullText = breakdown.map(seg => seg[0]).join("");
+    return <div style={{ position: "relative" }}>
+      <div style={{ fontSize, fontWeight, fontFamily: fontJa, lineHeight: 1.4, padding: "2px 6px" }}>{fullText}</div>
+      <button onClick={() => setChunkView(false)}
+        style={{
+          marginTop: 6, padding: "3px 10px", borderRadius: 6,
+          background: "transparent", border: "1px solid " + ((c && c.b) || "#444"),
+          color: (c && c.m) || "#888", fontSize: 10, fontFamily: "monospace",
+          cursor: "pointer", letterSpacing: ".03em",
+        }}>
+        break it down
+      </button>
+    </div>;
+  }
+
   return <div style={{ position: "relative" }}>
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "baseline", lineHeight: 1.4 }}>
       {breakdown.map((seg, i) => {
-        const [jp, rom, meaning, type] = seg;
+        // Fifth element (optional): accent pattern, array of 0/1 per mora.
+        // 1 = high pitch. Length matches kana character count (mora count).
+        // Nullable — old breakdowns work unchanged.
+        const [jp, rom, meaning, type, accent] = seg;
         const isActive = activeSegment === i;
         const gramCol = GRAMMAR_COLORS[type] || c.m;
 
@@ -52,7 +80,21 @@ export default function PhraseSegments({ phraseId, breakdown: rawBreakdown, c, f
             position: "relative",
             zIndex: isActive ? 20 : 10,
           }}>
-          {jp}
+          {accent && Array.isArray(accent) && accent.length === [...jp].length
+            ? <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", lineHeight: 1 }}>
+                <span style={{ display: "flex", gap: 1, marginBottom: 1 }}>
+                  {[...jp].map((_, idx) => (
+                    <span key={idx} style={{
+                      width: fontSize * 0.4, height: 3,
+                      borderRadius: 2,
+                      background: accent[idx] === 1 ? gramCol : "transparent",
+                      opacity: accent[idx] === 1 ? 0.75 : 0.15,
+                    }}/>
+                  ))}
+                </span>
+                <span>{jp}</span>
+              </span>
+            : jp}
           {isActive && <div style={{
             position: "absolute", bottom: "100%", left: "50%", transform: "translateX(-50%)",
             marginBottom: 4, padding: "8px 12px", borderRadius: 8,

@@ -37,10 +37,40 @@ export default function Profile({
         <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
 
         <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Learn settings</div>
+        {/* Tourist mode — auto when trip < 30 days, tri-state override */}
+        <div style={{padding:"10px 12px",background:c.s2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:600}}>✈️ Trip mode</div>
+            <div style={{fontSize:11,color:c.m,marginTop:2}}>Only learn survival phrases until trip-ready. Auto when trip date &lt; 30 days.</div>
+          </div>
+          <select value={data.settings?.touristMode===true?"on":data.settings?.touristMode===false?"off":"auto"}
+            onChange={e=>{
+              const v=e.target.value;
+              const nv=v==="on"?true:v==="off"?false:null;
+              save({settings:{...data.settings,touristMode:nv}});
+            }}
+            style={{...btn,padding:"6px 10px",borderRadius:8,background:c.s,color:c.tx,fontSize:12,fontWeight:600,border:"1px solid "+c.b,cursor:"pointer"}}>
+            <option value="auto">Auto</option>
+            <option value="on">On</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+        {/* Silent mode — soft: still queues speaking cards, auto-converts them to tap-through */}
+        <div style={{padding:"10px 12px",background:c.s2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div>
+            <div style={{fontSize:13,fontWeight:600}}>🔇 Silent mode</div>
+            <div style={{fontSize:11,color:c.m,marginTop:2}}>Speaking exercises still surface but skip mic — tap to confirm</div>
+          </div>
+          <button onClick={()=>save({settings:{...data.settings,silentMode:!data.settings?.silentMode}})}
+            style={{...btn,padding:"6px 14px",borderRadius:20,background:data.settings?.silentMode?c.a:c.s,color:data.settings?.silentMode?"#fff":c.m,fontSize:12,fontWeight:600,border:"1px solid "+c.b}}>
+            {data.settings?.silentMode?"On":"Off"}
+          </button>
+        </div>
+        {/* Shadow disabled — hard: removes shadow cards from rotation entirely */}
         <div style={{padding:"10px 12px",background:c.s2,borderRadius:8,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div>
             <div style={{fontSize:13,fontWeight:600}}>🎤 Shadow mode (speaking)</div>
-            <div style={{fontSize:11,color:c.m,marginTop:2}}>Turn off when in public or can't speak aloud</div>
+            <div style={{fontSize:11,color:c.m,marginTop:2}}>Turn off to remove mic exercises from sessions entirely</div>
           </div>
           <button onClick={()=>save({settings:{...data.settings,shadowDisabled:!data.settings?.shadowDisabled}})}
             style={{...btn,padding:"6px 14px",borderRadius:20,background:data.settings?.shadowDisabled?c.s:c.a,color:data.settings?.shadowDisabled?c.m:"#fff",fontSize:12,fontWeight:600,border:"1px solid "+c.b}}>

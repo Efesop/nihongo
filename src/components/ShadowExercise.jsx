@@ -36,6 +36,7 @@ export default function ShadowExercise({
   onSlowPlay,
   children,
   compact = false,
+  silentMode = false,  // when true: hide mic UI entirely, show only tap-through. Same no-penalty path as manual skip.
   c,
   btn,
   card,
@@ -116,13 +117,20 @@ export default function ShadowExercise({
   const finish = () => { onComplete?.(result?.correct || false, result?.graded || false); };
   const skipAsCorrect = () => { onComplete?.(true, true); };
 
+  // Silent mode: user set `🔇 Silent mode` on Home/Profile because they can't
+  // talk right now (public space, on a call, late night, etc.). We route every
+  // speaking card through the same no-penalty tap-through as the unsupported-
+  // browser path. Same as tapping `🔇 can't talk right now`.
+  const forceSkipUI = !supported || silentMode;
+
   return <>
     {children}
 
-    {/* Unsupported browser */}
-    {!supported && <div style={{ ...card, padding: "16px 20px", textAlign: "center" }}>
+    {/* Unsupported browser OR silent mode */}
+    {forceSkipUI && <div style={{ ...card, padding: "16px 20px", textAlign: "center" }}>
       <div style={{ fontSize: T.sm, color: c.m, marginBottom: 12 }}>
-        {isSafari ? "Safari doesn't support Japanese speech recognition. Open in Chrome for shadow mode, or skip."
+        {silentMode ? "🔇 Silent mode on — tap to confirm you said it in your head."
+          : isSafari ? "Safari doesn't support Japanese speech recognition. Open in Chrome for shadow mode, or skip."
           : "Speech recognition not supported. Use Chrome for shadow mode, or skip."}
       </div>
       <div style={{ display: "flex", gap: 8 }}>
@@ -138,7 +146,7 @@ export default function ShadowExercise({
     </div>}
 
     {/* Idle — tap to start */}
-    {supported && state === "idle" && !result && <>
+    {supported && !silentMode && state === "idle" && !result && <>
       <button onClick={startListening}
         style={{
           ...btn, width: "100%",
@@ -152,7 +160,7 @@ export default function ShadowExercise({
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button onClick={skipAsCorrect}
           style={{ ...btn, flex: 1, padding: "10px 16px", borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm }}>
-          Skip (I said it)
+          🔇 can't talk right now
         </button>
         {onDisable && <button onClick={onDisable}
           style={{ ...btn, padding: "10px 14px", borderRadius: 10, background: "transparent", border: "1px solid " + c.b + "44", color: c.m, fontSize: T.sm }}>

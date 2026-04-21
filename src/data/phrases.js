@@ -527,6 +527,15 @@ export const PHRASES = [
 ["cv121","アメリカ","a-me-ri-ka","America","convo","Proper noun"],
 ];
 
+// Phrases that should ALWAYS render as an unsegmented chunk (Lewis lexical
+// approach — these are formulaic utterances native speakers store as a single
+// unit, not rule-assembled from parts). Grammar breakdowns still exist for
+// teaching but the default presentation above box 0 is the whole chunk.
+export const FROZEN_EXPRESSIONS = new Set([
+  "g1","g2","g3","g4","g5","g6","g7","g8","g9","g10", // greetings / thank-yous
+  "f5","f6",                                          // いただきます, ごちそうさまでした
+]);
+
 export const CATS={greet:"Greetings",food:"Restaurants",train:"Transport",hotel:"Hotels",shop:"Shopping",dir:"Directions",sos:"Emergencies",numbers:"Numbers",time:"Time & Days",daily:"Daily Life",describe:"Describing",foodItem:"Food & Drink",numExt:"More Numbers",datetime:"Dates & Times",feel:"Feelings",verbs:"Verbs",body:"Body",family:"Family",weather:"Weather",complications:"Complications",convo:"Conversation Glue"};
 export const CAT_ICONS={greet:"👋",food:"🍜",train:"🚃",hotel:"🏨",shop:"🏪",dir:"🗺️",sos:"🆘",numbers:"🔢",time:"⏰",daily:"🌸",describe:"🎨",foodItem:"🍱",numExt:"🧮",datetime:"📅",feel:"💭",verbs:"🏃",body:"🧍",family:"👨‍👩‍👧",weather:"🌦️",complications:"⚠️",convo:"💬"};
 export const CAT_COLORS={greet:"#5a9e6f",food:"#c45d4c",train:"#5a8ec4",hotel:"#8b6ec4",shop:"#c45d8b",dir:"#5ac4a0",sos:"#c44444",numbers:"#c49a5a",time:"#5a7ec4",daily:"#c45a9e",describe:"#6ec45a",foodItem:"#d07a3e",numExt:"#9a8659",datetime:"#4a88b8",feel:"#b85ea8",verbs:"#5a9ea9",body:"#a96e5a",family:"#b89a5a",weather:"#7ba9c4",complications:"#b55050",convo:"#6b8f9a"};

@@ -22,6 +22,9 @@
  *   grammar           — English one-liner + Japanese example per grammar pattern
  *                       (for the GrammarInsight card "hear it" button). Writes
  *                       public/audio/grammar/{id}-en.mp3 and {id}-ja.mp3
+ *   pitch             — atamadaka / heiban minimal-pair samples for pitch accent
+ *                       intro + discrimination drill. Writes
+ *                       public/audio/pitch/{pairId}-{pattern}.mp3
  *
  * Voice override: VOICE_JA=voiceId node scripts/generate-audio.mjs
  * Model override: MODEL=eleven_v3 node scripts/generate-audio.mjs
@@ -281,7 +284,7 @@ async function main() {
   }
 
   // Create output dirs
-  ['kana','story','story2','story3','phrase','phrase-slow','graded','scenes','grammar'].forEach(d =>
+  ['kana','story','story2','story3','phrase','phrase-slow','graded','scenes','grammar','pitch'].forEach(d =>
     mkdirSync(join(OUT, d), { recursive: true })
   );
 
@@ -390,6 +393,30 @@ async function main() {
         }
       }
     }
+  }
+
+  // ── PITCH ACCENT MINIMAL PAIRS ──
+  // ElevenLabs doesn't expose direct pitch control, but the Japanese voice
+  // (konoha) produces a noticeably different contour when you bracket the
+  // high-pitched mora with capitalised romaji hints or include a subtle
+  // pause marker. Results aren't perfect — flag to hand-review.
+  if (mode === 'pitch') {
+    console.log('\n\n🎵 Pitch accent minimal pairs…');
+    const { PITCH_PAIRS } = await import(join(ROOT, 'src/data/pitchAccentIntro.js'));
+    for (const pair of PITCH_PAIRS) {
+      console.log(`\n  ${pair.id} (${pair.kana})`);
+      for (const m of pair.meanings) {
+        // Feed the kana with a context word to elicit the correct pattern from
+        // the TTS. E.g. "箸を" (chopsticks) vs "橋を" (bridge) — the kanji
+        // disambiguates for the model without affecting the final audio much.
+        const promptText = m.word;
+        const outPath = join(OUT, 'pitch', `${pair.id}-${m.pattern}.mp3`);
+        process.stdout.write(`    ${m.pattern}: `);
+        await generate(promptText, VOICES_JA.konoha, outPath, { isJapanese: true, preset: 'learn', force: true });
+        console.log(` ${m.word} (${m.en})`);
+      }
+    }
+    console.log('\n⚠  Review output manually — TTS pitch control is approximate. Re-run after any data tweaks.');
   }
 
   // ── GRAMMAR PATTERN EXPLAINERS ──

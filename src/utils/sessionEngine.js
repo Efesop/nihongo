@@ -7,6 +7,7 @@ import { CONFUSED_PAIRS } from "../data/confusedPairs.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
 import { getUnlockedPatterns } from "../data/grammarPatterns.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
+import { PHRASE_CLUSTERS, clusterOf, phrasesInCluster } from "../data/phraseClusters.js";
 import { KEY_WORDS } from "../data/keyWords.js";
 import { getUnlockedTemplates, generateAssemblyChallenge } from "../data/patternAssembly.js";
 import { GRADED_STORIES } from "../data/gradedStories.js";
@@ -45,6 +46,20 @@ function smartPhraseOrder(unseen, phrData) {
   const knownPhraseTexts = PHRASES.filter(p => phrData[p[0]]).map(p => p[1]);
   const knownBlocks = BUILDING_BLOCKS.filter(b => knownPhraseTexts.some(t => t.includes(b)));
 
+  // Cluster bias: phrases sharing a cluster with recently-learned items (<3d)
+  // get a score bonus. Chains semantically-related intros (Schmidt noticing +
+  // Lewis lexical approach) — if you just learned `やすい`, here's `たかい`.
+  const THREE_DAYS = 3 * 86400000;
+  const now = Date.now();
+  const recentClusters = new Set();
+  for (const id in phrData) {
+    const d = phrData[id];
+    if (!d || !d.lastReview) continue;
+    if ((now - d.lastReview) > THREE_DAYS) continue;
+    const cl = clusterOf(id);
+    if (cl) recentClusters.add(cl);
+  }
+
   // Score each unseen phrase
   const scored = unseen.map(p => {
     let score = 0;
@@ -52,6 +67,9 @@ function smartPhraseOrder(unseen, phrData) {
     if (p[6]) score += 100;
     // Bonus for each known building block in this phrase
     knownBlocks.forEach(b => { if (p[1].includes(b)) score += 15; });
+    // Semantic cluster bonus — boost phrases whose cluster matches recent learning
+    const cl = clusterOf(p[0]);
+    if (cl && recentClusters.has(cl)) score += 25;
     return { p, score, cat: p[4] };
   });
 
@@ -72,6 +90,68 @@ function smartPhraseOrder(unseen, phrData) {
     if (lastCats.length > 2) lastCats.shift();
   }
   return result;
+}
+
+/**
+ * Tourist-core 150 — the survival subset for users with an imminent trip.
+ * Deterministic, rule-based: mission-critical OR category in the travel set,
+ * minus clusters that add little trip-day value (deep convo glue, cognition
+ * verbs, family, weather). ~150 phrases. Run-time decision — no data column.
+ *
+ * Intent: when `settings.touristMode` is active AND user hasn't yet mastered
+ * the tourist-core set, `smartPhraseOrder` restricts new introductions to
+ * this set. Phrases not in the set still surface for review if already learned.
+ */
+const TOURIST_CATEGORIES = new Set([
+  "greet", "food", "foodItem", "train", "hotel", "shop", "dir", "sos",
+  "numbers", "time", "datetime", "complications",
+]);
+const TOURIST_EXCLUDED_CLUSTERS = new Set([
+  "dt-period", "dt-other",
+  "compl-other",
+]);
+export function isTouristCore(p) {
+  if (p[6] === true) return true; // all mission-critical → core
+  if (!TOURIST_CATEGORIES.has(p[4])) return false;
+  const cl = clusterOf(p[0]);
+  if (cl && TOURIST_EXCLUDED_CLUSTERS.has(cl)) return false;
+  return true;
+}
+
+/**
+ * Decide whether tourist mode should be active right now.
+ * Explicit user override (true/false) wins. Otherwise auto-enable when trip is
+ * within 30 days — matches onboarding-driven use case.
+ */
+export function touristModeActive(data) {
+  const explicit = data?.settings?.touristMode;
+  if (explicit === true) return true;
+  if (explicit === false) return false;
+  const tripDate = data?.onboarding?.tripDate;
+  if (!tripDate) return false;
+  const days = Math.ceil((new Date(tripDate) - Date.now()) / 86400000);
+  return days > 0 && days <= 30;
+}
+
+/**
+ * Pick the most stale mission-critical phrase (p[6] === true) for overlearning.
+ * Returns a phrase row whose lastReview is > 3 days ago, or null if none.
+ * Skips items already in `usedPhrases` and items the user hasn't touched yet
+ * (MC overlearning only applies once a phrase has been learned).
+ */
+function pickStaleMC(phrData, usedPhrases, now) {
+  const THREE_DAYS = 3 * 86400000;
+  const candidates = PHRASES
+    .filter(p => p[6] === true)                                 // mission-critical only
+    .filter(p => !usedPhrases.has(p[0]))                        // not already queued
+    .filter(p => {
+      const d = phrData[p[0]];
+      return d && d.lastReview && (now - d.lastReview) > THREE_DAYS;
+    });
+  if (candidates.length === 0) return null;
+  // Pick the single stalest (oldest lastReview)
+  candidates.sort((a, b) => (phrData[a[0]].lastReview || 0) - (phrData[b[0]].lastReview || 0));
+  return candidates[0];
 }
 
 /**
@@ -183,7 +263,19 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const blockNewPhrases = shakyPhrases >= 10;
   // Even when consolidation gate is active, still allow unseen mission-critical phrases —
   // survival basics shouldn't be blocked by non-critical backlog
-  const unseenAllPhrases = PHRASES.filter(p => !phrData[p[0]]);
+  let unseenAllPhrases = PHRASES.filter(p => !phrData[p[0]]);
+
+  // Tourist-core pre-trip filter: when trip is within 30 days (or user explicitly
+  // opts in), restrict NEW phrase introductions to the survival-150 set until
+  // the learner has ≥ 120 tourist-core phrases at box ≥ 3. Non-core phrases
+  // already known still review normally.
+  if (touristModeActive(data)) {
+    const coreMasteredCount = PHRASES.filter(p => isTouristCore(p) && (phrData[p[0]]?.box || 0) >= 3).length;
+    if (coreMasteredCount < 120) {
+      unseenAllPhrases = unseenAllPhrases.filter(isTouristCore);
+    }
+  }
+
   const unseenPhrases = blockNewPhrases
     ? smartPhraseOrder(unseenAllPhrases.filter(p => p[6]), phrData)
     : smartPhraseOrder(unseenAllPhrases, phrData);
@@ -491,41 +583,50 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (payload) specialPool.push({ type: "bucket-sort", payload });
   }
 
-  // Scene study — 2-voice conversational scenes. 4 modes per scene, user progresses through them.
-  // Max 1 scene per session (longer than drill cards).
-  if (phrasesLearned >= 3 && Math.random() < 0.4) {
+  // Scene study — 2-voice conversational scenes. 4 modes per scene, user progresses
+  // through them (watch → cloze → shadow → roleplay → done).
+  //
+  // OLD: pushed into specialPool competing for 3-4 slots against story (45%),
+  // conversation (65%), word-quiz, phrase-build, pattern-assembly, etc. Result:
+  // scenes surfaced ~1 per 25 sessions even for engaged users.
+  //
+  // NEW: reserved as a *dedicated* slot outside specialPool. Probability scales
+  // with how much scene work is pending: 85% if user has in-progress scenes
+  // OR ≥5 unstarted eligible; 50% otherwise. Prefer in-progress first so users
+  // finish what they started before breaking ground on new scenes.
+  let reservedSceneCard = null;
+  if (phrasesLearned >= 3) {
     const sceneProgress = data.scenes || {};
     const eligible = SCENE_STUDIES.filter(sc => {
       const prereqMet = sc.requires.every(id => (phrData[id]?.box || 0) >= 1);
       if (!prereqMet) return false;
       const state = sceneProgress[sc.id];
-      // Not started, or not done yet
       return !state || state.mode !== "done";
     });
-    if (eligible.length > 0) {
-      // Each scene has a 4-stage progression: watch → cloze → shadow → roleplay → done.
-      // Prefer scenes that haven't been started yet (user discovers new content),
-      // then scenes mid-progression (finish what you started).
-      const unstarted = eligible.filter(sc => !(sceneProgress[sc.id]?.mode));
-      const inProgress = eligible.filter(sc => sceneProgress[sc.id]?.mode && sceneProgress[sc.id].mode !== "done");
+    const inProgress = eligible.filter(sc => sceneProgress[sc.id]?.mode && sceneProgress[sc.id].mode !== "done");
+    const unstarted = eligible.filter(sc => !sceneProgress[sc.id]?.mode);
 
-      // 60/40 split favoring new scenes when both available, else whichever exists
-      let chosen = null;
-      if (unstarted.length && inProgress.length) {
-        chosen = (Math.random() < 0.6 ? unstarted : inProgress)[Math.floor(Math.random() * (Math.random() < 0.6 ? unstarted.length : inProgress.length))];
-        // (simpler: just pick from the chosen pool cleanly)
-        const pool = Math.random() < 0.6 ? unstarted : inProgress;
-        chosen = pool[Math.floor(Math.random() * pool.length)];
-      } else if (unstarted.length) {
-        chosen = unstarted[Math.floor(Math.random() * unstarted.length)];
-      } else if (inProgress.length) {
-        chosen = inProgress[Math.floor(Math.random() * inProgress.length)];
-      }
+    const pendingHigh = inProgress.length > 0 || unstarted.length >= 5;
+    const sceneGate = pendingHigh ? 0.85 : 0.5;
 
+    let sceneReason = null;
+    if (eligible.length === 0) sceneReason = "no-eligible";
+    else if (Math.random() > sceneGate) sceneReason = "gated";
+    else {
+      // Prefer in-progress (Zeigarnik: finishing what we started beats starting new)
+      const pool = inProgress.length > 0 ? inProgress : unstarted;
+      const chosen = pool[Math.floor(Math.random() * pool.length)];
       if (chosen) {
         const mode = sceneProgress[chosen.id]?.mode || "watch";
-        specialPool.push({ type: `scene-${mode}`, scene: chosen });
+        reservedSceneCard = { type: `scene-${mode}`, scene: chosen };
+        sceneReason = `picked-${chosen.id}-${mode}`;
       }
+    }
+    if (typeof window !== "undefined") {
+      window.__sessionDebug = window.__sessionDebug || {};
+      window.__sessionDebug.sceneReason = sceneReason;
+      window.__sessionDebug.scenesInProgress = inProgress.length;
+      window.__sessionDebug.scenesUnstarted = unstarted.length;
     }
   }
 
@@ -543,6 +644,52 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (knownPhraseData.length >= 5) {
       specialPool.push({ type: "phrase-dj", knownPhrases: knownPhraseData });
     }
+  }
+
+  // Pitch accent — 1-shot intro card when learner has ≥ 10 phrases and hasn't
+  // seen it. Unlocks pitch-pair discrimination exercise (~20% fire rate after).
+  if (phrasesLearned >= 10 && !data.pitchIntroSeen) {
+    specialPool.push({ type: "pitch-intro" });
+  } else if (data.pitchIntroSeen && phrasesLearned >= 10 && Math.random() < 0.2) {
+    specialPool.push({ type: "pitch-pair" });
+  }
+
+  // Cluster contrast — minimal-pair discrimination drill. Fires when the
+  // learner has ≥ 3 phrases known (box ≥ 2) in the same cluster. Picks one as
+  // the target + one cluster-mate as confusable distractor + 2 far distractors.
+  // Kornell & Bjork 2008 — interleaved contrast ~43% better than blocked.
+  if (phrasesLearned >= 8 && Math.random() < 0.25) {
+    // Bucket known-box-2+ phrases by cluster
+    const byCluster = {};
+    for (const p of PHRASES) {
+      const d = phrData[p[0]];
+      if (!d || (d.box || 0) < 2) continue;
+      const cl = clusterOf(p[0]);
+      if (!cl) continue;
+      (byCluster[cl] = byCluster[cl] || []).push(p);
+    }
+    const eligible = Object.entries(byCluster).filter(([, arr]) => arr.length >= 3);
+    if (eligible.length > 0) {
+      const [, mates] = eligible[Math.floor(Math.random() * eligible.length)];
+      const shuffled = shuffle([...mates]);
+      const target = shuffled[0];
+      const clusterMates = shuffled.slice(1);
+      const farPool = PHRASES.filter(p => clusterOf(p[0]) !== clusterOf(target[0]));
+      specialPool.push({ type: "cluster-contrast", target, clusterMates, farPool });
+    }
+  }
+
+  // Speed Round — Nation's fluency development strand. Phrases already at
+  // box ≥ 4 AND skill.production ≥ 2 OR skill.listen ≥ 2 practised under time
+  // pressure to build automaticity. No SRS penalty — purely a fluency signal.
+  const speedPool = PHRASES.filter(p => {
+    const d = phrData[p[0]];
+    if (!d || (d.box || 0) < 4) return false;
+    const s = skills[p[0]] || {};
+    return (s.production || 0) >= 2 || (s.listen || 0) >= 2;
+  });
+  if (speedPool.length >= 10 && Math.random() < 0.4) {
+    specialPool.push({ type: "speed-round", pool: speedPool });
   }
 
   // Mistake Memory — AI error analysis
@@ -592,8 +739,11 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const reservedSpecials = shuffle(specialPool).slice(0, maxSpecials);
 
   // ═══ STEP 2: BUILD REVIEW + NEW ITEM QUEUE ═══
-  // Fill the remaining slots with SRS reviews and new items
-  const reviewSlots = sessionLength - reservedSpecials.length;
+  // Fill the remaining slots with SRS reviews and new items.
+  // Scene card (if reserved) takes its own slot outside specialPool — ensures
+  // listening practice actually surfaces. Subtract 1 from reviewSlots.
+  const sceneSlots = reservedSceneCard ? 1 : 0;
+  const reviewSlots = sessionLength - reservedSpecials.length - sceneSlots;
 
   // Priority order within reviews:
   // 1. Help-requested items (user explicitly asked for help)
@@ -613,6 +763,14 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // Frequent errors
   shuffle(frequentErrorKana).slice(0, 1).forEach(ch => addKana(ch, queue));
   shuffle(frequentErrorPhrases).slice(0, 1).forEach(p => addPhrase(p, queue));
+
+  // Mission-critical overlearning (Bahrick & Phelps 1987, 1993): MC phrases
+  // never graduate. Once per session, pick one MC phrase not reviewed in 3+ days
+  // and inject it regardless of FSRS due status. These are survival phrases the
+  // user cannot forget in Japan. Caps at 1 per session — overlearning gains
+  // plateau past first surface, and hogging the queue with MC hurts variety.
+  const staleMC = pickStaleMC(phrData, usedPhrases, now);
+  if (staleMC) addPhrase(staleMC, queue);
 
   // Easy win — 1 high-box due item for confidence
   shuffle(dueKana.filter(ch => (kanaData[ch]?.box || 0) >= 3)).slice(0, 1).forEach(ch => addKana(ch, queue));
@@ -654,6 +812,16 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     const aMc = a[6] && (phrData[a[0]]?.box || 0) < 3 ? 1 : 0;
     const bMc = b[6] && (phrData[b[0]]?.box || 0) < 3 ? 1 : 0;
     if (aMc !== bMc) return bMc - aMc; // then mc
+    // Pushed-output bias (Swain 1995): for items that will likely surface as
+    // production-mode exercises (box ≥ 2), prefer the one whose last production
+    // attempt was longest ago. Items never produced sort first (undefined → -Infinity).
+    const aBox = phrData[a[0]]?.box || 0;
+    const bBox = phrData[b[0]]?.box || 0;
+    if (aBox >= 2 && bBox >= 2) {
+      const aTs = phrData[a[0]]?.lastProducedTs ?? 0;
+      const bTs = phrData[b[0]]?.lastProducedTs ?? 0;
+      if (aTs !== bTs) return aTs - bTs; // oldest production first
+    }
     return Math.random() - 0.5;
   });
   // Force-include adaptive priority phrases even when not in due (struggling needs work)
@@ -814,6 +982,13 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       interleaved.splice(pos, 0, shuffledSpecials[i]);
     }
   }
+  // Scene gets its own dedicated slot, mid-to-late in the session so user has
+  // warmed up on reviews first but still has energy to focus on conversational
+  // listening. Placed ~65% through.
+  if (reservedSceneCard) {
+    const pos = Math.max(1, Math.floor(interleaved.length * 0.65));
+    interleaved.splice(pos, 0, reservedSceneCard);
+  }
 
   // Safety filter: remove any exercise whose item is far from due
   const safeQueue = interleaved.filter(item => {
@@ -821,6 +996,7 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     if (t.includes("learn") || t.includes("try-first") || t === "grammar-pattern" ||
         t === "kana-pair" || t === "phrase-pair" || t === "phrase-build" || t === "word-quiz" ||
         t === "pattern-assembly" || t === "story" || t === "graded-reader" || t === "phrase-chain" || t === "phrase-kana-type" || t === "phrase-shadow" || t === "phrase-dj" || t === "mistake-memory" || t === "immersion" || t === "number-match" || t === "branch-convo" || t === "conversation" ||
+        t.startsWith("scene-") || t === "speed-round" || t === "cluster-contrast" || t === "pitch-pair" || t === "pitch-intro" ||
         t === "leech-review") return true;
     if (t.startsWith("phrase-") && item.item && item.item[0]) {
       const d = phrData[item.item[0]];

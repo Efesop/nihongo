@@ -15,7 +15,7 @@ import { M, H_GROUPS, K_GROUPS, ROMAJI, YOON_PARTS, DAKUTEN_BASE } from "./data/
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "./data/phrases.js";
 import { THEMES } from "./data/themes.js";
 import { SRS_DAYS, KEY, font, mono, RP_SCENARIOS } from "./data/constants.js";
-import { fsrsUpdate, stabilityToBox } from "./utils/fsrs.js";
+import { fsrsUpdate, stabilityToBox, capBoxBySkills } from "./utils/fsrs.js";
 
 // Utils
 import { store, syncLoad, syncSave, defaultD, migrate } from "./utils/storage.js";
@@ -353,24 +353,71 @@ function AuthedApp({ user, getToken }){
     return log;
   };
 
+  // Map exercise types to skill dimensions. Used by reviewPhr/updateKanaSRS to
+  // credit the right slot in data.skills[id], and by capBoxBySkills to gate
+  // box advancement. Missing keys default to "visual" — safer than crediting
+  // production for unknown types, which would inflate mastery falsely.
+  const SKILL_MAP={
+    // Kana
+    "kana-visual":"visual",
+    "kana-listen":"listen",
+    "kana-reverse":"production",
+    "kana-pair":"visual",
+    // Phrase MCQ / typed
+    "phrase-scenario":"visual",
+    "phrase-listen":"listen",
+    "phrase-production":"production",
+    "phrase-reverse":"production",
+    "phrase-build":"production",
+    "phrase-pair":"visual",
+    "phrase-kana-type":"production",
+    "phrase-chain":"listen",
+    "phrase-dj":"production",
+    "pattern-assembly":"production",
+    "phrase-shadow":"production",
+    "number-match":"listen",
+    // Scene study (embedded exercises)
+    "scene-watch":"listen",
+    "scene-cloze":"listen",
+    "scene-shadow":"production",
+    "scene-roleplay":"production",
+    // New exercise types (Phase 2-4)
+    "speed-round-listen":"listen",
+    "speed-round-produce":"production",
+    "cluster-contrast":"visual",
+    "pitch-pair":"listen",
+  };
+
   const reviewPhr=(id,correct,exerciseType,responseMs)=>{
     setD(prev=>{
       const cur=prev.phr[id]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
       const result=fsrsUpdate(fsrsData,correct,responseMs,exerciseType);
-      const newBox=stabilityToBox(result.stability);
+      const rawBox=stabilityToBox(result.stability);
       const errors=prev.errors||{};
       if(!correct){errors[id]=(errors[id]||0)+1;}
       else if(errors[id]>0){errors[id]=Math.max(0,errors[id]-2);} // Correct answers heal leech status (2x faster)
       // Multi-dimensional skill tracking
       const skills={...(prev.skills||{})};
       const skill=SKILL_MAP[exerciseType]||"visual";
-      const curSkill=skills[id]||{visual:0,listen:0,production:0};
+      const curSkill={...(skills[id]||{visual:0,listen:0,production:0})};
       curSkill[skill]=correct?Math.min((curSkill[skill]||0)+1,5):Math.max((curSkill[skill]||0)-1,0);
       skills[id]=curSkill;
+      // Anti-illusion-of-fluency: cap box by skill breadth, not just FSRS stability.
+      const newBox=capBoxBySkills(rawBox,curSkill);
+      // Pushed-output: track last production-mode retrieval for stale-bias selection
+      const isProduction=skill==="production";
       const answerLog=logAnswer(prev,id,correct,exerciseType||"phrase",responseMs);
-      telemetryTrack("attempt",{kind:"phrase",item:id,correct,type:exerciseType||"phrase",ms:responseMs||0,box:newBox});
-      const nd={...prev,phr:{...prev.phr,[id]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog,skills,totalC:correct?prev.totalC+1:prev.totalC};
+      telemetryTrack("attempt",{kind:"phrase",item:id,correct,type:exerciseType||"phrase",ms:responseMs||0,box:newBox,rawBox,skillCap:rawBox!==newBox});
+      const phrRow={
+        box:newBox,
+        next:result.nextMs,
+        stability:result.stability,
+        difficulty:result.difficulty,
+        lastReview:Date.now(),
+        ...(isProduction&&correct?{lastProducedTs:Date.now()}:cur.lastProducedTs?{lastProducedTs:cur.lastProducedTs}:{}),
+      };
+      const nd={...prev,phr:{...prev.phr,[id]:phrRow},errors,answerLog,skills,totalC:correct?prev.totalC+1:prev.totalC};
       store.set(KEY,nd);
       clearTimeout(syncTimer.current);
       syncTimer.current=setTimeout(async()=>{const token=await getToken();syncSave(token,nd);},2000);
@@ -378,26 +425,40 @@ function AuthedApp({ user, getToken }){
     });
   };
 
-  // Map exercise types to skill dimensions
-  const SKILL_MAP={"kana-visual":"visual","kana-listen":"listen","kana-reverse":"production","kana-pair":"visual",
-    "phrase-scenario":"visual","phrase-listen":"listen","phrase-production":"production","phrase-reverse":"production","phrase-build":"production","phrase-pair":"visual"};
+  // Record a learner's metacognition on a wrong answer. Stored additively in
+  // data.errorReasons[id] = { sounded: n, similar: n, unknown: n }. Leaves
+  // data.errors[id] (the leech counter) untouched. Slamecka & Graf 1978
+  // generation effect: the act of categorizing the mistake is itself a learning
+  // moment. Data later feeds smarter leech routing.
+  const recordErrorReason=(id,reason)=>{
+    if(!id||!reason) return;
+    setD(prev=>{
+      const cur=(prev.errorReasons||{})[id]||{sounded:0,similar:0,unknown:0};
+      const nd={...prev,errorReasons:{...(prev.errorReasons||{}),[id]:{...cur,[reason]:(cur[reason]||0)+1}}};
+      store.set(KEY,nd);
+      clearTimeout(syncTimer.current);
+      syncTimer.current=setTimeout(async()=>{const token=await getToken();syncSave(token,nd);},2000);
+      return nd;
+    });
+  };
 
   const updateKanaSRS=(ch,correct,exerciseType,responseMs)=>{
     setD(prev=>{
       const cur=prev.kana[ch]||{box:0,next:0};
       const fsrsData=cur.stability?{stability:cur.stability,difficulty:cur.difficulty,lastReview:cur.lastReview}:null;
       const result=fsrsUpdate(fsrsData,correct,responseMs,exerciseType);
-      const newBox=stabilityToBox(result.stability);
+      const rawBox=stabilityToBox(result.stability);
       const errors=prev.errors||{};
       if(!correct){errors[ch]=(errors[ch]||0)+1;}
       else if(errors[ch]>0){errors[ch]=Math.max(0,errors[ch]-2);} // Correct answers heal leech status
       const skills={...(prev.skills||{})};
       const skill=SKILL_MAP[exerciseType]||"visual";
-      const curSkill=skills[ch]||{visual:0,listen:0,production:0};
+      const curSkill={...(skills[ch]||{visual:0,listen:0,production:0})};
       curSkill[skill]=correct?Math.min((curSkill[skill]||0)+1,5):Math.max((curSkill[skill]||0)-1,0);
       skills[ch]=curSkill;
+      const newBox=capBoxBySkills(rawBox,curSkill);
       const answerLog=logAnswer(prev,ch,correct,exerciseType||"kana",responseMs);
-      telemetryTrack("attempt",{kind:"kana",item:ch,correct,type:exerciseType||"kana",ms:responseMs||0,box:newBox});
+      telemetryTrack("attempt",{kind:"kana",item:ch,correct,type:exerciseType||"kana",ms:responseMs||0,box:newBox,rawBox,skillCap:rawBox!==newBox});
       const nd={...prev,kana:{...prev.kana,[ch]:{box:newBox,next:result.nextMs,stability:result.stability,difficulty:result.difficulty,lastReview:Date.now()}},errors,answerLog,skills};
       store.set(KEY,nd);
       clearTimeout(syncTimer.current);
@@ -735,7 +796,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     />}
     {tab==="smart"&&<SmartSession
       data={data} save={save} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}
-      updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr}
+      updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr} recordErrorReason={recordErrorReason}
       stopAudio={stopAudio} speakStory={speakStory} setTab={setTab}
       LEVEL_THRESHOLDS={LEVEL_THRESHOLDS} getLevel={getLevel} getXPForNext={getXPForNext}
       BADGE_DEFS={BADGE_DEFS} checkBadges={checkBadges}

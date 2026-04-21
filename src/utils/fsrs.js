@@ -159,3 +159,38 @@ export function stabilityToBox(stability) {
   if (stability < 25) return 4;
   return 5;
 }
+
+/**
+ * Skill-based box ceiling — the anti-illusion-of-fluency gate.
+ *
+ * FSRS stability alone can push an item to box 4 or 5 from visual-recognition
+ * alone (tap right answer from 4 MCQ options). But being able to RECOGNIZE a
+ * phrase in a list ≠ being able to PRODUCE it cold or parse it when HEARD.
+ * Tulving's encoding specificity + Karpicke & Roediger (2008): retrieval
+ * pathways are mode-specific — recognition-only memory doesn't transfer to
+ * production.
+ *
+ * This helper caps the box value so no item reaches "mastered" status unless
+ * the learner has demonstrated recall across multiple skill dimensions.
+ *
+ *   box ≥ 3 requires: visual ≥ 1
+ *   box ≥ 4 requires: visual ≥ 2 AND listen ≥ 1
+ *   box 5   requires: visual ≥ 2 AND listen ≥ 1 AND production ≥ 2
+ *
+ * Skills are tracked in App.jsx's reviewPhr/updateKanaSRS. They increment
+ * +1 per correct, clamp 0-5. This gate reads, never writes.
+ *
+ * @param {number} box — proposed box from stabilityToBox
+ * @param {{visual?: number, listen?: number, production?: number}} skills — per-item counters
+ * @returns {number} — capped box (never exceeds input box)
+ */
+export function capBoxBySkills(box, skills) {
+  if (!skills) return Math.min(box, 2);
+  const v = skills.visual || 0;
+  const l = skills.listen || 0;
+  const p = skills.production || 0;
+  if (v >= 2 && l >= 1 && p >= 2) return box;                // box 5 OK
+  if (v >= 2 && l >= 1) return Math.min(box, 4);             // cap at box 4
+  if (v >= 1) return Math.min(box, 3);                       // cap at box 3
+  return Math.min(box, 2);                                   // cap at box 2
+}

@@ -16,7 +16,7 @@ import ShadowExercise from "../ShadowExercise.jsx";
  *   "play"  — line-by-line shadow
  *   (no separate done phase; last onComplete triggers parent advance)
  */
-export default function SceneShadow({ scene, knownWords = [], onComplete, c, btn, card, isDesktop }) {
+export default function SceneShadow({ scene, knownWords = [], onComplete, c, btn, card, isDesktop, silentMode = false }) {
   const [phase, setPhase] = useState("intro");
   const [lineIdx, setLineIdx] = useState(0);
   const [results, setResults] = useState([]); // array of bool per line
@@ -128,6 +128,7 @@ export default function SceneShadow({ scene, knownWords = [], onComplete, c, btn
       <ShadowExercise
         key={lineIdx}
         targetJp={line.jp}
+        silentMode={silentMode}
         onComplete={handleLineComplete}
         onSlowPlay={() => playLine(lineIdx)}
         compact

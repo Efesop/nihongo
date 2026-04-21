@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { M, ROMAJI, YOON_PARTS } from "../data/kana.js";
-import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
+import { PHRASES, CATS, CAT_ICONS, CAT_COLORS, FROZEN_EXPRESSIONS } from "../data/phrases.js";
 import { font, fontJa, mono, T, JP } from "../data/constants.js";
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
@@ -25,6 +25,11 @@ import SceneShadow from "./scene/SceneShadow.jsx";
 import SceneRolePlay from "./scene/SceneRolePlay.jsx";
 import ShadowExercise from "./ShadowExercise.jsx";
 import GrammarInsight from "./grammar/GrammarInsight.jsx";
+import MetacognitionTap from "./MetacognitionTap.jsx";
+import SpeedRound from "./speed/SpeedRound.jsx";
+import ClusterContrast from "./ClusterContrast.jsx";
+import PitchIntro from "./pitch/PitchIntro.jsx";
+import PitchPair from "./pitch/PitchPair.jsx";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { KANA_WORDS } from "../data/kanaWords.js";
 import { CONFUSED_PHRASES } from "../data/confusedPhrases.js";
@@ -98,7 +103,7 @@ function ColoredJP({ phraseId, fallbackText, fontSize, fontWeight = 700 }) {
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
-  updateKanaSRS, reviewPhr,
+  updateKanaSRS, reviewPhr, recordErrorReason,
   stopAudio, speakStory, setTab,
   LEVEL_THRESHOLDS, getLevel, getXPForNext,
   BADGE_DEFS, checkBadges,
@@ -699,6 +704,10 @@ export default function SmartSession({
     "phrase-kana-type": "KANA TYPING",
     "phrase-shadow": "SHADOW MODE",
     "phrase-dj": "PHRASE REMIX",
+    "speed-round": "SPEED ROUND",
+    "cluster-contrast": "CONTRAST DRILL",
+    "pitch-pair": "PITCH ACCENT",
+    "pitch-intro": "PITCH ACCENT · INTRO",
     "mistake-memory": "MISTAKE ANALYSIS",
     "immersion": "IMMERSION LISTENING",
     "number-match": "NUMBER MATCHING",
@@ -711,6 +720,19 @@ export default function SmartSession({
     "leech-review": "EXTRA REVIEW",
   };
   const typeLabel = <TypeLabel c={c}>{EXERCISE_LABELS[ex.type] || ex.type}</TypeLabel>;
+
+  // Decide whether to render a phrase as a chunk (no segmentation) vs broken
+  // down. Lewis lexical approach: above box 3 with decent visual-skill, forcing
+  // the learner to retrieve the whole chunk primes native-like fluent recall.
+  // Frozen expressions (greetings, いただきます, etc.) always chunk — they're
+  // formulaic utterances and decomposing them is counterproductive.
+  const shouldChunk = (pid) => {
+    if (!pid) return false;
+    if (FROZEN_EXPRESSIONS.has(pid)) return true;
+    const box = data.phr?.[pid]?.box || 0;
+    const vs = data.skills?.[pid]?.visual || 0;
+    return box >= 4 && vs >= 3;
+  };
 
   // Build hint text from the current exercise
   const buildHint = () => {
@@ -892,7 +914,7 @@ export default function SmartSession({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {answered && PHRASE_BREAKDOWNS[choice[0]]
-                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(choice[0])} />
                   : <ColoredJP phraseId={choice[0]} fallbackText={choice[1]} fontSize={isDesktop ? T.xl : T.lg} />}
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: answered ? (isCorrect ? c.g : c.m2) : c.ro, marginTop: 4, opacity: .9 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
@@ -914,7 +936,7 @@ export default function SmartSession({
         </button>
         {answered && <div style={{ ...card, padding: "16px 20px", borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "visible" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8, fontWeight: 600 }}><IconCheck size={12} /> <span>Correct answer</span></div>
-          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(p[0])} />
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8 }}>{p[2]}</div>
           <div style={{ fontSize: T.base, color: c.tx, marginTop: 4, fontWeight: 500 }}>{p[3]}</div>
         </div>}
@@ -960,7 +982,7 @@ export default function SmartSession({
           </div>}
         </div>
         {answered && <div style={{ padding: "16px 20px" }}>
-          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(p[0])} />
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8 }}>{p[2]}</div>
           <div style={{ fontSize: T.base, color: c.tx, marginTop: 4 }}>{p[3]}</div>
         </div>}
@@ -982,7 +1004,7 @@ export default function SmartSession({
               <div>
                 <div style={{ fontWeight: 500 }}>{choice[3]}</div>
                 {answered && (PHRASE_BREAKDOWNS[choice[0]]
-                  ? <div style={{ marginTop: 6 }}><PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} /></div>
+                  ? <div style={{ marginTop: 6 }}><PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(choice[0])} /></div>
                   : <div style={{ fontSize: isDesktop ? T.xl : T.lg, color: c.m2, fontFamily: fontJa, marginTop: 3, fontWeight: 600 }}>{choice[1]}</div>)}
               </div>
               {answered && <span onClick={(e) => { e.stopPropagation(); speakPhrase(choice[0], choice[1]); }} className="ts-icon-btn"
@@ -1058,7 +1080,7 @@ export default function SmartSession({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {answered && PHRASE_BREAKDOWNS[choice[0]]
-                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(choice[0])} />
                   : <ColoredJP phraseId={choice[0]} fallbackText={choice[1]} fontSize={isDesktop ? T.xl : T.lg} />}
                 {(answered || !shouldHideRomaji) && <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 4 }}>{choice[2]}</div>}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{choice[3]}</div>}
@@ -1072,7 +1094,7 @@ export default function SmartSession({
       {answered && <div style={{ ...card, padding: 0, borderLeft: "3px solid " + c.g, marginTop: 8, overflow: "hidden" }}>
         <div style={{ padding: "14px 18px" }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.g, marginBottom: 8 }}>✓ Correct answer</div>
-          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(p[0])} />
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 6 }}>{p[2]}</div>
           <div style={{ fontSize: T.base, color: c.m, marginTop: 2 }}>{p[3]}</div>
         </div>
@@ -1099,6 +1121,7 @@ export default function SmartSession({
           </div>
         </div>;
       })()}
+      {answered && fb === "no" && <MetacognitionTap itemId={p[0]} onRecord={recordErrorReason} c={c} btn={btn}/>}
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button className="ts-icon-btn" onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
           style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}><IconPlay size={14}/></button>
@@ -1238,7 +1261,7 @@ export default function SmartSession({
             <div style={{ fontSize: T.sm, fontFamily: mono, color: c.tx, marginTop: 4 }}>Learn this phrase</div>
           </div>
           <div style={{ padding: "20px 20px" }}>
-            <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xxl : T.xl} />
+            <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xxl : T.xl} chunk={shouldChunk(p[0])} />
             <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8, marginBottom: 6 }}>{p[2]}</div>
             <div style={{ fontSize: T.base, color: c.tx, marginBottom: 4 }}>{p[3]}</div>
             {p[5] && <div style={{ fontSize: T.base, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + catCol }}>{p[5]}</div>}
@@ -1667,6 +1690,7 @@ export default function SmartSession({
       {typeLabel}
       <ShadowExercise
         targetJp={p[1]}
+        silentMode={!!data.settings?.silentMode}
         onComplete={(matched, graded) => {
           if (graded) {
             setScore(s => matched ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
@@ -2149,6 +2173,7 @@ export default function SmartSession({
       scene: sc,
       knownWords: knownWords.slice(0, 6),
       onComplete,
+      silentMode: !!data.settings?.silentMode,
       c, btn, card, isDesktop,
     };
 
@@ -2334,6 +2359,70 @@ export default function SmartSession({
           style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>Next →</button>
       </>}
     </>);
+  }
+
+  // ═══ EXERCISE: PITCH INTRO (one-shot, introduces atamadaka / heiban) ═══
+  if (ex.type === "pitch-intro") {
+    return withSenpai(
+      <PitchIntro
+        onComplete={() => {
+          save({ ...data, pitchIntroSeen: true });
+          advance(true);
+        }}
+        c={c} btn={btn} card={card} isDesktop={isDesktop}
+      />
+    );
+  }
+
+  // ═══ EXERCISE: PITCH PAIR (minimal-pair discrimination drill) ═══
+  if (ex.type === "pitch-pair") {
+    return withSenpai(
+      <PitchPair
+        onComplete={(correct) => {
+          setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+          senpaiReact(correct);
+          advance(correct);
+        }}
+        c={c} btn={btn} card={card} isDesktop={isDesktop}
+      />
+    );
+  }
+
+  // ═══ EXERCISE: CLUSTER CONTRAST (minimal-pair drill, Kornell & Bjork 2008) ═══
+  if (ex.type === "cluster-contrast") {
+    return withSenpai(
+      <ClusterContrast
+        target={ex.target}
+        clusterMates={ex.clusterMates}
+        farPool={ex.farPool}
+        onComplete={(correct) => {
+          setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+          reviewPhr(ex.target[0], correct, "cluster-contrast", getResponseMs());
+          senpaiReact(correct);
+          advance(correct);
+        }}
+        c={c} btn={btn} card={card} isDesktop={isDesktop}
+      />
+    );
+  }
+
+  // ═══ EXERCISE: SPEED ROUND (fluency development, Nation strand 4) ═══
+  if (ex.type === "speed-round") {
+    return withSenpai(
+      <SpeedRound
+        pool={ex.pool}
+        onComplete={({ hits, total, fluent }) => {
+          setScore(s => ({ ...s, c: s.c + hits, w: s.w + (total - hits) }));
+          // Record fluency signal for analytics (no SRS penalty — automaticity ≠ mastery).
+          if (typeof window !== "undefined") {
+            window.__sessionDebug = window.__sessionDebug || {};
+            window.__sessionDebug.lastSpeedRound = { hits, total, fluent };
+          }
+          advance(hits > total / 2);
+        }}
+        c={c} btn={btn} card={card} isDesktop={isDesktop}
+      />
+    );
   }
 
   // ═══ EXERCISE: PHRASE DJ (AI remixed phrases) ═══
@@ -3039,6 +3128,7 @@ export default function SmartSession({
           </ChoiceCard>;
         })}
       </div>
+      {answered && fb === "no" && <MetacognitionTap itemId={p[0]} onRecord={recordErrorReason} c={c} btn={btn}/>}
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1])}
           style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}><IconPlay size={14}/> hear again</button>
@@ -3356,7 +3446,7 @@ export default function SmartSession({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {answered && PHRASE_BREAKDOWNS[choice[0]]
-                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} />
+                  ? <PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(choice[0])} />
                   : <ColoredJP phraseId={choice[0]} fallbackText={choice[1]} fontSize={isDesktop ? T.xl : T.lg} />}
                 {answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 6 }}>{choice[3]}</div>}
               </div>
@@ -3366,6 +3456,7 @@ export default function SmartSession({
           </ChoiceCard>;
         })}
       </div>
+      {answered && fb === "no" && <MetacognitionTap itemId={p[0]} onRecord={recordErrorReason} c={c} btn={btn}/>}
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button className="ts-icon-btn" onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
           style={{ ...btn, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}><IconPlay size={14}/></button>
@@ -3455,6 +3546,7 @@ export default function SmartSession({
           </ChoiceCard>;
         })}
       </div>
+      {answered && fb === "no" && <MetacognitionTap itemId={p[0]} onRecord={recordErrorReason} c={c} btn={btn}/>}
       {answered && <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button className="ts-icon-btn" onClick={() => speakPhrase(p[0], p[1])}
           style={{ ...btn, flex: 1, padding: 12, borderRadius: 10, background: c.s2, border: "1px solid " + c.b, color: c.tx, fontSize: T.sm }}><IconPlay size={14}/> hear it</button>
@@ -3551,7 +3643,7 @@ export default function SmartSession({
           <SceneImage phraseId={p[0]} isDesktop={isDesktop} />
           <div style={{ padding: "16px 20px" }}>
           <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro, marginBottom: 12 }}>This phrase keeps tripping you up ({ex.errorCount} mistakes) — study it, then prove you know it</div>
-          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xxl : T.xl} />
+          <PhraseSegments phraseId={p[0]} c={c} fontSize={isDesktop ? T.xxl : T.xl} chunk={shouldChunk(p[0])} />
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8 }}>{p[2]}</div>
           <div style={{ fontSize: T.lg, fontWeight: 600, color: c.tx, marginTop: 4 }}>{p[3]}</div>
           {p[5] && <div style={{ fontSize: T.base, color: c.tx, marginTop: 10, padding: "10px 14px", background: c.s2, borderRadius: 8, borderLeft: "3px solid " + c.a }}>{p[5]}</div>}

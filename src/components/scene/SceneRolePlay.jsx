@@ -14,7 +14,7 @@ import ShadowExercise from "../ShadowExercise.jsx";
  *
  * Completion criteria: ≥70% of user's lines matched.
  */
-export default function SceneRolePlay({ scene, knownWords = [], onComplete, c, btn, card, isDesktop }) {
+export default function SceneRolePlay({ scene, knownWords = [], onComplete, c, btn, card, isDesktop, silentMode = false }) {
   const [phase, setPhase] = useState("intro"); // intro | select | play
   const [myRole, setMyRole] = useState("b"); // "a" or "b"
   const [lineIdx, setLineIdx] = useState(0);
@@ -197,6 +197,7 @@ export default function SceneRolePlay({ scene, knownWords = [], onComplete, c, b
       <ShadowExercise
         key={lineIdx}
         targetJp={line.jp}
+        silentMode={silentMode}
         onComplete={(matched) => handleMyLine(matched)}
         compact
         c={c} btn={btn} card={card}

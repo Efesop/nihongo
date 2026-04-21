@@ -1,6 +1,7 @@
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
 import { font, mono, T } from "../data/constants.js";
 import { daysUntil } from "../utils/helpers.js";
+import { touristModeActive } from "../utils/sessionEngine.js";
 import { shuffle } from "../utils/helpers.js";
 import { getSessionSummary } from "../utils/sessionEngine.js";
 import { ROMAJI } from "../data/kana.js";
@@ -44,9 +45,16 @@ export default function Home({
   return <div style={inner}>
     <div style={{marginBottom:24}}>
       <h1 style={{fontSize:28,fontWeight:700,margin:"0 0 6px",letterSpacing:"-.02em",textShadow:theme==="dark"?"0 0 30px rgba(192,40,42,0.35)":"none"}}>{profile.name?`こんにちは, ${profile.name}!`:"日本語 Journey"}</h1>
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
         {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to go</span>}
+        {touristModeActive(data)&&<span style={{fontSize:11,color:c.go,fontFamily:mono,padding:"2px 8px",borderRadius:10,background:c.go+"18",border:"1px solid "+c.go+"44"}} title="New phrase intros restricted to 150 travel survival set">✈️ trip mode</span>}
         {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono,display:"inline-block",animation:streakCelebrate?"streakPop .6s ease-out, streakGlow 1.5s ease-in-out 3":"none"}}>🔥 {data.streak} day streak</span>}
+        {/* Silent mode chip — quick toggle. When on, all speaking exercises route through tap-through (no mic) with no SRS penalty. */}
+        <button onClick={()=>save({settings:{...data.settings,silentMode:!data.settings?.silentMode}})}
+          title={data.settings?.silentMode?"Silent mode on — speaking cards skip mic":"Silent mode off — speaking cards use mic"}
+          style={{marginLeft:"auto",padding:"4px 10px",borderRadius:14,border:"1px solid "+c.b,background:data.settings?.silentMode?c.a+"22":"transparent",color:data.settings?.silentMode?c.a:c.m,fontSize:11,fontFamily:mono,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
+          🔇 {data.settings?.silentMode?"silent on":"silent"}
+        </button>
       </div>
     </div>
     <div style={{display:"flex",gap:6,marginBottom:16}}>
