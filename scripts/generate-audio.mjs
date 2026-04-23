@@ -323,7 +323,7 @@ async function main() {
     console.log('\n\n💬 Phrases (Japanese, normal speed)…');
     const allPhrases = await loadPhrases();
     const LEGACY_PREFIXES = ['g','f','t','h','s','d','e','n','tm','dl','dc']; // first 100 phrases
-    const isLegacy = (id) => LEGACY_PREFIXES.some(p => id.startsWith(p) && /\d+$/.test(id.slice(p.length)));
+    const isLegacy = (id) => LEGACY_PREFIXES.some(p => id.startsWith(p) && /^\d+$/.test(id.slice(p.length)));
     const phrasesToRun = mode === 'phrases-v2'
       ? allPhrases.filter(([id]) => !isLegacy(id))
       : allPhrases;
