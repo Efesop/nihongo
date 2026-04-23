@@ -525,6 +525,78 @@ export const PHRASES = [
 ["cv119","おつかれ","o-tsu-ka-re","Good work / thanks","convo","Also おつかれさま"],
 ["cv120","やすみ","ya-su-mi","Rest / day off","convo","From やすむ"],
 ["cv121","アメリカ","a-me-ri-ka","America","convo","Proper noun"],
+
+// ═══ SMALL TALK — the travel conversation basics ═══
+// How are you, nice to meet you, where are you from, what's your job, hobbies,
+// how long are you staying, weather chit-chat, goodbyes. Everything a traveller
+// needs for 30-second exchanges with locals.
+["st1","げんきですか","gen-ki de-su ka","How are you? (polite)","smalltalk","The standard greeting once you've met someone",true],
+["st2","げんきです","gen-ki de-su","I'm fine / doing well","smalltalk","The standard reply to げんきですか",true],
+["st3","おかげさまで","o-ka-ge-sa-ma de","I'm well, thanks (humble)","smalltalk","Warm, culturally gracious reply — literally 'thanks to you'"],
+["st4","あなたは","a-na-ta wa","And you?","smalltalk","Redirect the question back politely"],
+["st5","まあまあです","maa-maa de-su","So-so / okay","smalltalk","Honest middle-ground answer"],
+["st6","はじめまして","ha-ji-me-ma-shi-te","Nice to meet you","smalltalk","Only for first meeting",true],
+["st7","よろしくおねがいします","yo-ro-shi-ku o-ne-gai-shi-ma-su","Pleased to meet you (formal)","smalltalk","The follow-up to はじめまして",true],
+["st8","よろしく","yo-ro-shi-ku","Pleased to meet you (casual)","smalltalk","Dropped-formality version"],
+["st9","こちらこそ","ko-chi-ra ko-so","Likewise / same here","smalltalk","Polite reply when someone says よろしく to you"],
+["st10","ひさしぶりです","hi-sa-shi-bu-ri de-su","Long time no see","smalltalk","For someone you haven't seen in a while"],
+
+["st11","イギリスからきました","i-gi-ri-su ka-ra ki-ma-shi-ta","I'm from England","smalltalk","Swap イギリス for your country",true],
+["st12","アメリカからきました","a-me-ri-ka ka-ra ki-ma-shi-ta","I'm from America","smalltalk","Same pattern"],
+["st13","オーストラリアからきました","oo-su-to-ra-ri-a ka-ra ki-ma-shi-ta","I'm from Australia","smalltalk","Same pattern"],
+["st14","カナダからきました","ka-na-da ka-ra ki-ma-shi-ta","I'm from Canada","smalltalk","Same pattern"],
+["st15","にほんじんですか","ni-hon-jin de-su ka","Are you Japanese?","smalltalk","じん = person, added to a country"],
+["st16","しゅっしんはどこですか","shu-sshin wa do-ko de-su ka","Where are you from originally?","smalltalk","More formal than どこからきましたか"],
+["st17","ロンドンにすんでいます","ron-don ni sun-de i-ma-su","I live in London","smalltalk","Swap ロンドン for your city"],
+["st18","とうきょうにすんでいます","tou-kyou ni sun-de i-ma-su","I live in Tokyo","smalltalk","Same pattern"],
+["st19","どこにすんでいますか","do-ko ni sun-de i-ma-su ka","Where do you live?","smalltalk","Common follow-up"],
+["st20","にほんははじめてです","ni-hon wa ha-ji-me-te de-su","It's my first time in Japan","smalltalk","Locals love hearing this",true],
+
+["st21","りょこうできました","ryo-kou de ki-ma-shi-ta","I came for travel","smalltalk","Answers 'why are you here?'"],
+["st22","しごとできました","shi-go-to de ki-ma-shi-ta","I came for work","smalltalk","Same frame, work"],
+["st23","かんこうです","kan-kou de-su","Sightseeing","smalltalk","Short answer for immigration or locals"],
+["st24","にほんがだいすきです","ni-hon ga dai-su-ki de-su","I love Japan","smalltalk","Never not charming",true],
+["st25","にほんごをべんきょうしています","ni-hon-go o ben-kyou shi-te i-ma-su","I'm studying Japanese","smalltalk","Why you can even say this much"],
+["st26","にほんごはすこしだけです","ni-hon-go wa su-ko-shi da-ke de-su","I speak only a little Japanese","smalltalk","Lowers expectations kindly",true],
+["st27","にほんごはむずかしいです","ni-hon-go wa mu-zu-ka-shii de-su","Japanese is difficult","smalltalk","Universally bonding line"],
+["st28","えいごをはなせますか","ei-go o ha-na-se-ma-su ka","Can you speak English?","smalltalk","When you really need English",true],
+["st29","ゆっくりおねがいします","yu-kku-ri o-ne-gai-shi-ma-su","Please speak slowly","smalltalk","Saves any conversation",true],
+["st30","もういちどおねがいします","mou i-chi-do o-ne-gai-shi-ma-su","One more time please","smalltalk","Didn't catch that",true],
+
+["st31","しゅみはなんですか","shu-mi wa nan de-su ka","What's your hobby?","smalltalk","Classic small-talk opener"],
+["st32","おんがくがすきです","on-ga-ku ga su-ki de-su","I like music","smalltalk","Swap おんがく for your hobby"],
+["st33","えいががすきです","ei-ga ga su-ki de-su","I like movies","smalltalk","Same pattern"],
+["st34","スポーツがすきです","su-poo-tsu ga su-ki de-su","I like sports","smalltalk","Same pattern"],
+["st35","りょうりがすきです","ryou-ri ga su-ki de-su","I like cooking","smalltalk","Same pattern"],
+["st36","ほんがすきです","hon ga su-ki de-su","I like books","smalltalk","Same pattern"],
+["st37","アニメがすきです","a-ni-me ga su-ki de-su","I like anime","smalltalk","Opens many doors in Japan"],
+["st38","ゲームがすきです","gee-mu ga su-ki de-su","I like games","smalltalk","Same pattern"],
+
+["st39","どのくらいいますか","do-no ku-rai i-ma-su ka","How long are you staying?","smalltalk","Expected question"],
+["st40","いっしゅうかんです","i-sshuu-kan de-su","One week","smalltalk","Answer to duration question"],
+["st41","みっかかんです","mi-kka-kan de-su","Three days","smalltalk","Answer to duration question"],
+["st42","ふつかです","fu-tsu-ka de-su","Two days","smalltalk","Short stay"],
+["st43","いっかげつです","i-kka-ge-tsu de-su","One month","smalltalk","Longer stay"],
+["st44","あしたかえります","a-shi-ta ka-e-ri-ma-su","I go back tomorrow","smalltalk","End-of-trip small talk"],
+
+["st45","たのしいですね","ta-no-shii de-su ne","It's fun, isn't it?","smalltalk","ね invites agreement — very native-sounding"],
+["st46","すごいですね","su-goi de-su ne","That's amazing","smalltalk","All-purpose appreciation"],
+["st47","おもしろいですね","o-mo-shi-roi de-su ne","That's interesting","smalltalk","Keeps conversation flowing"],
+["st48","きれいですね","ki-rei de-su ne","That's beautiful","smalltalk","For views, art, people"],
+["st49","すばらしいですね","su-ba-ra-shii de-su ne","That's wonderful","smalltalk","Slightly more formal praise"],
+["st50","かわいいですね","ka-waii de-su ne","That's cute","smalltalk","Heavy daily-use word"],
+
+["st51","さむいですね","sa-mui de-su ne","It's cold, isn't it?","smalltalk","Weather = perfect small talk"],
+["st52","あついですね","a-tsui de-su ne","It's hot, isn't it?","smalltalk","Weather = perfect small talk"],
+["st53","いいてんきですね","ii ten-ki de-su ne","Nice weather","smalltalk","Go-to opener on sunny days"],
+["st54","あめですね","a-me de-su ne","It's raining","smalltalk","Short and natural"],
+["st55","きょうはさむいです","kyou wa sa-mui de-su","Today is cold","smalltalk","Frame without the ね ending"],
+
+["st56","またあしたね","ma-ta a-shi-ta ne","See you tomorrow","smalltalk","Casual goodbye"],
+["st57","またね","ma-ta ne","See you","smalltalk","Shortest casual bye"],
+["st58","おげんきで","o-gen-ki de","Take care","smalltalk","Warm parting phrase"],
+["st59","きをつけて","ki o tsu-ke-te","Be careful","smalltalk","Said when someone's leaving"],
+["st60","たのしかったです","ta-no-shi-ka-tta de-su","That was fun","smalltalk","End of a good interaction"],
 ];
 
 // Phrases that should ALWAYS render as an unsegmented chunk (Lewis lexical
@@ -536,6 +608,6 @@ export const FROZEN_EXPRESSIONS = new Set([
   "f5","f6",                                          // いただきます, ごちそうさまでした
 ]);
 
-export const CATS={greet:"Greetings",food:"Restaurants",train:"Transport",hotel:"Hotels",shop:"Shopping",dir:"Directions",sos:"Emergencies",numbers:"Numbers",time:"Time & Days",daily:"Daily Life",describe:"Describing",foodItem:"Food & Drink",numExt:"More Numbers",datetime:"Dates & Times",feel:"Feelings",verbs:"Verbs",body:"Body",family:"Family",weather:"Weather",complications:"Complications",convo:"Conversation Glue"};
-export const CAT_ICONS={greet:"👋",food:"🍜",train:"🚃",hotel:"🏨",shop:"🏪",dir:"🗺️",sos:"🆘",numbers:"🔢",time:"⏰",daily:"🌸",describe:"🎨",foodItem:"🍱",numExt:"🧮",datetime:"📅",feel:"💭",verbs:"🏃",body:"🧍",family:"👨‍👩‍👧",weather:"🌦️",complications:"⚠️",convo:"💬"};
-export const CAT_COLORS={greet:"#5a9e6f",food:"#c45d4c",train:"#5a8ec4",hotel:"#8b6ec4",shop:"#c45d8b",dir:"#5ac4a0",sos:"#c44444",numbers:"#c49a5a",time:"#5a7ec4",daily:"#c45a9e",describe:"#6ec45a",foodItem:"#d07a3e",numExt:"#9a8659",datetime:"#4a88b8",feel:"#b85ea8",verbs:"#5a9ea9",body:"#a96e5a",family:"#b89a5a",weather:"#7ba9c4",complications:"#b55050",convo:"#6b8f9a"};
+export const CATS={greet:"Greetings",food:"Restaurants",train:"Transport",hotel:"Hotels",shop:"Shopping",dir:"Directions",sos:"Emergencies",numbers:"Numbers",time:"Time & Days",daily:"Daily Life",describe:"Describing",foodItem:"Food & Drink",numExt:"More Numbers",datetime:"Dates & Times",feel:"Feelings",verbs:"Verbs",body:"Body",family:"Family",weather:"Weather",complications:"Complications",convo:"Conversation Glue",smalltalk:"Small Talk"};
+export const CAT_ICONS={greet:"👋",food:"🍜",train:"🚃",hotel:"🏨",shop:"🏪",dir:"🗺️",sos:"🆘",numbers:"🔢",time:"⏰",daily:"🌸",describe:"🎨",foodItem:"🍱",numExt:"🧮",datetime:"📅",feel:"💭",verbs:"🏃",body:"🧍",family:"👨‍👩‍👧",weather:"🌦️",complications:"⚠️",convo:"💬",smalltalk:"🗣️"};
+export const CAT_COLORS={greet:"#5a9e6f",food:"#c45d4c",train:"#5a8ec4",hotel:"#8b6ec4",shop:"#c45d8b",dir:"#5ac4a0",sos:"#c44444",numbers:"#c49a5a",time:"#5a7ec4",daily:"#c45a9e",describe:"#6ec45a",foodItem:"#d07a3e",numExt:"#9a8659",datetime:"#4a88b8",feel:"#b85ea8",verbs:"#5a9ea9",body:"#a96e5a",family:"#b89a5a",weather:"#7ba9c4",complications:"#b55050",convo:"#6b8f9a",smalltalk:"#e89a5a"};

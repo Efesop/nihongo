@@ -25,6 +25,18 @@ const { PHRASES } = await import(join(ROOT, 'src/data/phrases.js'));
 // Order matters: first matching rule wins. Each rule: { match: (p) => bool, cluster: string }.
 // p = [id, jp, romaji, en, category, tip, mcFlag].
 const RULES = [
+  // Small talk — split by function
+  { match: p => p[4]==='smalltalk' && /(how are|i'm fine|i'm well|so-so|and you|doing well|thanks to you)/i.test(p[3]), cluster: 'st-howareyou' },
+  { match: p => p[4]==='smalltalk' && /(nice to meet|pleased to meet|likewise|long time)/i.test(p[3]), cluster: 'st-intro' },
+  { match: p => p[4]==='smalltalk' && /(i'm from|where.*from.*originally|where do you live|i live in|are you japanese)/i.test(p[3]), cluster: 'st-origin' },
+  { match: p => p[4]==='smalltalk' && /(first time|i came for|sightseeing|love japan|studying japanese|little japanese|english|slowly|one more time|difficult)/i.test(p[3]), cluster: 'st-reason' },
+  { match: p => p[4]==='smalltalk' && /(hobby|i like)/i.test(p[3]), cluster: 'st-hobbies' },
+  { match: p => p[4]==='smalltalk' && /(how long|week|days|month|go back)/i.test(p[3]), cluster: 'st-duration' },
+  { match: p => p[4]==='smalltalk' && /(it's cold|it's hot|nice weather|raining|today is cold)/i.test(p[3]), cluster: 'st-weather' },
+  { match: p => p[4]==='smalltalk' && /(fun|amazing|interesting|beautiful|wonderful|cute)/i.test(p[3]), cluster: 'st-reaction' },
+  { match: p => p[4]==='smalltalk' && /(see you|take care|be careful|that was fun)/i.test(p[3]), cluster: 'st-goodbye' },
+  { match: p => p[4]==='smalltalk', cluster: 'st-misc' },
+
   // Greetings — split by function
   { match: p => p[4]==='greet' && /name is/i.test(p[3]), cluster: 'greet-selfintro' },
   { match: p => p[4]==='greet' && /thank|thanks/i.test(p[3]), cluster: 'greet-thanks' },

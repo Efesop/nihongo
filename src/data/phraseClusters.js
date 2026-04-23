@@ -3,8 +3,8 @@
 // Each entry maps phrase id → cluster tag. Used for semantic introduction
 // bias + minimal-pair contrast drills.
 //
-// Clusters: 56
-// Total phrases tagged: 505
+// Clusters: 65
+// Total phrases tagged: 565
 
 export const PHRASE_CLUSTERS = {
   "g1": "greet-hello",
@@ -511,7 +511,67 @@ export const PHRASE_CLUSTERS = {
   "cv118": "convo-misc",
   "cv119": "convo-polite",
   "cv120": "convo-misc",
-  "cv121": "convo-filler"
+  "cv121": "convo-filler",
+  "st1": "st-howareyou",
+  "st2": "st-howareyou",
+  "st3": "st-howareyou",
+  "st4": "st-howareyou",
+  "st5": "st-howareyou",
+  "st6": "st-intro",
+  "st7": "st-intro",
+  "st8": "st-intro",
+  "st9": "st-intro",
+  "st10": "st-intro",
+  "st11": "st-origin",
+  "st12": "st-origin",
+  "st13": "st-origin",
+  "st14": "st-origin",
+  "st15": "st-origin",
+  "st16": "st-origin",
+  "st17": "st-origin",
+  "st18": "st-origin",
+  "st19": "st-origin",
+  "st20": "st-reason",
+  "st21": "st-reason",
+  "st22": "st-reason",
+  "st23": "st-reason",
+  "st24": "st-reason",
+  "st25": "st-reason",
+  "st26": "st-reason",
+  "st27": "st-reason",
+  "st28": "st-reason",
+  "st29": "st-reason",
+  "st30": "st-reason",
+  "st31": "st-hobbies",
+  "st32": "st-hobbies",
+  "st33": "st-hobbies",
+  "st34": "st-hobbies",
+  "st35": "st-hobbies",
+  "st36": "st-hobbies",
+  "st37": "st-hobbies",
+  "st38": "st-hobbies",
+  "st39": "st-duration",
+  "st40": "st-duration",
+  "st41": "st-duration",
+  "st42": "st-duration",
+  "st43": "st-duration",
+  "st44": "st-duration",
+  "st45": "st-reaction",
+  "st46": "st-reaction",
+  "st47": "st-reaction",
+  "st48": "st-reaction",
+  "st49": "st-reaction",
+  "st50": "st-reaction",
+  "st51": "st-weather",
+  "st52": "st-weather",
+  "st53": "st-weather",
+  "st54": "st-weather",
+  "st55": "st-weather",
+  "st56": "st-goodbye",
+  "st57": "st-goodbye",
+  "st58": "st-goodbye",
+  "st59": "st-goodbye",
+  "st60": "st-reaction"
 };
 
 export function clusterOf(phraseId) {
