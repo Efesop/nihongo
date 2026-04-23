@@ -940,6 +940,7 @@ export default function SmartSession({
           <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 8 }}>{p[2]}</div>
           <div style={{ fontSize: T.base, color: c.tx, marginTop: 4, fontWeight: 500 }}>{p[3]}</div>
         </div>}
+        {answered && choiceAnswer.correct === false && <MetacognitionTap itemId={p[0]} onRecord={recordErrorReason} c={c} btn={btn}/>}
         {answered && <ActionBar
           onPlay={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
           onSlow={() => speakPhrase(p[0], p[1], { slow: true })}
@@ -1021,6 +1022,7 @@ export default function SmartSession({
         }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered ? "transparent" : c.a + "10", color: answered ? c.m2 : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <IconBlock size={16} /> <span>None of these match</span>
         </button>
+        {answered && choiceAnswer.correct === false && <MetacognitionTap itemId={p[0]} onRecord={recordErrorReason} c={c} btn={btn}/>}
         {answered && <ActionBar
           onPlay={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
           onSlow={() => speakPhrase(p[0], p[1], { slow: true })}
@@ -2291,7 +2293,7 @@ export default function SmartSession({
 
           {/* Reveal text after answer */}
           {currentTap && <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid " + c.b }}>
-            <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700, color: c.tx, marginBottom: 4 }}>{currentPhrase[1]}</div>
+            <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontFamily: fontJa, fontWeight: JP.weight, lineHeight: JP.lineHeight, color: c.tx, marginBottom: 4 }}>{currentPhrase[1]}</div>
             <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginBottom: 2 }}>{currentPhrase[2]}</div>
             <div style={{ fontSize: T.base, color: c.m }}>{currentPhrase[3]}</div>
             <div style={{ fontSize: T.sm, marginTop: 10, color: currentTap.correct ? c.g : c.a, fontWeight: 600 }}>
@@ -3081,7 +3083,8 @@ export default function SmartSession({
               const showAnswer = answered;
               return <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
                 <div style={{
-                  padding: "8px 14px", borderRadius: 8, fontSize: isDesktop ? T.xl : T.lg, fontWeight: 700,
+                  padding: "8px 14px", borderRadius: 8,
+                  fontSize: isDesktop ? T.xl : T.lg, fontFamily: fontJa, fontWeight: JP.weight, lineHeight: JP.lineHeight,
                   background: showAnswer ? (choiceAnswer.correct ? c.g + "20" : c.rs) : c.s2,
                   border: "2px dashed " + (showAnswer ? (choiceAnswer.correct ? c.g : c.a) : c.a),
                   color: showAnswer ? (choiceAnswer.correct ? c.g : c.a) : c.a,
@@ -3093,7 +3096,7 @@ export default function SmartSession({
               </div>;
             }
             return <div key={i} style={{ display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{ padding: "8px 10px", fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, color: c.tx }}>{seg[0]}</div>
+              <div style={{ padding: "8px 10px", fontSize: isDesktop ? T.xl : T.lg, fontFamily: fontJa, fontWeight: JP.weight, lineHeight: JP.lineHeight, color: c.tx }}>{seg[0]}</div>
               {answered && <div style={{ fontSize: T.xs, color: gramCol[seg[3]] || c.m, fontFamily: mono, marginTop: 2 }}>{seg[2]}</div>}
             </div>;
           })}

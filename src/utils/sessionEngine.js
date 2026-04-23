@@ -105,6 +105,7 @@ function smartPhraseOrder(unseen, phrData) {
 const TOURIST_CATEGORIES = new Set([
   "greet", "food", "foodItem", "train", "hotel", "shop", "dir", "sos",
   "numbers", "time", "datetime", "complications",
+  "smalltalk", // "how are you / I'm from / can you speak English" — trip-critical
 ]);
 const TOURIST_EXCLUDED_CLUSTERS = new Set([
   "dt-period", "dt-other",
