@@ -576,12 +576,12 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
     }
   }
 
-  // Bucket sort — categorize words by grammatical function (30% chance, 3+ phrases)
-  if (phrasesLearned >= 3 && Math.random() < 0.30) {
-    const knownPhraseIds = Object.keys(phrData).filter(id => (phrData[id]?.box || 0) >= 1);
-    const payload = buildBucketSort({ phrasesLearned, knownPhraseIds });
-    if (payload) specialPool.push({ type: "bucket-sort", payload });
-  }
+  // Bucket sort — DISABLED. Grammar-taxonomy drill ("sort particles into
+  // subject/object/topic buckets") is metalinguistic knowledge, not retrieval
+  // practice. Research: explicit grammar labelling helps advanced learners,
+  // hurts beginners trying to build fluent recall (Ellis 2005, VanPatten 2015).
+  // User feedback confirmed: "I'm trying to learn efficiently not get a
+  // grammar degree". Keep buildBucketSort util for potential future opt-in.
 
   // Scene study — 2-voice conversational scenes. 4 modes per scene, user progresses
   // through them (watch → cloze → shadow → roleplay → done).

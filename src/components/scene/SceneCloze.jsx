@@ -42,19 +42,24 @@ export default function SceneCloze({ scene, knownWords = [], onComplete, c, btn,
     });
   }, [scene.id, blanks]);
 
-  const playLine = (i) => {
-    const pad = String(i).padStart(2, "0");
+  // Play the SCENE LINE audio (not the blank index). `i` must be the index
+  // into scene.lines (the real line), not into the blanks[] array. Blanks skip
+  // lines that had no blankable word, so blank index != scene-line index.
+  const playSceneLine = (sceneLineIdx) => {
+    const pad = String(sceneLineIdx).padStart(2, "0");
     if (audioRef.current) {
       audioRef.current.src = `/audio/scenes/${scene.id}-${pad}.mp3`;
       audioRef.current.play().catch(() => {});
     }
   };
 
-  // Auto-play line audio when we enter it
+  // Auto-play line audio when we enter it. Map blank-index → scene-line-index.
   useEffect(() => {
     if (phase !== "play") return;
-    playLine(lineIdx);
+    const blank = blanks[lineIdx];
+    if (blank) playSceneLine(blank.lineIdx);
     setPicked(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, lineIdx]);
 
   const pick = (word) => {
@@ -129,7 +134,7 @@ export default function SceneCloze({ scene, knownWords = [], onComplete, c, btn,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <span style={{ fontSize: T.xs, fontWeight: 700, color: accent, letterSpacing: 0.5 }}>{line.role.toUpperCase()}</span>
-          <button className="ts-btn" onClick={() => playLine(lineIdx)}
+          <button className="ts-btn" onClick={() => playSceneLine(blank.lineIdx)}
             style={{ ...btn, padding: "4px 10px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, color: c.m, fontSize: T.xs, display: "flex", alignItems: "center", gap: 4 }}>
             <IconPlay size={12} /> replay
           </button>
