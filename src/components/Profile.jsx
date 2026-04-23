@@ -66,11 +66,12 @@ export default function Profile({
             {data.settings?.silentMode?"On":"Off"}
           </button>
         </div>
-        {/* Shadow disabled — hard: removes shadow cards from rotation entirely */}
+        {/* Shadow disabled — hard: removes ALL speaking cards (phrase-shadow +
+            scene-shadow + scene-roleplay). Scenes auto-skip cloze → done. */}
         <div style={{padding:"10px 12px",background:c.s2,borderRadius:8,marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div>
-            <div style={{fontSize:13,fontWeight:600}}>🎤 Shadow mode (speaking)</div>
-            <div style={{fontSize:11,color:c.m,marginTop:2}}>Turn off to remove mic exercises from sessions entirely</div>
+            <div style={{fontSize:13,fontWeight:600}}>🎤 Speaking exercises</div>
+            <div style={{fontSize:11,color:c.m,marginTop:2}}>Turn off to hide shadow + scene-speak + roleplay. Scenes stop at fill-the-blanks.</div>
           </div>
           <button onClick={()=>save({settings:{...data.settings,shadowDisabled:!data.settings?.shadowDisabled}})}
             style={{...btn,padding:"6px 14px",borderRadius:20,background:data.settings?.shadowDisabled?c.s:c.a,color:data.settings?.shadowDisabled?c.m:"#fff",fontSize:12,fontWeight:600,border:"1px solid "+c.b}}>

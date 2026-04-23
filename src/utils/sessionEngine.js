@@ -598,11 +598,16 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   let reservedSceneCard = null;
   if (phrasesLearned >= 3) {
     const sceneProgress = data.scenes || {};
+    // When shadowDisabled (user's "hide speaking" toggle), exclude scenes
+    // whose next surface would be a speaking mode. The SmartSession onComplete
+    // handler also maps cloze → done directly so these scenes finish cleanly.
     const eligible = SCENE_STUDIES.filter(sc => {
       const prereqMet = sc.requires.every(id => (phrData[id]?.box || 0) >= 1);
       if (!prereqMet) return false;
       const state = sceneProgress[sc.id];
-      return !state || state.mode !== "done";
+      if (state && state.mode === "done") return false;
+      if (shadowDisabled && state && (state.mode === "shadow" || state.mode === "roleplay")) return false;
+      return true;
     });
     const inProgress = eligible.filter(sc => sceneProgress[sc.id]?.mode && sceneProgress[sc.id].mode !== "done");
     const unstarted = eligible.filter(sc => !sceneProgress[sc.id]?.mode);

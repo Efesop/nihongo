@@ -2156,8 +2156,14 @@ export default function SmartSession({
       }
     }
 
-    // Mode progression: watch → cloze → shadow → roleplay → done
-    const NEXT_MODE = { "scene-watch": "cloze", "scene-cloze": "shadow", "scene-shadow": "roleplay", "scene-roleplay": "done" };
+    // Mode progression: watch → cloze → shadow → roleplay → done.
+    // When shadowDisabled is on, cloze jumps straight to done (skips the two
+    // speaking modes) so the scene still completes cleanly without the user
+    // hitting a speaking card they asked to hide.
+    const hideSpeaking = !!data.settings?.shadowDisabled;
+    const NEXT_MODE = hideSpeaking
+      ? { "scene-watch": "cloze", "scene-cloze": "done", "scene-shadow": "done", "scene-roleplay": "done" }
+      : { "scene-watch": "cloze", "scene-cloze": "shadow", "scene-shadow": "roleplay", "scene-roleplay": "done" };
 
     const onComplete = (pass) => {
       const scenes = { ...(data.scenes || {}) };
