@@ -48,12 +48,30 @@ export default function Home({
       <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
         {dl>0&&<span style={{fontSize:12,color:c.m,fontFamily:mono}}>{dl} days to go</span>}
         {touristModeActive(data)&&<span style={{fontSize:11,color:c.go,fontFamily:mono,padding:"2px 8px",borderRadius:10,background:c.go+"18",border:"1px solid "+c.go+"44"}} title="New phrase intros restricted to 150 travel survival set">✈️ trip mode</span>}
+        {data.settings?.focusMode&&<span style={{fontSize:11,color:c.g,fontFamily:mono,padding:"2px 8px",borderRadius:10,background:c.g+"18",border:"1px solid "+c.g+"44"}} title="Narrow exercises, fewer new intros, non-core phrases paused">🎯 focus mode</span>}
         {(data.streak||1)>1&&<span style={{fontSize:12,color:c.a,fontFamily:mono,display:"inline-block",animation:streakCelebrate?"streakPop .6s ease-out, streakGlow 1.5s ease-in-out 3":"none"}}>🔥 {data.streak} day streak</span>}
         {/* Silent mode chip — quick toggle. When on, all speaking exercises route through tap-through (no mic) with no SRS penalty. */}
         <button onClick={()=>save({settings:{...data.settings,silentMode:!data.settings?.silentMode}})}
           title={data.settings?.silentMode?"Silent mode on — speaking cards skip mic":"Silent mode off — speaking cards use mic"}
           style={{marginLeft:"auto",padding:"4px 10px",borderRadius:14,border:"1px solid "+c.b,background:data.settings?.silentMode?c.a+"22":"transparent",color:data.settings?.silentMode?c.a:c.m,fontSize:11,fontFamily:mono,cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4}}>
           🔇 {data.settings?.silentMode?"silent on":"silent"}
+        </button>
+      </div>
+      {/* Focus Mode big toggle — primary UX affordance. Off state is muted so
+          users don't flip it by accident; on state is vivid green (prominent). */}
+      <div style={{marginTop:14,padding:"12px 14px",borderRadius:12,border:"1px solid "+(data.settings?.focusMode?c.g+"55":c.b),background:data.settings?.focusMode?c.g+"10":c.s2,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:700,color:data.settings?.focusMode?c.g:c.tx,marginBottom:2}}>🎯 Focus Mode {data.settings?.focusMode?"— on":""}</div>
+          <div style={{fontSize:11,color:c.m,lineHeight:1.4}}>
+            {data.settings?.focusMode
+              ?"Narrow exercises. 2 new / session. Non-core paused. Gentler romaji fade."
+              :"Feeling overwhelmed? Tap to strip the app to flashcard essentials."}
+          </div>
+        </div>
+        <button onClick={()=>save({settings:{...data.settings,focusMode:!data.settings?.focusMode}})}
+          className="ts-btn"
+          style={{padding:"8px 16px",borderRadius:20,background:data.settings?.focusMode?c.g:c.a,color:"#fff",fontSize:12,fontWeight:700,border:"none",cursor:"pointer",flexShrink:0}}>
+          {data.settings?.focusMode?"Turn off":"Turn on"}
         </button>
       </div>
     </div>

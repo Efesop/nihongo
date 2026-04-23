@@ -163,6 +163,13 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   const queue = [];
   const now = Date.now();
   const shadowDisabled = data.settings?.shadowDisabled;
+  // Focus Mode — depth over breadth. When user is overwhelmed, strip to the
+  // "flashcard essentials": 4 exercise types, fewer new intros, shorter
+  // sessions, gentler romaji fade, non-core reviews paused. Reverses the
+  // variety-overload failure mode and lets reps compound. Research: narrow
+  // spaced retrieval beats broad exposure 2:1 on delayed tests (Robinson 2001).
+  const focusMode = !!data.settings?.focusMode;
+  if (focusMode) sessionLength = Math.min(sessionLength, 8);
   // Morning/evening asymmetry: morning favours new items, evening favours reviews
   // Research: new encoding is stronger in morning, consolidation in evening
   const hour = new Date().getHours();
@@ -222,7 +229,19 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
 
   const duePhrases = PHRASES.filter(p => {
     const d = phrData[p[0]];
-    return d && now >= (d.next || 0);
+    if (!d || now < (d.next || 0)) return false;
+    // Focus Mode: pause non-core non-MC phrases while consolidating. They
+    // stay in the system (not forgotten, no progress lost) but their review
+    // slot frees up for the 150 core set. Check: skip if not tourist-core
+    // AND not mission-critical AND the interval since last review is < 3×
+    // the original interval (i.e., we'd normally review but we're stalling).
+    if (focusMode && !isTouristCore(p)) {
+      const lastReview = d.lastReview || 0;
+      const originalInterval = (d.next || 0) - lastReview;
+      const stallUntil = lastReview + (originalInterval * 3);
+      if (now < stallUntil) return false;
+    }
+    return true;
   });
 
   // 2. Struggling (box 0-2 AND due)
@@ -347,17 +366,38 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
       if (isDue) return { type: "leech-review", item: p, errorCount, isKana: false };
     }
 
-    // Romaji fading — progressive removal to force reading Japanese
+    // Romaji fading — progressive removal to force reading Japanese.
     // Research: romaji is a crutch that prevents direct kana reading.
-    // Aggressive fading: start hiding at box 1 to force kana reading early.
-    // Box 0: always show (first encounter)
-    // Box 1: hide 30% (start weaning immediately)
-    // Box 2: hide 65% (should be reading kana mostly)
-    // Box 3+: hide 95% (romaji is training wheels, take them off)
-    const hideRomaji = adjusted >= 3 ? Math.random() < 0.95
-      : adjusted >= 2 ? Math.random() < 0.65
-      : adjusted >= 1 ? Math.random() < 0.3
-      : false;
+    // Standard fade:   box1=30%, box2=65%, box3+=95% hidden.
+    // Focus-mode fade: box1=0%,  box2=50%, box3+=90% hidden (gentler, one box later).
+    const hideRomaji = focusMode
+      ? (adjusted >= 3 ? Math.random() < 0.90
+         : adjusted >= 2 ? Math.random() < 0.50
+         : false)
+      : (adjusted >= 3 ? Math.random() < 0.95
+         : adjusted >= 2 ? Math.random() < 0.65
+         : adjusted >= 1 ? Math.random() < 0.3
+         : false);
+
+    // Focus Mode — narrow to 3 phrase exercise types: listen, scenario, reverse.
+    // No shadow (mic), no production (8 choices), no kana-type (on-screen kbd).
+    // This is the "flashcard essentials" tight loop. 2:1 retention gain
+    // (Robinson 2001) on narrow spaced retrieval over broad variety.
+    if (focusMode) {
+      const r = Math.random();
+      if (adjusted <= 0) {
+        return r > 0.6 ? { type: "phrase-listen", item: p, hideRomaji } : { type: "phrase-scenario", item: p, hideRomaji };
+      }
+      if (adjusted <= 2) {
+        if (r > 0.75) return { type: "phrase-reverse", item: p, hideRomaji };
+        if (r > 0.4)  return { type: "phrase-listen", item: p, hideRomaji };
+        return { type: "phrase-scenario", item: p, hideRomaji };
+      }
+      // box 3+: mostly production retrieval (reverse) for depth
+      if (r > 0.4) return { type: "phrase-reverse", item: p, hideRomaji };
+      if (r > 0.15) return { type: "phrase-listen", item: p, hideRomaji };
+      return { type: "phrase-scenario", item: p, hideRomaji };
+    }
 
     // Pick based on weakest skill
     const weak = getWeakestSkill(p[0]);
@@ -741,8 +781,18 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // Previously, the deterministic order meant confused pairs, grammar patterns,
   // and AI exercises were ALWAYS outcompeted by the first 3 (pattern-assembly,
   // phrase-build, word-quiz) and never appeared.
-  const maxSpecials = backlogMode ? 1 : Math.min(specialPool.length, sessionLength <= 10 ? 3 : 4);
-  const reservedSpecials = shuffle(specialPool).slice(0, maxSpecials);
+  // Focus Mode: strip specialPool to the essentials user asked for —
+  // conversations (he likes these), grammar-pattern (fast insight, no mic),
+  // and scene/word-quiz drop out. Everything else = noise while consolidating.
+  let effectiveSpecialPool = specialPool;
+  if (focusMode) {
+    const FOCUS_ALLOWED = new Set(["conversation"]);
+    effectiveSpecialPool = specialPool.filter(s => FOCUS_ALLOWED.has(s.type));
+  }
+  const maxSpecials = focusMode
+    ? Math.min(effectiveSpecialPool.length, 1) // at most 1 special in focus
+    : (backlogMode ? 1 : Math.min(effectiveSpecialPool.length, sessionLength <= 10 ? 3 : 4));
+  const reservedSpecials = shuffle(effectiveSpecialPool).slice(0, maxSpecials);
 
   // ═══ STEP 2: BUILD REVIEW + NEW ITEM QUEUE ═══
   // Fill the remaining slots with SRS reviews and new items.
@@ -855,7 +905,9 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   // type causes the second item's learn card to overflow past sessionLength, meaning the
   // user sees try-first but never gets the lesson card in the same session.
   let newItemCount = 0;
-  const MAX_NEW = 5;
+  // Focus Mode caps new intros to 2 per session. Prevents the "20 new phrases
+  // sitting at box 1" thrash that makes nothing consolidate.
+  const MAX_NEW = focusMode ? 2 : 5;
   const slotsLeft = reviewSlots - queue.length;
 
   if (unseenKana.length > 0 && slotsLeft >= 2 && newItemCount < MAX_NEW) {

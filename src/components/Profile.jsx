@@ -37,6 +37,17 @@ export default function Profile({
         <div style={{fontSize:10,color:c.m,fontFamily:mono,textAlign:"right",marginBottom:16}}>{(profile.notes||"").length}/200</div>
 
         <div style={{fontSize:11,color:c.m,marginBottom:4,fontFamily:mono,textTransform:"uppercase"}}>Learn settings</div>
+        {/* Focus Mode — depth over breadth */}
+        <div style={{padding:"10px 12px",background:c.s2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:600}}>🎯 Focus Mode</div>
+            <div style={{fontSize:11,color:c.m,marginTop:2}}>Narrow exercises (listen/scenario/reverse + conversations). 8 cards, 2 new/session, non-core paused, slower romaji fade.</div>
+          </div>
+          <button onClick={()=>save({settings:{...data.settings,focusMode:!data.settings?.focusMode}})}
+            style={{...btn,padding:"6px 14px",borderRadius:20,background:data.settings?.focusMode?c.g:c.s,color:data.settings?.focusMode?"#fff":c.m,fontSize:12,fontWeight:600,border:"1px solid "+c.b}}>
+            {data.settings?.focusMode?"On":"Off"}
+          </button>
+        </div>
         {/* Tourist mode — auto when trip < 30 days, tri-state override */}
         <div style={{padding:"10px 12px",background:c.s2,borderRadius:8,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <div style={{flex:1,minWidth:0}}>
