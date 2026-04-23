@@ -25,6 +25,13 @@
  *   pitch             — atamadaka / heiban minimal-pair samples for pitch accent
  *                       intro + discrimination drill. Writes
  *                       public/audio/pitch/{pairId}-{pattern}.mp3
+ *   phrases-akira     — all 505 phrases re-voiced by akira (male). Writes
+ *                       public/audio/phrase-akira/{id}.mp3. Audio pipeline can
+ *                       alternate konoha ↔ akira on listen cards for voice
+ *                       variety without inviting pitch-memorisation cheating.
+ *   numbers           — native Japanese 1-99 (いち, に, ..., きゅうじゅうきゅう)
+ *                       for number-match + datetime exercises. Writes
+ *                       public/audio/numbers/{n}.mp3
  *
  * Voice override: VOICE_JA=voiceId node scripts/generate-audio.mjs
  * Model override: MODEL=eleven_v3 node scripts/generate-audio.mjs
@@ -43,11 +50,13 @@ const API_KEY = process.env.ELEVENLABS_API_KEY;
 if (!API_KEY) { console.error('Set ELEVENLABS_API_KEY env var'); process.exit(1); }
 
 // ── VOICES ─────────────────────────────────────────────────────────────────
-// Native Japanese voices — Tokyo/Kanto standard for clear pronunciation
+// Native Japanese voices — Tokyo/Kanto standard for clear pronunciation.
+// Only two canonical voices: konoha (F) + akira (M). No others — variety comes
+// from alternation, not from voice sprawl (keeps pronunciation model stable
+// across all content and avoids accidental fumi-in-scenes etc).
 const VOICES_JA = {
-  konoha: 'T7yYq3WpB94yAuOXraRi',  // Female — premium clarity, natural rhythm
-  akira:  'DOL4zlUH4vnnX1hByxsw',  // Male — smooth, captivating Tokyo standard
-  fumi:   'PmgfHCGeS5b7sH90BOOJ',  // Female — clear, friendly, gentle warmth
+  konoha: 'T7yYq3WpB94yAuOXraRi',  // Female — primary voice (phrases, kana, stories, scene A)
+  akira:  'DOL4zlUH4vnnX1hByxsw',  // Male — secondary (scene B, graded B, phrase-akira alternate)
 };
 
 const VOICE_JA = process.env.VOICE_JA || VOICES_JA.konoha;
@@ -284,7 +293,7 @@ async function main() {
   }
 
   // Create output dirs
-  ['kana','story','story2','story3','phrase','phrase-slow','graded','scenes','grammar','pitch'].forEach(d =>
+  ['kana','story','story2','story3','phrase','phrase-slow','phrase-akira','graded','scenes','grammar','pitch','numbers'].forEach(d =>
     mkdirSync(join(OUT, d), { recursive: true })
   );
 
@@ -392,6 +401,44 @@ async function main() {
           await generate(text, voice, outPath, { isJapanese: true, preset });
         }
       }
+    }
+  }
+
+  // ── AKIRA (MALE) PHRASE BANK ──
+  // Re-voice all 505 phrases with akira so the app can cycle voices on listen
+  // cards. Skips files that already exist (safe to resume on rate-limit).
+  if (mode === 'phrases-akira') {
+    console.log('\n\n👤 Phrases re-voiced by akira (male)…');
+    const allPhrases = await loadPhrases();
+    console.log(`  → ${allPhrases.length} phrases queued`);
+    for (const [id, text] of allPhrases) {
+      const outPath = join(OUT, 'phrase-akira', `${id}.mp3`);
+      if (existsSync(outPath)) { process.stdout.write('·'); continue; }
+      await generate(text, VOICES_JA.akira, outPath, { isJapanese: true, preset: 'learn' });
+    }
+  }
+
+  // ── NUMBERS 1-99 ──
+  // Japanese native reading for every integer 1..99. Powers number-match and
+  // any datetime exercise wanting real spoken values. Skips existing.
+  if (mode === 'numbers') {
+    console.log('\n\n🔢 Numbers 1-99 (Japanese)…');
+    const ONES = ['','いち','に','さん','よん','ご','ろく','なな','はち','きゅう'];
+    const numToKana = (n) => {
+      if (n < 10) return ONES[n];
+      if (n === 10) return 'じゅう';
+      if (n < 20) return 'じゅう' + ONES[n - 10];
+      const tens = Math.floor(n / 10);
+      const ones = n % 10;
+      return ONES[tens] + 'じゅう' + (ones ? ONES[ones] : '');
+    };
+    for (let n = 1; n <= 99; n++) {
+      const text = numToKana(n);
+      const outPath = join(OUT, 'numbers', `${n}.mp3`);
+      if (existsSync(outPath)) { process.stdout.write('·'); continue; }
+      process.stdout.write(`${n}: `);
+      await generate(text, VOICES_JA.konoha, outPath, { isJapanese: true, preset: 'learn' });
+      console.log(` ${text}`);
     }
   }
 
