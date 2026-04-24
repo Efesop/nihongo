@@ -1,9 +1,9 @@
-import { fontJa, T, JP, mono } from "../../data/constants.js";
+import { fontJa, T, JP, mono, SPEAKER_COLORS } from "../../data/constants.js";
 
 const REGISTER_LABELS = {
-  casual: { label: "CASUAL", color: "#f48fb1", warning: "For friends only — use polite versions at hotels, taxis, and business contexts." },
-  polite: { label: "POLITE", color: "#64b5f6", warning: null },
-  mixed:  { label: "MIXED", color: "#b08fd7", warning: "Service staff speak polite, customers casual. Notice the difference." },
+  casual: { label: "CASUAL", color: SPEAKER_COLORS.konoha, warning: "For friends only — use polite versions at hotels, taxis, and business contexts." },
+  polite: { label: "POLITE", color: SPEAKER_COLORS.akira,  warning: null },
+  mixed:  { label: "MIXED",  color: "#b08fd7",             warning: "Service staff speak polite, customers casual. Notice the difference." },
 };
 
 /**

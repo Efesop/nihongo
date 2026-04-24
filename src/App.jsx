@@ -25,6 +25,7 @@ import { shuffle, daysUntil } from "./utils/helpers.js";
 
 // Components
 import Home from "./components/Home.jsx";
+import { Skeleton } from "./components/SessionParts.jsx";
 import KanaTrainer from "./components/KanaTrainer.jsx";
 import PhraseBank from "./components/PhraseBank.jsx";
 import SenpaiChat from "./components/SenpaiChat.jsx";
@@ -76,6 +77,9 @@ function AuthedApp({ user, getToken }){
   // ?room=N auto-opens game tab at that room
   const _debugRoom = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('room') : null;
   const [tab,setTab]=useState(_debugRoom ? "game" : "kana");
+  // startIntent — set by Home hero / Onboarding handoff to tell SmartSession to
+  // start immediately (no landing card). Consumed once, cleared after use.
+  const [startIntent,setStartIntent]=useState(null);
   const [d,setD]=useState(null);
   const [loaded,setLoaded]=useState(false);
   const [theme,setTheme]=useState(()=>localStorage.getItem("nihongo-theme")||"dark");
@@ -680,17 +684,30 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     {storyPlaying?"■ stop":"🔊 story"}
   </button>:null;
 
-  const progressBar=(pct,color)=>(
-    <div style={{flex:1,height:8,background:c.s3,borderRadius:4,overflow:"hidden"}}>
-      <div style={{height:"100%",width:pct+"%",background:color,borderRadius:4,transition:"width .4s"}}/>
-    </div>
-  );
-
   const redGlow=theme==="dark"?"radial-gradient(ellipse 70% 35% at 50% 105%, rgba(192,40,42,0.13) 0%, transparent 100%)":"none";
   const wrap={fontFamily:font,background:theme==="dark"?`${redGlow}, ${c.bg}`:c.bg,color:c.tx,minHeight:"100vh",paddingBottom:isDesktop?0:70,paddingLeft:isDesktop?SIDEBAR_W:0};
   const inner={maxWidth:isDesktop?740:540,margin:"0 auto",padding:"28px 20px 36px"};
 
-  if(!loaded)return <div style={{...wrap,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{color:c.m}}>Loading...</span></div>;
+  if(!loaded)return(
+    <div style={wrap}>
+      <div style={inner}>
+        <div style={{marginBottom:18}}>
+          <Skeleton width="60%" height={32} radius={8} style={{marginBottom:10}}/>
+          <div style={{display:"flex",gap:8}}>
+            <Skeleton width={110} height={22} radius={999}/>
+            <Skeleton width={90}  height={22} radius={999}/>
+          </div>
+        </div>
+        <Skeleton height={72} radius={12} style={{marginBottom:16}}/>
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {Array.from({length:5}).map((_,i)=><Skeleton key={i} height={62} radius={12} style={{flex:1}}/>)}
+        </div>
+        <Skeleton height={46} radius={12} style={{marginBottom:10}}/>
+        <Skeleton height={96} radius={12} style={{marginBottom:10}}/>
+        <Skeleton height={160} radius={12}/>
+      </div>
+    </div>
+  );
 
   // ═══ ACCESS CODE GATE (new users only) ═══
   if(loaded&&!accessGranted)return(
@@ -736,7 +753,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     c={c} theme={theme} card={card} btn={btn}
     onboardStep={onboardStep} setOnboardStep={setOnboardStep}
     onboardAnswers={onboardAnswers} setOnboardAnswers={setOnboardAnswers}
-    save={save}
+    save={save} setTab={setTab} setStartIntent={setStartIntent}
   />;
 
   return <div style={wrap}>
@@ -747,7 +764,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       kMastered={kMastered} kDueCount={kDueCount} dueCount={dueCount} learnedPhr={learnedPhr} mcLeft={mcLeft}
       setTab={setTab} setPMode={setPMode} setPCat={setPCat} setPCards={setPCards} setPDone={setPDone} setPFlip={setPFlip} setPI={setPI} setFastTrack={setFastTrack}
       setKCards={setKCards} setKI={setKI} setKInput={setKInput} setKFb={setKFb} setKScore={setKScore} setKMistakes={setKMistakes} setKPeek={setKPeek} setKScreen={setKScreen}
-      startDrill={startDrill} isKanaDue={isKanaDue} progressBar={progressBar}
+      startDrill={startDrill} isKanaDue={isKanaDue} setStartIntent={setStartIntent}
       LEVEL_THRESHOLDS={LEVEL_THRESHOLDS} getLevel={getLevel} getXPForNext={getXPForNext}
       BADGE_DEFS={BADGE_DEFS}
     />}
@@ -798,6 +815,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       data={data} save={save} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}
       updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr} recordErrorReason={recordErrorReason}
       stopAudio={stopAudio} speakStory={speakStory} setTab={setTab}
+      startIntent={startIntent} clearStartIntent={()=>setStartIntent(null)}
       LEVEL_THRESHOLDS={LEVEL_THRESHOLDS} getLevel={getLevel} getXPForNext={getXPForNext}
       BADGE_DEFS={BADGE_DEFS} checkBadges={checkBadges}
     />}

@@ -1,18 +1,6 @@
 import { useState } from "react";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
-import { fontJa } from "../data/constants.js";
-
-const GRAMMAR_COLORS = {
-  particle: "#e8a838",
-  noun: "#5a9ec4",
-  verb: "#5ac48a",
-  adjective: "#c45a8b",
-  expression: "#8b8b8b",
-  counter: "#8b6ec4",
-  copula: "#c4985a",
-  suffix: "#6e8bc4",
-  question: "#e8a838",
-};
+import { fontJa, GRAMMAR_COLORS } from "../data/constants.js";
 
 /**
  * Renders Japanese phrase text with interactive word segments.

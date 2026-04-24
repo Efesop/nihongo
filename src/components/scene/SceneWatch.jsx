@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fontJa, T, JP, mono } from "../../data/constants.js";
+import { fontJa, T, JP, mono, SPEAKER_COLORS } from "../../data/constants.js";
 import { IconPlay, IconRefresh, IconCheck, IconX } from "../Icons.jsx";
 import { TypeLabel } from "../SessionParts.jsx";
 import SceneIntro from "./SceneIntro.jsx";
@@ -139,14 +139,14 @@ export default function SceneWatch({ scene, knownWords = [], onComplete, c, btn,
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
         {visibleLines.map((ln, i) => {
           const isKonoha = ln.speaker === "a";
-          const accent = isKonoha ? "#f48fb1" : "#64b5f6";
+          const accent = isKonoha ? SPEAKER_COLORS.konoha : SPEAKER_COLORS.akira;
           const active = i === lineIdx;
-          return <div key={i} style={{
+          return <div key={i} className="ts-reveal" style={{
             background: c.s, border: "1px solid " + c.b, borderRadius: 12,
             padding: "12px 14px",
             borderLeft: `3px solid ${accent}`,
             opacity: active ? 1 : 0.85,
-            transition: "opacity .3s",
+            transition: "opacity .3s ease-out",
             display: "flex", flexDirection: "column", gap: 4,
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fontJa, JP } from "../../data/constants.js";
+import { fontJa, JP, SPEAKER_COLORS } from "../../data/constants.js";
 
 /**
  * Word-level karaoke highlight synced to an audio element.
@@ -23,7 +23,7 @@ export default function KaraokeText({
   audioRef,
   fontSize,
   color,
-  activeColor = "#f48fb1",
+  activeColor = SPEAKER_COLORS.konoha,
   onWordTap,
   style = {},
 }) {
@@ -91,7 +91,7 @@ export default function KaraokeText({
         style={{
           color: isActive ? activeColor : inPast ? color : "inherit",
           fontWeight: isActive ? 700 : JP.weight,
-          transition: "color .1s ease-out",
+          transition: "color .15s ease-out",
           cursor: onWordTap ? "pointer" : "inherit",
         }}>
         {ch}

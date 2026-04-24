@@ -17,7 +17,7 @@ function stableChoices(arr) {
     return keyOf(a).localeCompare(keyOf(b));
   });
 }
-import { buildSmartSession, getDistractors } from "../utils/sessionEngine.js";
+import { buildSmartSession, getDistractors, resolveNextAction } from "../utils/sessionEngine.js";
 import PhraseSegments from "./PhraseSegments.jsx";
 import SceneWatch from "./scene/SceneWatch.jsx";
 import SceneCloze from "./scene/SceneCloze.jsx";
@@ -38,73 +38,15 @@ import { KEY_WORDS, WORD_CATS } from "../data/keyWords.js";
 import { ActionBar, HintChip, RomajiReveal, TypeLabel, PlayButton, ResultMark, NoneOfThese, ChoiceCard, ensureSessionStyles, SceneImage, JpText, AudioOrb } from "./SessionParts.jsx";
 import { IconPlay, IconSlowPlay, IconEar, IconBulb, IconBlock, IconEye, IconSkip, IconBackspace, IconCheck, IconX, IconArrowRight, IconMic, IconSparkle, IconRefresh } from "./Icons.jsx";
 import { track as telemetryTrack, flush as telemetryFlush } from "../utils/telemetry.js";
-
-const GRAMMAR_COLORS = {
-  particle: "#e8a838",
-  noun: "#5a9ec4",
-  verb: "#5ac48a",
-  adjective: "#c45a8b",
-  expression: "#8b8b8b",
-  counter: "#8b6ec4",
-  copula: "#c4985a",
-  suffix: "#6e8bc4",
-  question: "#e8a838",
-};
-
-const ROLE_AVATARS = {
-  "You":     { emoji: "🎒", bg: "#5a9ec4" },
-  "Staff":   { emoji: "👨‍🍳", bg: "#e8a838" },
-  "Clerk":   { emoji: "🏪", bg: "#8b6ec4" },
-  "Hotel staff": { emoji: "🏨", bg: "#c4985a" },
-  "Driver":  { emoji: "🚕", bg: "#5ac48a" },
-  "Local":   { emoji: "🗾", bg: "#c45a8b" },
-  "Friend":  { emoji: "☕", bg: "#e8a838" },
-  "Passerby": { emoji: "🚶", bg: "#8b8b8b" },
-  "staff":   { emoji: "👨‍🍳", bg: "#e8a838" },
-  "you":     { emoji: "🎒", bg: "#5a9ec4" },
-  "local":   { emoji: "🗾", bg: "#c45a8b" },
-};
-
-function RoleAvatar({ role, size = 32 }) {
-  const av = ROLE_AVATARS[role] || { emoji: "💬", bg: "#666" };
-  return <div style={{
-    width: size, height: size, borderRadius: "50%",
-    background: av.bg + "33", border: "2px solid " + av.bg,
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: size * 0.5, flexShrink: 0,
-  }}>{av.emoji}</div>;
-}
-
-function RecallCard({ english, japanese, c, isDesktop, onReveal }) {
-  const [revealed, setRevealed] = useState(false);
-  return <div onClick={() => { if (!revealed) { setRevealed(true); onReveal?.(); } }}
-    style={{
-      padding: "10px 14px", borderRadius: 8, marginBottom: 6, cursor: revealed ? "default" : "pointer",
-      background: revealed ? c.g + "12" : c.s2, border: "1px solid " + (revealed ? c.g + "33" : c.b),
-      transition: "all .2s",
-    }}>
-    <div style={{ fontSize: T.sm, color: c.m, marginBottom: revealed ? 4 : 0 }}>{english}</div>
-    {revealed && <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: JP.weight, fontFamily: fontJa, color: c.tx }}>{japanese}</div>}
-    {!revealed && <div style={{ fontSize: T.xs, color: c.go, fontStyle: "italic" }}>tap to reveal →</div>}
-  </div>;
-}
-
-function ColoredJP({ phraseId, fallbackText, fontSize, fontWeight = 700 }) {
-  const breakdown = PHRASE_BREAKDOWNS[phraseId];
-  if (!breakdown) return <span style={{ fontFamily: fontJa, fontSize, fontWeight, lineHeight: 1.3 }}>{fallbackText}</span>;
-  return <span style={{ display: "inline-flex", flexWrap: "wrap", gap: 2, alignItems: "baseline", lineHeight: 1.3 }}>
-    {breakdown.map((seg, i) => {
-      const [jp, , , type] = seg;
-      const col = GRAMMAR_COLORS[type] || "#888";
-      return <span key={i} style={{ fontFamily: fontJa, fontSize, fontWeight, borderBottom: "2px solid " + col + "40", padding: "0 1px" }}>{jp}</span>;
-    })}
-  </span>;
-}
+import RoleAvatar from "./SmartSession/shared/RoleAvatar.jsx";
+import RecallCard from "./SmartSession/shared/RecallCard.jsx";
+import ColoredJP  from "./SmartSession/shared/ColoredJP.jsx";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
   updateKanaSRS, reviewPhr, recordErrorReason,
   stopAudio, speakStory, setTab,
+  startIntent, clearStartIntent,
   LEVEL_THRESHOLDS, getLevel, getXPForNext,
   BADGE_DEFS, checkBadges,
 }) {
@@ -136,6 +78,9 @@ export default function SmartSession({
   const [convoAnswers, setConvoAnswers] = useState({});
   const [convoSubmitted, setConvoSubmitted] = useState(false);
   const [cardFlipped, setCardFlipped] = useState(false);
+  // Dwell timer for learn-phrase: quiz unlocks 3s after flip so learner reads the
+  // phrase before being tested on its meaning. Prevents shallow "flip → guess".
+  const [learnDwellReady, setLearnDwellReady] = useState(false);
   const [selectedBlank, setSelectedBlank] = useState(null);
   const [draggingId, setDraggingId] = useState(null);
   const [storyData, setStoryData] = useState(null);
@@ -158,10 +103,13 @@ export default function SmartSession({
   const [chainStep, setChainStep] = useState(0); // current step in phrase-chain exercise
   const [chainAnswers, setChainAnswers] = useState([]); // array of { correct: bool } per step
   const [chainPicked, setChainPicked] = useState(null); // currently selected option (before confirming)
+  const [chainWrongCompared, setChainWrongCompared] = useState(null); // per-step side-by-side comparison after wrong pick
+  const [mmQuizPick, setMmQuizPick] = useState(null); // mistake-memory retrieval gate — null until user proves comprehension
   const [kanaTyped, setKanaTyped] = useState([]); // characters typed so far in kana-type exercise
   const [kanaSubmitted, setKanaSubmitted] = useState(false); // whether answer has been checked
   const [kanaPrePhase, setKanaPrePhase] = useState("meaning"); // "meaning" | "spell" — scaffold for phrase-kana-type
   const [kanaMeaningWrong, setKanaMeaningWrong] = useState(false);
+  const [kanaMeaningWrongPick, setKanaMeaningWrongPick] = useState(null); // which phrase the learner picked, so we show jp↔en side-by-side
   const [kbTab, setKbTab] = useState(0); // kana keyboard tab: 0=basic, 1=dakuten, 2=katakana
   const [shadowState, setShadowState] = useState("idle"); // idle | listening | done
   const [shadowResult, setShadowResult] = useState(null); // { transcript, correct }
@@ -342,6 +290,67 @@ export default function SmartSession({
     }
   }, [done]);
 
+  // Dwell timer for learn-phrase: once the card flips to show the phrase, wait
+  // 3 seconds before unlocking the quick-check quiz. Stops the shallow flip→guess loop.
+  useEffect(() => {
+    if (!cardFlipped) { setLearnDwellReady(false); return; }
+    const t = setTimeout(() => setLearnDwellReady(true), 3000);
+    return () => clearTimeout(t);
+  }, [cardFlipped, ci]);
+
+  // Consume startIntent on mount: when Home hero or Onboarding requests an
+  // immediate session start, we clear the intent so it doesn't loop on re-renders.
+  useEffect(() => {
+    if (startIntent && clearStartIntent) {
+      clearStartIntent();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-chain (opt-in). When user has enabled `data.settings.autoContinue`
+  // and the resolver suggests keep-going, auto-start the next session after
+  // a brief pause so the user has time to read feedback and bail via Esc.
+  useEffect(() => {
+    if (!done) return;
+    if (!data.settings?.autoContinue) return;
+    const action = resolveNextAction(data);
+    if (action.mode !== "keep-going") return;
+
+    let cancelled = false;
+    const t = setTimeout(() => {
+      if (cancelled) return;
+      setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null);
+      setConvoAnswers({}); setConvoSubmitted(false); setStoryData(null); setBranchData(null);
+      setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null); setLeechChoices([]);
+      setAssemblySlots([]); setAssemblyPool([]); setAssemblySubmitted(false);
+      try {
+        const session = buildSmartSession(data, 10, data.settings?.sessionDifficulty || 0);
+        setCards(session.length > 0 ? session : []);
+        if (session.length === 0) setDone(true);
+      } catch (e) { console.error("Session build failed:", e); setDone(true); }
+      setLoading(false);
+    }, 4000);
+
+    // Any keypress or tap cancels the auto-chain (user reclaim control)
+    const onBail = (e) => {
+      if (e.key === "Escape" || e.type === "pointerdown") {
+        cancelled = true;
+        clearTimeout(t);
+        window.removeEventListener("keydown", onBail);
+        window.removeEventListener("pointerdown", onBail);
+      }
+    };
+    window.addEventListener("keydown", onBail);
+    window.addEventListener("pointerdown", onBail);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      window.removeEventListener("keydown", onBail);
+      window.removeEventListener("pointerdown", onBail);
+    };
+  }, [done]);
+
   // Floating chat send
   const sendChat = async () => {
     if (!chatInput.trim() || chatLoading) return;
@@ -462,7 +471,17 @@ export default function SmartSession({
 
         setSessionFeedback(diffNote);
 
-        const updatedSettings = { ...data.settings, sessionDifficulty: (data.settings?.sessionDifficulty || 0) + diffAdj, xp: newXP, sRanks, sessionCount, recentAccuracy };
+        // Daily-session counter (used by resolveNextAction). Resets each day.
+        const today = new Date().toDateString();
+        const prevDay = data.settings?.sessionsTodayDate;
+        const sessionsToday = (prevDay === today ? (data.settings?.sessionsToday || 0) : 0) + 1;
+
+        const updatedSettings = {
+          ...data.settings,
+          sessionDifficulty: (data.settings?.sessionDifficulty || 0) + diffAdj,
+          xp: newXP, sRanks, sessionCount, recentAccuracy,
+          sessionsToday, sessionsTodayDate: today,
+        };
         save({ settings: updatedSettings });
         // Check for new badges
         if (checkBadges) {
@@ -547,10 +566,55 @@ export default function SmartSession({
           <div style={{ fontSize: T.base, color: c.tx, lineHeight: 1.6 }}>{reviewCoaching}</div>
         </div>}
 
-        {/* Actions */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-          <button onClick={() => {
-            // Build new session immediately
+        {/* Auto-chain opt-in prompt — offered once after user completes 3 sessions today,
+            unless they've already chosen or dismissed. Keeps the "no thinking" promise opt-in. */}
+        {(() => {
+          const st = data.settings || {};
+          if (st.autoContinue) return null;
+          if (st.autoContinueDismissed) return null;
+          const today = new Date().toDateString();
+          const sessionsToday = st.sessionsTodayDate === today ? (st.sessionsToday || 0) : 0;
+          if (sessionsToday < 3) return null;
+          return (
+            <div className="ts-reveal" style={{
+              marginBottom: 16, padding: "12px 16px",
+              background: c.a + "0a", border: "1px solid " + c.a + "33",
+              borderRadius: 10, textAlign: "left",
+            }}>
+              <div style={{ fontSize: T.sm, fontWeight: 700, color: c.a, marginBottom: 4 }}>
+                Flow state — keep it going?
+              </div>
+              <div style={{ fontSize: T.xs, color: c.m, marginBottom: 10, lineHeight: 1.5 }}>
+                Turn on auto-continue and sessions will chain without a tap. You can still pause any time (tap or Esc).
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => save({ settings: { ...st, autoContinue: true } })}
+                  className="ts-btn"
+                  style={{
+                    ...btn, flex: 1, padding: "8px 12px", borderRadius: 8,
+                    background: c.a, color: "#fff", fontSize: T.sm, fontWeight: 600,
+                  }}
+                >Turn on</button>
+                <button
+                  onClick={() => save({ settings: { ...st, autoContinueDismissed: true } })}
+                  style={{
+                    ...btn, flex: 1, padding: "8px 12px", borderRadius: 8,
+                    background: "transparent", border: "1px solid " + c.b,
+                    color: c.m, fontSize: T.sm,
+                  }}
+                >No thanks</button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Smart end-of-session CTA — resolver picks one action to avoid choice paralysis.
+            User can still bail via the subtle "back home" link below. */}
+        {(() => {
+          const action = resolveNextAction(data);
+          const isKeepGoing = action.mode === "keep-going";
+          const startNext = () => {
             setDone(false); setCi(0); setScore({ c: 0, w: 0 }); setStruggled([]); setFb(null); setInput(""); setChoiceAnswer(null); setSessionFeedback(null);
             setConvoAnswers({}); setConvoSubmitted(false); setStoryData(null); setBranchData(null);
             setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null); setLeechChoices([]);
@@ -561,11 +625,46 @@ export default function SmartSession({
               if (session.length === 0) setDone(true);
             } catch (e) { console.error("Session build failed:", e); setDone(true); }
             setLoading(false);
-          }}
-            style={{ ...btn, padding: 14, borderRadius: 10, background: c.a, color: "#fff", fontSize: T.base, fontWeight: 600 }}>Continue →</button>
-          <button onClick={() => { stopAudio(); setTab("home"); }}
-            style={{ ...btn, padding: 14, borderRadius: 10, border: "1px solid " + c.b, background: "transparent", color: c.m, fontSize: T.sm }}>Done for now</button>
-        </div>
+          };
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+              {isKeepGoing ? (
+                <button
+                  onClick={startNext}
+                  className="ts-btn"
+                  style={{
+                    ...btn, padding: 14, borderRadius: 10,
+                    background: c.a, color: "#fff",
+                    fontSize: T.base, fontWeight: 600,
+                  }}
+                >{action.label}</button>
+              ) : (
+                <div style={{
+                  padding: "14px 16px", borderRadius: 10,
+                  background: c.g + "10", border: "1px solid " + c.g + "33",
+                }}>
+                  <div style={{ fontSize: T.base, fontWeight: 700, color: c.g }}>{action.label}</div>
+                  {action.subLabel && (
+                    <div style={{ fontSize: T.xs, color: c.m, marginTop: 4, lineHeight: 1.4 }}>{action.subLabel}</div>
+                  )}
+                </div>
+              )}
+              <button
+                onClick={() => { stopAudio(); setTab("home"); }}
+                style={{
+                  ...btn, padding: 10, borderRadius: 10,
+                  border: "1px solid " + c.b, background: "transparent",
+                  color: c.m, fontSize: T.sm,
+                }}
+              >{isKeepGoing ? "Done for now" : "Extra practice →"}</button>
+              {data.settings?.autoContinue && isKeepGoing && (
+                <div style={{ fontSize: T.xs, color: c.m, textAlign: "center", fontFamily: mono }}>
+                  auto-continue on — next session starts in a moment
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>;
   }
@@ -591,7 +690,7 @@ export default function SmartSession({
     setBranchData(null); setBranchHistory([]); setBranchTurn(1); setBranchScore(0); setBranchLoading(false);
     setLeechPhase("study"); setLeechInput(""); setLeechFb(null); setLeechPicked(null); setLeechChoices([]);
     setAssemblySlots([]); setAssemblyPool([]); setAssemblySubmitted(false);
-    setRomajiRevealed(false); setCardFlipped(false);
+    setRomajiRevealed(false); setCardFlipped(false); setLearnDwellReady(false);
     setChainStep(0); setChainAnswers([]); setChainPicked(null);
     setKanaTyped([]); setKanaSubmitted(false); setKbTab(0); setKanaPrePhase("meaning"); setKanaMeaningWrong(false);
     setShadowState("idle"); setShadowResult(null);
@@ -798,6 +897,24 @@ export default function SmartSession({
             <img src={imgPath} alt="" onError={e => { e.target.style.display = "none"; }} style={{ width: "45%", maxWidth: 200, borderRadius: 12 }} />
           </div>
           {m && <div style={{ fontSize: T.sm, color: c.m, marginTop: 12, fontStyle: "italic" }}>{m[0]} {m[1]}: {m[2]}</div>}
+          {/* Phonetic anchor on feedback: show one real word containing this kana so
+              the symbol→sound mapping gets encoded in a meaningful context, not in
+              isolation. Retention moment lands here (just after the recall attempt). */}
+          {KANA_WORDS[ex.item]?.[0] && (
+            <div className="ts-reveal" style={{
+              marginTop: 10, padding: "10px 14px", borderRadius: 10,
+              background: c.s2, border: "1px solid " + c.b,
+              display: "inline-flex", alignItems: "center", gap: 10,
+            }}>
+              <span style={{ fontSize: T.xs, color: c.m, fontFamily: mono }}>heard in:</span>
+              <span style={{ fontFamily: fontJa, fontSize: T.lg, fontWeight: JP.weight }}>{KANA_WORDS[ex.item][0].word}</span>
+              <span style={{ fontSize: T.sm, color: c.m }}>({KANA_WORDS[ex.item][0].meaning})</span>
+              <button className="ts-icon-btn" onClick={(e) => { e.stopPropagation(); speak(KANA_WORDS[ex.item][0].word); }}
+                style={{ padding: "4px 8px", borderRadius: 6, background: c.s, border: "1px solid " + c.b, color: c.tx }}>
+                <IconPlay size={12}/>
+              </button>
+            </div>
+          )}
         </div>
         : <div style={{ fontSize: 130, lineHeight: 1, marginBottom: 16 }}>{ex.item}</div>}
       </div>
@@ -875,7 +992,12 @@ export default function SmartSession({
     const p = ex.item;
     const catCol = CAT_COLORS[p[4]];
     if (!choiceAnswer) {
-      const isTrick = Math.random() < 0.25;
+      // Trick mode (25% no-correct-answer) only applies once the phrase is at box
+      // 2+. Below that, it felt like a gotcha: a beginner couldn't distinguish
+      // "I don't know" from "there is no answer". Also, wrong picks in trick mode
+      // do NOT penalise SRS — see the reviewPhr call below (noSrs flag).
+      const pBox = data.phr?.[p[0]]?.box ?? 0;
+      const isTrick = pBox >= 2 && Math.random() < 0.25;
       const choices = isTrick ? shuffle(getDistractors(p, 4)) : shuffle([p, ...getDistractors(p)]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null, correct: null, isTrick }), 0);
       return null;
@@ -955,7 +1077,9 @@ export default function SmartSession({
   if (ex.type === "phrase-listen") {
     const p = ex.item;
     if (!choiceAnswer) {
-      const isTrick = Math.random() < 0.2;
+      // Trick mode disabled for box <2 so beginners aren't punished by gotcha cards.
+      const pBox = data.phr?.[p[0]]?.box ?? 0;
+      const isTrick = pBox >= 2 && Math.random() < 0.2;
       const choices = isTrick ? shuffle(getDistractors(p, 4)) : shuffle([p, ...getDistractors(p)]);
       speakPhrase(p[0], p[1]);
       setTimeout(() => setChoiceAnswer({ choices, selected: null, correct: null, isTrick }), 0);
@@ -993,6 +1117,11 @@ export default function SmartSession({
           const isCorrect = !choiceAnswer.isTrick && choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
           const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          // Dual coding: show JP under EN pre-answer when this phrase isn't mastered (box<3).
+          // Beginner can then tie audio → written form → meaning in a single card, which
+          // strengthens retention. At box 3+, hide JP to force pure audio→meaning recall.
+          const choiceBox = data.phr?.[choice[0]]?.box ?? 0;
+          const showJpPre = !answered && choiceBox < 3;
           return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const correct = isCorrect;
@@ -1004,6 +1133,11 @@ export default function SmartSession({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontWeight: 500 }}>{choice[3]}</div>
+                {showJpPre && (
+                  <div style={{ fontSize: T.sm, color: c.m, fontFamily: fontJa, marginTop: 3, fontWeight: JP.weight, lineHeight: 1.3, opacity: .85 }}>
+                    {choice[1]}
+                  </div>
+                )}
                 {answered && (PHRASE_BREAKDOWNS[choice[0]]
                   ? <div style={{ marginTop: 6 }}><PhraseSegments phraseId={choice[0]} c={c} fontSize={isDesktop ? T.xl : T.lg} chunk={shouldChunk(choice[0])} /></div>
                   : <div style={{ fontSize: isDesktop ? T.xl : T.lg, color: c.m2, fontFamily: fontJa, marginTop: 3, fontWeight: 600 }}>{choice[1]}</div>)}
@@ -1253,7 +1387,7 @@ export default function SmartSession({
         </div>
       ) : (
         /* ── BACK: full phrase content (existing) ── */
-        <div style={{ ...card, padding: 0, marginBottom: 14, animation: "fadeIn .35s ease" }}>
+        <div className="ts-reveal" style={{ ...card, padding: 0, marginBottom: 14 }}>
           <SceneImage phraseId={p[0]} isDesktop={isDesktop} />
           <div style={{ padding: "16px 20px", background: catCol + "12", borderBottom: "1px solid " + catCol + "22" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1307,19 +1441,26 @@ export default function SmartSession({
           </div>
         </div>
       )}
-      {cardFlipped && <>
-        {/* Inline retrieval check — pick the right English meaning */}
+      {cardFlipped && !learnDwellReady && (
+        <div className="ts-reveal" style={{ ...card, padding: "14px 18px", marginBottom: 12, textAlign: "center" }}>
+          <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", letterSpacing: ".06em" }}>Reading…</div>
+          <div style={{ fontSize: T.sm, color: c.m, marginTop: 4 }}>Take a moment to encode it. Quick check in a moment.</div>
+        </div>
+      )}
+      {cardFlipped && learnDwellReady && <>
+        {/* Inline retrieval check — pick the right English meaning.
+            3 distractors from DIFFERENT categories so category-matching alone
+            can't produce a correct answer (prev: 1 same-category distractor → 50% guess). */}
         {(() => {
           const quizAnswered = storyAnswer !== null;
-          // 2 distractor English meanings from same category
-          const sameCat = PHRASES.filter(pp => pp[4] === p[4] && pp[0] !== p[0]);
-          const distractors = shuffle(sameCat).slice(0, 1);
+          const otherCat = PHRASES.filter(pp => pp[4] !== p[4] && pp[0] !== p[0]);
+          const distractors = shuffle(otherCat).slice(0, 3);
           if (distractors.length === 0) return null;
           const choices = (() => {
             if (!ex._learnQuizChoices) ex._learnQuizChoices = shuffle([p, ...distractors]);
             return ex._learnQuizChoices;
           })();
-          return <div style={{ ...card, padding: "16px 20px", marginBottom: 12, borderLeft: "3px solid " + c.go, animation: "fadeIn .35s ease .15s both" }}>
+          return <div className="ts-reveal" style={{ ...card, padding: "16px 20px", marginBottom: 12, borderLeft: "3px solid " + c.go, animationDelay: ".15s", animationFillMode: "both" }}>
             <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
             <div style={{ fontSize: T.base, color: c.tx, marginBottom: 10 }}>What does <span style={{ fontWeight: JP.weight, fontFamily: fontJa, fontSize: T.lg }}>{p[1]}</span> mean?</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -1735,10 +1876,16 @@ export default function SmartSession({
         if (choice[0] === p[0]) {
           setKanaPrePhase("spell");
           setKanaMeaningWrong(false);
+          setKanaMeaningWrongPick(null);
         } else {
           setKanaMeaningWrong(true);
-          // reveal correct then advance after 1.5s
-          setTimeout(() => { setKanaPrePhase("spell"); setKanaMeaningWrong(false); }, 1500);
+          setKanaMeaningWrongPick(choice);
+          // Stretched to 2.5s — learner needs time to read the side-by-side comparison
+          setTimeout(() => {
+            setKanaPrePhase("spell");
+            setKanaMeaningWrong(false);
+            setKanaMeaningWrongPick(null);
+          }, 2500);
         }
       };
 
@@ -1758,9 +1905,27 @@ export default function SmartSession({
             </ChoiceCard>;
           })}
         </div>
-        {kanaMeaningWrong && <div style={{ textAlign: "center", marginTop: 10, fontSize: T.sm, color: c.m }}>
-          Got it — now spell it out.
-        </div>}
+        {kanaMeaningWrong && kanaMeaningWrongPick && (
+          <div className="ts-reveal" style={{
+            marginTop: 12, padding: "12px 14px", borderRadius: 10,
+            background: c.s2, border: "1px solid " + c.b,
+          }}>
+            <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", marginBottom: 6 }}>Remember</div>
+            <div style={{ fontSize: T.sm, color: c.tx, marginBottom: 4 }}>
+              <span style={{ fontFamily: fontJa, fontWeight: JP.weight, fontSize: T.lg }}>{p[1]}</span>
+              {" = "}
+              <span style={{ color: c.g, fontWeight: 600 }}>{p[3]}</span>
+            </div>
+            <div style={{ fontSize: T.sm, color: c.tx }}>
+              <span style={{ fontFamily: fontJa, fontWeight: JP.weight, fontSize: T.lg }}>{kanaMeaningWrongPick[1]}</span>
+              {" = "}
+              <span style={{ color: c.a, fontWeight: 600 }}>{kanaMeaningWrongPick[3]}</span>
+            </div>
+            <div style={{ fontSize: T.xs, color: c.m, marginTop: 6, fontStyle: "italic" }}>
+              Now spell it out.
+            </div>
+          </div>
+        )}
       </>);
     }
 
@@ -2495,7 +2660,9 @@ export default function SmartSession({
         </div>)}
       </div>
 
-      {/* Active retrieval quiz on the first remix */}
+      {/* Active retrieval quiz on the first remix.
+          EN under each JP choice during selection — prevents sound-match guessing.
+          All remixes are brand-new content (box 0), so always show EN. */}
       <div style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: "3px solid " + c.go }}>
         <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Quick check</div>
         <div style={{ fontSize: T.base, color: c.tx, marginBottom: 12 }}>How would you say: <span style={{ fontWeight: 700 }}>"{quizRemix.en}"</span>?</div>
@@ -2503,6 +2670,8 @@ export default function SmartSession({
           {quizChoices.map((choice, i) => {
             const isCorrect = choice === quizRemix.jp;
             const isPicked = storyAnswer === i;
+            const remixForChoice = storyData.remixes.find(r => r.jp === choice);
+            const enForChoice = remixForChoice?.en;
             let bg = "transparent", border = c.b, col = c.tx;
             if (quizAnswered && isCorrect) { bg = c.gs; border = c.g + "55"; col = c.g; }
             if (quizAnswered && isPicked && !isCorrect) { bg = c.rs; border = c.a + "55"; col = c.a; }
@@ -2511,7 +2680,12 @@ export default function SmartSession({
               setStoryAnswer(i);
               setScore(s => isCorrect ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
               if (isCorrect) speak(choice);
-            }} style={{ ...btn, padding: "12px 16px", borderRadius: 8, border: "1px solid " + border, background: bg, color: col, fontSize: isDesktop ? T.xl : T.lg, textAlign: "left", fontFamily: fontJa }}>{choice}</button>;
+            }} style={{ ...btn, padding: "10px 14px", borderRadius: 8, border: "1px solid " + border, background: bg, color: col, textAlign: "left" }}>
+              <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.xl : T.lg, fontWeight: JP.weight, lineHeight: 1.3 }}>{choice}</div>
+              {!quizAnswered && enForChoice && (
+                <div style={{ fontSize: T.xs, color: c.m, marginTop: 3, lineHeight: 1.3 }}>{enForChoice}</div>
+              )}
+            </button>;
           })}
         </div>
       </div>
@@ -2580,8 +2754,62 @@ export default function SmartSession({
           <div style={{ fontSize: T.base, color: c.tx, fontWeight: 600 }}>{storyData.tip}</div>
         </div>}
       </div>
-      <button onClick={() => { setStoryData(null); setStoryLoading(false); advance(true); }}
-        style={{ ...btn, width: "100%", padding: 14, borderRadius: 12, background: c.a, color: "#fff", fontSize: T.md, fontWeight: 600 }}>I understand — Next →</button>
+
+      {/* Retrieval gate — user must prove they can recall the correct meaning for
+          one of the error items before advancing. Prevents passive "I understand" clicks
+          that skip the actual learning moment. */}
+      {(() => {
+        const quizItem = ex.errorItems[0];
+        if (!quizItem) return null;
+        const quizAnswered = mmQuizPick !== null;
+        // Build 3 distractors from other error items or random PHRASES
+        const pool = [
+          ...ex.errorItems.slice(1).map(e => e.correct),
+          ...PHRASES.filter(p => p[3] && p[3] !== quizItem.correct).map(p => p[3]).slice(0, 10),
+        ];
+        const distractors = shuffle([...new Set(pool.filter(x => x && x !== quizItem.correct))]).slice(0, 3);
+        const choices = (() => {
+          if (!storyData._mmChoices) storyData._mmChoices = shuffle([quizItem.correct, ...distractors]);
+          return storyData._mmChoices;
+        })();
+        const correctIdx = choices.indexOf(quizItem.correct);
+        return (
+          <div className="ts-reveal" style={{ ...card, padding: "16px 20px", marginBottom: 14, borderLeft: "3px solid " + c.go }}>
+            <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", marginBottom: 8 }}>Prove you've got it</div>
+            <div style={{ fontSize: T.base, color: c.tx, marginBottom: 10 }}>
+              What does <span style={{ fontFamily: fontJa, fontWeight: JP.weight, fontSize: T.lg }}>{quizItem.item}</span> mean?
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {choices.map((choice, i) => {
+                const isCorrect = i === correctIdx;
+                const isPicked = mmQuizPick === i;
+                const state = quizAnswered && isCorrect ? "correct" : quizAnswered && isPicked && !isCorrect ? "wrong" : quizAnswered ? "dim" : "idle";
+                return (
+                  <ChoiceCard key={i} c={c} btn={btn} disabled={quizAnswered} state={state}
+                    onClick={() => {
+                      if (quizAnswered) return;
+                      setMmQuizPick(i);
+                      setScore(s => isCorrect ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+                    }}
+                  >{choice}</ChoiceCard>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+      <button
+        onClick={() => { setStoryData(null); setStoryLoading(false); setMmQuizPick(null); advance(true); }}
+        disabled={mmQuizPick === null}
+        style={{
+          ...btn, width: "100%", padding: 14, borderRadius: 12,
+          background: mmQuizPick === null ? c.s2 : c.a,
+          color: mmQuizPick === null ? c.m : "#fff",
+          fontSize: T.md, fontWeight: 600,
+          cursor: mmQuizPick === null ? "not-allowed" : "pointer",
+        }}
+      >{mmQuizPick === null ? "Answer above to continue" : "Next →"}</button>
     </>);
   }
 
@@ -2663,14 +2891,24 @@ export default function SmartSession({
               setChainPicked(phrase[0]);
               const ok = isCorrect;
               if (ok) { speakPhrase(phrase[0], phrase[1]); senpaiReact(true); }
-              else senpaiReact(false);
+              else {
+                senpaiReact(false);
+                // Stash the side-by-side comparison so the next render shows it.
+                const correctPhrase = PHRASES.find(pp => pp[0] === currentStep.correctId);
+                setChainWrongCompared({
+                  step: chainStep,
+                  picked: phrase,
+                  correct: correctPhrase,
+                });
+              }
               const newAnswers = [...chainAnswers, { correct: ok, phraseId: phrase[0] }];
               setChainAnswers(newAnswers);
               reviewPhr(currentStep.correctId, ok, "phrase-chain", getResponseMs());
               setTimeout(() => {
                 setChainPicked(null);
+                setChainWrongCompared(null);
                 setChainStep(chainStep + 1);
-              }, ok ? 1200 : 2500);
+              }, ok ? 1200 : 3500);
             }}>
               <JpText isDesktop={isDesktop}>{phrase[1]}</JpText>
               <div style={{ fontSize: T.sm, fontFamily: mono, color: c.ro, marginTop: 2 }}>{phrase[2]}</div>
@@ -2678,6 +2916,30 @@ export default function SmartSession({
             </ChoiceCard>;
           })}
         </div>
+        {/* Wrong-step side-by-side: show the learner's pick vs correct so they
+            understand the difference, not just "wrong, moving on." */}
+        {chainWrongCompared && chainWrongCompared.step === chainStep && (
+          <div className="ts-reveal" style={{
+            marginTop: 10, padding: "12px 14px", borderRadius: 10,
+            background: c.s2, border: "1px solid " + c.b,
+          }}>
+            <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>
+              Compare
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ padding: "8px 10px", borderRadius: 8, background: c.rs, borderLeft: "3px solid " + c.a }}>
+                <div style={{ fontSize: T.xs, color: c.a, fontFamily: mono, marginBottom: 2 }}>You picked</div>
+                <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.lg : T.md, fontWeight: JP.weight }}>{chainWrongCompared.picked?.[1]}</div>
+                <div style={{ fontSize: T.sm, color: c.m }}>{chainWrongCompared.picked?.[3]}</div>
+              </div>
+              <div style={{ padding: "8px 10px", borderRadius: 8, background: c.gs, borderLeft: "3px solid " + c.g }}>
+                <div style={{ fontSize: T.xs, color: c.g, fontFamily: mono, marginBottom: 2 }}>Correct</div>
+                <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.lg : T.md, fontWeight: JP.weight }}>{chainWrongCompared.correct?.[1]}</div>
+                <div style={{ fontSize: T.sm, color: c.m }}>{chainWrongCompared.correct?.[3]}</div>
+              </div>
+            </div>
+          </div>
+        )}
       </>}
 
       {/* Chain complete — summary */}
@@ -2775,6 +3037,14 @@ export default function SmartSession({
                     <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, flex: 1, fontFamily: fontJa, lineHeight: 1.4 }}>{line.text}</div>
                     <button className="ts-icon-btn" onClick={() => speak(line.text)} style={{ ...btn, padding: "2px 6px", borderRadius: 4, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></button>
                   </div>
+                  {/* EN translation below the other-speaker line so beginner can decode
+                      context without it giving away the blank (the blanks are what THEY
+                      say next, not what this NPC said). */}
+                  {line.translation && (
+                    <div style={{ fontSize: T.sm, color: c.m, marginTop: 2, lineHeight: 1.35 }}>
+                      {line.translation}
+                    </div>
+                  )}
                 </div>
               </div>;
             }
@@ -2803,12 +3073,15 @@ export default function SmartSession({
             </div>;
           })}
         </div>
-        {/* All options — drag or tap to place */}
+        {/* All options — drag or tap to place. EN + romaji shown under each chip
+            below box 3 so learners can discriminate meaning, not just sound. */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
-          {allOptions.map((optId, i) => {
+          {allOptions.map((optId) => {
             const p = phraseById(optId);
             if (!p) return null;
             const used = usedIds.includes(optId);
+            const boxOfChoice = data.phr?.[optId]?.box || 0;
+            const showEn = boxOfChoice < 3;
             return <button key={optId} draggable={!used}
               onDragStart={() => setDraggingId(optId)}
               onDragEnd={() => setDraggingId(null)}
@@ -2817,8 +3090,13 @@ export default function SmartSession({
                 if (targetBlank >= 0) handleDrop(targetBlank, optId);
               }}
               disabled={used}
-              style={{ ...btn, padding: "12px 10px", borderRadius: 8, border: "1px solid " + (draggingId === optId ? c.a : c.b), background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, fontSize: isDesktop ? T.xl : T.lg, textAlign: "left", opacity: used ? .4 : 1, cursor: used ? "default" : "grab", transition: "all .15s", fontFamily: fontJa }}>
-              {p[1]}
+              style={{ ...btn, padding: "10px 12px", borderRadius: 8, border: "1px solid " + (draggingId === optId ? c.a : c.b), background: used ? c.s2 : "transparent", color: used ? c.m : c.tx, textAlign: "left", opacity: used ? .4 : 1, cursor: used ? "default" : "grab", transition: "all .15s" }}>
+              <div style={{ fontFamily: fontJa, fontSize: isDesktop ? T.xl : T.lg, fontWeight: JP.weight, lineHeight: 1.3 }}>{p[1]}</div>
+              {showEn && (
+                <div style={{ fontSize: T.xs, color: c.m, marginTop: 3, lineHeight: 1.3 }}>
+                  {p[3]}
+                </div>
+              )}
             </button>;
           })}
         </div>
@@ -2911,10 +3189,11 @@ export default function SmartSession({
     const targetRomaji = pair.romaji[targetIdx];
     if (!choiceAnswer) {
       speak(targetChar);
-      setTimeout(() => setChoiceAnswer({ targetIdx, selected: null }), 0);
+      setTimeout(() => setChoiceAnswer({ targetIdx, selected: null, firstWrongShown: false }), 0);
       return null;
     }
     const answered = choiceAnswer.selected !== null;
+    const showHintDuringRetry = choiceAnswer.firstWrongShown && !answered;
     return withSenpai(<>
       {typeLabel}
       <div style={{ ...card, padding: "28px 20px", marginBottom: 14, textAlign: "center" }}>
@@ -2929,26 +3208,49 @@ export default function SmartSession({
             return <button key={i} onClick={() => {
               if (answered) return;
               const ok = i === targetIdx;
+              // First wrong attempt: reveal the discriminator hint and let them try again.
+              // This is discrimination training — teach the difference, don't just flash red.
+              // SRS still records the attempt as wrong (they needed help).
+              if (!ok && !choiceAnswer.firstWrongShown) {
+                setChoiceAnswer({ ...choiceAnswer, firstWrongShown: true });
+                return;
+              }
               setChoiceAnswer({ ...choiceAnswer, selected: i });
               setFb(ok ? "ok" : "no");
-              setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-              updateKanaSRS(targetChar, ok, "kana-pair", getResponseMs());
-              setTimeout(() => advance(ok), ok ? (getResponseMs() < 1500 ? 1000 : 2000) : 3500);
+              // If they needed a retry, count as wrong in score even if final pick was right.
+              const srsOk = ok && !choiceAnswer.firstWrongShown;
+              setScore(s => srsOk ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
+              updateKanaSRS(targetChar, srsOk, "kana-pair", getResponseMs());
+              setTimeout(() => advance(srsOk), srsOk ? (getResponseMs() < 1500 ? 1000 : 2000) : 3500);
             }} style={{ ...btn, width: 120, height: 120, borderRadius: 16, border: "2px solid " + border, background: bg, fontSize: T.huge, color: col, transition: "all .2s" }}>
               {ch}
             </button>;
           })}
         </div>
         <button className="ts-icon-btn" onClick={() => speak(targetChar)} style={{ ...btn, marginTop: 12, padding: "6px 16px", borderRadius: 6, background: c.s2, border: "1px solid " + c.b, fontSize: T.base, color: c.tx }}><IconPlay size={14}/> hear again</button>
-        {answered && <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 8, background: c.s2, border: "1px solid " + c.b }}>
-          <div style={{ fontSize: T.base, color: c.tx }}>{pair.hint}</div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
-            {pair.chars.map((ch, i) => <div key={i} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: T.xxl }}>{ch}</div>
-              <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro }}>{pair.romaji[i]}</div>
-            </div>)}
+
+        {/* Discriminator hint — shown DURING retry (not only after final answer) so
+            learners learn the distinction rather than being told the answer post-hoc. */}
+        {(showHintDuringRetry || answered) && (
+          <div className="ts-reveal" style={{
+            marginTop: 16, padding: "10px 14px", borderRadius: 8,
+            background: showHintDuringRetry ? c.go + "10" : c.s2,
+            border: "1px solid " + (showHintDuringRetry ? c.go + "44" : c.b),
+          }}>
+            {showHintDuringRetry && (
+              <div style={{ fontSize: T.xs, fontFamily: mono, color: c.go, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 6 }}>
+                Not quite — try again with this:
+              </div>
+            )}
+            <div style={{ fontSize: T.base, color: c.tx }}>{pair.hint}</div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 8 }}>
+              {pair.chars.map((ch, i) => <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: T.xxl }}>{ch}</div>
+                <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro }}>{pair.romaji[i]}</div>
+              </div>)}
+            </div>
           </div>
-        </div>}
+        )}
       </div>
     </>);
   }
@@ -3009,6 +3311,11 @@ export default function SmartSession({
           const isCorrect = w[0] === word[0];
           const isSelected = choiceAnswer.selected === w[0];
           const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          // Reverse (EN → pick JP): below box 3, show romaji under each JP choice
+          // so beginners can decode characters without losing the retrieval challenge
+          // (they still need to map meaning → sound → correct word, not just match kanji shapes).
+          const wordBox = (word[0] && data.phr) ? 0 : 0; // vocab words don't have SRS boxes yet
+          const showRomajiPre = isReverse && !answered && wordBox < 3;
           return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const ok = w[0] === word[0];
@@ -3018,6 +3325,9 @@ export default function SmartSession({
             if (isReverse && ok) speak(w[0]);
           }}>
             <span style={{ fontSize: isReverse ? T.xl : T.base, fontWeight: isReverse ? JP.weight : 500, fontFamily: isReverse ? fontJa : "inherit", lineHeight: 1.3 }}>{isReverse ? w[0] : w[2]}</span>
+            {showRomajiPre && w[1] && (
+              <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro, marginTop: 2, opacity: .85 }}>{w[1]}</div>
+            )}
             {isReverse && answered && <div style={{ fontSize: T.sm, color: c.m2, marginTop: 2 }}>{w[2]}</div>}
           </ChoiceCard>;
         })}
@@ -3116,13 +3426,19 @@ export default function SmartSession({
           const isCorrect = choice === blankSeg[0];
           const isSelected = choiceAnswer.selected === choice;
           const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          // Look up meaning for this segment across all breakdowns (same segment can
+          // appear in many phrases). Needed both pre-submit (scaffolding below box 3)
+          // and post-submit (feedback).
           let choiceMeaning = "";
-          if (answered) {
-            for (const [, segs] of Object.entries(PHRASE_BREAKDOWNS)) {
-              const found = segs.find(s => s[0] === choice);
-              if (found) { choiceMeaning = found[2]; break; }
-            }
+          for (const [, segs] of Object.entries(PHRASE_BREAKDOWNS)) {
+            const found = segs.find(s => s[0] === choice);
+            if (found) { choiceMeaning = found[2]; break; }
           }
+          // Scaffolding: all choices are same grammar type (e.g. all particles) so the
+          // type hint on the prompt doesn't help discriminate. Show individual MEANING
+          // under each choice pre-submit when the phrase isn't mastered yet.
+          const phraseBox = data.phr?.[p[0]]?.box ?? 0;
+          const showMeaningPre = !answered && phraseBox < 3 && choiceMeaning;
           return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             const ok = choice === blankSeg[0];
@@ -3133,6 +3449,9 @@ export default function SmartSession({
             if (ok) speakPhrase(p[0], p[1]);
           }}>
             <span style={{ fontSize: T.xl, fontWeight: JP.weight, fontFamily: fontJa, lineHeight: 1.3 }}>{choice}</span>
+            {showMeaningPre && (
+              <div style={{ fontSize: T.xs, color: c.m, marginTop: 3, fontStyle: "italic" }}>{choiceMeaning}</div>
+            )}
             {answered && choiceMeaning && <span style={{ fontSize: T.sm, color: c.m2, fontWeight: 400, marginLeft: 8 }}>({choiceMeaning})</span>}
           </ChoiceCard>;
         })}
@@ -3251,12 +3570,22 @@ export default function SmartSession({
         </div>}
       </div>}
 
-      {/* Available pieces — NO English hints before submit */}
+      {/* Available pieces. Previously no hints, but beginners staring at を・の・が
+          couldn't tell particles apart → guessing. Show meaning under each piece
+          until they've mastered the associated phrase (box 3+), then remove to
+          prevent scaffolding becoming a crutch. */}
       {!assemblySubmitted && <div style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "center", marginBottom: 16 }}>
-        {assemblyPool.map(piece => <button key={piece.id} onClick={() => addPiece(piece)}
-          style={{ ...btn, padding: "14px 20px", borderRadius: 12, color: c.tx, background: c.s, border: "1px solid " + c.b, cursor: "pointer", transition: "all .15s" }}>
-          <JpText isDesktop={isDesktop} as="span" size="big">{piece.japanese}</JpText>
-        </button>)}
+        {assemblyPool.map(piece => {
+          const phraseBox = data.phr?.[ex.item?.[0]]?.box || 0;
+          const showMeaning = phraseBox < 3 && piece.meaning;
+          return <button key={piece.id} onClick={() => addPiece(piece)}
+            style={{ ...btn, padding: "12px 18px", borderRadius: 12, color: c.tx, background: c.s, border: "1px solid " + c.b, cursor: "pointer", transition: "all .15s", display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <JpText isDesktop={isDesktop} as="span" size="big">{piece.japanese}</JpText>
+            {showMeaning && (
+              <span style={{ fontSize: T.xs, color: c.m, lineHeight: 1 }}>{piece.meaning}</span>
+            )}
+          </button>;
+        })}
       </div>}
 
       {/* Submit / Clear / Next buttons */}
@@ -3544,6 +3873,12 @@ export default function SmartSession({
           const isCorrect = choice[0] === p[0];
           const isSelected = choiceAnswer.selected === choice[0];
           const state = answered && isCorrect ? "correct" : answered && isSelected && !isCorrect ? "wrong" : answered ? "dim" : "idle";
+          // Show romaji under JP on choice buttons when the choice is brand-new
+          // (box <2 or unseen). Beginner can't decode characters yet; without romaji
+          // this whole exercise is just "can you read kana." Exercise stays a real
+          // production probe — they still have to match JP-phonetic-form to EN prompt.
+          const choiceBox = data.phr?.[choice[0]]?.box ?? 0;
+          const showRomaji = !answered && choiceBox < 2;
           return <ChoiceCard key={i} c={c} btn={btn} disabled={answered} state={state} onClick={() => {
             if (answered) return;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
@@ -3551,6 +3886,11 @@ export default function SmartSession({
             speakPhrase(p[0], p[1]);
           }}>
             <JpText isDesktop={isDesktop} as="span">{choice[1]}</JpText>
+            {showRomaji && choice[2] && (
+              <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro, marginTop: 3, opacity: .85 }}>
+                {choice[2]}
+              </div>
+            )}
             {answered && isCorrect && <span style={{ fontSize: T.sm, color: c.g, marginLeft: 8 }}>= {p[3]}</span>}
           </ChoiceCard>;
         })}

@@ -39,6 +39,21 @@ export function ensureSessionStyles() {
     @keyframes tapPulse { 0%,100% { opacity: 1; } 50% { opacity: .6; transform: scale(1.03); } }
     .ts-tap-reveal { animation: tapPulse 2s ease-in-out infinite; }
 
+    /* ts-reveal — canonical fade + 4px slide-up for post-answer reveals, hints, tips.
+       Use .ts-reveal (300ms) for section reveals. .ts-reveal-fast (150ms) for feedback marks. */
+    @keyframes tsReveal { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .ts-reveal       { animation: tsReveal .3s ease-out; }
+    .ts-reveal-fast  { animation: tsReveal .15s ease-out; }
+
+    /* Skeleton loading shimmer for loading states */
+    @keyframes tsShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .ts-skeleton {
+      background: linear-gradient(90deg, rgba(128,128,128,.08) 0%, rgba(128,128,128,.18) 50%, rgba(128,128,128,.08) 100%);
+      background-size: 200% 100%;
+      animation: tsShimmer 1.6s ease-in-out infinite;
+      border-radius: 8px;
+    }
+
     /* Audio orb — liquid glass with morphing blobs */
     @keyframes orbFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
     @keyframes orbGlow  { 0%,100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 0.85; transform: scale(1.15); } }
@@ -519,6 +534,192 @@ export function SceneImage({ phraseId, isDesktop, header = true }) {
       }}
       onError={e => { e.target.style.display = "none"; }}
     />
+  );
+}
+
+/**
+ * ProgressBar — canonical progress indicator. Replaces inline div-in-div markup across
+ * Home, Layout, KanaTrainer, PhraseBank, DailyDrill, Onboarding, SmartSession, App.
+ */
+export function ProgressBar({ pct, color, c, height = 8, track, radius, style = {} }) {
+  const pp = Math.max(0, Math.min(100, Number(pct) || 0));
+  const h = height;
+  const r = radius ?? h / 2;
+  return (
+    <div style={{
+      width: "100%", height: h, borderRadius: r,
+      background: track || c.b, overflow: "hidden", ...style,
+    }}>
+      <div style={{
+        width: pp + "%", height: "100%",
+        background: color || c.a,
+        borderRadius: r,
+        transition: "width .3s ease",
+      }} />
+    </div>
+  );
+}
+
+/**
+ * Badge — small chip for status / mode indicators (trip mode, focus mode, streak).
+ * Color token + optional icon + label. Used instead of hand-rolled inline pills.
+ */
+export function Badge({ icon, label, color, c, title, onClick, style = {} }) {
+  const col = color || c.go;
+  return (
+    <span
+      onClick={onClick}
+      title={title}
+      className={onClick ? "ts-chip" : undefined}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "4px 10px", borderRadius: 999,
+        background: col + "1a", border: "1px solid " + col + "55",
+        color: col, fontSize: T.xs, fontWeight: 600,
+        cursor: onClick ? "pointer" : "default",
+        ...style,
+      }}
+    >
+      {icon && <span style={{ display: "inline-flex", alignItems: "center" }}>{icon}</span>}
+      {label && <span>{label}</span>}
+    </span>
+  );
+}
+
+/**
+ * SpeakerBubble — dialogue line container with left-accent stripe + speaker name.
+ * Collapses the scene-bubble pattern duplicated in SceneWatch / SceneCloze /
+ * SceneShadow / SceneRolePlay into one primitive.
+ */
+export function SpeakerBubble({ name, accent, c, children, style = {}, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: "10px 12px 10px 14px",
+        background: c.s,
+        border: "1px solid " + c.b,
+        borderLeft: "3px solid " + accent,
+        borderRadius: 10,
+        cursor: onClick ? "pointer" : "default",
+        ...style,
+      }}
+    >
+      {name && (
+        <div style={{
+          fontSize: T.xs, fontFamily: mono, color: accent,
+          fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px",
+          marginBottom: 4,
+        }}>{name}</div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Skeleton — loading placeholder block. Combine with flex/grid to build skeleton cards.
+ */
+export function Skeleton({ width = "100%", height = 14, radius = 8, style = {} }) {
+  return <div className="ts-skeleton" style={{ width, height, borderRadius: radius, ...style }} />;
+}
+
+/**
+ * ChoiceGloss — wraps a choice button with scaffolding text below the JP hero.
+ *
+ * Props:
+ *   jp           — Japanese (hero, always shown)
+ *   en           — English translation (optional)
+ *   romaji       — romaji reading (optional)
+ *   tag          — small category tag e.g. "[verb]", "[particle]"
+ *   scaffold     — { en, romaji } from scaffoldForBox() controlling visibility
+ *                  "always" → render inline, "tap" → render via secondary tap, "post"/"hide" → nothing now
+ *   state        — passes through to ChoiceCard ("idle" | "correct" | "wrong" | "dim" | "revealed")
+ *   onClick, disabled, c, btn — passthrough
+ *   isDesktop    — for JP font size
+ *
+ * Default behavior when `scaffold` is omitted: show JP only (legacy).
+ */
+export function ChoiceGloss({
+  jp, en, romaji, tag,
+  scaffold = { en: "hide", romaji: "hide" },
+  state = "idle", onClick, disabled, c, btn, isDesktop,
+  showPostAnswer = false,
+}) {
+  const enVisible = scaffold.en === "always" || (showPostAnswer && scaffold.en === "post");
+  const roVisible = scaffold.romaji === "always" || (showPostAnswer && scaffold.romaji === "post");
+  const bg = {
+    idle: c.s2, correct: c.g + "22", wrong: c.a + "18", dim: c.s, revealed: c.g + "18",
+  }[state];
+  const border = {
+    idle: "1px solid " + c.b, correct: "2px solid " + c.g, wrong: "2px solid " + c.a,
+    dim: "1px solid " + c.b, revealed: "2px solid " + c.g + "88",
+  }[state];
+  const textCol = state === "dim" ? c.m : c.tx;
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="ts-choice"
+      style={{
+        ...btn, width: "100%", padding: "12px 14px", borderRadius: 10,
+        background: bg, border, color: textCol,
+        textAlign: "left", display: "block",
+        opacity: state === "dim" ? 0.55 : 1,
+      }}
+    >
+      <div style={{
+        fontFamily: fontJa, fontSize: isDesktop ? JP.size.desktop : JP.size.mobile,
+        fontWeight: JP.weight, lineHeight: JP.lineHeight, color: textCol,
+      }}>{jp}</div>
+      {roVisible && romaji && (
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro, marginTop: 3, opacity: .85 }}>
+          {romaji}
+        </div>
+      )}
+      {enVisible && en && (
+        <div style={{ fontSize: T.sm, color: c.m, marginTop: 3, lineHeight: 1.3 }}>
+          {en}
+        </div>
+      )}
+      {tag && (
+        <div style={{
+          display: "inline-block", marginTop: 4, padding: "1px 6px",
+          fontSize: T.xs, fontFamily: mono, color: c.m, background: c.s,
+          border: "1px solid " + c.b, borderRadius: 4,
+        }}>{tag}</div>
+      )}
+    </button>
+  );
+}
+
+/**
+ * PostAnswerReveal — consistent block shown after a production/conversation/choice
+ * exercise has been submitted. JP hero, EN under, optional romaji, optional note.
+ * Use to ensure the retention moment lands the same way across all exercises.
+ */
+export function PostAnswerReveal({ jp, en, romaji, note, correct = true, c, isDesktop }) {
+  const col = correct ? c.g : c.a;
+  return (
+    <div className="ts-reveal" style={{
+      marginTop: 12, padding: "12px 14px",
+      background: col + "0d", border: "1px solid " + col + "33",
+      borderRadius: 10,
+    }}>
+      <div style={{
+        fontFamily: fontJa, fontSize: isDesktop ? JP.size.desktop : JP.size.mobile,
+        fontWeight: JP.weight, lineHeight: JP.lineHeight, color: c.tx, marginBottom: 4,
+      }}>{jp}</div>
+      {romaji && (
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.ro, marginBottom: 4 }}>{romaji}</div>
+      )}
+      {en && (
+        <div style={{ fontSize: T.sm, color: c.m }}>{en}</div>
+      )}
+      {note && (
+        <div style={{ fontSize: T.xs, color: c.m2 || c.m, marginTop: 6, fontStyle: "italic" }}>{note}</div>
+      )}
+    </div>
   );
 }
 

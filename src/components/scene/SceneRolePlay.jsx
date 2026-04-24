@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fontJa, T, JP, mono } from "../../data/constants.js";
+import { fontJa, T, JP, mono, SPEAKER_COLORS } from "../../data/constants.js";
 import { IconPlay, IconCheck, IconX } from "../Icons.jsx";
 import { TypeLabel } from "../SessionParts.jsx";
 import SceneIntro from "./SceneIntro.jsx";
@@ -131,8 +131,8 @@ export default function SceneRolePlay({ scene, knownWords = [], onComplete, c, b
         </div>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
-        <RoleBtn role="a" name={roleA} count={countA} color="#f48fb1" />
-        <RoleBtn role="b" name={roleB} count={countB} color="#64b5f6" />
+        <RoleBtn role="a" name={roleA} count={countA} color={SPEAKER_COLORS.konoha} />
+        <RoleBtn role="b" name={roleB} count={countB} color={SPEAKER_COLORS.akira} />
       </div>
     </>;
   }
@@ -143,7 +143,7 @@ export default function SceneRolePlay({ scene, knownWords = [], onComplete, c, b
 
   const isMyTurn = line.speaker === myRole;
   const isKonoha = line.speaker === "a";
-  const accent = isKonoha ? "#f48fb1" : "#64b5f6";
+  const accent = isKonoha ? SPEAKER_COLORS.konoha : SPEAKER_COLORS.akira;
 
   const header = <div style={{ ...card, padding: 14, marginBottom: 12 }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>

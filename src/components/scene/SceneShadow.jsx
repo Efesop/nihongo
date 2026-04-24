@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { fontJa, T, JP, mono } from "../../data/constants.js";
+import { fontJa, T, JP, mono, SPEAKER_COLORS } from "../../data/constants.js";
 import { IconPlay, IconCheck, IconX } from "../Icons.jsx";
 import { TypeLabel } from "../SessionParts.jsx";
 import SceneIntro from "./SceneIntro.jsx";
@@ -81,7 +81,7 @@ export default function SceneShadow({ scene, knownWords = [], onComplete, c, btn
   // ═══ PLAY ═══
   const line = scene.lines[lineIdx];
   const isKonoha = line.speaker === "a";
-  const accent = isKonoha ? "#f48fb1" : "#64b5f6";
+  const accent = isKonoha ? SPEAKER_COLORS.konoha : SPEAKER_COLORS.akira;
 
   const lineHero = <>
     {/* Header */}

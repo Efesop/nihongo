@@ -1112,6 +1112,62 @@ export function getSessionSummary(data) {
 }
 
 /**
+ * Resolve the next-action after a session completes. Central brain for the
+ * end-of-session CTA. Returns one of:
+ *
+ *   { mode: "keep-going", dueCount, label }
+ *     — there's real due work left, and user hasn't exhausted the daily budget
+ *   { mode: "extra-practice", label }
+ *     — no due, but new material available (unseen kana/phrases)
+ *   { mode: "all-caught-up", label, subLabel }
+ *     — passive. Suggest rest; user can still force extra practice.
+ *
+ * `sessionsToday` is the daily session counter (persisted on data.settings.sessionsToday
+ * + sessionsTodayDate). Default daily cap = 3 before we stop nagging to keep going.
+ */
+export function resolveNextAction(data) {
+  const now = Date.now();
+  const kanaData = data.kana || {};
+  const phrData = data.phr || {};
+  const dueKana = ALL_BASE_KANA.filter(ch => {
+    const d = kanaData[ch];
+    return d && d.box >= 1 && now >= (d.next || 0);
+  }).length;
+  const duePhrases = PHRASES.filter(p => {
+    const d = phrData[p[0]];
+    return d && d.box >= 1 && now >= (d.next || 0);
+  }).length;
+  const dueCount = dueKana + duePhrases;
+  const unseenKana = ALL_BASE_KANA.filter(ch => !kanaData[ch] && M[ch]).length;
+  const unseenPhrases = PHRASES.filter(p => !phrData[p[0]]).length;
+
+  const today = new Date().toDateString();
+  const lastDay = data.settings?.sessionsTodayDate;
+  const sessionsToday = lastDay === today ? (data.settings?.sessionsToday || 0) : 0;
+  const DAILY_SOFT_CAP = 3;
+
+  if (dueCount > 0 && sessionsToday < DAILY_SOFT_CAP) {
+    return { mode: "keep-going", dueCount, label: `Keep going — ${dueCount} due →` };
+  }
+  if (unseenKana + unseenPhrases > 0 && sessionsToday < DAILY_SOFT_CAP) {
+    return { mode: "keep-going", dueCount: 0, label: "Start next session →" };
+  }
+  if (dueCount === 0 && unseenKana + unseenPhrases === 0) {
+    return {
+      mode: "all-caught-up",
+      label: "Done for today — see you tomorrow",
+      subLabel: "Everything mastered. A good day to rest.",
+    };
+  }
+  // Over daily cap
+  return {
+    mode: "all-caught-up",
+    label: "Nice work — rest your brain",
+    subLabel: `You've done ${sessionsToday} sessions today. Spaced practice beats cramming.`,
+  };
+}
+
+/**
  * Fuzzy match romaji input for phrase production mode
  */
 export function matchRomaji(input, target) {

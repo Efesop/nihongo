@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fontJa, T, JP, mono } from "../../data/constants.js";
+import { fontJa, T, JP, mono, SPEAKER_COLORS } from "../../data/constants.js";
 import { IconPlay, IconRefresh, IconCheck, IconX } from "../Icons.jsx";
 import { TypeLabel } from "../SessionParts.jsx";
 import { shuffle } from "../../utils/helpers.js";
@@ -113,7 +113,7 @@ export default function SceneCloze({ scene, knownWords = [], onComplete, c, btn,
     const line = scene.lines[blank.lineIdx];
     const opts = options[lineIdx];
     const isKonoha = line.speaker === "a";
-    const accent = isKonoha ? "#f48fb1" : "#64b5f6";
+    const accent = isKonoha ? SPEAKER_COLORS.konoha : SPEAKER_COLORS.akira;
 
     // Build the line with the blank rendered as ____
     const beforeBlank = line.jp.slice(0, blank.start);
