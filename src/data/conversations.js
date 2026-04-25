@@ -1,6 +1,19 @@
-// Mini conversation scenarios with blanks for fill-in-the-blank exercises
-// Each conversation has a setting, lines of dialogue, and blanks to fill
-// blank: { position, correct: phraseId, options: [phraseId, ...] }
+// Mini conversation scenarios with blanks for fill-in-the-blank exercises.
+//
+// Each blank shape:
+//   { speaker, blank: true, correctId, alsoOkIds?, options }
+//
+// `correctId`        — the canonical/expected answer (shown if the user picks something else as "the most natural pick")
+// `alsoOkIds`        — other phrase IDs that are also contextually appropriate.
+//                      Picking any of these is graded as correct (not "wrong but close").
+//                      If omitted, only `correctId` counts as correct.
+// `options`          — the 4-choice pool shown to the learner.
+//
+// Why alsoOkIds exists: real conversations have multiple valid responses. After
+// "200 yen" at a conbini, "cash please", "card please", "no bag", "no receipt"
+// are all reasonable. Marking only one as correct discourages the learner.
+// Distractors that don't fit context (e.g. "where is the toilet?" after "200 yen")
+// stay in `options` but NOT in `alsoOkIds`.
 
 export const CONVERSATIONS = [
   // ===== EXISTING 6 CONVERSATIONS =====
@@ -10,11 +23,11 @@ export const CONVERSATIONS = [
     icon: "🍜",
     lines: [
       { speaker: "staff", text: "いらっしゃいませ！" , translation: "Welcome!" },
-      { speaker: "you", blank: true, correctId: "f8", options: ["f8", "f1", "g5", "g8"] },
+      { speaker: "you", blank: true, correctId: "f8", alsoOkIds: ["g5"], options: ["f8", "f1", "g5", "g8"] },
       { speaker: "staff", text: "こちらへどうぞ。", translation: "This way please." },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g10", "g7", "f4"] },
       { speaker: "staff", text: "ご注文は？", translation: "Your order?" },
-      { speaker: "you", blank: true, correctId: "f1", options: ["f1", "f2", "f3", "s1"] },
+      { speaker: "you", blank: true, correctId: "f1", alsoOkIds: ["f3"], options: ["f1", "f2", "f3", "s1"] },
     ]
   },
   {
@@ -22,10 +35,10 @@ export const CONVERSATIONS = [
     setting: "You've finished eating...",
     icon: "🍜",
     lines: [
-      { speaker: "you", blank: true, correctId: "f6", options: ["f6", "f5", "f4", "g4"] },
+      { speaker: "you", blank: true, correctId: "f6", alsoOkIds: ["g4", "f4"], options: ["f6", "f5", "f4", "g4"] },
       { speaker: "you", blank: true, correctId: "f2", options: ["f2", "f1", "f3", "s3"] },
       { speaker: "staff", text: "3,500円です。", translation: "That'll be 3,500 yen." },
-      { speaker: "you", blank: true, correctId: "s3", options: ["s3", "s4", "s1", "g8"] },
+      { speaker: "you", blank: true, correctId: "s3", alsoOkIds: ["s4"], options: ["s3", "s4", "s1", "g8"] },
     ]
   },
   {
@@ -33,8 +46,8 @@ export const CONVERSATIONS = [
     setting: "You arrive at your hotel...",
     icon: "🏨",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "g4", "g10"] },
-      { speaker: "you", blank: true, correctId: "h1", options: ["h1", "h2", "h3", "g8"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "g4", "g10"] },
+      { speaker: "you", blank: true, correctId: "h1", alsoOkIds: ["h2"], options: ["h1", "h2", "h3", "g8"] },
       { speaker: "staff", text: "お名前は？", translation: "Your name?" },
       { speaker: "you", blank: true, correctId: "h2", options: ["h2", "h1", "h4", "h6"] },
     ]
@@ -44,10 +57,10 @@ export const CONVERSATIONS = [
     setting: "You're lost and need to find the station...",
     icon: "🗺️",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "g8", "e4"] },
-      { speaker: "you", blank: true, correctId: "t1", options: ["t1", "d1", "d8", "t2"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "g8", "e4"] },
+      { speaker: "you", blank: true, correctId: "t1", alsoOkIds: ["d1"], options: ["t1", "d1", "d8", "t2"] },
       { speaker: "local", text: "あ、まっすぐ行って、みぎです。", translation: "Ah, go straight, then right." },
-      { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g5", "g1", "d5"] },
+      { speaker: "you", blank: true, correctId: "g4", alsoOkIds: ["d5"], options: ["g4", "g5", "g1", "d5"] },
     ]
   },
   {
@@ -56,9 +69,11 @@ export const CONVERSATIONS = [
     icon: "🏪",
     lines: [
       { speaker: "staff", text: "いらっしゃいませ！", translation: "Welcome!" },
-      { speaker: "you", blank: true, correctId: "s1", options: ["s1", "s6", "f1", "f3"] },
+      { speaker: "you", blank: true, correctId: "s1", alsoOkIds: ["s6", "f1"], options: ["s1", "s6", "f1", "f3"] },
       { speaker: "staff", text: "200円です。", translation: "200 yen." },
-      { speaker: "you", blank: true, correctId: "s2", options: ["s2", "s3", "s4", "s7"] },
+      // After being told a price, all of: "no bag", "card please", "cash please",
+      // "no receipt" are perfectly natural conbini responses. Accept all four.
+      { speaker: "you", blank: true, correctId: "s2", alsoOkIds: ["s3", "s4", "s7"], options: ["s2", "s3", "s4", "s7"] },
       { speaker: "staff", text: "ありがとうございます！", translation: "Thank you!" },
     ]
   },
@@ -67,10 +82,10 @@ export const CONVERSATIONS = [
     setting: "You need help...",
     icon: "🆘",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "e1", "e4"] },
-      { speaker: "you", blank: true, correctId: "e4", options: ["e4", "e5", "e6", "g1"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["e1"], options: ["g5", "g1", "e1", "e4"] },
+      { speaker: "you", blank: true, correctId: "e4", alsoOkIds: ["e5"], options: ["e4", "e5", "e6", "g1"] },
       { speaker: "local", text: "少しだけ...", translation: "Just a little..." },
-      { speaker: "you", blank: true, correctId: "e6", options: ["e6", "e5", "e4", "g8"] },
+      { speaker: "you", blank: true, correctId: "e6", alsoOkIds: ["e5"], options: ["e6", "e5", "e4", "g8"] },
     ]
   },
 
@@ -83,11 +98,11 @@ export const CONVERSATIONS = [
     icon: "🚃",
     lines: [
       { speaker: "driver", text: "どちらまで？", translation: "Where to?" },
-      { speaker: "you", blank: true, correctId: "t5", options: ["t5", "t1", "d1", "t2"] },
+      { speaker: "you", blank: true, correctId: "t5", alsoOkIds: ["t2"], options: ["t5", "t1", "d1", "t2"] },
       { speaker: "driver", text: "はい、わかりました。", translation: "Got it." },
       { speaker: "driver", text: "着きましたよ。", translation: "We've arrived." },
-      { speaker: "you", blank: true, correctId: "s3", options: ["s3", "s4", "g8", "f2"] },
-      { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g5", "g10", "g1"] },
+      { speaker: "you", blank: true, correctId: "s3", alsoOkIds: ["s4"], options: ["s3", "s4", "g8", "f2"] },
+      { speaker: "you", blank: true, correctId: "g4", alsoOkIds: ["g10"], options: ["g4", "g5", "g10", "g1"] },
     ]
   },
   {
@@ -95,8 +110,8 @@ export const CONVERSATIONS = [
     setting: "You're on the train and unsure about your stop...",
     icon: "🚃",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "e4", "g8"] },
-      { speaker: "you", blank: true, correctId: "t3", options: ["t3", "t1", "t4", "t2"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "e4", "g8"] },
+      { speaker: "you", blank: true, correctId: "t3", alsoOkIds: ["t4"], options: ["t3", "t1", "t4", "t2"] },
       { speaker: "passenger", text: "新宿ですよ。", translation: "It's Shinjuku." },
       { speaker: "you", blank: true, correctId: "t4", options: ["t4", "t1", "t3", "d1"] },
       { speaker: "passenger", text: "次の駅で乗り換えてください。", translation: "Transfer at the next station." },
@@ -111,7 +126,7 @@ export const CONVERSATIONS = [
       { speaker: "you", blank: true, correctId: "t6", options: ["t6", "t5", "t1", "g8"] },
       { speaker: "driver", text: "ここですか？", translation: "Here?" },
       { speaker: "you", blank: true, correctId: "g6", options: ["g6", "g7", "g9", "g4"] },
-      { speaker: "you", blank: true, correctId: "t2", options: ["t2", "s1", "t1", "n13"] },
+      { speaker: "you", blank: true, correctId: "t2", alsoOkIds: ["s1"], options: ["t2", "s1", "t1", "n13"] },
       { speaker: "driver", text: "800円です。", translation: "It's 800 yen." },
     ]
   },
@@ -120,8 +135,8 @@ export const CONVERSATIONS = [
     setting: "It's getting late and you're at a bar in Shibuya...",
     icon: "🚃",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "e4", "g4"] },
-      { speaker: "you", blank: true, correctId: "t8", options: ["t8", "t1", "n13", "t3"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "e4", "g4"] },
+      { speaker: "you", blank: true, correctId: "t8", alsoOkIds: ["n13"], options: ["t8", "t1", "n13", "t3"] },
       { speaker: "bartender", text: "11時55分ですよ。急いで！", translation: "11:55! Hurry!" },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g10", "g8", "g5"] },
     ]
@@ -133,7 +148,7 @@ export const CONVERSATIONS = [
     setting: "You want to extend your stay at the ryokan...",
     icon: "🏨",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "g4", "g8"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "g4", "g8"] },
       { speaker: "you", blank: true, correctId: "h6", options: ["h6", "h1", "h3", "h2"] },
       { speaker: "staff", text: "はい、大丈夫ですよ。", translation: "Yes, that's fine." },
       { speaker: "you", blank: true, correctId: "h4", options: ["h4", "h3", "h5", "n13"] },
@@ -146,10 +161,10 @@ export const CONVERSATIONS = [
     setting: "It's morning and you need to check out...",
     icon: "🏨",
     lines: [
-      { speaker: "you", blank: true, correctId: "g2", options: ["g2", "g1", "g3", "g5"] },
-      { speaker: "you", blank: true, correctId: "h3", options: ["h3", "h1", "h4", "n13"] },
+      { speaker: "you", blank: true, correctId: "g2", alsoOkIds: ["g1", "g5"], options: ["g2", "g1", "g3", "g5"] },
+      { speaker: "you", blank: true, correctId: "h3", alsoOkIds: ["n13"], options: ["h3", "h1", "h4", "n13"] },
       { speaker: "staff", text: "10時です。", translation: "It's 10 o'clock." },
-      { speaker: "you", blank: true, correctId: "s3", options: ["s3", "s4", "g8", "f2"] },
+      { speaker: "you", blank: true, correctId: "s3", alsoOkIds: ["s4"], options: ["s3", "s4", "g8", "f2"] },
     ]
   },
 
@@ -159,10 +174,10 @@ export const CONVERSATIONS = [
     setting: "You're looking for a famous temple...",
     icon: "🗺️",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "e4", "g8"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "e4", "g8"] },
       { speaker: "you", blank: true, correctId: "d1", options: ["d1", "t1", "d8", "e2"] },
       { speaker: "local", text: "まっすぐ行って、ひだりです。", translation: "Go straight, then left." },
-      { speaker: "you", blank: true, correctId: "d5", options: ["d5", "d6", "d7", "dc8"] },
+      { speaker: "you", blank: true, correctId: "d5", alsoOkIds: ["d6", "d7"], options: ["d5", "d6", "d7", "dc8"] },
       { speaker: "local", text: "5分ぐらいです。", translation: "About 5 minutes." },
       { speaker: "you", blank: true, correctId: "d6", options: ["d6", "d5", "d7", "dl3"] },
     ]
@@ -172,8 +187,8 @@ export const CONVERSATIONS = [
     setting: "You need to find a toilet urgently...",
     icon: "🗺️",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "e1", "g8"] },
-      { speaker: "you", blank: true, correctId: "d8", options: ["d8", "d1", "e2", "t1"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "e1", "g8"] },
+      { speaker: "you", blank: true, correctId: "d8", alsoOkIds: ["d1"], options: ["d8", "d1", "e2", "t1"] },
       { speaker: "staff", text: "あちらです。まっすぐ行って、みぎ。", translation: "Over there. Go straight, then right." },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g5", "g8", "g1"] },
     ]
@@ -183,8 +198,8 @@ export const CONVERSATIONS = [
     setting: "You're completely lost in a residential area...",
     icon: "🗺️",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "e1", "g4"] },
-      { speaker: "you", blank: true, correctId: "e5", options: ["e5", "e4", "e6", "dl8"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "e1", "g4"] },
+      { speaker: "you", blank: true, correctId: "e5", alsoOkIds: ["e4"], options: ["e5", "e4", "e6", "dl8"] },
       { speaker: "you", blank: true, correctId: "d7", options: ["d7", "d1", "d8", "t1"] },
       { speaker: "local", text: "あ、ここですよ。", translation: "Ah, it's right here." },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g8", "g5", "g10"] },
@@ -197,11 +212,11 @@ export const CONVERSATIONS = [
     setting: "You're browsing a souvenir shop in Asakusa...",
     icon: "🏪",
     lines: [
-      { speaker: "you", blank: true, correctId: "s1", options: ["s1", "f1", "s6", "t2"] },
+      { speaker: "you", blank: true, correctId: "s1", alsoOkIds: ["f1", "s6"], options: ["s1", "f1", "s6", "t2"] },
       { speaker: "staff", text: "1,500円です。", translation: "It's 1,500 yen." },
-      { speaker: "you", blank: true, correctId: "s6", options: ["s6", "f1", "s1", "s2"] },
+      { speaker: "you", blank: true, correctId: "s6", alsoOkIds: ["f1"], options: ["s6", "f1", "s1", "s2"] },
       { speaker: "staff", text: "3,000円です。", translation: "That's 3,000 yen." },
-      { speaker: "you", blank: true, correctId: "s4", options: ["s4", "s3", "s7", "g8"] },
+      { speaker: "you", blank: true, correctId: "s4", alsoOkIds: ["s3", "s7"], options: ["s4", "s3", "s7", "g8"] },
     ]
   },
   {
@@ -210,10 +225,11 @@ export const CONVERSATIONS = [
     icon: "🏪",
     lines: [
       { speaker: "staff", text: "あたためますか？", translation: "Shall I heat it up?" },
-      { speaker: "you", blank: true, correctId: "g6", options: ["g6", "g7", "g9", "g8"] },
+      // "Yes" or "no thanks" both reasonable replies — different paths but both natural.
+      { speaker: "you", blank: true, correctId: "g6", alsoOkIds: ["g7", "g9"], options: ["g6", "g7", "g9", "g8"] },
       { speaker: "staff", text: "レシートはいりますか？", translation: "Do you need a receipt?" },
-      { speaker: "you", blank: true, correctId: "s7", options: ["s7", "s2", "s3", "g7"] },
-      { speaker: "you", blank: true, correctId: "s2", options: ["s2", "s7", "s4", "g9"] },
+      { speaker: "you", blank: true, correctId: "s7", alsoOkIds: ["g7"], options: ["s7", "s2", "s3", "g7"] },
+      { speaker: "you", blank: true, correctId: "s2", alsoOkIds: ["g9"], options: ["s2", "s7", "s4", "g9"] },
     ]
   },
 
@@ -224,9 +240,9 @@ export const CONVERSATIONS = [
     icon: "🔢",
     lines: [
       { speaker: "staff", text: "何名様ですか？", translation: "How many people?" },
-      { speaker: "you", blank: true, correctId: "f9", options: ["f9", "f8", "n2", "n3"] },
+      { speaker: "you", blank: true, correctId: "f9", alsoOkIds: ["f8", "n2"], options: ["f9", "f8", "n2", "n3"] },
       { speaker: "staff", text: "入場料は一人1,000円です。", translation: "Entry fee is 1,000 yen per person." },
-      { speaker: "you", blank: true, correctId: "s3", options: ["s3", "s4", "g8", "s1"] },
+      { speaker: "you", blank: true, correctId: "s3", alsoOkIds: ["s4"], options: ["s3", "s4", "g8", "s1"] },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g5", "g8", "g1"] },
     ]
   },
@@ -236,9 +252,9 @@ export const CONVERSATIONS = [
     icon: "⏰",
     lines: [
       { speaker: "friend", text: "いつ会う？", translation: "When shall we meet?" },
-      { speaker: "you", blank: true, correctId: "tm2", options: ["tm2", "tm1", "tm3", "tm5"] },
+      { speaker: "you", blank: true, correctId: "tm2", alsoOkIds: ["tm1", "tm5"], options: ["tm2", "tm1", "tm3", "tm5"] },
       { speaker: "friend", text: "何時がいい？", translation: "What time works?" },
-      { speaker: "you", blank: true, correctId: "tm8", options: ["tm8", "tm9", "tm4", "tm5"] },
+      { speaker: "you", blank: true, correctId: "tm8", alsoOkIds: ["tm9", "tm4", "tm5"], options: ["tm8", "tm9", "tm4", "tm5"] },
       { speaker: "friend", text: "OK、10時にね！", translation: "OK, 10 o'clock then!" },
     ]
   },
@@ -247,7 +263,7 @@ export const CONVERSATIONS = [
     setting: "You're at a park and forgot your phone...",
     icon: "⏰",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "g4", "e4"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "g4", "e4"] },
       { speaker: "you", blank: true, correctId: "n13", options: ["n13", "tm6", "t8", "h3"] },
       { speaker: "stranger", text: "3時です。", translation: "It's 3 o'clock." },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g8", "g5", "g10"] },
@@ -261,7 +277,7 @@ export const CONVERSATIONS = [
     icon: "🌸",
     lines: [
       { speaker: "traveler", text: "こんにちは！日本語上手ですね。", translation: "Hello! Your Japanese is good." },
-      { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g5", "g1", "g9"] },
+      { speaker: "you", blank: true, correctId: "g4", alsoOkIds: ["g9"], options: ["g4", "g5", "g1", "g9"] },
       { speaker: "you", blank: true, correctId: "dl5", options: ["dl5", "dl8", "dl4", "dl3"] },
       { speaker: "traveler", text: "どこから来ましたか？", translation: "Where are you from?" },
       { speaker: "you", blank: true, correctId: "dl7", options: ["dl7", "dl6", "dl5", "dl3"] },
@@ -272,7 +288,7 @@ export const CONVERSATIONS = [
     setting: "You're at a shrine and want to take a photo...",
     icon: "🌸",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "g4", "e4"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "g4", "e4"] },
       { speaker: "you", blank: true, correctId: "dl9", options: ["dl9", "dl4", "d7", "dl3"] },
       { speaker: "local", text: "はい、どうぞ！", translation: "Yes, go ahead!" },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g8", "g5", "g10"] },
@@ -284,10 +300,10 @@ export const CONVERSATIONS = [
     icon: "🌸",
     lines: [
       { speaker: "friend", text: "もう一つお寺に行く？", translation: "Shall we visit one more temple?" },
-      { speaker: "you", blank: true, correctId: "dl11", options: ["dl11", "dl10", "dl12", "g9"] },
-      { speaker: "you", blank: true, correctId: "dl12", options: ["dl12", "dl11", "dl1", "dl2"] },
+      { speaker: "you", blank: true, correctId: "dl11", alsoOkIds: ["dl12", "g9"], options: ["dl11", "dl10", "dl12", "g9"] },
+      { speaker: "you", blank: true, correctId: "dl12", alsoOkIds: ["dl1"], options: ["dl12", "dl11", "dl1", "dl2"] },
       { speaker: "friend", text: "じゃあ、ラーメン食べに行こう！", translation: "Then let's go eat ramen!" },
-      { speaker: "you", blank: true, correctId: "dl1", options: ["dl1", "dl2", "dl3", "dl4"] },
+      { speaker: "you", blank: true, correctId: "dl1", alsoOkIds: ["dl3", "dl4"], options: ["dl1", "dl2", "dl3", "dl4"] },
     ]
   },
 
@@ -298,10 +314,10 @@ export const CONVERSATIONS = [
     icon: "🎨",
     lines: [
       { speaker: "staff", text: "こちらはいかがですか？", translation: "How about this one?" },
-      { speaker: "you", blank: true, correctId: "dc3", options: ["dc3", "dc4", "dc1", "dc2"] },
+      { speaker: "you", blank: true, correctId: "dc3", alsoOkIds: ["dc1", "dc2"], options: ["dc3", "dc4", "dc1", "dc2"] },
       { speaker: "staff", text: "こちらは2,000円です。", translation: "This one is 2,000 yen." },
-      { speaker: "you", blank: true, correctId: "dc4", options: ["dc4", "dc3", "dc8", "dc2"] },
-      { speaker: "you", blank: true, correctId: "f1", options: ["f1", "s1", "s6", "g8"] },
+      { speaker: "you", blank: true, correctId: "dc4", alsoOkIds: ["dc3"], options: ["dc4", "dc3", "dc8", "dc2"] },
+      { speaker: "you", blank: true, correctId: "f1", alsoOkIds: ["s6"], options: ["f1", "s1", "s6", "g8"] },
     ]
   },
 
@@ -311,9 +327,9 @@ export const CONVERSATIONS = [
     setting: "You've lost your bag and need to find the police...",
     icon: "🆘",
     lines: [
-      { speaker: "you", blank: true, correctId: "e1", options: ["e1", "g5", "e4", "e6"] },
+      { speaker: "you", blank: true, correctId: "e1", alsoOkIds: ["g5"], options: ["e1", "g5", "e4", "e6"] },
       { speaker: "local", text: "どうしましたか？", translation: "What happened?" },
-      { speaker: "you", blank: true, correctId: "e5", options: ["e5", "e4", "e6", "dl8"] },
+      { speaker: "you", blank: true, correctId: "e5", alsoOkIds: ["e4"], options: ["e5", "e4", "e6", "dl8"] },
       { speaker: "you", blank: true, correctId: "e3", options: ["e3", "e2", "e1", "e6"] },
       { speaker: "local", text: "交番はあそこです。", translation: "The police box is over there." },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g5", "g8", "g1"] },
@@ -326,10 +342,10 @@ export const CONVERSATIONS = [
     setting: "You want to try a local specialty at an izakaya...",
     icon: "🍜",
     lines: [
-      { speaker: "you", blank: true, correctId: "g3", options: ["g3", "g1", "g2", "g5"] },
+      { speaker: "you", blank: true, correctId: "g3", alsoOkIds: ["g5"], options: ["g3", "g1", "g2", "g5"] },
       { speaker: "staff", text: "いらっしゃいませ！何名様？", translation: "Welcome! How many?" },
-      { speaker: "you", blank: true, correctId: "f9", options: ["f9", "f8", "n2", "n3"] },
-      { speaker: "you", blank: true, correctId: "f7", options: ["f7", "f1", "f3", "dl1"] },
+      { speaker: "you", blank: true, correctId: "f9", alsoOkIds: ["f8", "n2"], options: ["f9", "f8", "n2", "n3"] },
+      { speaker: "you", blank: true, correctId: "f7", alsoOkIds: ["f3", "dl1"], options: ["f7", "f1", "f3", "dl1"] },
       { speaker: "staff", text: "焼き鳥がおすすめです！", translation: "The yakitori is recommended!" },
       { speaker: "you", blank: true, correctId: "f1", options: ["f1", "f3", "f5", "g8"] },
     ]
@@ -341,10 +357,10 @@ export const CONVERSATIONS = [
     setting: "You're feeling sick and need to find a hospital...",
     icon: "🆘",
     lines: [
-      { speaker: "you", blank: true, correctId: "g5", options: ["g5", "g1", "e1", "g4"] },
-      { speaker: "you", blank: true, correctId: "e2", options: ["e2", "d8", "d1", "e3"] },
+      { speaker: "you", blank: true, correctId: "g5", alsoOkIds: ["g1"], options: ["g5", "g1", "e1", "g4"] },
+      { speaker: "you", blank: true, correctId: "e2", alsoOkIds: ["d1"], options: ["e2", "d8", "d1", "e3"] },
       { speaker: "local", text: "まっすぐ行って、ひだりです。", translation: "Go straight, then left." },
-      { speaker: "you", blank: true, correctId: "d5", options: ["d5", "d6", "d7", "dc8"] },
+      { speaker: "you", blank: true, correctId: "d5", alsoOkIds: ["d6", "d7"], options: ["d5", "d6", "d7", "dc8"] },
       { speaker: "local", text: "はい、すぐそこです。", translation: "Yes, it's right there." },
       { speaker: "you", blank: true, correctId: "g4", options: ["g4", "g5", "g8", "g1"] },
     ]

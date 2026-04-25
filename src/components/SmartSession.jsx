@@ -3105,8 +3105,13 @@ export default function SmartSession({
       </>);
     }
 
-    // Submitted — show results
-    const correct = blanks.filter((b, i) => convoAnswers[i] === b.correctId).length;
+    // Submitted — show results.
+    // Real conversations have multiple valid responses (e.g. after "200 yen" you
+    // could legitimately say "cash please", "card please", "no bag", or "no
+    // receipt" — all natural conbini replies). `alsoOkIds` lists those alts;
+    // picking any of them grades as correct alongside the canonical `correctId`.
+    const isAccepted = (b, ans) => ans === b.correctId || (b.alsoOkIds || []).includes(ans);
+    const correct = blanks.filter((b, i) => isAccepted(b, convoAnswers[i])).length;
     const total = blanks.length;
     let blankNum = 0;
     return withSenpai(<>
@@ -3130,29 +3135,35 @@ export default function SmartSession({
           const blankIdx = blanks.indexOf(line);
           blankNum++;
           const answered = convoAnswers[blankIdx];
-          const isCorrect = answered === line.correctId;
+          const isCanonical = answered === line.correctId;
+          const isAlsoOk = !isCanonical && (line.alsoOkIds || []).includes(answered);
+          const accepted = isCanonical || isAlsoOk;
           const answeredPhrase = phraseById(answered);
           const correctPhrase = phraseById(line.correctId);
-          const resultCol = isCorrect ? c.g : c.a;
+          const resultCol = accepted ? c.g : c.a;
           return <div key={li} style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "flex-start" }}>
             <div style={{ fontSize: 10, fontFamily: mono, width: 28, flexShrink: 0, textAlign: "right", marginTop: 6 }}>
               <span style={{ display: "inline-block", width: 20, height: 20, lineHeight: "20px", borderRadius: "50%", textAlign: "center", fontSize: T.xs, fontWeight: 700, background: resultCol + "22", color: resultCol, border: "1px solid " + resultCol + "44" }}>{blankNum}</span>
             </div>
             <div style={{ flex: 1 }}>
               {/* Your answer */}
-              <div style={{ padding: "10px 14px", borderRadius: 8, background: isCorrect ? c.g + "18" : c.rs, border: "1px solid " + resultCol + "33", marginBottom: isCorrect ? 0 : 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: T.base, fontWeight: 600, color: resultCol }}>{isCorrect ? "✓" : "✗"}</span>
+              <div style={{ padding: "10px 14px", borderRadius: 8, background: accepted ? c.g + "18" : c.rs, border: "1px solid " + resultCol + "33", marginBottom: accepted && !isAlsoOk ? 0 : 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: T.base, fontWeight: 600, color: resultCol }}>{accepted ? "✓" : "✗"}</span>
                   <span style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 500, fontFamily: fontJa }}>{answeredPhrase?.[1]}</span>
                   <span style={{ fontSize: T.sm, color: c.m }}>{answeredPhrase?.[3]}</span>
+                  {isAlsoOk && (
+                    <span style={{ fontSize: T.xs, fontFamily: mono, color: c.g, background: c.g + "18", border: "1px solid " + c.g + "44", padding: "1px 6px", borderRadius: 4 }}>also valid</span>
+                  )}
                   <button className="ts-icon-btn" onClick={() => speakPhrase(answered, answeredPhrase?.[1])}
                     style={{ ...btn, marginLeft: "auto", padding: "2px 8px", borderRadius: 6, background: "transparent", border: "1px solid " + c.b, fontSize: T.sm, color: c.tx }}><IconPlay size={14}/></button>
                 </div>
               </div>
-              {/* Correct answer if wrong */}
-              {!isCorrect && <div style={{ padding: "8px 14px", borderRadius: 8, background: c.g + "12", border: "1px solid " + c.g + "22" }}>
+              {/* Show canonical answer when wrong OR when user picked an alsoOk variant
+                  (so they learn the most natural / common reply). */}
+              {(!accepted || isAlsoOk) && <div style={{ padding: "8px 14px", borderRadius: 8, background: c.g + "12", border: "1px solid " + c.g + "22" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: T.sm, color: c.g, fontWeight: 600 }}>correct:</span>
+                  <span style={{ fontSize: T.sm, color: c.g, fontWeight: 600 }}>{isAlsoOk ? "most natural:" : "correct:"}</span>
                   <span style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 500, color: c.g, fontFamily: fontJa }}>{correctPhrase?.[1]}</span>
                   <span style={{ fontSize: T.sm, color: c.m }}>{correctPhrase?.[3]}</span>
                   <button className="ts-icon-btn" onClick={() => speakPhrase(line.correctId, correctPhrase?.[1])}
@@ -3173,7 +3184,11 @@ export default function SmartSession({
         })}
       </div>}
       <button onClick={() => {
-        blanks.forEach((b, i) => reviewPhr(b.correctId, convoAnswers[i] === b.correctId, "conversation"));
+        // Grade against accepted set (canonical + alsoOkIds), not canonical alone.
+        // SRS credit goes to the canonical phrase (b.correctId) — it's the one
+        // the queue is targeting; alsoOk variants are alternative valid responses
+        // for the situation, not the item under review.
+        blanks.forEach((b, i) => reviewPhr(b.correctId, isAccepted(b, convoAnswers[i]), "conversation"));
         setScore(s => ({ ...s, c: s.c + correct, w: s.w + (total - correct) }));
         setConvoAnswers({}); setConvoSubmitted(false);
         advance(correct >= total / 2);
