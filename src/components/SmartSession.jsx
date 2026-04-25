@@ -138,7 +138,7 @@ export default function SmartSession({
   const inputRef = useRef(null);
   const chatInputRef = useRef(null);
   const typingRef = useRef(null);
-  const convoShuffledRef = useRef({ blankIdx: -1, options: [] });
+  const convoShuffledRef = useRef({ key: null, options: [] });
   const quizShuffledRef = useRef({ key: null, options: [] });
   const chainShuffledRef = useRef({ step: -1, choices: [] });
   // Cache kana-type keyboard pool by phrase id so it doesn't re-shuffle on every
@@ -2981,10 +2981,15 @@ export default function SmartSession({
     const phraseById = (id) => PHRASES.find(p => p[0] === id);
 
     if (!convoSubmitted) {
-      // Collect ALL unique options across all blanks, shuffle once
-      if (convoShuffledRef.current.blankIdx !== ci) {
+      // Collect ALL unique options across all blanks, shuffle once.
+      // Key by conversation id (not card index) so the pool refreshes when the
+      // queue serves a different conversation at the same ci, and never leaks
+      // stale options from a previous card. Without this, a learner could see
+      // "shopping phrase" options on a "tired/temple" conversation.
+      const convoKey = convo.id + ":" + ci;
+      if (convoShuffledRef.current.key !== convoKey) {
         const allOpts = [...new Set(blanks.flatMap(b => b.options))];
-        convoShuffledRef.current = { blankIdx: ci, options: shuffle([...allOpts]) };
+        convoShuffledRef.current = { key: convoKey, options: shuffle([...allOpts]) };
       }
       const allOptions = convoShuffledRef.current.options;
       const usedIds = Object.values(convoAnswers);
