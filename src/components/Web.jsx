@@ -45,6 +45,91 @@ const CAT_JP = {
 // Filter for "interesting" segments — too-common ones (です, は, が, を) inflate edges.
 const TRIVIAL_SEGMENTS = new Set(["です", "ます", "は", "が", "を", "に", "の", "で", "と", "か", "...", "/"]);
 
+// ═══ Edge taxonomy ═══════════════════════════════════════════════════════════
+// Each edge between phrases carries a `kind` (visual style + label colour) and
+// a short `label` shown mid-edge when one of the endpoints is focused.
+//
+// Kinds:
+//   shared    → they share a meaningful building block (e.g. ください)
+//   template  → both end with the same verb / pattern segment
+//   opposite  → curated antonym pair
+//   answer    → curated question→answer pair
+const EDGE_STYLE = {
+  shared:   { color: "#5a9ec4", dash: "5 4" },     // muted blue, dashed
+  template: { color: "#5ac48a", dash: "0" },       // green, solid
+  opposite: { color: "#e8a838", dash: "0" },       // amber, solid (shorter spring)
+  answer:   { color: "#c45a8b", dash: "3 3" },     // pink, dotted
+};
+
+// Manual antonym pairs. JP-only; expand as the dataset grows.
+// Each pair links the two phrase ids with an "opposite" edge.
+const ANTONYM_PAIRS = [
+  ["dc1", "dc2"],   // おおきい (big)        ↔ ちいさい (small)
+  ["dc3", "dc4"],   // たかい (expensive)    ↔ やすい (cheap)
+  ["dc5", "dc6"],   // あつい (hot)          ↔ さむい (cold)
+  ["dc7", "dc8"],   // とおい (far)          ↔ ちかい (close)
+  ["dc9", "dc10"],  // あたらしい (new)      ↔ ふるい (old)
+  ["d2",  "d3"],    // みぎ (right)          ↔ ひだり (left)
+  ["g6",  "g7"],    // はい (yes)            ↔ いいえ (no)
+  ["g1",  "g10"],   // こんにちは (hello)    ↔ さようなら (goodbye)
+  ["g2",  "g3"],    // おはよう (morning)    ↔ こんばんは (evening)
+  ["f5",  "f6"],    // いただきます (before) ↔ ごちそうさまでした (after)
+  ["s3",  "s4"],    // カードで (card)       ↔ げんきんで (cash)
+  ["tm1", "tm2"],   // きょう (today)        ↔ あした (tomorrow)
+  ["tm2", "tm3"],   // あした (tomorrow)     ↔ きのう (yesterday)
+  ["tm8", "tm9"],   // あさ (morning)        ↔ よる (night)
+  ["f8",  "f9"],    // ひとりです (1 person) ↔ ふたりです (2 people)
+];
+
+// Curated question → answer mappings. Each question phrase id maps to the
+// answer phrase ids it is naturally paired with. Edges are bidirectional in
+// graph terms but the label always reads "question ↔ answer".
+const QNA_PAIRS = [
+  // どこですか → directional answers
+  ["d1",  "d2"],    // ...はどこですか → みぎ
+  ["d1",  "d3"],    // ...はどこですか → ひだり
+  ["d1",  "d4"],    // ...はどこですか → まっすぐ
+  ["d8",  "d2"],    // トイレはどこですか → みぎ
+  ["d8",  "d3"],    // トイレはどこですか → ひだり
+  ["t1",  "d2"],    // ...えきはどこですか → みぎ
+  ["t1",  "d3"],    // ...えきはどこですか → ひだり
+  // いくらですか → it costs ...
+  ["s1",  "n11"],   // これはいくらですか → ひゃくえんです
+  ["s1",  "n12"],   // これはいくらですか → せんえんです
+  ["t2",  "n11"],
+  ["t2",  "n12"],
+  // なんじですか → time
+  ["n13", "tm8"],   // なんじですか → あさ
+  ["n13", "tm9"],   // なんじですか → よる
+  // hotel: do you have a reservation? → I have a reservation
+  ["h2",  "g6"],
+];
+
+// Find pairs of learned phrases that end with the same verb/pattern segment.
+// Returns edge list. Excludes copulas / overly common endings.
+function findTemplateEdges(learnedIds) {
+  const TEMPLATE_OK = new Set(["ください", "おねがいします", "あります", "いきたいです", "みせてください", "よんでください"]);
+  const endingMap = {};
+  for (const id of learnedIds) {
+    const segs = PHRASE_BREAKDOWNS[id] || [];
+    if (segs.length === 0) continue;
+    const last = segs[segs.length - 1]?.[0];
+    if (!last || !TEMPLATE_OK.has(last)) continue;
+    (endingMap[last] ||= []).push(id);
+  }
+  const edges = [];
+  for (const ending of Object.keys(endingMap)) {
+    const ids = endingMap[ending];
+    if (ids.length < 2) continue;
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        edges.push({ a: ids[i], b: ids[j], kind: "template", label: "～" + ending });
+      }
+    }
+  }
+  return edges;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const isLearned = (data, id) => (data?.phr?.[id]?.box || 0) >= 1;
 
@@ -111,20 +196,49 @@ function buildPhraseGraph(data) {
     }
   }
 
-  // Edges: pairs sharing a segment used in 2..6 phrases
-  const seenPair = new Set();
+  // Edges from multiple typed sources (deduped, with kind + label).
+  // Use a Set keyed on "a|b|kind" so the same pair can carry several reasons.
+  const seenKey = new Set();
   const edges = [];
+  const pushEdge = (idA, idB, kind, label, target) => {
+    if (idxOf[idA] === undefined || idxOf[idB] === undefined) return;
+    const lo = idA < idB ? idA : idB;
+    const hi = idA < idB ? idB : idA;
+    const k = lo + "|" + hi + "|" + kind;
+    if (seenKey.has(k)) return;
+    seenKey.add(k);
+    edges.push({
+      a: idxOf[lo], b: idxOf[hi], kind, label, target,
+    });
+  };
+
+  // 1) Shared building-block edges
   for (const jp of Object.keys(segUsage)) {
     const list = segUsage[jp];
     if (list.length < 2 || list.length > 6) continue;
     for (let i = 0; i < list.length; i++) {
       for (let j = i + 1; j < list.length; j++) {
-        const k = list[i] < list[j] ? list[i] + "|" + list[j] : list[j] + "|" + list[i];
-        if (seenPair.has(k)) continue;
-        seenPair.add(k);
-        edges.push({ a: idxOf[list[i]], b: idxOf[list[j]], target: 130, via: jp });
+        pushEdge(list[i], list[j], "shared", jp, 140);
       }
     }
+  }
+
+  // 2) Same-template edges (matching verb endings)
+  const learnedSet = new Set(ids);
+  for (const e of findTemplateEdges(ids).filter(e => learnedSet.has(e.a) && learnedSet.has(e.b))) {
+    pushEdge(e.a, e.b, "template", e.label, 110);
+  }
+
+  // 3) Antonym edges (curated)
+  for (const [a, b] of ANTONYM_PAIRS) {
+    if (!learnedSet.has(a) || !learnedSet.has(b)) continue;
+    pushEdge(a, b, "opposite", "opposite", 80);
+  }
+
+  // 4) Question ↔ answer edges (curated)
+  for (const [q, a] of QNA_PAIRS) {
+    if (!learnedSet.has(q) || !learnedSet.has(a)) continue;
+    pushEdge(q, a, "answer", "Q ↔ A", 130);
   }
 
   return { nodes, edges, idxOf };
@@ -540,15 +654,47 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
             if (!a || !b) return null;
             const isFocusEdge = connectedIdxs && (connectedIdxs.has(e.a) && connectedIdxs.has(e.b)) && (e.a === graph.idxOf[focusId] || e.b === graph.idxOf[focusId]);
             const dim = focusId && !isFocusEdge;
+            const style = EDGE_STYLE[e.kind] || { color: c.b, dash: "0" };
+            const strokeColor = isFocusEdge ? style.color : (e.kind && e.kind !== "shared" ? style.color : c.b);
             return (
               <line
                 key={i}
                 x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                 className={"web-edge" + (isFocusEdge ? " web-edge-focus" : "")}
-                stroke={isFocusEdge ? c.a : c.b}
-                strokeWidth={isFocusEdge ? 2 : 1}
-                opacity={dim ? 0.06 : isFocusEdge ? 0.95 : 0.22}
+                stroke={strokeColor}
+                strokeWidth={isFocusEdge ? 2.5 : 1}
+                strokeDasharray={isFocusEdge ? undefined : style.dash}
+                opacity={dim ? 0.05 : isFocusEdge ? 0.95 : (e.kind === "shared" ? 0.18 : 0.45)}
               />
+            );
+          })}
+
+          {/* Edge labels — only render for edges connected to the focused node,
+              and only when zoomed in enough to read them. */}
+          {focusId && graph.edges.map((e, i) => {
+            const a = graph.nodes[e.a];
+            const b = graph.nodes[e.b];
+            if (!a || !b) return null;
+            const isFocusEdge = (connectedIdxs.has(e.a) && connectedIdxs.has(e.b)) && (e.a === graph.idxOf[focusId] || e.b === graph.idxOf[focusId]);
+            if (!isFocusEdge || !e.label) return null;
+            const mx = (a.x + b.x) / 2;
+            const my = (a.y + b.y) / 2;
+            const style = EDGE_STYLE[e.kind] || { color: c.tx };
+            return (
+              <g key={"lbl-" + i} style={{ pointerEvents: "none" }}>
+                <foreignObject x={mx - 70} y={my - 12} width={140} height={24}>
+                  <div xmlns="http://www.w3.org/1999/xhtml" style={{
+                    fontFamily: fontJa, fontSize: 13,
+                    color: style.color, textAlign: "center",
+                    background: c.bg + "ee", display: "inline-block",
+                    padding: "1px 8px", borderRadius: 6,
+                    border: "1px solid " + style.color + "55",
+                    width: "fit-content", margin: "0 auto",
+                    maxWidth: "100%",
+                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                  }}>{e.label}</div>
+                </foreignObject>
+              </g>
             );
           })}
 
@@ -695,30 +841,46 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
 }
 
 // ─── Detail panel ─────────────────────────────────────────────────────────────
+const KIND_LABELS = {
+  shared:   "Shares",
+  template: "Same template",
+  opposite: "Opposite",
+  answer:   "Q ↔ A",
+};
+
 function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idxOf, onClose, onJumpTo }) {
   const phrInfo = mode === "phrase" ? data?.phr?.[node.id] : null;
   const skills = mode === "phrase" ? data?.skills?.[node.id] : null;
   const weak = weakestSkill(skills);
   const skillLabels = { visual: "reading", listen: "listening", production: "speaking" };
 
-  // Build "shares with" / "used in" list
-  const related = useMemo(() => {
-    if (mode === "phrase") {
-      const myIdx = idxOf[node.id];
-      const out = [];
-      for (const e of edges) {
-        if (e.a !== myIdx && e.b !== myIdx) continue;
-        const otherIdx = e.a === myIdx ? e.b : e.a;
-        const other = allNodes[otherIdx];
-        if (other) out.push({ id: other.id, jp: other.jp, en: other.en, via: e.via });
-      }
-      return out.slice(0, 8);
+  // Group related phrases by edge `kind` so the panel can show distinct
+  // "Same template", "Opposite", "Shares" sections instead of one flat list.
+  const grouped = useMemo(() => {
+    if (mode !== "phrase") {
+      // Block view: list phrases that contain this segment
+      return [{
+        kind: "uses",
+        items: (node.phraseIds || []).map(pid => {
+          const p = PHRASES.find(x => x[0] === pid);
+          return p ? { id: pid, jp: p[1], en: p[3] } : null;
+        }).filter(Boolean).slice(0, 8),
+      }];
     }
-    // Block view: list phrases that contain this segment
-    return (node.phraseIds || []).map(pid => {
-      const p = PHRASES.find(x => x[0] === pid);
-      return p ? { id: pid, jp: p[1], en: p[3] } : null;
-    }).filter(Boolean).slice(0, 8);
+    const myIdx = idxOf[node.id];
+    const buckets = {};
+    for (const e of edges) {
+      if (e.a !== myIdx && e.b !== myIdx) continue;
+      const otherIdx = e.a === myIdx ? e.b : e.a;
+      const other = allNodes[otherIdx];
+      if (!other) continue;
+      const kind = e.kind || "shared";
+      (buckets[kind] ||= []).push({ id: other.id, jp: other.jp, en: other.en, label: e.label });
+    }
+    const order = ["opposite", "answer", "template", "shared"];
+    return order
+      .filter(k => buckets[k] && buckets[k].length)
+      .map(k => ({ kind: k, items: buckets[k].slice(0, 6) }));
   }, [mode, node, allNodes, edges, idxOf]);
 
   return (
@@ -726,68 +888,62 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
       position: "absolute",
       bottom: 16, right: 16,
       left: isDesktop ? "auto" : 16,
-      maxWidth: isDesktop ? 360 : "auto",
-      background: c.s + "ee",
-      backdropFilter: "blur(12px)",
+      width: isDesktop ? 420 : "auto",
+      background: c.s + "f2",
+      backdropFilter: "blur(14px)",
       border: "1px solid " + c.b,
-      borderRadius: 12,
-      padding: "14px 16px",
-      boxShadow: "0 12px 40px rgba(0,0,0,.45)",
+      borderRadius: 14,
+      padding: "18px 20px",
+      boxShadow: "0 16px 50px rgba(0,0,0,.55)",
       zIndex: 3,
-      maxHeight: isDesktop ? "70vh" : "55vh",
+      maxHeight: isDesktop ? "78vh" : "62vh",
       overflowY: "auto",
     }}>
-      {/* Header row */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+      {/* Header row — JP hero, big */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontFamily: fontJa, fontSize: isDesktop ? T.xl : T.lg,
+            fontFamily: fontJa, fontSize: isDesktop ? T.xxl : T.xl,
             fontWeight: JP.weight, color: c.tx, lineHeight: JP.lineHeight,
           }}>{node.jp}</div>
           {node.romaji && (
-            <div style={{ fontFamily: mono, fontSize: T.xs, color: c.ro, marginTop: 3 }}>{node.romaji}</div>
+            <div style={{ fontFamily: mono, fontSize: T.sm, color: c.ro, marginTop: 4 }}>{node.romaji}</div>
           )}
-          <div style={{ fontSize: T.sm, color: c.m, marginTop: 5, lineHeight: 1.4 }}>
+          <div style={{ fontSize: T.md, color: c.m2 || c.m, marginTop: 6, lineHeight: 1.4 }}>
             {mode === "phrase" ? node.en : (node.meaning || "—")}
           </div>
         </div>
-        {mode === "phrase" && (
-          <button
-            onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(node.id, node.jp, node.en); }}
-            aria-label="Hear it"
-            style={{
-              ...btn, padding: "6px 11px", borderRadius: 8,
-              background: c.s2, border: "1px solid " + c.b, color: c.tx, flexShrink: 0,
-            }}><IconPlay size={14}/></button>
-        )}
-        {mode === "block" && (
-          <button
-            onClick={(e) => { e.stopPropagation(); speak(node.jp); }}
-            aria-label="Hear it"
-            style={{
-              ...btn, padding: "6px 11px", borderRadius: 8,
-              background: c.s2, border: "1px solid " + c.b, color: c.tx, flexShrink: 0,
-            }}><IconPlay size={14}/></button>
-        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); mode === "phrase"
+              ? speakPhraseWithEnglish(node.id, node.jp, node.en)
+              : speak(node.jp); }}
+          aria-label="Hear it"
+          style={{
+            ...btn, padding: "10px 14px", borderRadius: 10,
+            background: c.a, color: "#fff", border: "none", flexShrink: 0,
+            display: "inline-flex", alignItems: "center", gap: 6,
+            fontSize: T.sm, fontWeight: 600, cursor: "pointer",
+          }}><IconPlay size={16}/></button>
         <button onClick={(e) => { e.stopPropagation(); onClose(); }}
           aria-label="Close"
           style={{
-            ...btn, padding: "6px 9px", borderRadius: 8,
-            background: "transparent", border: "1px solid " + c.b, color: c.m, flexShrink: 0,
-          }}><IconX size={12}/></button>
+            ...btn, padding: "10px 11px", borderRadius: 10,
+            background: "transparent", border: "1px solid " + c.b, color: c.m,
+            flexShrink: 0, cursor: "pointer",
+          }}><IconX size={14}/></button>
       </div>
 
       {/* SRS state row */}
       {mode === "phrase" && phrInfo && (
         <div style={{
-          display: "flex", flexWrap: "wrap", gap: 6,
-          padding: "8px 0",
+          display: "flex", flexWrap: "wrap", gap: 8,
+          padding: "10px 0",
           borderTop: "1px solid " + c.b,
           borderBottom: "1px solid " + c.b,
-          marginBottom: 10,
+          marginBottom: 14,
         }}>
           <Pill label={`box ${phrInfo.box || 0}`} color={c.go} c={c} />
-          <Pill label={`last ${fmtRelative(phrInfo.lastReview)}`} color={c.m} c={c} />
+          <Pill label={`last ${fmtRelative(phrInfo.lastReview)}`} color={c.m2 || c.m} c={c} />
           <Pill label={`next ${fmtRelative(phrInfo.next)}`} color={(phrInfo.next || 0) < Date.now() ? c.a : c.g} c={c} />
           {weak && weak.score < 3 && (
             <Pill label={`weak: ${skillLabels[weak.dim]}`} color={c.a} c={c} />
@@ -797,11 +953,11 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
 
       {mode === "block" && (
         <div style={{
-          display: "flex", flexWrap: "wrap", gap: 6,
-          padding: "8px 0",
+          display: "flex", flexWrap: "wrap", gap: 8,
+          padding: "10px 0",
           borderTop: "1px solid " + c.b,
           borderBottom: "1px solid " + c.b,
-          marginBottom: 10,
+          marginBottom: 14,
         }}>
           <Pill label={node.type} color={GRAMMAR_COLORS[node.type] || c.m} c={c} />
           <Pill label={`${node.usage} phrases`} color={c.go} c={c} />
@@ -809,43 +965,69 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
         </div>
       )}
 
-      {/* Related list */}
-      {related.length > 0 && (
-        <div>
-          <div style={{
-            fontSize: T.xs, fontFamily: mono, color: c.m,
-            textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 6,
-          }}>{mode === "phrase" ? "shares with" : "used in"}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {related.map((r, i) => (
-              <button
-                key={r.id + i}
-                onClick={(e) => { e.stopPropagation(); onJumpTo(r.id); }}
-                style={{
-                  ...btn, padding: "6px 9px", borderRadius: 8,
-                  background: "transparent", border: "1px solid " + c.b,
-                  color: c.tx, textAlign: "left", cursor: "pointer",
-                  display: "flex", alignItems: "baseline", gap: 8, justifyContent: "space-between",
+      {/* Why connected? — grouped by edge kind */}
+      {grouped.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {grouped.map(({ kind, items }) => {
+            const style = EDGE_STYLE[kind] || { color: c.a };
+            const heading = mode === "phrase"
+              ? (KIND_LABELS[kind] || "Related")
+              : "Used in";
+            return (
+              <div key={kind}>
+                <div style={{
+                  fontSize: T.sm, fontFamily: mono, fontWeight: 700,
+                  color: style.color, marginBottom: 8,
+                  display: "inline-flex", alignItems: "center", gap: 6,
                 }}>
-                <span style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
                   <span style={{
-                    fontFamily: fontJa, fontSize: T.sm, fontWeight: JP.weight,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>{r.jp}</span>
-                  <span style={{
-                    fontSize: T.xs, color: c.m,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>{r.en}</span>
-                </span>
-                {r.via && (
-                  <span style={{
-                    fontFamily: fontJa, fontSize: T.xs, color: c.a,
-                    background: c.a + "18", padding: "1px 6px", borderRadius: 4, flexShrink: 0,
-                  }}>{r.via}</span>
-                )}
-              </button>
-            ))}
-          </div>
+                    width: 10, height: 10, borderRadius: 999,
+                    background: style.color, display: "inline-block",
+                  }}/>
+                  {heading.toUpperCase()}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {items.map((r, i) => (
+                    <button
+                      key={r.id + i}
+                      onClick={(e) => { e.stopPropagation(); onJumpTo(r.id); }}
+                      style={{
+                        ...btn, padding: "10px 12px", borderRadius: 10,
+                        background: "transparent",
+                        border: "1px solid " + style.color + "44",
+                        color: c.tx, textAlign: "left", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between",
+                      }}>
+                      <span style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+                        <span style={{
+                          fontFamily: fontJa, fontSize: isDesktop ? T.lg : T.md,
+                          fontWeight: JP.weight, color: c.tx,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>{r.jp}</span>
+                        <span style={{
+                          fontSize: T.sm, color: c.m, marginTop: 2,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>{r.en}</span>
+                      </span>
+                      {r.label && r.label !== "opposite" && (
+                        <span style={{
+                          fontFamily: fontJa, fontSize: T.sm, color: style.color,
+                          background: style.color + "1c", padding: "3px 8px",
+                          borderRadius: 6, flexShrink: 0,
+                        }}>{r.label}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {grouped.length === 0 && mode === "phrase" && (
+        <div style={{ fontSize: T.sm, color: c.m, fontStyle: "italic", textAlign: "center", padding: "14px 0" }}>
+          No connections found yet — learn related phrases (opposites, same template, similar topic) and they'll appear here.
         </div>
       )}
     </div>
@@ -855,10 +1037,10 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
 function Pill({ label, color, c }) {
   return (
     <span style={{
-      fontSize: T.xs, fontFamily: mono,
-      padding: "3px 8px", borderRadius: 999,
-      background: color + "1c",
-      border: "1px solid " + color + "44",
+      fontSize: T.sm, fontFamily: mono, fontWeight: 600,
+      padding: "5px 10px", borderRadius: 999,
+      background: color + "20",
+      border: "1px solid " + color + "55",
       color, letterSpacing: ".02em",
     }}>{label}</span>
   );
