@@ -26,6 +26,7 @@ import { shuffle, daysUntil } from "./utils/helpers.js";
 // Components
 import Home from "./components/Home.jsx";
 import VocabBrowser from "./components/VocabBrowser.jsx";
+import Web from "./components/Web.jsx";
 import { Skeleton } from "./components/SessionParts.jsx";
 import KanaTrainer from "./components/KanaTrainer.jsx";
 import PhraseBank from "./components/PhraseBank.jsx";
@@ -740,7 +741,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
   const globalCSS=`@keyframes streakPop{0%{transform:scale(1)}30%{transform:scale(1.5)}60%{transform:scale(.9)}100%{transform:scale(1)}}@keyframes streakGlow{0%,100%{text-shadow:0 0 8px rgba(255,120,50,.2)}50%{text-shadow:0 0 28px rgba(255,120,50,.7)}}@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`;
 
   // ═══ TABS & ROUTING ═══
-  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"smart",icon:"▶",label:"Learn"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"vocab",icon:"📚",label:"Vocab"},{id:"map",icon:"🗾",label:"Map"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
+  const tabs=[{id:"home",icon:"🏠",label:"Home"},{id:"smart",icon:"▶",label:"Learn"},{id:"kana",icon:"あ",label:"Kana"},{id:"phrases",icon:"💬",label:"Phrases"},{id:"vocab",icon:"📚",label:"Vocab"},{id:"web",icon:"🕸️",label:"Web"},{id:"map",icon:"🗾",label:"Map"},{id:"sensei",icon:"🎌",label:"Senpai"},{id:"game",icon:"⚔️",label:"Game"}];
   const handleTabClick=(id)=>{
     stopAudio(); // Stop any playing audio on tab switch
     setTab(id);
@@ -794,6 +795,9 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     />}
     {tab==="vocab"&&<VocabBrowser
       data={data} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop} theme={theme}
+    />}
+    {tab==="web"&&<Web
+      data={data} c={c} inner={inner} btn={btn} isDesktop={isDesktop} theme={theme}
     />}
     {tab==="sensei"&&<SenpaiChat
       data={data} c={c} btn={btn}

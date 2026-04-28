@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "../data/phrases.js";
-import { font, fontJa, mono, T, JP } from "../data/constants.js";
-import { speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
+import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
+import { font, fontJa, mono, T, JP, GRAMMAR_COLORS } from "../data/constants.js";
+import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 import { track } from "../utils/telemetry.js";
 import { ProgressBar, PlayButton, ensureSessionStyles } from "./SessionParts.jsx";
-import { IconPlay, IconCheck, IconX, IconRefresh, IconArrowRight } from "./Icons.jsx";
+import { IconPlay, IconCheck, IconX, IconRefresh, IconArrowRight, IconSparkle, IconBackspace } from "./Icons.jsx";
 
 /**
  * VocabBrowser — calm review tab.
@@ -64,18 +65,44 @@ export default function VocabBrowser({
   const [mode, setMode]         = useState("browse");
   const [filter, setFilter]     = useState("all");
 
+  // Browse-mode: which category sections are collapsed. Persisted in localStorage
+  // so the user's preference survives reloads.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("vocab-collapsed") || "[]")); }
+    catch { return new Set(); }
+  });
+  const toggleCollapse = (catKey) => {
+    setCollapsed(prev => {
+      const n = new Set(prev);
+      if (n.has(catKey)) n.delete(catKey); else n.add(catKey);
+      try { localStorage.setItem("vocab-collapsed", JSON.stringify([...n])); } catch {}
+      return n;
+    });
+  };
+
   // Test-mode state
   const [testQueue, setTestQueue] = useState([]);
   const [testIdx, setTestIdx]   = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [history, setHistory]   = useState([]); // [{ id, knewIt }]
 
+  // Build-mode state — chips dropped onto the canvas, in order
+  const [builtChips, setBuiltChips] = useState([]); // [{ jp, romaji, meaning, type }]
+  const [buildPoolType, setBuildPoolType] = useState("noun"); // grammar-type filter for the pool
+  const [savedSentences, setSavedSentences] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vocab-built-sentences") || "[]"); }
+    catch { return []; }
+  });
+
   // Track open per mode for telemetry. Fires once per entry.
   const lastModeRef = useRef(null);
   useEffect(() => {
     if (lastModeRef.current !== mode) {
       lastModeRef.current = mode;
-      track(mode === "test" ? "vocab_test_open" : "vocab_browse_open", { filter });
+      const ev = mode === "test" ? "vocab_test_open"
+              : mode === "build" ? "vocab_build_open"
+              : "vocab_browse_open";
+      track(ev, { filter });
     }
   }, [mode, filter]);
 
@@ -122,6 +149,7 @@ export default function VocabBrowser({
         {[
           { id: "browse", label: "Browse" },
           { id: "test",   label: "Test"   },
+          { id: "build",  label: "Build"  },
         ].map(m => {
           const active = mode === m.id;
           return (
@@ -204,13 +232,25 @@ export default function VocabBrowser({
         {grouped.map(({ catKey, items, totalInCat, learnedInCat }) => {
           const catCol = CAT_COLORS[catKey] || c.a;
           const pct = Math.round((learnedInCat / totalInCat) * 100);
+          const isCollapsed = collapsed.has(catKey);
           return (
             <section key={catKey} style={{ marginBottom: 22 }}>
-              {/* Category header */}
-              <div style={{
-                display: "flex", alignItems: "center", gap: 10, marginBottom: 10,
-                padding: "0 4px",
-              }}>
+              {/* Category header — entire row clickable to collapse/expand */}
+              <button
+                onClick={() => toggleCollapse(catKey)}
+                aria-expanded={!isCollapsed}
+                aria-controls={`vocab-cat-${catKey}`}
+                className="ts-btn"
+                style={{
+                  ...btn, width: "100%",
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "8px 6px", marginBottom: 10,
+                  background: "transparent", border: "none",
+                  cursor: "pointer", textAlign: "left",
+                  borderRadius: 8,
+                }}
+              >
+                <Chevron open={!isCollapsed} c={c} />
                 <span style={{ fontSize: T.lg, lineHeight: 1 }}>{CAT_ICONS[catKey]}</span>
                 <div style={{
                   fontSize: T.sm, fontWeight: 700, color: c.tx,
@@ -222,17 +262,276 @@ export default function VocabBrowser({
                 <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, fontWeight: 600 }}>
                   {learnedInCat}/{totalInCat}
                 </div>
-              </div>
+              </button>
 
               {/* Rows */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {items.map(p => (
-                  <VocabRow key={p[0]} p={p} c={c} card={card} btn={btn} isDesktop={isDesktop} catCol={catCol} />
-                ))}
-              </div>
+              {!isCollapsed && (
+                <div id={`vocab-cat-${catKey}`} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {items.map(p => (
+                    <VocabRow key={p[0]} p={p} c={c} card={card} btn={btn} isDesktop={isDesktop} catCol={catCol} />
+                  ))}
+                </div>
+              )}
             </section>
           );
         })}
+      </div>
+    );
+  }
+
+  // ════════════════════════ BUILD MODE ════════════════════════════════════════
+  if (mode === "build") {
+    // Pool of every unique segment from learned phrases. Dedupe on jp+meaning so
+    // identical building blocks (e.g. "です" appearing in 30 phrases) show once.
+    const learnedIds = new Set(learnedPhrases.map(p => p[0]));
+    const seen = new Set();
+    const pool = [];
+    for (const id of learnedIds) {
+      const segs = PHRASE_BREAKDOWNS[id] || [];
+      for (const seg of segs) {
+        const [jp, romaji, meaning, type] = seg;
+        if (!jp || jp.trim() === "..." || jp.trim() === "/") continue;
+        const key = jp + "|" + (meaning || "");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        pool.push({ jp, romaji, meaning, type: type || "noun" });
+      }
+    }
+
+    // Group pool by grammar type for the filter tabs
+    const TYPES = [
+      { id: "noun",       label: "Nouns" },
+      { id: "verb",       label: "Verbs" },
+      { id: "particle",   label: "Particles" },
+      { id: "adjective",  label: "Adjectives" },
+      { id: "expression", label: "Expressions" },
+      { id: "counter",    label: "Counters" },
+      { id: "copula",     label: "Copula" },
+      { id: "suffix",     label: "Suffix" },
+    ];
+    const poolForType = pool.filter(p => p.type === buildPoolType);
+
+    const builtJp = builtChips.map(c => c.jp).join("");
+    const builtEn = builtChips.length === 0 ? "" : builtChips.map(c => c.meaning).filter(Boolean).join(" + ");
+
+    const addChip = (chip) => {
+      setBuiltChips(b => [...b, chip]);
+      track("vocab_build_add", { jp: chip.jp, type: chip.type });
+    };
+    const removeChip = (idx) => setBuiltChips(b => b.filter((_, i) => i !== idx));
+    const clearAll = () => setBuiltChips([]);
+    const speakBuilt = () => {
+      if (!builtJp) return;
+      // No phrase id — use raw TTS via the kana speak helper.
+      speak(builtJp);
+      track("vocab_build_speak", { length: builtChips.length });
+    };
+    const saveSentence = () => {
+      if (!builtJp) return;
+      const next = [{ jp: builtJp, en: builtEn, ts: Date.now() }, ...savedSentences].slice(0, 20);
+      setSavedSentences(next);
+      try { localStorage.setItem("vocab-built-sentences", JSON.stringify(next)); } catch {}
+      setBuiltChips([]);
+      track("vocab_build_save");
+    };
+
+    if (pool.length === 0) {
+      return (
+        <div style={inner}>
+          {Header}
+          <div style={{ ...card, padding: "32px 24px", textAlign: "center" }}>
+            <div style={{ fontSize: T.xxl, marginBottom: 8 }}>🧱</div>
+            <div style={{ fontSize: T.md, fontWeight: 700, marginBottom: 6 }}>No building blocks yet</div>
+            <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.5, maxWidth: 360, margin: "0 auto" }}>
+              Learn a few phrases first. Their pieces (nouns, verbs, particles) will appear here for you to mix and match.
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={inner}>
+        {Header}
+
+        {/* Canvas — built sentence */}
+        <div style={{
+          ...card, padding: "16px 14px", marginBottom: 12,
+          minHeight: 110, display: "flex", flexDirection: "column", gap: 10,
+        }}>
+          <div style={{
+            fontSize: T.xs, fontFamily: mono, color: c.m,
+            textTransform: "uppercase", letterSpacing: ".06em",
+          }}>Your sentence</div>
+
+          {builtChips.length === 0 ? (
+            <div style={{
+              fontSize: T.sm, color: c.m, fontStyle: "italic",
+              padding: "20px 0", textAlign: "center",
+            }}>Tap chips below to start building →</div>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "baseline" }}>
+              {builtChips.map((chip, i) => {
+                const tint = GRAMMAR_COLORS[chip.type] || c.m;
+                return (
+                  <button key={i} onClick={() => removeChip(i)}
+                    title="tap to remove"
+                    className="ts-chip"
+                    style={{
+                      ...btn, padding: "6px 10px", borderRadius: 8,
+                      background: tint + "18", border: "1px solid " + tint + "55",
+                      color: c.tx, fontFamily: fontJa,
+                      fontSize: isDesktop ? T.lg : T.md, fontWeight: JP.weight,
+                      lineHeight: 1.2, cursor: "pointer",
+                    }}>
+                    {chip.jp}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Live EN gloss + actions */}
+          {builtChips.length > 0 && (
+            <>
+              <div style={{ fontSize: T.sm, color: c.m, lineHeight: 1.4, marginTop: 2 }}>
+                {builtEn || <span style={{ fontStyle: "italic", opacity: .6 }}>(no glosses)</span>}
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+                <button onClick={speakBuilt}
+                  className="ts-btn"
+                  style={{
+                    ...btn, flex: "1 1 140px", padding: "10px 14px", borderRadius: 10,
+                    background: c.a, color: "#fff", border: "none",
+                    fontSize: T.sm, fontWeight: 700, cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  }}><IconPlay size={14}/> Hear it</button>
+                <button onClick={saveSentence}
+                  className="ts-btn"
+                  style={{
+                    ...btn, padding: "10px 14px", borderRadius: 10,
+                    background: c.s2, color: c.tx, border: "1px solid " + c.b,
+                    fontSize: T.sm, fontWeight: 600, cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}><IconSparkle size={14}/> Save</button>
+                <button onClick={clearAll}
+                  className="ts-btn"
+                  style={{
+                    ...btn, padding: "10px 14px", borderRadius: 10,
+                    background: "transparent", color: c.m, border: "1px solid " + c.b,
+                    fontSize: T.sm, fontWeight: 600, cursor: "pointer",
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                  }}><IconBackspace size={14}/> Clear</button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Saved sentences (recent first) */}
+        {savedSentences.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{
+              fontSize: T.xs, fontFamily: mono, color: c.m,
+              textTransform: "uppercase", letterSpacing: ".06em",
+              marginBottom: 6, padding: "0 4px",
+            }}>Saved · {savedSentences.length}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {savedSentences.map((s, i) => (
+                <div key={i} style={{
+                  ...card, padding: "10px 12px",
+                  display: "flex", alignItems: "center", gap: 10,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+                    <div style={{
+                      fontFamily: fontJa, fontSize: isDesktop ? T.md : T.base,
+                      fontWeight: JP.weight, color: c.tx, lineHeight: JP.lineHeight,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>{s.jp}</div>
+                    {s.en && <div style={{
+                      fontSize: T.xs, color: c.m, marginTop: 2,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>{s.en}</div>}
+                  </div>
+                  <button onClick={() => speak(s.jp)} aria-label="Replay"
+                    style={{
+                      ...btn, padding: "5px 9px", borderRadius: 6,
+                      background: "transparent", border: "1px solid " + c.b,
+                      color: c.m, flexShrink: 0,
+                    }}><IconPlay size={12}/></button>
+                  <button onClick={() => {
+                      const next = savedSentences.filter((_, j) => j !== i);
+                      setSavedSentences(next);
+                      try { localStorage.setItem("vocab-built-sentences", JSON.stringify(next)); } catch {}
+                    }} aria-label="Delete"
+                    style={{
+                      ...btn, padding: "5px 9px", borderRadius: 6,
+                      background: "transparent", border: "1px solid " + c.b,
+                      color: c.m, flexShrink: 0,
+                    }}><IconX size={12}/></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Pool — type tabs */}
+        <div style={{
+          display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap",
+          position: "sticky", top: 0, background: c.bg, padding: "8px 0", zIndex: 1,
+        }}>
+          {TYPES.map(t => {
+            const tint = GRAMMAR_COLORS[t.id] || c.m;
+            const count = pool.filter(p => p.type === t.id).length;
+            const active = buildPoolType === t.id;
+            if (count === 0) return null;
+            return (
+              <button key={t.id}
+                onClick={() => setBuildPoolType(t.id)}
+                className="ts-chip"
+                aria-pressed={active}
+                style={{
+                  ...btn, padding: "5px 11px", borderRadius: 999,
+                  background: active ? tint + "22" : "transparent",
+                  border: "1px solid " + (active ? tint + "66" : c.b),
+                  color: active ? tint : c.m,
+                  fontSize: T.xs, fontWeight: 600, cursor: "pointer",
+                  fontFamily: mono, letterSpacing: ".03em",
+                }}
+              >{t.label} <span style={{ opacity: .6 }}>{count}</span></button>
+            );
+          })}
+        </div>
+
+        {/* Pool — chips grid */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isDesktop ? "repeat(auto-fill, minmax(140px, 1fr))" : "repeat(auto-fill, minmax(110px, 1fr))",
+          gap: 8,
+        }}>
+          {poolForType.map((chip, i) => {
+            const tint = GRAMMAR_COLORS[chip.type] || c.m;
+            return (
+              <button key={chip.jp + i}
+                onClick={() => addChip(chip)}
+                className="ts-btn"
+                style={{
+                  ...btn, padding: "10px 12px", borderRadius: 10,
+                  background: c.s, border: "1px solid " + c.b,
+                  borderLeft: "3px solid " + tint,
+                  textAlign: "left", cursor: "pointer",
+                }}>
+                <div style={{
+                  fontFamily: fontJa, fontSize: isDesktop ? T.lg : T.md,
+                  fontWeight: JP.weight, color: c.tx, lineHeight: 1.2,
+                }}>{chip.jp}</div>
+                {chip.meaning && <div style={{
+                  fontSize: T.xs, color: c.m, marginTop: 4,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>{chip.meaning}</div>}
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -520,5 +819,20 @@ function FinishedCard({ count, correct, onRestart, c, card, btn }) {
         }}
       ><IconRefresh size={14}/> Shuffle and start over</button>
     </div>
+  );
+}
+
+// ─── Chevron — small SVG, rotates between collapsed and expanded ──────────────
+function Chevron({ open, c }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"
+      style={{
+        flexShrink: 0,
+        transform: open ? "rotate(90deg)" : "rotate(0deg)",
+        transition: "transform .15s ease",
+        color: c.m,
+      }}>
+      <path d="M4 2 L8 6 L4 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
 }
