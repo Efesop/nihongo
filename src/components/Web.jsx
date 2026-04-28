@@ -298,63 +298,97 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
   // Pan/zoom
   const panZoom = usePanZoom(svgRef, wake);
 
-  // Drag-node state (separate from bg pan)
-  const dragNodeRef = useRef(null);
+  // Hover state for node tooltips + grow-on-hover affordance
+  const [hoverIdx, setHoverIdx] = useState(null);
 
-  const onPointerDown = (e) => {
-    e.preventDefault();
-    const target = e.target.closest("[data-node-idx]");
-    if (target) {
-      const idx = Number(target.getAttribute("data-node-idx"));
-      const rect = svgRef.current.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const gx = (sx - panZoom.tx) / panZoom.k;
-      const gy = (sy - panZoom.ty) / panZoom.k;
-      dragNodeRef.current = { idx, ox: graph.nodes[idx].x - gx, oy: graph.nodes[idx].y - gy };
-      pin(idx, gx + dragNodeRef.current.ox, gy + dragNodeRef.current.oy);
-    } else {
-      panZoom.startBgPan(e.clientX, e.clientY);
-    }
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+  // ─── Background pan (svg-level pointer down on empty space) ───
+  // We use window-level pointermove/up listeners (NOT setPointerCapture) so the
+  // node click events still get delivered to their original SVG targets.
+  const bgDragRef = useRef(null);
+
+  useEffect(() => {
+    const onWinMove = (e) => {
+      if (bgDragRef.current) {
+        const s = bgDragRef.current;
+        panZoom.setTx(s.startTx + (e.clientX - s.startX));
+        panZoom.setTy(s.startTy + (e.clientY - s.startY));
+        wake();
+      }
+    };
+    const onWinUp = () => { bgDragRef.current = null; };
+    window.addEventListener("pointermove", onWinMove);
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    return () => {
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
+  }, [panZoom, wake]);
+
+  const onSvgPointerDown = (e) => {
+    // Only start a bg pan when the press is on the SVG itself (not on a node).
+    if (e.target.closest("[data-node-idx]")) return;
+    bgDragRef.current = { startX: e.clientX, startY: e.clientY, startTx: panZoom.tx, startTy: panZoom.ty };
   };
 
-  const onPointerMove = (e) => {
-    if (dragNodeRef.current) {
-      const rect = svgRef.current.getBoundingClientRect();
-      const sx = e.clientX - rect.left;
-      const sy = e.clientY - rect.top;
-      const gx = (sx - panZoom.tx) / panZoom.k;
-      const gy = (sy - panZoom.ty) / panZoom.k;
-      pin(dragNodeRef.current.idx, gx + dragNodeRef.current.ox, gy + dragNodeRef.current.oy);
-      return;
-    }
-    panZoom.move(e.clientX, e.clientY);
+  const onSvgClick = (e) => {
+    // Background click → clear focus. Node clicks are handled per-node below.
+    if (e.target.closest("[data-node-idx]")) return;
+    setFocusId(null);
   };
 
-  const onPointerUp = () => {
-    if (dragNodeRef.current) {
-      // Stay pinned for a moment after release? Decision: instantly unpin so the
-      // physics absorbs the position and the graph keeps breathing. Feels more alive.
-      unpin(dragNodeRef.current.idx);
-      dragNodeRef.current = null;
-    }
-    panZoom.end();
-  };
+  // ─── Per-node interaction ───
+  // Each node g handles its own pointerdown for drag + click for focus. Click
+  // is only fired when the pointer didn't move past a small threshold, so a
+  // drag-then-release doesn't accidentally also trigger focus.
+  const nodeDragRef = useRef(null);
 
-  const onClickNode = (e) => {
-    // Click only fires when no drag happened (browser convention)
-    const t = e.target.closest("[data-node-idx]");
-    if (!t) {
-      // Background click clears focus
-      setFocusId(null);
-      return;
-    }
-    const idx = Number(t.getAttribute("data-node-idx"));
+  const onNodePointerDown = (e, idx) => {
+    e.stopPropagation();
+    const rect = svgRef.current.getBoundingClientRect();
+    const startScreenX = e.clientX;
+    const startScreenY = e.clientY;
+    const sx = e.clientX - rect.left;
+    const sy = e.clientY - rect.top;
+    const gx = (sx - panZoom.tx) / panZoom.k;
+    const gy = (sy - panZoom.ty) / panZoom.k;
     const node = graph.nodes[idx];
-    setFocusId(node.id);
-    track("web_node_click", { mode, id: node.id });
-    wake();
+    if (!node) return;
+    const ox = node.x - gx;
+    const oy = node.y - gy;
+
+    nodeDragRef.current = { idx, ox, oy, moved: false };
+
+    const onMove = (ev) => {
+      const mvx = ev.clientX - startScreenX;
+      const mvy = ev.clientY - startScreenY;
+      if (Math.abs(mvx) > 4 || Math.abs(mvy) > 4) nodeDragRef.current.moved = true;
+      const nrect = svgRef.current.getBoundingClientRect();
+      const nsx = ev.clientX - nrect.left;
+      const nsy = ev.clientY - nrect.top;
+      const ngx = (nsx - panZoom.tx) / panZoom.k;
+      const ngy = (nsy - panZoom.ty) / panZoom.k;
+      pin(idx, ngx + ox, ngy + oy);
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      const moved = nodeDragRef.current?.moved;
+      // Always release the pin so physics breathes again
+      unpin(idx);
+      // If pointer barely moved, treat as a click → focus the node
+      if (!moved) {
+        setFocusId(node.id);
+        track("web_node_click", { mode, id: node.id });
+      }
+      nodeDragRef.current = null;
+      wake();
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
   // Esc closes focus
@@ -493,11 +527,8 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
         ref={svgRef}
         width="100%" height="100%"
         className="web-svg"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        onClick={onClickNode}
+        onPointerDown={onSvgPointerDown}
+        onClick={onSvgClick}
         onWheel={panZoom.onWheel}
         data-tick={tick}
       >
@@ -527,17 +558,28 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
             const isConnected = connectedIdxs && connectedIdxs.has(i);
             const dim = focusId && !isConnected;
 
+            const isHover = hoverIdx === i;
+
             if (n.kind === "phrase") {
               const col = CAT_COLORS[n.cat] || c.a;
               const fillAlpha = alphaForBox(n.box);
-              const r = isFocus ? 26 : 20;
+              const baseR = 20;
+              const r = isFocus ? 26 : isHover ? baseR + 3 : baseR;
               const isDue = n.next && n.next < Date.now();
               return (
                 <g
                   key={n.id}
                   data-node-idx={i}
                   className="web-node"
-                  style={{ opacity: dim ? 0.18 : 1, filter: isFocus ? "drop-shadow(0 0 12px " + col + ")" : "none" }}
+                  onPointerDown={(e) => onNodePointerDown(e, i)}
+                  onPointerEnter={() => setHoverIdx(i)}
+                  onPointerLeave={() => setHoverIdx(prev => prev === i ? null : prev)}
+                  style={{
+                    opacity: dim ? 0.18 : 1,
+                    filter: isFocus ? "drop-shadow(0 0 12px " + col + ")"
+                          : isHover ? "drop-shadow(0 0 6px " + col + "aa)" : "none",
+                    transition: "filter .15s",
+                  }}
                 >
                   {isDue && (
                     <circle className="web-due-ring"
@@ -547,18 +589,18 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
                   <circle cx={n.x} cy={n.y} r={r}
                     fill={col + fillAlpha}
                     stroke={col}
-                    strokeWidth={isFocus ? 3 : 1.5}
+                    strokeWidth={isFocus ? 3 : isHover ? 2.5 : 1.5}
                   />
-                  {/* JP text inside node — opacity ramps in at higher zoom */}
+                  {/* JP text inside node — visible on focus/hover, ramps in at higher zoom */}
                   <text
                     x={n.x} y={n.y + 4}
                     textAnchor="middle"
                     className="web-node-text"
                     fontFamily={fontJa}
-                    fontSize={isFocus ? 14 : 11}
+                    fontSize={isFocus || isHover ? 14 : 11}
                     fill={n.box >= 3 ? "#fff" : c.tx}
                     fontWeight={JP.weight}
-                    opacity={isFocus ? 1 : Math.min(1, Math.max(0, (panZoom.k - 0.9) * 1.5))}
+                    opacity={isFocus || isHover ? 1 : Math.min(1, Math.max(0, (panZoom.k - 0.9) * 1.5))}
                   >
                     {n.jp.length > 5 ? n.jp.slice(0, 5) + "…" : n.jp}
                   </text>
@@ -569,25 +611,34 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
             // Block node
             const tcol = GRAMMAR_COLORS[n.type] || c.m;
             const fillAlpha = alphaForBox(n.avgBox);
-            const r = isFocus ? 8 + 5 * Math.sqrt(n.usage) : 6 + 4 * Math.sqrt(n.usage);
+            const baseR = 6 + 4 * Math.sqrt(n.usage);
+            const r = isFocus ? baseR + 4 : isHover ? baseR + 2 : baseR;
             return (
               <g
                 key={n.id}
                 data-node-idx={i}
                 className="web-node"
-                style={{ opacity: dim ? 0.18 : 1, filter: isFocus ? "drop-shadow(0 0 14px " + tcol + ")" : "none" }}
+                onPointerDown={(e) => onNodePointerDown(e, i)}
+                onPointerEnter={() => setHoverIdx(i)}
+                onPointerLeave={() => setHoverIdx(prev => prev === i ? null : prev)}
+                style={{
+                  opacity: dim ? 0.18 : 1,
+                  filter: isFocus ? "drop-shadow(0 0 14px " + tcol + ")"
+                        : isHover ? "drop-shadow(0 0 8px " + tcol + "aa)" : "none",
+                  transition: "filter .15s",
+                }}
               >
                 <circle cx={n.x} cy={n.y} r={r}
                   fill={tcol + fillAlpha}
                   stroke={tcol}
-                  strokeWidth={isFocus ? 3 : 1.5}
+                  strokeWidth={isFocus ? 3 : isHover ? 2.5 : 1.5}
                 />
                 <text
                   x={n.x} y={n.y + 4}
                   textAnchor="middle"
                   className="web-node-text"
                   fontFamily={fontJa}
-                  fontSize={isFocus ? 14 : Math.min(13, 8 + Math.sqrt(n.usage))}
+                  fontSize={isFocus || isHover ? 14 : Math.min(13, 8 + Math.sqrt(n.usage))}
                   fill="#fff"
                   fontWeight={JP.weight}
                 >
@@ -596,6 +647,32 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
               </g>
             );
           })}
+
+          {/* Hover tooltip — drawn on top */}
+          {hoverIdx !== null && graph.nodes[hoverIdx] && !focusId && (() => {
+            const n = graph.nodes[hoverIdx];
+            const label = n.kind === "phrase" ? n.jp : n.jp;
+            const sub = n.kind === "phrase" ? n.en : (n.meaning || "");
+            const tipX = n.x;
+            const tipY = n.y - (n.kind === "phrase" ? 32 : 18);
+            return (
+              <g style={{ pointerEvents: "none" }}>
+                <foreignObject x={tipX - 110} y={tipY - 50} width={220} height={50}>
+                  <div xmlns="http://www.w3.org/1999/xhtml" style={{
+                    fontFamily: fontJa, fontSize: 12,
+                    background: c.s + "ee", border: "1px solid " + c.b,
+                    borderRadius: 8, padding: "5px 9px",
+                    color: c.tx, textAlign: "center",
+                    backdropFilter: "blur(8px)",
+                    boxShadow: "0 4px 14px rgba(0,0,0,.4)",
+                  }}>
+                    <div style={{ fontWeight: 600 }}>{label}</div>
+                    {sub && <div style={{ fontSize: 10, color: c.m, marginTop: 1 }}>{sub}</div>}
+                  </div>
+                </foreignObject>
+              </g>
+            );
+          })()}
         </g>
       </svg>
 
