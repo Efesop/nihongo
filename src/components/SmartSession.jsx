@@ -1480,7 +1480,14 @@ export default function SmartSession({
           const quizAnswered = storyAnswer !== null;
           const choices = ex._learnQuizChoices;
           const wasCorrect = quizAnswered && choices && choices[storyAnswer]?.[0] === p[0];
-          reviewPhr(p[0], wasCorrect || !quizAnswered, "learn-phrase");
+          // SRS credit only when learner actually proves recall via the quick-check.
+          // Previously `wasCorrect || !quizAnswered` meant skipping the quiz still
+          // granted credit — every learn-phrase intro was being marked "learned"
+          // off mere card-flip. Now skipping = no SRS update; quiz wrong = wrong
+          // (the FSRS lapse is small for box-0 items so this isn't punitive).
+          if (quizAnswered) {
+            reviewPhr(p[0], wasCorrect, "learn-phrase", getResponseMs());
+          }
           setStoryAnswer(null);
           advance(true);
           setScore(s => ({ ...s, c: s.c + 1 }));

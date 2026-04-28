@@ -91,6 +91,27 @@ const PRODUCTION_TYPES = new Set([
 // Recognition-only types get no bonus (baseline)
 // "kana-listen", "phrase-scenario", "phrase-listen", "kana-pair", "phrase-pair"
 
+// Multiple-choice exercises where a fast-correct could plausibly be a guess
+// from a small option pool. We DENY the Easy bonus on these — fast-correct on
+// MCQ caps at Good (rating 3) instead of Easy (rating 4) so a 1-second lucky
+// pick from 3-4 options doesn't inflate stability the way confident free-recall does.
+// Production-typed (free input) exercises are NOT in this set — those can't be guessed.
+const MCQ_TYPES = new Set([
+  "phrase-listen",     // hear → pick EN meaning
+  "phrase-scenario",   // context → pick JP from 4
+  "phrase-pair",       // confused-pair discrimination
+  "phrase-reverse",    // see EN, pick JP from 4 — small pool, guessable
+  "phrase-dj",         // remix quiz — 4 JP choices
+  "kana-listen",       // hear → pick romaji from set
+  "kana-pair",         // confused kana discrimination
+  "word-quiz",         // word → meaning multiple choice
+  "conversation",      // dialogue blanks pulled from a small option pool
+  "scene-quick-check", // scene comprehension check (3-option)
+  "try-first-phrase",  // 4-choice productive-failure probe
+  "try-first-kana",    // kana productive-failure probe
+  "learn-phrase",      // intro card's quick-check (1 of N choices)
+]);
+
 /**
  * Main function: calculate next review timing
  *
@@ -102,13 +123,20 @@ const PRODUCTION_TYPES = new Set([
  */
 export function fsrsUpdate(itemData, correct, responseTime = null, exerciseType = null) {
   const now = Date.now();
-  // Use response time to distinguish Hard/Good/Easy instead of binary
-  // Fast correct (<3s) = Easy(4), normal = Good(3), slow correct (>8s) = Hard(2), wrong = Again(1)
-  let rating = 1; // Again (wrong)
+  // Rating from response time:
+  //   wrong          → 1 (Again)
+  //   fast correct   → 4 (Easy)  — knew it instantly
+  //   normal correct → 3 (Good)
+  //   slow correct   → 2 (Hard)  — got it but struggled (>8s)
+  // Guess guard: on MCQ-style exercises a 1-second correct pick is plausibly
+  // a guess from a small pool. Cap MCQ fast-correct at Good (3) — Easy bonus
+  // is reserved for free-recall / production exercises where you can't guess.
+  const isMcq = exerciseType && MCQ_TYPES.has(exerciseType);
+  let rating = 1;
   if (correct) {
-    if (responseTime && responseTime < 3000) rating = 4;      // Easy — knew it instantly
-    else if (responseTime && responseTime > 8000) rating = 2;  // Hard — got it but struggled
-    else rating = 3;                                            // Good — normal recall
+    if (responseTime && responseTime < 3000 && !isMcq) rating = 4;     // Easy
+    else if (responseTime && responseTime > 8000) rating = 2;          // Hard
+    else rating = 3;                                                    // Good
   }
 
   // Production bonus: correct answers on harder exercise types earn more stability
@@ -189,8 +217,41 @@ export function capBoxBySkills(box, skills) {
   const v = skills.visual || 0;
   const l = skills.listen || 0;
   const p = skills.production || 0;
-  if (v >= 2 && l >= 1 && p >= 2) return box;                // box 5 OK
-  if (v >= 2 && l >= 1) return Math.min(box, 4);             // cap at box 4
-  if (v >= 1) return Math.min(box, 3);                       // cap at box 3
-  return Math.min(box, 2);                                   // cap at box 2
+  // Box 5 ("mastered") now requires real production proof — production ≥ 3
+  // means at least three successful free-recall / typed / picked-from-8 attempts.
+  // Previous rule (p ≥ 2) was too lenient and let MCQ-only items climb to box 5.
+  if (v >= 2 && l >= 1 && p >= 3) return box;                // box 5 OK
+  if (v >= 2 && l >= 1 && p >= 1) return Math.min(box, 4);   // cap at box 4 — needs at least 1 production
+  if (v >= 1 && (l >= 1 || p >= 1)) return Math.min(box, 3); // cap at box 3
+  return Math.min(box, 2);                                   // cap at box 2 — recognition only
+}
+
+/**
+ * One-time normalization: re-apply skill-based box caps to every existing item.
+ * Items that climbed to box 4-5 before the cap rule was tightened (or before
+ * skills tracking was reliable) get demoted to the level their skill profile
+ * actually justifies. Idempotent — safe to call multiple times.
+ *
+ * Returns { phr, kana, capped } — new phr/kana objects with capped box values
+ * and a count of how many items were demoted.
+ */
+export function normalizeBoxesBySkills(data) {
+  const skills = data?.skills || {};
+  let capped = 0;
+  const reCap = (items) => {
+    const out = {};
+    for (const id of Object.keys(items || {})) {
+      const item = items[id];
+      const oldBox = item?.box ?? 0;
+      const newBox = capBoxBySkills(oldBox, skills[id]);
+      if (newBox !== oldBox) capped++;
+      out[id] = { ...item, box: newBox };
+    }
+    return out;
+  };
+  return {
+    phr: reCap(data?.phr),
+    kana: reCap(data?.kana),
+    capped,
+  };
 }

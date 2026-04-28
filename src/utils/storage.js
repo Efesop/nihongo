@@ -1,4 +1,5 @@
 import { KEY } from "../data/constants.js";
+import { normalizeBoxesBySkills } from "./fsrs.js";
 
 // ═══ STORAGE HELPERS ═══
 export const store = {
@@ -41,5 +42,20 @@ export const migrate=(raw)=>{
   const yesterday=new Date(Date.now()-864e5).toDateString();
   const lastDay=raw.lastDay;
   const streak=lastDay===today?raw.streak||1:lastDay===yesterday?(raw.streak||0)+1:1;
-  return {...raw,kana:migratedKana,phr:raw.phr||{},streak,lastDay:today};
+  let next={...raw,kana:migratedKana,phr:raw.phr||{},streak,lastDay:today};
+
+  // One-time skill-based recap migration. Items that climbed to box 4-5
+  // before the cap rule was tightened (or before skill tracking was reliable)
+  // get demoted to the level their skill profile actually justifies. Marked
+  // by a flag so it only runs once per user.
+  if (!next.settings?.recapMigrationV1) {
+    const { phr, kana, capped } = normalizeBoxesBySkills(next);
+    next = {
+      ...next,
+      phr,
+      kana,
+      settings: { ...(next.settings||{}), recapMigrationV1: true, recapMigrationV1Capped: capped },
+    };
+  }
+  return next;
 };
