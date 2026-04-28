@@ -69,7 +69,7 @@ export const speakPhraseWithEnglish=(id,japanese,english)=>{
   // Play English first via Google TTS, then Japanese after
   const enUrl=`/api/tts?lang=en&q=${encodeURIComponent(english)}`;
   const a1=new Audio(enUrl);a1.playbackRate=1;_ttsAudio=a1;
-  a1.onended=()=>{ if(_isCurrentToken(token)) setTimeout(()=>{ if(_isCurrentToken(token)) playJp(); },150); };
+  a1.onended=()=>{ if(_isCurrentToken(token)) playJp(); };
   // If English fails (TTS down), still play Japanese
   a1.onerror=()=>{ playJp(); };
   a1.play().catch(()=>{ playJp(); });
