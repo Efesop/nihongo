@@ -24,6 +24,10 @@ Week 6-8:  Yōon + sentence listening at natural speed + AI stories
 Always:    Map connects language to places, SRS reviews everything,
            leech detection catches stuck items, skill tracking routes
            exercises to weakest dimension
+
+           Vocab tab — calm review (Browse / Test / Build) with no SRS pressure
+           Web tab   — visual node graph showing how learned content connects
+                       (shared blocks, same template, opposites, Q ↔ A)
 ```
 
 ---
@@ -49,6 +53,13 @@ Always:    Map connects language to places, SRS reviews everything,
 | Multi-dimensional skill tracking | **Shipped** | **Strong** | Adaptive Difficulty Engine — visual/listen/production per item |
 | Interleaved daily mix | **Shipped** | **Strong** | 19% improvement, delayed tests (Ertekin 2023) |
 | Conversation chains | **Shipped** | **Strong** | Contextual dialogue > isolated phrase practice |
+| Multiple-valid-answer conversations (`alsoOkIds`) | **Shipped** | **Moderate** | Reduces false-negative penalty; matches real-world dialogue variability |
+| Box-driven scaffolding fade (`scaffoldForBox`) | **Shipped** | **Strong** | Vygotsky's ZPD — support fades as competence grows |
+| MCQ guess-guard (cap fast-correct at Good) | **Shipped** | **Strong** | Prevents lucky-pick inflation of stability; FSRS receives honest signal |
+| Tightened mastery cap (production ≥ 3 for box 5) | **Shipped** | **Strong** | "Illusion of fluency" mitigation (Bjork) — recognition alone ≠ mastery |
+| Vocab tab — calm review (no SRS pressure) | **Shipped** | **Moderate** | Spaced retrieval without pass/fail anxiety; user-paced confidence-building |
+| Vocab Build (sentence assembly from owned vocab) | **Shipped** | **Strong** | Generative production with no risk; consolidates building-block awareness |
+| Web tab — visual connection graph | **Shipped** | **Strong** | Concept maps aid retention 22-30% over linear lists (Nesbit & Adesope 2006); reveals grammatical / semantic transfer |
 | Badges / achievements | **Shipped** | **Moderate** | Medium effect on motivation (Sauro & Smith 2023) |
 | Natural-speed listening | **Shipped** | **Moderate** | Chang & Millett 2014 — graduated approach |
 | Response time tracking | **Shipped** | **Moderate** | Infrastructure for adaptive difficulty |
@@ -146,6 +157,45 @@ Polyglots succeed through high-frequency engagement + social strategies, not wil
 - Senpai roleplay is social strategy in disguise ✓
 - Track + celebrate consistency via streaks/badges ✓
 - Quick sessions (~5 min) lower daily practice barrier ✓
+
+### 10. Concept maps boost retention 22-30% over linear lists
+Nesbit & Adesope (2006) meta-analysis — visual concept maps showing how ideas relate produce higher retention than reading the same content linearly. Effect strongest for novice learners forming initial schema.
+
+**Why this matters for Japanese:**
+- Beginner sees disconnected phrases; can't see *why* ありがとう and ありがとうございます are related, or that みぎ and ひだり are paired opposites.
+- Visual learners especially benefit — the same data presented as nodes-and-edges activates spatial memory in addition to verbal.
+- Connection awareness is a precursor to fluent generation: knowing "X is the opposite of Y" / "these all use the ～ください template" / "this question typically gets answered with one of those phrases" is what lets you produce novel sentences.
+
+**What we built (Web tab):**
+- Force-directed graph of every learned phrase + segment ✓
+- Typed edges showing *why* two items connect (shared block / same template / opposite / Q ↔ A) ✓
+- Edge labels visible mid-edge on focus — connections are explicit, not implied ✓
+- SRS state baked into the visual: bright = mastered, dim = weak, pulsing ring = due ✓
+- Two views: Phrases (concept-level) and Blocks (building-block-level) — same data, different schema for understanding ✓
+
+### 11. Calm-mode review prevents the "every-tap-is-a-test" anxiety spiral
+Some learners freeze on graded surfaces. They hesitate, second-guess, refuse to engage with material they actually know. Removing the grading pressure on a parallel review surface lets them exercise retrieval without stakes.
+
+**What we built (Vocab tab):**
+- Browse mode: scannable list of every learned phrase, no test pressure, listen-on-hover ✓
+- Test mode: EN→JP self-grade flashcards, *no SRS write* — pure confidence-building ✓
+- Build mode: drag/tap building blocks together to construct novel sentences, no right/wrong — pure generative play ✓
+- Telemetry-only — Learn tab stays the authoritative SRS source ✓
+
+### 12. UX detail: text size matters more than designers think
+Body text below ~17px reduces sustained reading comfort, especially on mobile. For language learners reading dense JP/EN dual-coded content, small text actively hurts comprehension. Repeated user feedback in this codebase reinforced it.
+
+**Convention now codified in CLAUDE.md and ARCHITECTURE.md:**
+- Body text minimum `T.md` (17px) on review / detail surfaces.
+- JP hero in detail panels: `T.xxl` (32px).
+- `T.xs/T.sm` reserved for labels and ephemeral metadata only.
+
+### 13. Identity: language IS the design
+Using emoji as category icons (🍜, 🚃, 🏨) is fine on dashboard tiles. Using them in surfaces where the user is supposed to *learn the language* (Web graph, sentence builder) substitutes a familiar pictogram for the JP word the user should be reading. Counterproductive.
+
+**Convention:**
+- Surfaces where JP is the identity (Web tab nodes, Build chips, sentence assembly) use JP labels (`あいさつ`, `しょくじ`, `こうつう`, …) instead of emoji.
+- Dashboard / nav / mode chips can keep emoji — affordance, not identity.
 
 ---
 
@@ -268,6 +318,9 @@ Most learners stall at intermediate. Solution: change methods, force active prod
 - Cognitive load theory and language app design
 - Flow state and optimal experience in L2 learning
 - Metacognition and self-regulated learning
+- Nesbit & Adesope (2006): Concept maps for learning, meta-analysis (g ≈ 0.6 for retention)
+- Vygotsky's Zone of Proximal Development — scaffolding fades as competence grows
+- Bjork's "illusion of fluency" — recognition feels like mastery but isn't (rationale for production-≥3 cap)
 
 **Japanese-specific:**
 - 80/20 frequency analysis (1000 words = 80% coverage)
