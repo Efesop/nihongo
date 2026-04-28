@@ -5,6 +5,7 @@ import { fontJa, mono, T, JP, GRAMMAR_COLORS } from "../data/constants.js";
 import { speakPhraseWithEnglish, speak } from "../utils/audio.js";
 import { track } from "../utils/telemetry.js";
 import { IconPlay, IconX, IconRefresh } from "./Icons.jsx";
+import PhraseSegments from "./PhraseSegments.jsx";
 import { usePhysics } from "./web/usePhysics.js";
 
 /**
@@ -899,15 +900,27 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
       maxHeight: isDesktop ? "78vh" : "62vh",
       overflowY: "auto",
     }}>
-      {/* Header row — JP hero, big */}
+      {/* Header row — JP hero, big. In phrase mode, render via PhraseSegments
+          so each word is colour-coded by grammar type and tap reveals its
+          meaning + romaji (matches the Learn exercises). Block mode is a
+          single segment so plain rendering is fine. */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontFamily: fontJa, fontSize: isDesktop ? T.xxl : T.xl,
-            fontWeight: JP.weight, color: c.tx, lineHeight: JP.lineHeight,
-          }}>{node.jp}</div>
+          {mode === "phrase" ? (
+            <PhraseSegments
+              phraseId={node.id}
+              c={c}
+              fontSize={isDesktop ? T.xxl : T.xl}
+              fontWeight={JP.weight}
+            />
+          ) : (
+            <div style={{
+              fontFamily: fontJa, fontSize: isDesktop ? T.xxl : T.xl,
+              fontWeight: JP.weight, color: c.tx, lineHeight: JP.lineHeight,
+            }}>{node.jp}</div>
+          )}
           {node.romaji && (
-            <div style={{ fontFamily: mono, fontSize: T.sm, color: c.ro, marginTop: 4 }}>{node.romaji}</div>
+            <div style={{ fontFamily: mono, fontSize: T.sm, color: c.ro, marginTop: 6 }}>{node.romaji}</div>
           )}
           <div style={{ fontSize: T.md, color: c.m2 || c.m, marginTop: 6, lineHeight: 1.4 }}>
             {mode === "phrase" ? node.en : (node.meaning || "—")}
