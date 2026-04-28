@@ -36,12 +36,7 @@ function ensureVocabStyles() {
     @media (hover: none) {
       .vocab-row .vocab-listen { opacity: 1; }
     }
-    .vocab-card-flip { transition: transform .35s ease, opacity .25s ease; }
-    .vocab-card-flip[data-flipped="true"] { animation: vocabFlipIn .35s ease-out; }
-    @keyframes vocabFlipIn {
-      0%   { transform: rotateX(-8deg) translateY(4px); opacity: 0; }
-      100% { transform: rotateX(0) translateY(0); opacity: 1; }
-    }
+    /* Flip reveal — no animation. User found the rotateX float effect distracting. */
   `;
   document.head.appendChild(s);
 }
@@ -325,23 +320,23 @@ export default function VocabBrowser({
 function VocabRow({ p, c, card, btn, isDesktop, catCol }) {
   return (
     <div className="vocab-row" style={{
-      ...card, padding: "12px 14px",
-      display: "flex", alignItems: "center", gap: 12,
+      ...card, padding: "16px 18px",
+      display: "flex", alignItems: "center", gap: 14,
       borderLeft: "3px solid " + catCol + "55",
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontFamily: fontJa, fontSize: isDesktop ? T.lg : T.md,
+          fontFamily: fontJa, fontSize: isDesktop ? T.xxl : T.xl,
           fontWeight: JP.weight, color: c.tx, lineHeight: JP.lineHeight,
         }}>{p[1]}</div>
-        <div style={{ fontFamily: mono, fontSize: T.xs, color: c.ro, marginTop: 2, opacity: .85 }}>{p[2]}</div>
-        <div style={{ fontSize: T.sm, color: c.m, marginTop: 4, lineHeight: 1.35 }}>{p[3]}</div>
+        <div style={{ fontFamily: mono, fontSize: T.sm, color: c.ro, marginTop: 4, opacity: .9 }}>{p[2]}</div>
+        <div style={{ fontSize: T.md, color: c.m2 || c.m, marginTop: 6, lineHeight: 1.4 }}>{p[3]}</div>
       </div>
       <div className="vocab-listen" style={{ flexShrink: 0 }}>
         <PlayButton
           onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
           ariaLabel={`Hear ${p[3]} in Japanese`}
-          c={c} btn={btn} size="md"
+          c={c} btn={btn} size="lg"
         />
       </div>
     </div>
@@ -379,8 +374,7 @@ function ActiveFlashcard({ p, revealed, onFlip, onMissed, onKnewIt, onReplay, pr
         role={!revealed ? "button" : undefined}
         tabIndex={!revealed ? 0 : -1}
         onKeyDown={e => { if (!revealed && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onFlip(); } }}
-        className={revealed ? "vocab-card-flip ts-reveal" : "ts-tap-reveal"}
-        data-flipped={revealed ? "true" : "false"}
+        className={revealed ? undefined : "ts-tap-reveal"}
         style={{
           padding: isDesktop ? "44px 28px" : "36px 22px",
           textAlign: "center",
