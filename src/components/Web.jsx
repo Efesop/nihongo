@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PHRASES, CATS, CAT_COLORS } from "../data/phrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
+import { CONVERSATIONS } from "../data/conversations.js";
 import { fontJa, mono, T, JP, GRAMMAR_COLORS } from "../data/constants.js";
 import { speakPhraseWithEnglish, speak } from "../utils/audio.js";
 import { track } from "../utils/telemetry.js";
@@ -60,6 +61,7 @@ const EDGE_STYLE = {
   template: { color: "#5ac48a", dash: "0" },       // green, solid
   opposite: { color: "#e8a838", dash: "0" },       // amber, solid (shorter spring)
   answer:   { color: "#c45a8b", dash: "3 3" },     // pink, dotted
+  scene:    { color: "#9b8ecf", dash: "2 6" },     // soft violet, fine dotted
 };
 
 // Manual antonym pairs. JP-only; expand as the dataset grows.
@@ -86,14 +88,19 @@ const ANTONYM_PAIRS = [
 // answer phrase ids it is naturally paired with. Edges are bidirectional in
 // graph terms but the label always reads "question ↔ answer".
 const QNA_PAIRS = [
-  // どこですか → directional answers
+  // どこですか → directional answers (every Q matches every direction)
   ["d1",  "d2"],    // ...はどこですか → みぎ
   ["d1",  "d3"],    // ...はどこですか → ひだり
   ["d1",  "d4"],    // ...はどこですか → まっすぐ
   ["d8",  "d2"],    // トイレはどこですか → みぎ
   ["d8",  "d3"],    // トイレはどこですか → ひだり
+  ["d8",  "d4"],    // トイレはどこですか → まっすぐ
   ["t1",  "d2"],    // ...えきはどこですか → みぎ
   ["t1",  "d3"],    // ...えきはどこですか → ひだり
+  ["t1",  "d4"],    // ...えきはどこですか → まっすぐ
+  ["e2",  "d2"],    // びょういんはどこですか → みぎ
+  ["e2",  "d3"],    // びょういんはどこですか → ひだり
+  ["e2",  "d4"],    // びょういんはどこですか → まっすぐ
   // いくらですか → it costs ...
   ["s1",  "n11"],   // これはいくらですか → ひゃくえんです
   ["s1",  "n12"],   // これはいくらですか → せんえんです
@@ -102,33 +109,80 @@ const QNA_PAIRS = [
   // なんじですか → time
   ["n13", "tm8"],   // なんじですか → あさ
   ["n13", "tm9"],   // なんじですか → よる
+  ["n13", "tm4"],   // なんじですか → いま
+  // yes/no questions
+  ["e4",  "g6"],    // えいごをはなせますか → はい
+  ["e4",  "g7"],    // えいごをはなせますか → いいえ
+  ["d5",  "g6"],    // ちかいですか → はい
+  ["d5",  "g7"],    // ちかいですか → いいえ
+  ["d6",  "g6"],    // あるいていけますか → はい
+  ["d6",  "g7"],    // あるいていけますか → いいえ
+  ["s5",  "g6"],    // あたためますか → はい
+  ["s5",  "g9"],    // あたためますか → だいじょうぶです
   // hotel: do you have a reservation? → I have a reservation
   ["h2",  "g6"],
 ];
 
-// Find pairs of learned phrases that end with the same verb/pattern segment.
-// Returns edge list. Excludes copulas / overly common endings.
+// Find the longest matching trailing run of segments shared by two phrases.
+// "Interesting" if joined kana ≥ 3 chars AND not a pure copula/particle tail.
+// Returns { length, label } or null.
+function sharedEnding(a, b) {
+  const A = (PHRASE_BREAKDOWNS[a] || []).map(s => s[0]);
+  const B = (PHRASE_BREAKDOWNS[b] || []).map(s => s[0]);
+  let n = 0;
+  while (n < A.length && n < B.length && A[A.length - 1 - n] === B[B.length - 1 - n]) n++;
+  if (n === 0) return null;
+  const tail = A.slice(A.length - n);
+  const joined = tail.join("");
+  if (joined.length < 3) return null;
+  // If the entire ending is just trivial tokens (です / ですか / は / を / etc),
+  // it's not a real template. Require at least one non-trivial segment in the run.
+  if (tail.every(seg => TRIVIAL_SEGMENTS.has(seg))) return null;
+  return { length: n, label: "～" + joined };
+}
+
+// Pair-wise template edges: phrases sharing a meaningful multi-segment ending.
+// Replaces the old last-segment whitelist (which missed frames like ～はどこですか).
 function findTemplateEdges(learnedIds) {
-  const TEMPLATE_OK = new Set(["ください", "おねがいします", "あります", "いきたいです", "みせてください", "よんでください"]);
-  const endingMap = {};
-  for (const id of learnedIds) {
-    const segs = PHRASE_BREAKDOWNS[id] || [];
-    if (segs.length === 0) continue;
-    const last = segs[segs.length - 1]?.[0];
-    if (!last || !TEMPLATE_OK.has(last)) continue;
-    (endingMap[last] ||= []).push(id);
+  const out = [];
+  for (let i = 0; i < learnedIds.length; i++) {
+    for (let j = i + 1; j < learnedIds.length; j++) {
+      const r = sharedEnding(learnedIds[i], learnedIds[j]);
+      if (!r) continue;
+      out.push({ a: learnedIds[i], b: learnedIds[j], kind: "template", label: r.label });
+    }
   }
-  const edges = [];
-  for (const ending of Object.keys(endingMap)) {
-    const ids = endingMap[ending];
-    if (ids.length < 2) continue;
-    for (let i = 0; i < ids.length; i++) {
-      for (let j = i + 1; j < ids.length; j++) {
-        edges.push({ a: ids[i], b: ids[j], kind: "template", label: "～" + ending });
+  return out;
+}
+
+// Scene edges: pairs of phrases that co-appear in the same conversation
+// scenario (CONVERSATIONS). One edge per shared conversation, labelled with
+// that conversation's id. Reveals which phrases naturally cluster in
+// real-life scenes (restaurant, conbini, asking directions, etc).
+function buildScenePairs(learnedIds) {
+  const ids = new Set(learnedIds);
+  const pairs = [];
+  const seen = new Set();
+  for (const convo of CONVERSATIONS) {
+    const used = new Set();
+    for (const line of convo.lines) {
+      if (!line.blank) continue;
+      const candidates = [line.correctId, ...(line.alsoOkIds || [])];
+      for (const id of candidates) if (ids.has(id)) used.add(id);
+    }
+    const arr = [...used];
+    if (arr.length < 2 || arr.length > 6) continue;
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = i + 1; j < arr.length; j++) {
+        const k = arr[i] < arr[j] ? arr[i] + "|" + arr[j] : arr[j] + "|" + arr[i];
+        const sceneKey = k + "|" + convo.id;
+        if (seen.has(sceneKey)) continue;
+        seen.add(sceneKey);
+        pairs.push({ a: arr[i], b: arr[j], label: convo.id });
       }
     }
   }
-  return edges;
+  return pairs;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -240,6 +294,11 @@ function buildPhraseGraph(data) {
   for (const [q, a] of QNA_PAIRS) {
     if (!learnedSet.has(q) || !learnedSet.has(a)) continue;
     pushEdge(q, a, "answer", "Q ↔ A", 130);
+  }
+
+  // 5) Scene edges — pairs that co-appear in the same conversation
+  for (const e of buildScenePairs(ids)) {
+    pushEdge(e.a, e.b, "scene", e.label, 150);
   }
 
   return { nodes, edges, idxOf };
@@ -847,7 +906,28 @@ const KIND_LABELS = {
   template: "Same template",
   opposite: "Opposite",
   answer:   "Q ↔ A",
+  scene:    "Same scene",
 };
+
+// Small thumbnail using the existing per-phrase scene image asset.
+// Hides itself if the file doesn't exist.
+function PhraseThumb({ id, size = 56, c, style = {} }) {
+  return (
+    <img
+      src={`/images/phrases/scenes/${id}.png`}
+      alt=""
+      loading="lazy"
+      onError={(e) => { e.target.style.display = "none"; }}
+      style={{
+        width: size, height: size, borderRadius: 8,
+        objectFit: "cover", flexShrink: 0,
+        border: "1px solid " + c.b,
+        background: c.s2,
+        ...style,
+      }}
+    />
+  );
+}
 
 function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idxOf, onClose, onJumpTo }) {
   const phrInfo = mode === "phrase" ? data?.phr?.[node.id] : null;
@@ -878,7 +958,7 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
       const kind = e.kind || "shared";
       (buckets[kind] ||= []).push({ id: other.id, jp: other.jp, en: other.en, label: e.label });
     }
-    const order = ["opposite", "answer", "template", "shared"];
+    const order = ["opposite", "answer", "template", "scene", "shared"];
     return order
       .filter(k => buckets[k] && buckets[k].length)
       .map(k => ({ kind: k, items: buckets[k].slice(0, 6) }));
@@ -898,13 +978,20 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
       boxShadow: "0 16px 50px rgba(0,0,0,.55)",
       zIndex: 3,
       maxHeight: isDesktop ? "78vh" : "62vh",
-      overflowY: "auto",
+      // overflow visible at root so PhraseSegments tooltips can escape the
+      // panel bounds. Inner connection list scrolls instead — see below.
+      overflow: "visible",
+      display: "flex", flexDirection: "column",
     }}>
       {/* Header row — JP hero, big. In phrase mode, render via PhraseSegments
           so each word is colour-coded by grammar type and tap reveals its
           meaning + romaji (matches the Learn exercises). Block mode is a
-          single segment so plain rendering is fine. */}
+          single segment so plain rendering is fine. Thumbnail to the left
+          when available — tiny visual anchor without stealing the hero spot. */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
+        {mode === "phrase" && (
+          <PhraseThumb id={node.id} size={56} c={c} />
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           {mode === "phrase" ? (
             <PhraseSegments
@@ -978,9 +1065,14 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
         </div>
       )}
 
-      {/* Why connected? — grouped by edge kind */}
+      {/* Why connected? — grouped by edge kind. Inner scroll region so the
+          panel root can keep `overflow: visible` (lets PhraseSegments tooltips
+          escape the panel bounds). */}
       {grouped.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{
+          display: "flex", flexDirection: "column", gap: 14,
+          overflowY: "auto", flex: 1, minHeight: 0,
+        }}>
           {grouped.map(({ kind, items }) => {
             const style = EDGE_STYLE[kind] || { color: c.a };
             const heading = mode === "phrase"
@@ -1005,12 +1097,15 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
                       key={r.id + i}
                       onClick={(e) => { e.stopPropagation(); onJumpTo(r.id); }}
                       style={{
-                        ...btn, padding: "10px 12px", borderRadius: 10,
+                        ...btn, padding: "8px 10px", borderRadius: 10,
                         background: "transparent",
                         border: "1px solid " + style.color + "44",
                         color: c.tx, textAlign: "left", cursor: "pointer",
-                        display: "flex", alignItems: "center", gap: 10, justifyContent: "space-between",
+                        display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-start",
                       }}>
+                      {mode === "phrase" && (
+                        <PhraseThumb id={r.id} size={36} c={c} />
+                      )}
                       <span style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
                         <span style={{
                           fontFamily: fontJa, fontSize: isDesktop ? T.lg : T.md,
