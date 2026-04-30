@@ -682,31 +682,33 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
       overflow: "hidden",
       color: c.tx,
     }}>
-      {/* Floating header — sits over the canvas, doesn't constrain it */}
+      {/* Floating title — top-left only. Just identity + counts. */}
       <div style={{
-        position: "absolute", top: 16, left: 20, right: 20, zIndex: 2,
-        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+        position: "absolute", top: 16, left: 20, zIndex: 2,
         pointerEvents: "none",
       }}>
-        <div style={{ pointerEvents: "auto" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-            <h1 style={{
-              fontFamily: fontJa, fontSize: isDesktop ? T.xxl : T.xl, fontWeight: 700,
-              margin: 0, letterSpacing: "-.02em", color: c.tx,
-              textShadow: "0 2px 14px " + c.bg,
-            }}>{mode === "phrase" ? "フレーズ" : "ぶひん"}</h1>
-            <span style={{
-              fontSize: T.xs, fontFamily: mono, color: c.m,
-              textShadow: "0 1px 6px " + c.bg,
-            }}>
-              {graph.nodes.length} nodes · {graph.edges.length} links
-            </span>
-          </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+          <h1 style={{
+            fontFamily: fontJa, fontSize: isDesktop ? T.xxl : T.xl, fontWeight: 700,
+            margin: 0, letterSpacing: "-.02em", color: c.tx,
+            textShadow: "0 2px 14px " + c.bg,
+          }}>{mode === "phrase" ? "フレーズ" : "ぶひん"}</h1>
+          <span style={{
+            fontSize: T.xs, fontFamily: mono, color: c.m,
+            textShadow: "0 1px 6px " + c.bg,
+          }}>
+            {graph.nodes.length} nodes · {graph.edges.length} links
+          </span>
         </div>
+      </div>
 
-        {/* Mode toggle */}
+      {/* Bottom-left controls — Phrases/Blocks toggle + clear-focus pill.
+          Lives over the canvas; does not interfere with the right sidebar. */}
+      <div style={{
+        position: "absolute", bottom: 16, left: 20, zIndex: 2,
+        display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+      }}>
         <div role="tablist" style={{
-          marginLeft: "auto", pointerEvents: "auto",
           display: "inline-flex", padding: 4, borderRadius: 12,
           background: c.s + "cc", border: "1px solid " + c.b,
           backdropFilter: "blur(8px)",
@@ -738,24 +740,21 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
           <button
             onClick={() => setFocusId(null)}
             style={{
-              pointerEvents: "auto",
-              padding: "6px 12px", borderRadius: 9,
+              padding: "8px 12px", borderRadius: 10,
               background: c.s + "cc", border: "1px solid " + c.b, color: c.m,
               fontSize: T.xs, cursor: "pointer", backdropFilter: "blur(8px)",
               display: "inline-flex", alignItems: "center", gap: 5,
             }}><IconX size={11}/> clear</button>
         )}
-      </div>
 
-      {/* Hint strip — fades out as user interacts */}
-      <div style={{
-        position: "absolute", bottom: 16, left: 20, zIndex: 2,
-        fontSize: T.xs, color: c.m, fontFamily: mono,
-        textShadow: "0 1px 6px " + c.bg,
-        opacity: focusId ? 0 : .6, transition: "opacity .25s",
-        pointerEvents: "none",
-      }}>
-        drag · scroll to zoom · tap a node
+        {!focusId && (
+          <span style={{
+            marginLeft: 8, fontSize: T.xs, color: c.m, fontFamily: mono,
+            textShadow: "0 1px 6px " + c.bg, opacity: .6,
+          }}>
+            drag · scroll to zoom · tap a node
+          </span>
+        )}
       </div>
 
       {/* Full-bleed SVG */}
@@ -1044,29 +1043,28 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
   return (
     <div className="ts-reveal" style={{
       position: "absolute",
-      bottom: 16, right: 16,
-      left: isDesktop ? "auto" : 16,
-      width: isDesktop ? 440 : "auto",
+      top: 0, right: 0, bottom: 0,
+      // Mobile: full overlay. Desktop: fixed right sidebar.
+      left: isDesktop ? "auto" : 0,
+      width: isDesktop ? 460 : "auto",
       background: c.s + "f2",
       backdropFilter: "blur(14px)",
-      border: "1px solid " + c.b,
-      borderRadius: 14,
-      boxShadow: "0 16px 50px rgba(0,0,0,.55)",
+      borderLeft: "1px solid " + c.b,
+      boxShadow: "-12px 0 40px rgba(0,0,0,.45)",
       zIndex: 3,
-      maxHeight: isDesktop ? "82vh" : "68vh",
       // overflow visible at root so PhraseSegments tooltips can escape the
       // panel bounds. Inner connection list scrolls instead — see below.
       overflow: "visible",
       display: "flex", flexDirection: "column",
     }}>
-      {/* Big thumbnail hero — full-width banner at the top of the card */}
+      {/* Big thumbnail hero — full-width banner at the top of the sidebar */}
       {mode === "phrase" && (
         <div style={{
           position: "relative",
-          borderTopLeftRadius: 14, borderTopRightRadius: 14,
           overflow: "hidden",
-          height: isDesktop ? 180 : 140,
+          height: isDesktop ? 220 : 160,
           background: c.s2,
+          flexShrink: 0,
         }}>
           <img
             src={`/images/phrases/scenes/${node.id}.png`}
