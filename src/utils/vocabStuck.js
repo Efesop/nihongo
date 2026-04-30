@@ -43,7 +43,10 @@ export const isStuck = (id) => _read().includes(id);
 // collapsing the whole schedule (every phrase nuked to box 1) when the user
 // just doesn't feel sharp that day. Recovery credits use the same cooldown.
 const COOLDOWN_KEY = "vocab-srs-cooldown";
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+// 2h: prevents same-sitting demote-compounding (one 30-minute Test session
+// can't ding the same phrase twice) while still letting morning/lunch/evening
+// practice each register independently.
+const COOLDOWN_MS = 2 * 60 * 60 * 1000;
 const SESSION_DEMOTE_CAP = 5;            // hard cap per fresh entry to Test
 
 const _readMap = () => {

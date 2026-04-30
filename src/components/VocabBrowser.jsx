@@ -96,6 +96,11 @@ export default function VocabBrowser({
   // grind can't wreck the whole schedule. Stuck-list adds still happen freely.
   const [demoteCount, setDemoteCount] = useState(0);
   const [srsTouched, setSrsTouched] = useState([]); // [{id, kind: "demote"|"credit"}]
+  // Per-phrase miss count in this sitting. Drives TeachCard escalation:
+  //   1 miss  → standard teach
+  //   2 miss  → escalated teach (bigger image, intensified copy)
+  //   3+ miss → park: don't reinsert again, route the user to Learn tab.
+  const [missCounts, setMissCounts] = useState({});
 
   // Build-mode state — chips dropped onto the canvas, in order
   const [builtChips, setBuiltChips] = useState([]); // [{ jp, romaji, meaning, type }]
@@ -153,6 +158,7 @@ export default function VocabBrowser({
           setHistory(Array.isArray(saved.history) ? saved.history : []);
           setRetryIds(new Set(Array.isArray(saved.retryIds) ? saved.retryIds : []));
           setTeaching(saved.teaching || null);
+          setMissCounts(saved.missCounts && typeof saved.missCounts === "object" ? saved.missCounts : {});
           setRevealed(false); // never restore mid-flip — feels disorienting
           restored = true;
         }
@@ -167,9 +173,10 @@ export default function VocabBrowser({
       setRetryIds(new Set());
     }
     // Demote counter is per-sitting — always resets on entry/filter change.
-    // Cooldown map (per-phrase 24h) lives in localStorage and survives.
+    // Cooldown map (per-phrase) lives in localStorage and survives.
     setDemoteCount(0);
     setSrsTouched([]);
+    setMissCounts({});
   }, [mode, filter]);
 
   // Persist test session to localStorage on every state change. Cheap — small
@@ -185,9 +192,10 @@ export default function VocabBrowser({
         history,
         retryIds: [...retryIds],
         teaching,
+        missCounts,
       }));
     } catch {}
-  }, [mode, filter, testQueue, testIdx, history, retryIds, teaching]);
+  }, [mode, filter, testQueue, testIdx, history, retryIds, teaching, missCounts]);
 
   // ─── Header (shared by both modes) ──────────────────────────────────────────
   const Header = (
@@ -617,6 +625,9 @@ export default function VocabBrowser({
     track("vocab_test_attempt", { id, knewIt: true, retry: wasRetry });
     removeStuck(id);
     setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    // Cleared this phrase — drop its miss counter so a future fresh miss
+    // starts at 1 (not stacked on top of past misses they've recovered from).
+    setMissCounts(m => { const n = { ...m }; delete n[id]; return n; });
 
     // Recovery credit — only on retry-correct, throttled by its OWN cooldown
     // (independent from the demote stamp) so a same-session miss → teach →
@@ -643,7 +654,8 @@ export default function VocabBrowser({
     if (!currentPhrase) return;
     const id = currentPhrase[0];
     addStuck(id);
-    track("vocab_test_attempt", { id, knewIt: false });
+    setMissCounts(m => ({ ...m, [id]: (m[id] || 0) + 1 }));
+    track("vocab_test_attempt", { id, knewIt: false, missCount: (missCounts[id] || 0) + 1 });
 
     if (reviewPhr && getPhrBox && demoteCount < SESSION_DEMOTE_CAP_VALUE) {
       const box = getPhrBox(id);
@@ -659,11 +671,27 @@ export default function VocabBrowser({
   };
 
   // Got it (after teach) — splice this phrase back into the queue ~3 cards
-  // later for a forced retrieval attempt; if there are fewer than 3 cards
-  // left, push it to the end so it still gets re-tested.
+  // later for a forced retrieval attempt. After 3 misses on the same phrase
+  // in this sitting, park it: don't reinsert again, route the user to Learn
+  // tab where the proper SRS surface will work it harder. The stuck-list
+  // entry is still active so Learn-tab will surface it next session.
   const handleTaughtAdvance = () => {
     if (!currentPhrase) return;
     const id = currentPhrase[0];
+    const count = missCounts[id] || 1;
+    const PARK_THRESHOLD = 3;
+
+    if (count >= PARK_THRESHOLD) {
+      setHistory(h => [...h, { id, knewIt: false, taught: true, parked: true }]);
+      track("vocab_test_park", { id, missCount: count });
+      // No reinsert — phrase stays in stuck list, Learn tab will pick it up.
+      setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+      setTeaching(null);
+      setRevealed(false);
+      setTestIdx(i => i + 1);
+      return;
+    }
+
     setHistory(h => [...h, { id, knewIt: false, taught: true }]);
     setTestQueue(q => {
       const remaining = q.length - testIdx - 1;
@@ -732,6 +760,7 @@ export default function VocabBrowser({
           <TeachCard
             p={currentPhrase}
             isRetry={retryIds.has(currentPhrase[0])}
+            missCount={missCounts[currentPhrase[0]] || 1}
             onContinue={handleTaughtAdvance}
             progress={`${testIdx + 1} / ${totalInQueue}`}
             srsNote={
@@ -913,17 +942,39 @@ function ActiveFlashcard({ p, revealed, isRetry, onFlip, onMissed, onKnewIt, onR
 // image, and renders the JP segment-by-segment with per-word meanings via
 // PhraseSegments — same pattern Learn-tab uses for active recall scaffolding.
 // Phrase id then gets re-inserted ~3 cards later for forced retrieval.
-function TeachCard({ p, isRetry, onContinue, progress, srsNote, c, card, btn, isDesktop }) {
-  // Auto-play once on mount. Cancel any ongoing audio first via the audio
-  // util's own token system (speakPhraseWithEnglish handles that).
+function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, srsNote, c, card, btn, isDesktop }) {
+  // Auto-play once on mount. On 2nd+ miss, play the JP a second time after
+  // the chain finishes — escalated drilling for phrases the user keeps
+  // bouncing off. Cancellation is handled by the playToken in audio.js.
   useEffect(() => {
     if (!p) return;
     speakPhraseWithEnglish(p[0], p[1], p[3]);
-    // No cleanup needed — playToken in audio.js cancels on next play.
-  }, [p?.[0]]);
+    if (missCount >= 2) {
+      // Replay JP only after a delay — gives space after the EN→JP chain.
+      const t = setTimeout(() => speakPhrase(p[0], p[1]), 2800);
+      return () => clearTimeout(t);
+    }
+  }, [p?.[0], missCount]);
 
   if (!p) return null;
   const sceneSrc = `/images/phrases/scenes/${p[0]}.png`;
+  const PARK_THRESHOLD = 3;
+  const isParked = missCount >= PARK_THRESHOLD;
+  const isEscalated = missCount >= 2;
+
+  // Image height escalates per miss — bigger picture = stronger dual-code
+  // anchor. Parked is biggest (this is the last shot before we send them
+  // to Learn tab).
+  const imgHeight = isDesktop
+    ? (isParked ? 380 : isEscalated ? 320 : 220)
+    : (isParked ? 280 : isEscalated ? 240 : 180);
+
+  // Header copy escalates with miss count.
+  const headerTag = isParked
+    ? "PARKED — LEARN TAB WILL TAKE OVER"
+    : isEscalated
+      ? `STILL TRICKY · MISS #${missCount}`
+      : (isRetry ? "STILL TRICKY" : "WILL RE-TEST SOON");
 
   return (
     <div className="ts-reveal" style={{
@@ -931,33 +982,42 @@ function TeachCard({ p, isRetry, onContinue, progress, srsNote, c, card, btn, is
       padding: 0, overflow: "hidden",
       maxWidth: isDesktop ? 540 : "100%", margin: "0 auto",
       boxShadow: "0 12px 40px rgba(0,0,0,.32)",
-      border: "1px solid " + c.go + "55",
+      border: "1px solid " + (isEscalated ? c.a : c.go) + "55",
     }}>
-      {/* Header strip — orange accent so the user knows we're teaching */}
+      {/* Header strip — orange normally, red on escalation. */}
       <div style={{
-        padding: "8px 14px",
+        padding: "10px 14px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        background: c.go + "1a", borderBottom: "1px solid " + c.go + "33",
+        background: (isEscalated ? c.a : c.go) + "1a",
+        borderBottom: "1px solid " + (isEscalated ? c.a : c.go) + "33",
       }}>
-        <span style={{ fontSize: T.xs, fontFamily: mono, color: c.go, letterSpacing: ".05em", fontWeight: 700 }}>
-          {progress} · TEACHING
+        <span style={{
+          fontSize: T.xs, fontFamily: mono, fontWeight: 700, letterSpacing: ".05em",
+          color: isEscalated ? c.a : c.go,
+        }}>
+          {progress} · {isParked ? "PARKED" : "TEACHING"}
         </span>
-        <span style={{ fontSize: T.xs, fontFamily: mono, color: c.m }}>
-          {isRetry ? "STILL TRICKY" : "WILL RE-TEST SOON"}
+        <span style={{
+          fontSize: T.xs, fontFamily: mono,
+          color: isEscalated ? c.a : c.m, fontWeight: isEscalated ? 700 : 400,
+        }}>
+          {headerTag}
         </span>
       </div>
 
-      {/* Scene image — visual anchor (dual coding). Hidden gracefully if missing. */}
+      {/* Scene image — visual anchor (dual coding). Bigger on each subsequent
+          miss to really drill the picture-to-meaning bond. */}
       <img
-        key={p[0]}
+        key={p[0] + ":" + missCount}
         src={sceneSrc}
         alt=""
         loading="lazy"
         onError={(e) => { e.target.style.display = "none"; }}
         style={{
-          width: "100%", height: isDesktop ? 180 : 140,
+          width: "100%", height: imgHeight,
           objectFit: "cover", display: "block",
           background: c.s2,
+          transition: "height .25s ease",
         }}
       />
 
@@ -986,7 +1046,23 @@ function TeachCard({ p, isRetry, onContinue, progress, srsNote, c, card, btn, is
           tap any word above to hear it broken down
         </div>
 
-        {srsNote && (
+        {/* Parked callout — taking the heat off this phrase. We'll let Learn
+            tab teach it in proper SRS form rather than keep reinserting here. */}
+        {isParked && (
+          <div style={{
+            marginTop: 8, padding: "10px 12px", borderRadius: 10,
+            background: c.a + "12", border: "1px solid " + c.a + "44",
+            fontSize: T.sm, color: c.tx, lineHeight: 1.45,
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>This one needs more than a flashcard.</div>
+            <div style={{ color: c.m }}>
+              Tomorrow's Learn session will surface it with full retrieval practice.
+              For now, take a screenshot or just keep going.
+            </div>
+          </div>
+        )}
+
+        {srsNote && !isParked && (
           <div style={{
             marginTop: 6, padding: "6px 10px", borderRadius: 8,
             background: c.s2, border: "1px dashed " + c.b,
@@ -1019,11 +1095,13 @@ function TeachCard({ p, isRetry, onContinue, progress, srsNote, c, card, btn, is
           className="ts-btn"
           style={{
             ...btn, flex: 1, padding: "11px 14px", borderRadius: 10,
-            background: c.go, color: "#000", border: "none",
-            fontSize: T.sm, fontWeight: 700, cursor: "pointer",
+            background: isParked ? c.a : c.go, color: isParked ? "#fff" : "#000",
+            border: "none", fontSize: T.sm, fontWeight: 700, cursor: "pointer",
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
           }}
-        ><IconArrowRight size={14}/> Got it — keep going</button>
+        ><IconArrowRight size={14}/>
+          {isParked ? "Send to Learn — keep going" : "Got it — keep going"}
+        </button>
       </div>
     </div>
   );
@@ -1061,9 +1139,10 @@ function HistoryRow({ h, c, btn, isDesktop, opacity = 1 }) {
           {h.taught && (
             <span style={{
               marginLeft: 6, padding: "1px 6px", borderRadius: 999,
-              background: c.go + "22", color: c.go,
+              background: (h.parked ? c.a : c.go) + "22",
+              color: h.parked ? c.a : c.go,
               fontSize: T.xs, fontWeight: 700, fontFamily: mono, letterSpacing: ".04em",
-            }}>{h.knewIt ? "RECOVERED" : "TAUGHT"}</span>
+            }}>{h.parked ? "PARKED" : (h.knewIt ? "RECOVERED" : "TAUGHT")}</span>
           )}
         </div>
       </div>
