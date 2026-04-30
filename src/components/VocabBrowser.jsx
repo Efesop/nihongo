@@ -618,10 +618,12 @@ export default function VocabBrowser({
     removeStuck(id);
     setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
 
-    // Recovery credit — only on retry-correct, only if cooldown lets us write.
-    if (wasRetry && reviewPhr && canTouchSrs(id)) {
+    // Recovery credit — only on retry-correct, throttled by its OWN cooldown
+    // (independent from the demote stamp) so a same-session miss → teach →
+    // retry-correct can fire the credit it's supposed to.
+    if (wasRetry && reviewPhr && canTouchSrs(id, "credit")) {
       reviewPhr(id, true, "vocab-test", null);
-      stampTouch(id);
+      stampTouch(id, "credit");
       setSrsTouched(t => [...t, { id, kind: "credit" }]);
     }
 
@@ -645,9 +647,9 @@ export default function VocabBrowser({
 
     if (reviewPhr && getPhrBox && demoteCount < SESSION_DEMOTE_CAP_VALUE) {
       const box = getPhrBox(id);
-      if (box >= 2 && canTouchSrs(id)) {
+      if (box >= 2 && canTouchSrs(id, "demote")) {
         reviewPhr(id, false, "vocab-test", null);
-        stampTouch(id);
+        stampTouch(id, "demote");
         setDemoteCount(n => n + 1);
         setSrsTouched(t => [...t, { id, kind: "demote" }]);
       }

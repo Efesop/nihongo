@@ -55,16 +55,26 @@ const _writeMap = (m) => {
 };
 
 // Returns true if it's been more than COOLDOWN_MS since the last SRS write
-// from Vocab Test for this phrase id.
-export const canTouchSrs = (id, now = Date.now()) => {
+// of this kind for this phrase id. Demote and credit are throttled
+// independently — otherwise a Missed (which stamps "demote") would block
+// the same-session retry-correct credit a few cards later.
+//
+// Storage shape: { [id]: { demote?: ts, credit?: ts } }
+// Old shape was { [id]: ts } meaning a flat cooldown — read defensively.
+export const canTouchSrs = (id, kind = "demote", now = Date.now()) => {
   const m = _readMap();
-  const last = m[id] || 0;
+  const entry = m[id];
+  const last = (typeof entry === "number") ? entry : ((entry && entry[kind]) || 0);
   return (now - last) > COOLDOWN_MS;
 };
 
-export const stampTouch = (id, now = Date.now()) => {
+export const stampTouch = (id, kind = "demote", now = Date.now()) => {
   const m = _readMap();
-  m[id] = now;
+  const cur = m[id];
+  // Migrate flat-number entries to the new shape on write.
+  const next = (typeof cur === "number") ? { demote: cur } : { ...(cur || {}) };
+  next[kind] = now;
+  m[id] = next;
   _writeMap(m);
 };
 
