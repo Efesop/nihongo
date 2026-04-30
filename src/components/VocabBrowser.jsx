@@ -670,28 +670,13 @@ export default function VocabBrowser({
     setTeaching(id);
   };
 
-  // Got it (after teach) — splice this phrase back into the queue ~3 cards
-  // later for a forced retrieval attempt. After 3 misses on the same phrase
-  // in this sitting, park it: don't reinsert again, route the user to Learn
-  // tab where the proper SRS surface will work it harder. The stuck-list
-  // entry is still active so Learn-tab will surface it next session.
+  // Got it (after teach) — default: splice this phrase back into the queue
+  // ~3 cards later for a forced retrieval attempt. After 3 misses we ALSO
+  // surface a "Send to Learn" option as a side-CTA, but it's never forced —
+  // the user can keep drilling here as long as they want.
   const handleTaughtAdvance = () => {
     if (!currentPhrase) return;
     const id = currentPhrase[0];
-    const count = missCounts[id] || 1;
-    const PARK_THRESHOLD = 3;
-
-    if (count >= PARK_THRESHOLD) {
-      setHistory(h => [...h, { id, knewIt: false, taught: true, parked: true }]);
-      track("vocab_test_park", { id, missCount: count });
-      // No reinsert — phrase stays in stuck list, Learn tab will pick it up.
-      setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-      setTeaching(null);
-      setRevealed(false);
-      setTestIdx(i => i + 1);
-      return;
-    }
-
     setHistory(h => [...h, { id, knewIt: false, taught: true }]);
     setTestQueue(q => {
       const remaining = q.length - testIdx - 1;
@@ -702,6 +687,21 @@ export default function VocabBrowser({
       return next;
     });
     setRetryIds(prev => new Set(prev).add(id));
+    setTeaching(null);
+    setRevealed(false);
+    setTestIdx(i => i + 1);
+  };
+
+  // Explicit user choice — only available on the TeachCard after 3+ misses.
+  // Stops the in-session retry loop for this phrase but keeps the stuck-list
+  // entry so Learn tab will pick it up. Lets the user opt OUT of the cycle
+  // when they're truly bouncing off and want to move on.
+  const handleParkAdvance = () => {
+    if (!currentPhrase) return;
+    const id = currentPhrase[0];
+    setHistory(h => [...h, { id, knewIt: false, taught: true, parked: true }]);
+    track("vocab_test_park", { id, missCount: missCounts[id] || 0 });
+    setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     setTeaching(null);
     setRevealed(false);
     setTestIdx(i => i + 1);
@@ -762,6 +762,7 @@ export default function VocabBrowser({
             isRetry={retryIds.has(currentPhrase[0])}
             missCount={missCounts[currentPhrase[0]] || 1}
             onContinue={handleTaughtAdvance}
+            onPark={handleParkAdvance}
             progress={`${testIdx + 1} / ${totalInQueue}`}
             srsNote={
               srsTouched.find(t => t.id === currentPhrase[0] && t.kind === "demote")
@@ -942,7 +943,7 @@ function ActiveFlashcard({ p, revealed, isRetry, onFlip, onMissed, onKnewIt, onR
 // image, and renders the JP segment-by-segment with per-word meanings via
 // PhraseSegments — same pattern Learn-tab uses for active recall scaffolding.
 // Phrase id then gets re-inserted ~3 cards later for forced retrieval.
-function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, srsNote, c, card, btn, isDesktop }) {
+function TeachCard({ p, isRetry, missCount = 1, onContinue, onPark, progress, srsNote, c, card, btn, isDesktop }) {
   // Auto-play once on mount. On 2nd+ miss, play the JP a second time after
   // the chain finishes — escalated drilling for phrases the user keeps
   // bouncing off. Cancellation is handled by the playToken in audio.js.
@@ -958,23 +959,22 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, srsNote, c
 
   if (!p) return null;
   const sceneSrc = `/images/phrases/scenes/${p[0]}.png`;
-  const PARK_THRESHOLD = 3;
-  const isParked = missCount >= PARK_THRESHOLD;
+  const PARK_THRESHOLD = 3;             // when the optional "Send to Learn" CTA appears
+  const showParkOption = missCount >= PARK_THRESHOLD && typeof onPark === "function";
   const isEscalated = missCount >= 2;
+  const isVeryStuck = missCount >= 3;   // pure visual cue — bigger image, redder copy
 
   // Image height escalates per miss — bigger picture = stronger dual-code
-  // anchor. Parked is biggest (this is the last shot before we send them
-  // to Learn tab).
+  // anchor. Caps at miss #3 visual tier; further misses keep this size.
   const imgHeight = isDesktop
-    ? (isParked ? 380 : isEscalated ? 320 : 220)
-    : (isParked ? 280 : isEscalated ? 240 : 180);
+    ? (isVeryStuck ? 380 : isEscalated ? 320 : 220)
+    : (isVeryStuck ? 280 : isEscalated ? 240 : 180);
 
-  // Header copy escalates with miss count.
-  const headerTag = isParked
-    ? "PARKED — LEARN TAB WILL TAKE OVER"
-    : isEscalated
-      ? `STILL TRICKY · MISS #${missCount}`
-      : (isRetry ? "STILL TRICKY" : "WILL RE-TEST SOON");
+  // Header copy escalates with miss count. Past miss #3 we just keep the
+  // "STILL TRICKY · MISS #N" tag — no forced "PARKED" framing.
+  const headerTag = isEscalated
+    ? `STILL TRICKY · MISS #${missCount}`
+    : (isRetry ? "STILL TRICKY" : "WILL RE-TEST SOON");
 
   return (
     <div className="ts-reveal" style={{
@@ -995,7 +995,7 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, srsNote, c
           fontSize: T.xs, fontFamily: mono, fontWeight: 700, letterSpacing: ".05em",
           color: isEscalated ? c.a : c.go,
         }}>
-          {progress} · {isParked ? "PARKED" : "TEACHING"}
+          {progress} · TEACHING
         </span>
         <span style={{
           fontSize: T.xs, fontFamily: mono,
@@ -1046,23 +1046,24 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, srsNote, c
           tap any word above to hear it broken down
         </div>
 
-        {/* Parked callout — taking the heat off this phrase. We'll let Learn
-            tab teach it in proper SRS form rather than keep reinserting here. */}
-        {isParked && (
+        {/* Stuck-pattern hint — appears after 3+ misses but never blocks the
+            user from retrying. The Park button below is the off-ramp; here
+            we just acknowledge the loop and offer the option. */}
+        {showParkOption && (
           <div style={{
             marginTop: 8, padding: "10px 12px", borderRadius: 10,
-            background: c.a + "12", border: "1px solid " + c.a + "44",
+            background: c.a + "10", border: "1px solid " + c.a + "33",
             fontSize: T.sm, color: c.tx, lineHeight: 1.45,
           }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>This one needs more than a flashcard.</div>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Bouncing off this one?</div>
             <div style={{ color: c.m }}>
-              Tomorrow's Learn session will surface it with full retrieval practice.
-              For now, take a screenshot or just keep going.
+              Keep drilling here, or step away — Learn tab will pick it up next session
+              with full retrieval practice. Both paths add it to your priority list.
             </div>
           </div>
         )}
 
-        {srsNote && !isParked && (
+        {srsNote && (
           <div style={{
             marginTop: 6, padding: "6px 10px", borderRadius: 8,
             background: c.s2, border: "1px dashed " + c.b,
@@ -1095,13 +1096,26 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, srsNote, c
           className="ts-btn"
           style={{
             ...btn, flex: 1, padding: "11px 14px", borderRadius: 10,
-            background: isParked ? c.a : c.go, color: isParked ? "#fff" : "#000",
-            border: "none", fontSize: T.sm, fontWeight: 700, cursor: "pointer",
+            background: c.go, color: "#000", border: "none",
+            fontSize: T.sm, fontWeight: 700, cursor: "pointer",
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
           }}
         ><IconArrowRight size={14}/>
-          {isParked ? "Send to Learn — keep going" : "Got it — keep going"}
+          {isEscalated ? "Try again" : "Got it — keep going"}
         </button>
+        {showParkOption && (
+          <button
+            onClick={onPark}
+            className="ts-btn"
+            title="Stop drilling this one in Vocab — Learn tab will work it next session."
+            style={{
+              ...btn, padding: "11px 14px", borderRadius: 10,
+              background: "transparent", color: c.m, border: "1px solid " + c.b,
+              fontSize: T.sm, fontWeight: 600, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+            }}
+          >Park for Learn</button>
+        )}
       </div>
     </div>
   );
