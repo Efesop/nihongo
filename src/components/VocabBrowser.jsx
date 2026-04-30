@@ -670,10 +670,9 @@ export default function VocabBrowser({
     setTeaching(id);
   };
 
-  // Got it (after teach) — default: splice this phrase back into the queue
-  // ~3 cards later for a forced retrieval attempt. After 3 misses we ALSO
-  // surface a "Send to Learn" option as a side-CTA, but it's never forced —
-  // the user can keep drilling here as long as they want.
+  // Got it (after teach) — splice this phrase back into the queue ~3 cards
+  // later for a forced retrieval attempt. Always reinserts, regardless of
+  // how many times the user has missed it. They learn it here.
   const handleTaughtAdvance = () => {
     if (!currentPhrase) return;
     const id = currentPhrase[0];
@@ -687,21 +686,6 @@ export default function VocabBrowser({
       return next;
     });
     setRetryIds(prev => new Set(prev).add(id));
-    setTeaching(null);
-    setRevealed(false);
-    setTestIdx(i => i + 1);
-  };
-
-  // Explicit user choice — only available on the TeachCard after 3+ misses.
-  // Stops the in-session retry loop for this phrase but keeps the stuck-list
-  // entry so Learn tab will pick it up. Lets the user opt OUT of the cycle
-  // when they're truly bouncing off and want to move on.
-  const handleParkAdvance = () => {
-    if (!currentPhrase) return;
-    const id = currentPhrase[0];
-    setHistory(h => [...h, { id, knewIt: false, taught: true, parked: true }]);
-    track("vocab_test_park", { id, missCount: missCounts[id] || 0 });
-    setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     setTeaching(null);
     setRevealed(false);
     setTestIdx(i => i + 1);
@@ -762,15 +746,7 @@ export default function VocabBrowser({
             isRetry={retryIds.has(currentPhrase[0])}
             missCount={missCounts[currentPhrase[0]] || 1}
             onContinue={handleTaughtAdvance}
-            onPark={handleParkAdvance}
             progress={`${testIdx + 1} / ${totalInQueue}`}
-            srsNote={
-              srsTouched.find(t => t.id === currentPhrase[0] && t.kind === "demote")
-                ? "Box demoted (next Learn will revisit)"
-                : demoteCount >= SESSION_DEMOTE_CAP_VALUE
-                  ? "SRS protected — added to priority list only"
-                  : "Saved for review — added to priority list"
-            }
             c={c} card={card} btn={btn} isDesktop={isDesktop}
           />
         ) : (
@@ -841,13 +817,6 @@ function ActiveFlashcard({ p, revealed, isRetry, onFlip, onMissed, onKnewIt, onR
       }}>
         <span style={{ fontSize: T.xs, fontFamily: mono, color: c.m, letterSpacing: ".05em" }}>
           {progress}
-          {isRetry && (
-            <span style={{
-              marginLeft: 8, padding: "2px 7px", borderRadius: 999,
-              background: c.go + "22", color: c.go,
-              fontSize: T.xs, fontWeight: 700, letterSpacing: ".05em",
-            }}>RETRY</span>
-          )}
         </span>
         <span style={{ fontSize: T.xs, fontFamily: mono, color: c.m }}>
           {revealed ? "ANSWER" : "RECALL"}
@@ -943,7 +912,7 @@ function ActiveFlashcard({ p, revealed, isRetry, onFlip, onMissed, onKnewIt, onR
 // image, and renders the JP segment-by-segment with per-word meanings via
 // PhraseSegments — same pattern Learn-tab uses for active recall scaffolding.
 // Phrase id then gets re-inserted ~3 cards later for forced retrieval.
-function TeachCard({ p, isRetry, missCount = 1, onContinue, onPark, progress, srsNote, c, card, btn, isDesktop }) {
+function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, c, card, btn, isDesktop }) {
   // Auto-play once on mount. On 2nd+ miss, play the JP a second time after
   // the chain finishes — escalated drilling for phrases the user keeps
   // bouncing off. Cancellation is handled by the playToken in audio.js.
@@ -959,22 +928,11 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, onPark, progress, sr
 
   if (!p) return null;
   const sceneSrc = `/images/phrases/scenes/${p[0]}.png`;
-  const PARK_THRESHOLD = 3;             // when the optional "Send to Learn" CTA appears
-  const showParkOption = missCount >= PARK_THRESHOLD && typeof onPark === "function";
-  const isEscalated = missCount >= 2;
-  const isVeryStuck = missCount >= 3;   // pure visual cue — bigger image, redder copy
-
-  // Image height escalates per miss — bigger picture = stronger dual-code
-  // anchor. Caps at miss #3 visual tier; further misses keep this size.
+  // Silent visual escalation — image gets bigger when the user keeps
+  // missing this phrase, no copy needed. Caps at the 3rd-miss tier.
   const imgHeight = isDesktop
-    ? (isVeryStuck ? 380 : isEscalated ? 320 : 220)
-    : (isVeryStuck ? 280 : isEscalated ? 240 : 180);
-
-  // Header copy escalates with miss count. Past miss #3 we just keep the
-  // "STILL TRICKY · MISS #N" tag — no forced "PARKED" framing.
-  const headerTag = isEscalated
-    ? `STILL TRICKY · MISS #${missCount}`
-    : (isRetry ? "STILL TRICKY" : "WILL RE-TEST SOON");
+    ? (missCount >= 3 ? 380 : missCount >= 2 ? 320 : 220)
+    : (missCount >= 3 ? 280 : missCount >= 2 ? 240 : 180);
 
   return (
     <div className="ts-reveal" style={{
@@ -984,29 +942,22 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, onPark, progress, sr
       boxShadow: "0 12px 40px rgba(0,0,0,.32)",
       border: "1px solid " + (isEscalated ? c.a : c.go) + "55",
     }}>
-      {/* Header strip — orange normally, red on escalation. */}
+      {/* Header strip — single, calm tag. No miss-count noise. */}
       <div style={{
         padding: "10px 14px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        background: (isEscalated ? c.a : c.go) + "1a",
-        borderBottom: "1px solid " + (isEscalated ? c.a : c.go) + "33",
+        background: c.go + "1a", borderBottom: "1px solid " + c.go + "33",
       }}>
         <span style={{
           fontSize: T.xs, fontFamily: mono, fontWeight: 700, letterSpacing: ".05em",
-          color: isEscalated ? c.a : c.go,
+          color: c.go,
         }}>
           {progress} · TEACHING
         </span>
-        <span style={{
-          fontSize: T.xs, fontFamily: mono,
-          color: isEscalated ? c.a : c.m, fontWeight: isEscalated ? 700 : 400,
-        }}>
-          {headerTag}
-        </span>
       </div>
 
-      {/* Scene image — visual anchor (dual coding). Bigger on each subsequent
-          miss to really drill the picture-to-meaning bond. */}
+      {/* Scene image — bigger on each subsequent miss to drill the
+          picture-to-meaning bond harder. No accompanying copy. */}
       <img
         key={p[0] + ":" + missCount}
         src={sceneSrc}
@@ -1045,33 +996,6 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, onPark, progress, sr
         <div style={{ fontSize: T.xs, color: c.m, fontStyle: "italic", marginTop: 2 }}>
           tap any word above to hear it broken down
         </div>
-
-        {/* Stuck-pattern hint — appears after 3+ misses but never blocks the
-            user from retrying. The Park button below is the off-ramp; here
-            we just acknowledge the loop and offer the option. */}
-        {showParkOption && (
-          <div style={{
-            marginTop: 8, padding: "10px 12px", borderRadius: 10,
-            background: c.a + "10", border: "1px solid " + c.a + "33",
-            fontSize: T.sm, color: c.tx, lineHeight: 1.45,
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>Bouncing off this one?</div>
-            <div style={{ color: c.m }}>
-              Keep drilling here, or step away — Learn tab will pick it up next session
-              with full retrieval practice. Both paths add it to your priority list.
-            </div>
-          </div>
-        )}
-
-        {srsNote && (
-          <div style={{
-            marginTop: 6, padding: "6px 10px", borderRadius: 8,
-            background: c.s2, border: "1px dashed " + c.b,
-            fontSize: T.xs, color: c.m, fontFamily: mono, letterSpacing: ".02em",
-          }}>
-            {srsNote}
-          </div>
-        )}
       </div>
 
       {/* Action row */}
@@ -1100,22 +1024,7 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, onPark, progress, sr
             fontSize: T.sm, fontWeight: 700, cursor: "pointer",
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
           }}
-        ><IconArrowRight size={14}/>
-          {isEscalated ? "Try again" : "Got it — keep going"}
-        </button>
-        {showParkOption && (
-          <button
-            onClick={onPark}
-            className="ts-btn"
-            title="Stop drilling this one in Vocab — Learn tab will work it next session."
-            style={{
-              ...btn, padding: "11px 14px", borderRadius: 10,
-              background: "transparent", color: c.m, border: "1px solid " + c.b,
-              fontSize: T.sm, fontWeight: 600, cursor: "pointer",
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
-            }}
-          >Park for Learn</button>
-        )}
+        ><IconArrowRight size={14}/> Got it — keep going</button>
       </div>
     </div>
   );
@@ -1153,10 +1062,9 @@ function HistoryRow({ h, c, btn, isDesktop, opacity = 1 }) {
           {h.taught && (
             <span style={{
               marginLeft: 6, padding: "1px 6px", borderRadius: 999,
-              background: (h.parked ? c.a : c.go) + "22",
-              color: h.parked ? c.a : c.go,
+              background: c.go + "22", color: c.go,
               fontSize: T.xs, fontWeight: 700, fontFamily: mono, letterSpacing: ".04em",
-            }}>{h.parked ? "PARKED" : (h.knewIt ? "RECOVERED" : "TAUGHT")}</span>
+            }}>{h.knewIt ? "RECOVERED" : "TAUGHT"}</span>
           )}
         </div>
       </div>
