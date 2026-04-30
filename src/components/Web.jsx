@@ -501,10 +501,12 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
     return Object.keys(phrData).sort().map(k => k + ":" + (phrData[k]?.box || 0)).join(",");
   }, [data?.phr]);
 
-  const graph = useMemo(() => {
-    return mode === "phrase" ? buildPhraseGraph(data) : buildBlockGraph(data);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, phrKey]);
+  // Build BOTH graphs always — cheap, lets the detail panel render a focused
+  // phrase even while the canvas is showing blocks (and vice versa). User
+  // doesn't get yanked out of block view when they tap a "used in" phrase card.
+  const phraseGraph = useMemo(() => buildPhraseGraph(data), [phrKey]); // eslint-disable-line
+  const blockGraph  = useMemo(() => buildBlockGraph(data),  [phrKey]); // eslint-disable-line
+  const graph = mode === "phrase" ? phraseGraph : blockGraph;
 
   // The physics hook mutates nodes in place. Re-seed when graph identity changes.
   const nodesRef = useRef([]);
@@ -621,7 +623,9 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Connection adjacency for focus highlighting
+  // Connection adjacency for focus highlighting on the canvas. Only meaningful
+  // when the focused id exists as a node in the visible graph; otherwise null
+  // (panel still renders via panelGraph below — see below).
   const connectedIdxs = useMemo(() => {
     if (!focusId) return null;
     const idx = graph.idxOf[focusId];
@@ -634,7 +638,16 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
     return set;
   }, [focusId, graph]);
 
-  const focusedNode = focusId ? graph.nodes.find(n => n.id === focusId) : null;
+  // Panel graph: whichever graph (phrase or block) actually contains the
+  // focused id. Lets the user tap a "used in" phrase card from block view
+  // and see the phrase's full detail panel without leaving block view.
+  const panelGraph = focusId
+    ? (phraseGraph.idxOf[focusId] !== undefined ? phraseGraph
+       : blockGraph.idxOf[focusId] !== undefined ? blockGraph
+       : null)
+    : null;
+  const panelMode = panelGraph === blockGraph ? "block" : "phrase";
+  const focusedNode = panelGraph ? panelGraph.nodes.find(n => n.id === focusId) : null;
 
   // ─── Empty state ───
   if (graph.nodes.length === 0) {
@@ -779,8 +792,10 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
           })}
 
           {/* Edge labels — only render for edges connected to the focused node,
-              and only when zoomed in enough to read them. */}
-          {focusId && graph.edges.map((e, i) => {
+              and only when zoomed in enough to read them. Guard against
+              connectedIdxs being null (focus id not in current graph — happens
+              briefly when switching modes). */}
+          {focusId && connectedIdxs && graph.edges.map((e, i) => {
             const a = graph.nodes[e.a];
             const b = graph.nodes[e.b];
             if (!a || !b) return null;
@@ -931,16 +946,19 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
         </g>
       </svg>
 
-      {/* Detail panel */}
-      {focusedNode && (
+      {/* Detail panel — sources its data from whichever graph contains the
+          focused id (panelGraph), independent of which graph is rendered on
+          the canvas. Lets cross-mode jumps (block "USED IN" → phrase card)
+          work without forcing the canvas to switch modes. */}
+      {focusedNode && panelGraph && (
         <DetailPanel
           node={focusedNode}
           data={data}
           c={c} btn={btn} isDesktop={isDesktop}
-          mode={mode}
-          allNodes={graph.nodes}
-          edges={graph.edges}
-          idxOf={graph.idxOf}
+          mode={panelMode}
+          allNodes={panelGraph.nodes}
+          edges={panelGraph.edges}
+          idxOf={panelGraph.idxOf}
           onClose={() => setFocusId(null)}
           onJumpTo={(id) => setFocusId(id)}
         />
