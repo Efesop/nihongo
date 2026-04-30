@@ -62,7 +62,26 @@ const EDGE_STYLE = {
   opposite: { color: "#e8a838", dash: "0" },       // amber, solid (shorter spring)
   answer:   { color: "#c45a8b", dash: "3 3" },     // pink, dotted
   scene:    { color: "#9b8ecf", dash: "2 6" },     // soft violet, fine dotted
+  family:   { color: "#5ac4b8", dash: "0" },       // teal, solid — topic/variant cluster
 };
+
+// Topic families — small clusters of phrases that belong together as
+// variants/members of the same concept (greetings, days-of-week, time-of-day, etc).
+// Every pair within a group gets a `family` edge.
+const FAMILY_GROUPS = [
+  ["g1", "g2", "g3", "g10"],         // hello / morning / evening / goodbye
+  ["g13", "g17"],                    // hajimemashite + yoroshiku (the intro pair)
+  ["g14", "g11", "g12"],             // what's your name? + I'm... variants
+  ["g15", "g16"],                    // how are you? + I'm fine
+  ["g18", "g19"],                    // where from? + I'm from...
+  ["tm1", "tm2", "tm3"],             // today / tomorrow / yesterday
+  ["tm8", "tm9", "tm4", "tm5"],      // morning / night / now / later
+  ["d2", "d3", "d4"],                // right / left / straight
+  ["dc1", "dc2"], ["dc3", "dc4"],    // big/small expensive/cheap (already opposites; family adds extra cohesion)
+  ["s3", "s4"],                      // card / cash
+  ["f8", "f9"],                      // 1 / 2 people
+  ["e1", "e3"],                      // help / call police
+];
 
 // Manual antonym pairs. JP-only; expand as the dataset grows.
 // Each pair links the two phrase ids with an "opposite" edge.
@@ -121,7 +140,31 @@ const QNA_PAIRS = [
   ["s5",  "g9"],    // あたためますか → だいじょうぶです
   // hotel: do you have a reservation? → I have a reservation
   ["h2",  "g6"],
+  // intros — natural Q ↔ A flow
+  ["g14", "g11"],   // what's your name? → my name is... (formal)
+  ["g14", "g12"],   // what's your name? → I'm... (casual)
+  ["g15", "g16"],   // how are you? → I'm fine
+  ["g15", "g9"],    // how are you? → daijoubu desu (so-so / I'm fine, polite)
+  ["g13", "g17"],   // hajimemashite ↔ yoroshiku onegaishimasu (set pair)
+  ["g18", "g19"],   // where are you from? → I'm from England
+  // day/time questions → answer hubs
+  ["tm6", "tm1"],   // what day is it? → today (often answered with day name)
+  ["tm6", "tm7"],   // what day is it? → Monday
 ];
+
+// Family edges — pairs derived from FAMILY_GROUPS. Generated once; complete-graph
+// within each group.
+function buildFamilyEdges() {
+  const out = [];
+  for (const group of FAMILY_GROUPS) {
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        out.push({ a: group[i], b: group[j] });
+      }
+    }
+  }
+  return out;
+}
 
 // Find the longest matching trailing run of segments shared by two phrases.
 // "Interesting" if joined kana ≥ 3 chars AND not a pure copula/particle tail.
@@ -299,6 +342,12 @@ function buildPhraseGraph(data) {
   // 5) Scene edges — pairs that co-appear in the same conversation
   for (const e of buildScenePairs(ids)) {
     pushEdge(e.a, e.b, "scene", e.label, 150);
+  }
+
+  // 6) Family edges — topic clusters (greetings, time-of-day, intros, etc)
+  for (const e of buildFamilyEdges()) {
+    if (!learnedSet.has(e.a) || !learnedSet.has(e.b)) continue;
+    pushEdge(e.a, e.b, "family", "family", 100);
   }
 
   return { nodes, edges, idxOf };
@@ -907,6 +956,7 @@ const KIND_LABELS = {
   opposite: "Opposite",
   answer:   "Q ↔ A",
   scene:    "Same scene",
+  family:   "Same topic",
 };
 
 // Small thumbnail using the existing per-phrase scene image asset.
@@ -930,10 +980,19 @@ function PhraseThumb({ id, size = 56, c, style = {} }) {
 }
 
 function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idxOf, onClose, onJumpTo }) {
-  const phrInfo = mode === "phrase" ? data?.phr?.[node.id] : null;
-  const skills = mode === "phrase" ? data?.skills?.[node.id] : null;
-  const weak = weakestSkill(skills);
-  const skillLabels = { visual: "reading", listen: "listening", production: "speaking" };
+  // SRS pills hidden per user request — Web tab is a connection-discovery surface,
+  // not a study-state surface. Box / last review / next review live on the Learn
+  // tab where they belong. Variables kept for future toggle.
+  // const phrInfo = mode === "phrase" ? data?.phr?.[node.id] : null;
+  // const skills = mode === "phrase" ? data?.skills?.[node.id] : null;
+  // const weak = weakestSkill(skills);
+
+  // Scroll the connection list back to the top whenever a new node gets focus,
+  // otherwise the previous node's scroll position bleeds into the new context.
+  const scrollRef = useRef(null);
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [node.id]);
 
   // Group related phrases by edge `kind` so the panel can show distinct
   // "Same template", "Opposite", "Shares" sections instead of one flat list.
@@ -958,10 +1017,10 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
       const kind = e.kind || "shared";
       (buckets[kind] ||= []).push({ id: other.id, jp: other.jp, en: other.en, label: e.label });
     }
-    const order = ["opposite", "answer", "template", "scene", "shared"];
+    const order = ["opposite", "answer", "family", "template", "scene", "shared"];
     return order
       .filter(k => buckets[k] && buckets[k].length)
-      .map(k => ({ kind: k, items: buckets[k].slice(0, 6) }));
+      .map(k => ({ kind: k, items: buckets[k].slice(0, 8) }));
   }, [mode, node, allNodes, edges, idxOf]);
 
   return (
@@ -969,29 +1028,66 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
       position: "absolute",
       bottom: 16, right: 16,
       left: isDesktop ? "auto" : 16,
-      width: isDesktop ? 420 : "auto",
+      width: isDesktop ? 440 : "auto",
       background: c.s + "f2",
       backdropFilter: "blur(14px)",
       border: "1px solid " + c.b,
       borderRadius: 14,
-      padding: "18px 20px",
       boxShadow: "0 16px 50px rgba(0,0,0,.55)",
       zIndex: 3,
-      maxHeight: isDesktop ? "78vh" : "62vh",
+      maxHeight: isDesktop ? "82vh" : "68vh",
       // overflow visible at root so PhraseSegments tooltips can escape the
       // panel bounds. Inner connection list scrolls instead — see below.
       overflow: "visible",
       display: "flex", flexDirection: "column",
     }}>
-      {/* Header row — JP hero, big. In phrase mode, render via PhraseSegments
-          so each word is colour-coded by grammar type and tap reveals its
-          meaning + romaji (matches the Learn exercises). Block mode is a
-          single segment so plain rendering is fine. Thumbnail to the left
-          when available — tiny visual anchor without stealing the hero spot. */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 14 }}>
-        {mode === "phrase" && (
-          <PhraseThumb id={node.id} size={56} c={c} />
-        )}
+      {/* Big thumbnail hero — full-width banner at the top of the card */}
+      {mode === "phrase" && (
+        <div style={{
+          position: "relative",
+          borderTopLeftRadius: 14, borderTopRightRadius: 14,
+          overflow: "hidden",
+          height: isDesktop ? 180 : 140,
+          background: c.s2,
+        }}>
+          <img
+            src={`/images/phrases/scenes/${node.id}.png`}
+            alt=""
+            loading="lazy"
+            onError={(e) => { e.target.style.display = "none"; }}
+            style={{
+              width: "100%", height: "100%", objectFit: "cover", display: "block",
+            }}
+          />
+          {/* Soft fade at bottom so the JP hero below sits cleanly */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: `linear-gradient(to bottom, transparent 60%, ${c.s} 100%)`,
+          }}/>
+          {/* Close + play float over the image */}
+          <button
+            onClick={(e) => { e.stopPropagation(); speakPhraseWithEnglish(node.id, node.jp, node.en); }}
+            aria-label="Hear it"
+            style={{
+              ...btn, position: "absolute", top: 10, right: 52,
+              padding: "9px 13px", borderRadius: 10,
+              background: c.a, color: "#fff", border: "none",
+              fontSize: T.sm, fontWeight: 600, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", gap: 6,
+            }}><IconPlay size={16}/></button>
+          <button onClick={(e) => { e.stopPropagation(); onClose(); }}
+            aria-label="Close"
+            style={{
+              ...btn, position: "absolute", top: 10, right: 10,
+              padding: "9px 10px", borderRadius: 10,
+              background: c.s + "cc", border: "1px solid " + c.b, color: c.tx,
+              cursor: "pointer", backdropFilter: "blur(6px)",
+            }}><IconX size={14}/></button>
+        </div>
+      )}
+
+      {/* Header text block */}
+      <div style={{ padding: "14px 20px 10px", display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {mode === "phrase" ? (
             <PhraseSegments
@@ -1013,65 +1109,50 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
             {mode === "phrase" ? node.en : (node.meaning || "—")}
           </div>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); mode === "phrase"
-              ? speakPhraseWithEnglish(node.id, node.jp, node.en)
-              : speak(node.jp); }}
-          aria-label="Hear it"
-          style={{
-            ...btn, padding: "10px 14px", borderRadius: 10,
-            background: c.a, color: "#fff", border: "none", flexShrink: 0,
-            display: "inline-flex", alignItems: "center", gap: 6,
-            fontSize: T.sm, fontWeight: 600, cursor: "pointer",
-          }}><IconPlay size={16}/></button>
-        <button onClick={(e) => { e.stopPropagation(); onClose(); }}
-          aria-label="Close"
-          style={{
-            ...btn, padding: "10px 11px", borderRadius: 10,
-            background: "transparent", border: "1px solid " + c.b, color: c.m,
-            flexShrink: 0, cursor: "pointer",
-          }}><IconX size={14}/></button>
+        {/* In block mode there's no banner image, so play + close need to live here. */}
+        {mode === "block" && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); speak(node.jp); }}
+              aria-label="Hear it"
+              style={{
+                ...btn, padding: "10px 14px", borderRadius: 10,
+                background: c.a, color: "#fff", border: "none", flexShrink: 0,
+                display: "inline-flex", alignItems: "center", gap: 6,
+                fontSize: T.sm, fontWeight: 600, cursor: "pointer",
+              }}><IconPlay size={16}/></button>
+            <button onClick={(e) => { e.stopPropagation(); onClose(); }}
+              aria-label="Close"
+              style={{
+                ...btn, padding: "10px 11px", borderRadius: 10,
+                background: "transparent", border: "1px solid " + c.b, color: c.m,
+                flexShrink: 0, cursor: "pointer",
+              }}><IconX size={14}/></button>
+          </>
+        )}
       </div>
 
-      {/* SRS state row */}
-      {mode === "phrase" && phrInfo && (
-        <div style={{
-          display: "flex", flexWrap: "wrap", gap: 8,
-          padding: "10px 0",
-          borderTop: "1px solid " + c.b,
-          borderBottom: "1px solid " + c.b,
-          marginBottom: 14,
-        }}>
-          <Pill label={`box ${phrInfo.box || 0}`} color={c.go} c={c} />
-          <Pill label={`last ${fmtRelative(phrInfo.lastReview)}`} color={c.m2 || c.m} c={c} />
-          <Pill label={`next ${fmtRelative(phrInfo.next)}`} color={(phrInfo.next || 0) < Date.now() ? c.a : c.g} c={c} />
-          {weak && weak.score < 3 && (
-            <Pill label={`weak: ${skillLabels[weak.dim]}`} color={c.a} c={c} />
-          )}
-        </div>
-      )}
-
+      {/* Block-mode meta pills — kept (they describe what the segment is) */}
       {mode === "block" && (
         <div style={{
           display: "flex", flexWrap: "wrap", gap: 8,
-          padding: "10px 0",
-          borderTop: "1px solid " + c.b,
+          padding: "10px 20px 14px",
           borderBottom: "1px solid " + c.b,
-          marginBottom: 14,
         }}>
           <Pill label={node.type} color={GRAMMAR_COLORS[node.type] || c.m} c={c} />
           <Pill label={`${node.usage} phrases`} color={c.go} c={c} />
-          <Pill label={`avg box ${node.avgBox.toFixed(1)}`} color={c.g} c={c} />
         </div>
       )}
 
       {/* Why connected? — grouped by edge kind. Inner scroll region so the
           panel root can keep `overflow: visible` (lets PhraseSegments tooltips
-          escape the panel bounds). */}
+          escape the panel bounds). Scroll resets to top on focus change via
+          scrollRef + useEffect on node.id. */}
       {grouped.length > 0 && (
-        <div style={{
+        <div ref={scrollRef} style={{
           display: "flex", flexDirection: "column", gap: 14,
           overflowY: "auto", flex: 1, minHeight: 0,
+          padding: "4px 20px 18px",
         }}>
           {grouped.map(({ kind, items }) => {
             const style = EDGE_STYLE[kind] || { color: c.a };
@@ -1134,7 +1215,7 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
       )}
 
       {grouped.length === 0 && mode === "phrase" && (
-        <div style={{ fontSize: T.sm, color: c.m, fontStyle: "italic", textAlign: "center", padding: "14px 0" }}>
+        <div style={{ fontSize: T.sm, color: c.m, fontStyle: "italic", textAlign: "center", padding: "20px 24px 24px" }}>
           No connections found yet — learn related phrases (opposites, same template, similar topic) and they'll appear here.
         </div>
       )}

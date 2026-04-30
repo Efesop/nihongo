@@ -14,6 +14,13 @@ export const PHRASE_BREAKDOWNS = {
   "g10": [["さようなら", "sayounara", "goodbye", "expression"]],
   "g11": [["わたし", "watashi", "I / me", "noun"], ["の", "no", "'s (possessive)", "particle"], ["なまえ", "namae", "name", "noun"], ["は", "wa", "about...", "particle"], ["...", "...", "(your name)", "noun"], ["です", "desu", "is", "copula"]],
   "g12": [["わたし", "watashi", "I / me", "noun"], ["は", "wa", "about...", "particle"], ["...", "...", "(your name)", "noun"], ["です", "desu", "is", "copula"]],
+  "g13": [["はじめまして", "hajimemashite", "nice to meet you", "expression"]],
+  "g14": [["おなまえ", "onamae", "name (polite)", "noun"], ["は", "wa", "about...", "particle"], ["なん", "nan", "what", "noun"], ["です", "desu", "is", "copula"], ["か", "ka", "?", "particle"]],
+  "g15": [["おげんき", "ogenki", "well / fine (polite)", "adjective"], ["です", "desu", "is", "copula"], ["か", "ka", "?", "particle"]],
+  "g16": [["げんき", "genki", "well / fine", "adjective"], ["です", "desu", "is", "copula"]],
+  "g17": [["よろしく", "yoroshiku", "kindly / well", "expression"], ["おねがい", "onegai", "request / favor", "noun"], ["します", "shimasu", "do", "verb"]],
+  "g18": [["どこ", "doko", "where", "noun"], ["から", "kara", "from", "particle"], ["きました", "kimashita", "came (past)", "verb"], ["か", "ka", "?", "particle"]],
+  "g19": [["イギリス", "igirisu", "England (your country)", "noun"], ["から", "kara", "from", "particle"], ["きました", "kimashita", "came (past)", "verb"]],
 
   // === Food & Restaurants ===
   "f1": [["これ", "kore", "this", "noun"], ["を", "o", "(thing I want)", "particle"], ["ください", "kudasai", "please give", "verb"]],
