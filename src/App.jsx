@@ -387,6 +387,10 @@ function AuthedApp({ user, getToken }){
     "scene-cloze":"listen",
     "scene-shadow":"production",
     "scene-roleplay":"production",
+    // Vocab Test self-judge — EN→JP recall. Throttled to once per phrase per
+    // 24h via vocab-srs-cooldown so a grind session can't tank a working
+    // schedule. Misses-only; "Knew it" never writes (self-grading bias).
+    "vocab-test":"production",
     // New exercise types (Phase 2-4)
     "speed-round-listen":"listen",
     "speed-round-produce":"production",
@@ -795,6 +799,7 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
     />}
     {tab==="vocab"&&<VocabBrowser
       data={data} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop} theme={theme}
+      reviewPhr={reviewPhr} getPhrBox={getPhrBox}
     />}
     {tab==="web"&&<Web
       data={data} c={c} inner={inner} btn={btn} isDesktop={isDesktop} theme={theme}

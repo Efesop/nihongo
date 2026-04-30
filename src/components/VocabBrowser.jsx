@@ -5,7 +5,7 @@ import { font, fontJa, mono, T, JP, GRAMMAR_COLORS } from "../data/constants.js"
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 import { track } from "../utils/telemetry.js";
-import { addStuck, removeStuck } from "../utils/vocabStuck.js";
+import { addStuck, removeStuck, canTouchSrs, stampTouch, SESSION_DEMOTE_CAP_VALUE } from "../utils/vocabStuck.js";
 import { ProgressBar, PlayButton, ensureSessionStyles } from "./SessionParts.jsx";
 import PhraseSegments from "./PhraseSegments.jsx";
 import { IconPlay, IconCheck, IconX, IconRefresh, IconArrowRight, IconSparkle, IconBackspace } from "./Icons.jsx";
@@ -59,7 +59,7 @@ const FILTERS = [
 ];
 
 export default function VocabBrowser({
-  data, c, inner, card, btn, isDesktop, theme,
+  data, c, inner, card, btn, isDesktop, theme, reviewPhr, getPhrBox,
 }) {
   ensureSessionStyles();   // for .ts-reveal etc — already wired by other tabs but safe to re-call
   ensureVocabStyles();
@@ -92,6 +92,10 @@ export default function VocabBrowser({
   // also gets re-inserted ~3 cards later for forced retrieval.
   const [teaching, setTeaching] = useState(null);     // phrase id being taught
   const [retryIds, setRetryIds] = useState(new Set()); // ids that are on a retry pass
+  // Per-session demote counter — caps SRS writes per Test sitting so a bad-day
+  // grind can't wreck the whole schedule. Stuck-list adds still happen freely.
+  const [demoteCount, setDemoteCount] = useState(0);
+  const [srsTouched, setSrsTouched] = useState([]); // [{id, kind: "demote"|"credit"}]
 
   // Build-mode state — chips dropped onto the canvas, in order
   const [builtChips, setBuiltChips] = useState([]); // [{ jp, romaji, meaning, type }]
@@ -162,6 +166,10 @@ export default function VocabBrowser({
       setTeaching(null);
       setRetryIds(new Set());
     }
+    // Demote counter is per-sitting — always resets on entry/filter change.
+    // Cooldown map (per-phrase 24h) lives in localStorage and survives.
+    setDemoteCount(0);
+    setSrsTouched([]);
   }, [mode, filter]);
 
   // Persist test session to localStorage on every state change. Cheap — small
@@ -595,6 +603,12 @@ export default function VocabBrowser({
   // Knew it — passing the recall test means we trust this phrase. Clear it
   // from the stuck list (whether or not it was on it) so the next Learn
   // session doesn't keep prioritising something the user already remembers.
+  //
+  // SRS writes are restricted to RETRY successes only (i.e. user previously
+  // missed this in-session, got the teach card, then re-recalled). Clean
+  // first-time "Knew it" never writes — too biased a signal (self-judge after
+  // seeing the answer). Retry success goes through the same throttle as
+  // demotes so a hot streak can't farm credits either.
   const handleKnewIt = () => {
     if (!currentPhrase) return;
     const id = currentPhrase[0];
@@ -603,17 +617,42 @@ export default function VocabBrowser({
     track("vocab_test_attempt", { id, knewIt: true, retry: wasRetry });
     removeStuck(id);
     setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+
+    // Recovery credit — only on retry-correct, only if cooldown lets us write.
+    if (wasRetry && reviewPhr && canTouchSrs(id)) {
+      reviewPhr(id, true, "vocab-test", null);
+      stampTouch(id);
+      setSrsTouched(t => [...t, { id, kind: "credit" }]);
+    }
+
     setRevealed(false);
     setTestIdx(i => i + 1);
   };
 
   // Missed — flip into in-place teaching instead of skipping forward. The
   // teach card auto-plays EN→JP and shows the scene + segmented breakdown.
+  //
+  // SRS demote applies only when ALL of:
+  //   - phrase is at box ≥ 2 (below that they're already in active learning)
+  //   - 24h cooldown elapsed since the last Vocab-Test SRS write
+  //   - session demote cap not yet hit
+  // Stuck-list adds always happen — that's the cheap signal Learn picks up.
   const handleMissed = () => {
     if (!currentPhrase) return;
     const id = currentPhrase[0];
     addStuck(id);
     track("vocab_test_attempt", { id, knewIt: false });
+
+    if (reviewPhr && getPhrBox && demoteCount < SESSION_DEMOTE_CAP_VALUE) {
+      const box = getPhrBox(id);
+      if (box >= 2 && canTouchSrs(id)) {
+        reviewPhr(id, false, "vocab-test", null);
+        stampTouch(id);
+        setDemoteCount(n => n + 1);
+        setSrsTouched(t => [...t, { id, kind: "demote" }]);
+      }
+    }
+
     setTeaching(id);
   };
 
@@ -646,6 +685,8 @@ export default function VocabBrowser({
     setHistory([]);
     setTeaching(null);
     setRetryIds(new Set());
+    setDemoteCount(0);
+    setSrsTouched([]);
   };
 
   return (
@@ -691,6 +732,13 @@ export default function VocabBrowser({
             isRetry={retryIds.has(currentPhrase[0])}
             onContinue={handleTaughtAdvance}
             progress={`${testIdx + 1} / ${totalInQueue}`}
+            srsNote={
+              srsTouched.find(t => t.id === currentPhrase[0] && t.kind === "demote")
+                ? "Box demoted (next Learn will revisit)"
+                : demoteCount >= SESSION_DEMOTE_CAP_VALUE
+                  ? "SRS protected — added to priority list only"
+                  : "Saved for review — added to priority list"
+            }
             c={c} card={card} btn={btn} isDesktop={isDesktop}
           />
         ) : (
@@ -863,7 +911,7 @@ function ActiveFlashcard({ p, revealed, isRetry, onFlip, onMissed, onKnewIt, onR
 // image, and renders the JP segment-by-segment with per-word meanings via
 // PhraseSegments — same pattern Learn-tab uses for active recall scaffolding.
 // Phrase id then gets re-inserted ~3 cards later for forced retrieval.
-function TeachCard({ p, isRetry, onContinue, progress, c, card, btn, isDesktop }) {
+function TeachCard({ p, isRetry, onContinue, progress, srsNote, c, card, btn, isDesktop }) {
   // Auto-play once on mount. Cancel any ongoing audio first via the audio
   // util's own token system (speakPhraseWithEnglish handles that).
   useEffect(() => {
@@ -935,6 +983,16 @@ function TeachCard({ p, isRetry, onContinue, progress, c, card, btn, isDesktop }
         <div style={{ fontSize: T.xs, color: c.m, fontStyle: "italic", marginTop: 2 }}>
           tap any word above to hear it broken down
         </div>
+
+        {srsNote && (
+          <div style={{
+            marginTop: 6, padding: "6px 10px", borderRadius: 8,
+            background: c.s2, border: "1px dashed " + c.b,
+            fontSize: T.xs, color: c.m, fontFamily: mono, letterSpacing: ".02em",
+          }}>
+            {srsNote}
+          </div>
+        )}
       </div>
 
       {/* Action row */}
