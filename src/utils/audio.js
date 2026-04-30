@@ -48,25 +48,60 @@ export const speakPhrase=(id,text,{slow=false}={})=>{
   });
 };
 
-// Pure TTS chain — English then Japanese — for items without a pre-recorded
-// MP3 (e.g. building-block segments in the Web tab). Skips the /audio/phrase/
-// lookup that speakPhraseWithEnglish does. Both sides use Google TTS proxy.
+// English-then-Japanese chain for items without a per-phrase MP3 (e.g.
+// building-block segments in the Web tab Blocks view). If pre-rendered
+// segment MP3s exist in /audio/segment/{hash}.mp3, prefer those; otherwise
+// fall back to the Google TTS proxy on each side independently.
+//
+// Hash lookup uses a lazy-fetched /audio/segment/index.json that maps
+// "jp|meaning" → 12-char sha1 prefix. Avoids shipping sha1 in the browser.
+let _segIndexPromise=null;
+const _loadSegIndex=()=>{
+  if(_segIndexPromise) return _segIndexPromise;
+  _segIndexPromise=fetch("/audio/segment/index.json")
+    .then(r=>r.ok?r.json():{})
+    .catch(()=>({}));
+  return _segIndexPromise;
+};
 export const speakWithEnglish=(japanese,english)=>{
   if(_ttsAudio){_ttsAudio.pause();_ttsAudio.src="";_ttsAudio=null;}
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   const token=_newPlayToken();
-  const playJp=()=>{
+  // Resolve hash once (cheap — index is cached after first call).
+  _loadSegIndex().then(idx=>{
     if(!_isCurrentToken(token)) return;
-    if(!japanese) return;
-    const a=new Audio(`/api/tts?lang=ja&q=${encodeURIComponent(japanese)}`);
-    a.playbackRate=0.85;_ttsAudio=a;a.play().catch(()=>{});
-  };
-  if(!english){ playJp(); return; }
-  const a1=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(english)}`);
-  a1.playbackRate=1;_ttsAudio=a1;
-  a1.onended=()=>{ if(_isCurrentToken(token)) playJp(); };
-  a1.onerror=()=>{ playJp(); };
-  a1.play().catch(()=>{ playJp(); });
+    const hash=idx[(japanese||"")+"|"+(english||"")];
+    const jpUrl=hash?`/audio/segment/${hash}.mp3`:`/api/tts?lang=ja&q=${encodeURIComponent(japanese)}`;
+    const enUrl=hash?`/audio/segment/${hash}-en.mp3`:`/api/tts?lang=en&q=${encodeURIComponent(english)}`;
+    const jpRate=hash?1:0.85;
+    const playJp=()=>{
+      if(!_isCurrentToken(token)) return;
+      if(!japanese) return;
+      const a=new Audio(jpUrl);
+      a.playbackRate=jpRate;_ttsAudio=a;
+      // If MP3 missing on disk, fall back to Google TTS for JP only.
+      a.onerror=()=>{
+        if(!_isCurrentToken(token)) return;
+        const b=new Audio(`/api/tts?lang=ja&q=${encodeURIComponent(japanese)}`);
+        b.playbackRate=0.85;_ttsAudio=b;b.play().catch(()=>{});
+      };
+      a.play().catch(()=>{});
+    };
+    if(!english){ playJp(); return; }
+    const a1=new Audio(enUrl);
+    a1.playbackRate=1;_ttsAudio=a1;
+    a1.onended=()=>{ if(_isCurrentToken(token)) playJp(); };
+    // EN MP3 missing → Google TTS for EN, then JP.
+    a1.onerror=()=>{
+      if(!_isCurrentToken(token)) return;
+      const b=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(english)}`);
+      b.playbackRate=1;_ttsAudio=b;
+      b.onended=()=>{ if(_isCurrentToken(token)) playJp(); };
+      b.onerror=()=>{ playJp(); };
+      b.play().catch(()=>{ playJp(); });
+    };
+    a1.play().catch(()=>{ playJp(); });
+  });
 };
 
 // English → pause → Japanese chain for phrase learning.

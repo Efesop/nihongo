@@ -5,7 +5,9 @@ import { font, fontJa, mono, T, JP, GRAMMAR_COLORS } from "../data/constants.js"
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 import { track } from "../utils/telemetry.js";
+import { addStuck, removeStuck } from "../utils/vocabStuck.js";
 import { ProgressBar, PlayButton, ensureSessionStyles } from "./SessionParts.jsx";
+import PhraseSegments from "./PhraseSegments.jsx";
 import { IconPlay, IconCheck, IconX, IconRefresh, IconArrowRight, IconSparkle, IconBackspace } from "./Icons.jsx";
 
 /**
@@ -84,7 +86,12 @@ export default function VocabBrowser({
   const [testQueue, setTestQueue] = useState([]);
   const [testIdx, setTestIdx]   = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [history, setHistory]   = useState([]); // [{ id, knewIt }]
+  const [history, setHistory]   = useState([]); // [{ id, knewIt, taught? }]
+  // Teaching mode — when user clicks Missed, we flip into a brief teach card
+  // (scene image + segmented JP + auto audio) before advancing. Phrase id
+  // also gets re-inserted ~3 cards later for forced retrieval.
+  const [teaching, setTeaching] = useState(null);     // phrase id being taught
+  const [retryIds, setRetryIds] = useState(new Set()); // ids that are on a retry pass
 
   // Build-mode state — chips dropped onto the canvas, in order
   const [builtChips, setBuiltChips] = useState([]); // [{ jp, romaji, meaning, type }]
@@ -121,15 +128,58 @@ export default function VocabBrowser({
   const masteredCount = useMemo(() => PHRASES.filter(p => isMastered(data, p[0])).length, [data.phr]);
 
   // Build (or rebuild) the test queue when entering test mode or changing filter.
-  // Only the user explicitly entering test reshuffles — switching filter mid-test
-  // also rebuilds because the queue should reflect the chosen scope.
+  // Restores a saved session from localStorage when the filter matches; otherwise
+  // shuffles fresh. Lets the user close the tab / refresh / come back tomorrow
+  // and pick up exactly where they left off.
+  const TEST_SESSION_KEY = "vocab-test-session";
   useEffect(() => {
     if (mode !== "test") return;
-    setTestQueue(shuffle(learnedPhrases.map(p => p[0])));
-    setTestIdx(0);
-    setRevealed(false);
-    setHistory([]);
+    let restored = false;
+    try {
+      const raw = localStorage.getItem(TEST_SESSION_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        // Only restore if filter matches AND queue isn't already finished —
+        // a fresh entry to a completed session should reshuffle.
+        if (saved && saved.filter === filter
+            && Array.isArray(saved.queue) && saved.queue.length > 0
+            && saved.idx < saved.queue.length) {
+          setTestQueue(saved.queue);
+          setTestIdx(saved.idx || 0);
+          setHistory(Array.isArray(saved.history) ? saved.history : []);
+          setRetryIds(new Set(Array.isArray(saved.retryIds) ? saved.retryIds : []));
+          setTeaching(saved.teaching || null);
+          setRevealed(false); // never restore mid-flip — feels disorienting
+          restored = true;
+        }
+      }
+    } catch {}
+    if (!restored) {
+      setTestQueue(shuffle(learnedPhrases.map(p => p[0])));
+      setTestIdx(0);
+      setRevealed(false);
+      setHistory([]);
+      setTeaching(null);
+      setRetryIds(new Set());
+    }
   }, [mode, filter]);
+
+  // Persist test session to localStorage on every state change. Cheap — small
+  // JSON blob, fires only while in test mode.
+  useEffect(() => {
+    if (mode !== "test") return;
+    if (testQueue.length === 0) return; // before first shuffle, don't overwrite
+    try {
+      localStorage.setItem(TEST_SESSION_KEY, JSON.stringify({
+        filter,
+        queue: testQueue,
+        idx: testIdx,
+        history,
+        retryIds: [...retryIds],
+        teaching,
+      }));
+    } catch {}
+  }, [mode, filter, testQueue, testIdx, history, retryIds, teaching]);
 
   // ─── Header (shared by both modes) ──────────────────────────────────────────
   const Header = (
@@ -542,19 +592,60 @@ export default function VocabBrowser({
   const currentId = !finished ? testQueue[testIdx] : null;
   const currentPhrase = currentId ? PHRASES.find(p => p[0] === currentId) : null;
 
-  const advance = (knewIt) => {
+  // Knew it — passing the recall test means we trust this phrase. Clear it
+  // from the stuck list (whether or not it was on it) so the next Learn
+  // session doesn't keep prioritising something the user already remembers.
+  const handleKnewIt = () => {
     if (!currentPhrase) return;
-    setHistory(h => [...h, { id: currentPhrase[0], knewIt }]);
-    track("vocab_test_attempt", { id: currentPhrase[0], knewIt });
+    const id = currentPhrase[0];
+    const wasRetry = retryIds.has(id);
+    setHistory(h => [...h, { id, knewIt: true, taught: wasRetry }]);
+    track("vocab_test_attempt", { id, knewIt: true, retry: wasRetry });
+    removeStuck(id);
+    setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+    setRevealed(false);
+    setTestIdx(i => i + 1);
+  };
+
+  // Missed — flip into in-place teaching instead of skipping forward. The
+  // teach card auto-plays EN→JP and shows the scene + segmented breakdown.
+  const handleMissed = () => {
+    if (!currentPhrase) return;
+    const id = currentPhrase[0];
+    addStuck(id);
+    track("vocab_test_attempt", { id, knewIt: false });
+    setTeaching(id);
+  };
+
+  // Got it (after teach) — splice this phrase back into the queue ~3 cards
+  // later for a forced retrieval attempt; if there are fewer than 3 cards
+  // left, push it to the end so it still gets re-tested.
+  const handleTaughtAdvance = () => {
+    if (!currentPhrase) return;
+    const id = currentPhrase[0];
+    setHistory(h => [...h, { id, knewIt: false, taught: true }]);
+    setTestQueue(q => {
+      const remaining = q.length - testIdx - 1;
+      const insertOffset = Math.min(3, remaining + 1); // +1 to land AFTER current
+      const insertAt = testIdx + 1 + Math.max(insertOffset, 1);
+      const next = [...q];
+      next.splice(insertAt, 0, id);
+      return next;
+    });
+    setRetryIds(prev => new Set(prev).add(id));
+    setTeaching(null);
     setRevealed(false);
     setTestIdx(i => i + 1);
   };
 
   const restart = () => {
+    try { localStorage.removeItem(TEST_SESSION_KEY); } catch {}
     setTestQueue(shuffle(learnedPhrases.map(p => p[0])));
     setTestIdx(0);
     setRevealed(false);
     setHistory([]);
+    setTeaching(null);
+    setRetryIds(new Set());
   };
 
   return (
@@ -594,17 +685,26 @@ export default function VocabBrowser({
         {finished ? (
           <FinishedCard count={history.length} correct={history.filter(h => h.knewIt).length}
             onRestart={restart} c={c} card={card} btn={btn} />
+        ) : teaching ? (
+          <TeachCard
+            p={currentPhrase}
+            isRetry={retryIds.has(currentPhrase[0])}
+            onContinue={handleTaughtAdvance}
+            progress={`${testIdx + 1} / ${totalInQueue}`}
+            c={c} card={card} btn={btn} isDesktop={isDesktop}
+          />
         ) : (
           <ActiveFlashcard
             p={currentPhrase}
             revealed={revealed}
+            isRetry={retryIds.has(currentPhrase[0])}
             onFlip={() => {
               if (revealed) return;
               setRevealed(true);
               speakPhraseWithEnglish(currentPhrase[0], currentPhrase[1], currentPhrase[3]);
             }}
-            onMissed={() => advance(false)}
-            onKnewIt={() => advance(true)}
+            onMissed={handleMissed}
+            onKnewIt={handleKnewIt}
             onReplay={() => speakPhraseWithEnglish(currentPhrase[0], currentPhrase[1], currentPhrase[3])}
             progress={`${testIdx + 1} / ${totalInQueue}`}
             c={c} card={card} btn={btn} isDesktop={isDesktop}
@@ -643,7 +743,7 @@ function VocabRow({ p, c, card, btn, isDesktop, catCol }) {
 }
 
 // ─── Test: active flashcard ───────────────────────────────────────────────────
-function ActiveFlashcard({ p, revealed, onFlip, onMissed, onKnewIt, onReplay, progress, c, card, btn, isDesktop }) {
+function ActiveFlashcard({ p, revealed, isRetry, onFlip, onMissed, onKnewIt, onReplay, progress, c, card, btn, isDesktop }) {
   // Tap anywhere on the card to flip when not yet revealed.
   return (
     <div style={{
@@ -661,6 +761,13 @@ function ActiveFlashcard({ p, revealed, onFlip, onMissed, onKnewIt, onReplay, pr
       }}>
         <span style={{ fontSize: T.xs, fontFamily: mono, color: c.m, letterSpacing: ".05em" }}>
           {progress}
+          {isRetry && (
+            <span style={{
+              marginLeft: 8, padding: "2px 7px", borderRadius: 999,
+              background: c.go + "22", color: c.go,
+              fontSize: T.xs, fontWeight: 700, letterSpacing: ".05em",
+            }}>RETRY</span>
+          )}
         </span>
         <span style={{ fontSize: T.xs, fontFamily: mono, color: c.m }}>
           {revealed ? "ANSWER" : "RECALL"}
@@ -751,6 +858,117 @@ function ActiveFlashcard({ p, revealed, onFlip, onMissed, onKnewIt, onReplay, pr
   );
 }
 
+// ─── Test: teach card ─────────────────────────────────────────────────────────
+// Shown when the user clicks Missed. Auto-plays EN→JP, surfaces the scene
+// image, and renders the JP segment-by-segment with per-word meanings via
+// PhraseSegments — same pattern Learn-tab uses for active recall scaffolding.
+// Phrase id then gets re-inserted ~3 cards later for forced retrieval.
+function TeachCard({ p, isRetry, onContinue, progress, c, card, btn, isDesktop }) {
+  // Auto-play once on mount. Cancel any ongoing audio first via the audio
+  // util's own token system (speakPhraseWithEnglish handles that).
+  useEffect(() => {
+    if (!p) return;
+    speakPhraseWithEnglish(p[0], p[1], p[3]);
+    // No cleanup needed — playToken in audio.js cancels on next play.
+  }, [p?.[0]]);
+
+  if (!p) return null;
+  const sceneSrc = `/images/phrases/scenes/${p[0]}.png`;
+
+  return (
+    <div className="ts-reveal" style={{
+      ...card,
+      padding: 0, overflow: "hidden",
+      maxWidth: isDesktop ? 540 : "100%", margin: "0 auto",
+      boxShadow: "0 12px 40px rgba(0,0,0,.32)",
+      border: "1px solid " + c.go + "55",
+    }}>
+      {/* Header strip — orange accent so the user knows we're teaching */}
+      <div style={{
+        padding: "8px 14px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: c.go + "1a", borderBottom: "1px solid " + c.go + "33",
+      }}>
+        <span style={{ fontSize: T.xs, fontFamily: mono, color: c.go, letterSpacing: ".05em", fontWeight: 700 }}>
+          {progress} · TEACHING
+        </span>
+        <span style={{ fontSize: T.xs, fontFamily: mono, color: c.m }}>
+          {isRetry ? "STILL TRICKY" : "WILL RE-TEST SOON"}
+        </span>
+      </div>
+
+      {/* Scene image — visual anchor (dual coding). Hidden gracefully if missing. */}
+      <img
+        key={p[0]}
+        src={sceneSrc}
+        alt=""
+        loading="lazy"
+        onError={(e) => { e.target.style.display = "none"; }}
+        style={{
+          width: "100%", height: isDesktop ? 180 : 140,
+          objectFit: "cover", display: "block",
+          background: c.s2,
+        }}
+      />
+
+      {/* Body — segmented JP, romaji, EN */}
+      <div style={{
+        padding: isDesktop ? "20px 22px 18px" : "16px 18px 14px",
+        display: "flex", flexDirection: "column", gap: 10,
+      }}>
+        <div style={{ fontSize: T.xs, fontFamily: mono, color: c.m, textTransform: "uppercase", letterSpacing: ".08em" }}>
+          {p[3]}
+        </div>
+
+        {/* Segmented JP — tap each chip for per-word meaning + romaji */}
+        <PhraseSegments
+          phraseId={p[0]}
+          c={c}
+          fontSize={isDesktop ? 28 : 22}
+          fontWeight={JP.weight}
+        />
+
+        <div style={{ fontFamily: mono, fontSize: T.sm, color: c.ro, opacity: .9 }}>
+          {p[2]}
+        </div>
+
+        <div style={{ fontSize: T.xs, color: c.m, fontStyle: "italic", marginTop: 2 }}>
+          tap any word above to hear it broken down
+        </div>
+      </div>
+
+      {/* Action row */}
+      <div style={{
+        display: "flex", gap: 8,
+        padding: "12px 14px",
+        borderTop: "1px solid " + c.b,
+        background: c.s,
+      }}>
+        <button
+          onClick={() => speakPhraseWithEnglish(p[0], p[1], p[3])}
+          className="ts-btn"
+          style={{
+            ...btn, padding: "11px 14px", borderRadius: 10,
+            background: c.s2, border: "1px solid " + c.b,
+            color: c.tx, fontSize: T.sm, fontWeight: 600,
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}
+        ><IconPlay size={14}/> Hear again</button>
+        <button
+          onClick={onContinue}
+          className="ts-btn"
+          style={{
+            ...btn, flex: 1, padding: "11px 14px", borderRadius: 10,
+            background: c.go, color: "#000", border: "none",
+            fontSize: T.sm, fontWeight: 700, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}
+        ><IconArrowRight size={14}/> Got it — keep going</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Test: history row (compact) ──────────────────────────────────────────────
 function HistoryRow({ h, c, btn, isDesktop, opacity = 1 }) {
   const p = PHRASES.find(x => x[0] === h.id);
@@ -778,7 +996,16 @@ function HistoryRow({ h, c, btn, isDesktop, opacity = 1 }) {
         <div style={{
           fontSize: T.xs, color: c.m,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>{p[3]}</div>
+        }}>
+          {p[3]}
+          {h.taught && (
+            <span style={{
+              marginLeft: 6, padding: "1px 6px", borderRadius: 999,
+              background: c.go + "22", color: c.go,
+              fontSize: T.xs, fontWeight: 700, fontFamily: mono, letterSpacing: ".04em",
+            }}>{h.knewIt ? "RECOVERED" : "TAUGHT"}</span>
+          )}
+        </div>
       </div>
       <button
         onClick={() => speakPhrase(p[0], p[1])}

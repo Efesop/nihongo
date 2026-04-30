@@ -13,6 +13,7 @@ import { getUnlockedTemplates, generateAssemblyChallenge } from "../data/pattern
 import { GRADED_STORIES } from "../data/gradedStories.js";
 import { PHRASE_CHAINS } from "../data/phraseChains.js";
 import { IMMERSION_SCENES } from "../data/immersionScenes.js";
+import { getStuck } from "./vocabStuck.js";
 import { buildBucketSort } from "../data/bucketSort.js";
 import { SCENE_STUDIES } from "../data/sceneStudies.js";
 
@@ -677,11 +678,17 @@ export function buildSmartSession(data, sessionLength = 10, difficultyMod = 0) {
   }
 
   // ADAPTIVE PRIORITY — items struggling in answerLog go first
+  // Vocab Test "stuck" list — phrases the user explicitly missed in the calm
+  // review tab. Vocab Test is telemetry-only (no SRS write), so this is the
+  // bridge that turns those misses into priority Learn-tab work.
+  const stuckIds = new Set(getStuck());
+  const stuckPhrases = PHRASES.filter(p => stuckIds.has(p[0]) && phrData[p[0]]);
+
   // Don't add to special pool (those compete for slots) — instead force into review queue.
   // We'll surface these as a priority list the queue builder reads.
-  const adaptivePriorityPhrases = [...lowAccuracyPhrases, ...slowResponsePhrases]
-    .filter((p, i, arr) => arr.findIndex(x => x[0] === p[0]) === i) // dedupe
-    .slice(0, 3);
+  const adaptivePriorityPhrases = [...stuckPhrases, ...lowAccuracyPhrases, ...slowResponsePhrases]
+    .filter((p, i, arr) => arr.findIndex(x => x[0] === p[0]) === i) // dedupe (stuck wins via order)
+    .slice(0, 5); // bumped from 3 → 5 to give stuck room without crowding low-accuracy
 
   // Phrase DJ — AI remixes known components into new phrases (10+ phrases known)
   if (phrasesLearned >= 10 && Math.random() < 0.25) {

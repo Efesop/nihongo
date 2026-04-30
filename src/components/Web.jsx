@@ -998,12 +998,16 @@ const KIND_LABELS = {
 // Small thumbnail using the existing per-phrase scene image asset.
 // Hides itself if the file doesn't exist.
 function PhraseThumb({ id, size = 56, c, style = {} }) {
+  // key={id} forces a fresh <img> element per phrase. Without it React reuses
+  // the DOM node across re-renders, so an imperative `display: none` from a
+  // previous onError sticks and hides subsequent (valid) images.
   return (
     <img
+      key={id}
       src={`/images/phrases/scenes/${id}.png`}
       alt=""
       loading="lazy"
-      onError={(e) => { e.target.style.display = "none"; }}
+      onError={(e) => { e.target.style.visibility = "hidden"; }}
       style={{
         width: size, height: size, borderRadius: 8,
         objectFit: "cover", flexShrink: 0,
@@ -1086,10 +1090,11 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
           flexShrink: 0,
         }}>
           <img
+            key={node.id}
             src={`/images/phrases/scenes/${node.id}.png`}
             alt=""
             loading="lazy"
-            onError={(e) => { e.target.style.display = "none"; }}
+            onError={(e) => { e.target.style.visibility = "hidden"; }}
             style={{
               width: "100%", height: "100%", objectFit: "cover", display: "block",
             }}

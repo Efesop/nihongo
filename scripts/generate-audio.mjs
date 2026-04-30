@@ -525,14 +525,22 @@ async function main() {
     const segments = Object.values(segMap).filter(s => s.count >= 2);
 
     console.log(`\n🧱 Segments (${segments.length} unique, used in ≥2 phrases)…`);
+    const indexMap = {};
     for (const s of segments) {
-      const hash = crypto.createHash('sha1').update(s.jp + '|' + s.meaning).digest('hex').slice(0, 12);
+      const key = s.jp + '|' + s.meaning;
+      const hash = crypto.createHash('sha1').update(key).digest('hex').slice(0, 12);
+      indexMap[key] = hash;
       process.stdout.write(`  ${s.jp.padEnd(8)} (${s.meaning}) → ${hash}: `);
       await generate(s.jp, VOICE_JA, join(segDir, `${hash}.mp3`), { isJapanese: true });
       process.stdout.write('  EN: ');
       await generate(s.meaning, VOICE_EN, join(segDir, `${hash}-en.mp3`));
       console.log('');
     }
+    // Emit lookup index so the runtime can map "jp|meaning" → hash without
+    // shipping a sha1 implementation in the browser.
+    const indexPath = join(segDir, 'index.json');
+    writeFileSync(indexPath, JSON.stringify(indexMap, null, 0));
+    console.log(`📋 Wrote ${Object.keys(indexMap).length} entries to ${indexPath}`);
   }
 
   console.log('\n\n✅ Done! Commit public/audio/ to your repo.\n');
