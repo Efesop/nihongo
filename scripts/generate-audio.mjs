@@ -32,6 +32,12 @@
  *   numbers           — native Japanese 1-99 (いち, に, ..., きゅうじゅうきゅう)
  *                       for number-match + datetime exercises. Writes
  *                       public/audio/numbers/{n}.mp3
+ *   segments          — building-block segments for the Web tab Blocks view.
+ *                       One JP MP3 + one EN MP3 per unique segment used in
+ *                       ≥2 phrases. Filename = sha1(jp+meaning).slice(0,12)
+ *                       so unicode JP doesn't end up in the path. Writes
+ *                       public/audio/segment/{hash}.mp3  (JP, konoha)
+ *                       public/audio/segment/{hash}-en.mp3 (EN, matilda)
  *
  * Voice override: VOICE_JA=voiceId node scripts/generate-audio.mjs
  * Model override: MODEL=eleven_v3 node scripts/generate-audio.mjs
@@ -489,6 +495,43 @@ async function main() {
         await generate(jaText, VOICES_JA.konoha, join(OUT, 'grammar', `${gp.id}-ja.mp3`), { isJapanese: true, preset: 'learn' });
         console.log('');
       }
+    }
+  }
+
+  // ── SEGMENTS (building blocks for the Web tab Blocks view) ──
+  // Generates one JP MP3 + one EN MP3 per unique building-block segment that
+  // appears in 2+ phrases. Filename = sha1(jp+meaning) for unicode-safe paths.
+  // Output: public/audio/segment/{hash}.mp3 (JP) + {hash}-en.mp3 (EN)
+  if (mode === 'segments') {
+    const crypto = await import('crypto');
+    const segDir = join(OUT, 'segment');
+    mkdirSync(segDir, { recursive: true });
+
+    // Read PHRASE_BREAKDOWNS by importing the data module
+    const breakdownsPath = join(ROOT, 'src', 'data', 'phraseBreakdowns.js');
+    const { PHRASE_BREAKDOWNS } = await import('file://' + breakdownsPath);
+
+    // Aggregate segments → usage count
+    const segMap = {};
+    for (const id of Object.keys(PHRASE_BREAKDOWNS)) {
+      for (const seg of PHRASE_BREAKDOWNS[id]) {
+        const [jp, , meaning] = seg;
+        if (!jp || jp === '...' || jp === '/') continue;
+        const key = jp + '|' + (meaning || '');
+        segMap[key] = segMap[key] || { jp, meaning: meaning || '', count: 0 };
+        segMap[key].count++;
+      }
+    }
+    const segments = Object.values(segMap).filter(s => s.count >= 2);
+
+    console.log(`\n🧱 Segments (${segments.length} unique, used in ≥2 phrases)…`);
+    for (const s of segments) {
+      const hash = crypto.createHash('sha1').update(s.jp + '|' + s.meaning).digest('hex').slice(0, 12);
+      process.stdout.write(`  ${s.jp.padEnd(8)} (${s.meaning}) → ${hash}: `);
+      await generate(s.jp, VOICE_JA, join(segDir, `${hash}.mp3`), { isJapanese: true });
+      process.stdout.write('  EN: ');
+      await generate(s.meaning, VOICE_EN, join(segDir, `${hash}-en.mp3`));
+      console.log('');
     }
   }
 

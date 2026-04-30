@@ -3,7 +3,7 @@ import { PHRASES, CATS, CAT_COLORS } from "../data/phrases.js";
 import { PHRASE_BREAKDOWNS } from "../data/phraseBreakdowns.js";
 import { CONVERSATIONS } from "../data/conversations.js";
 import { fontJa, mono, T, JP, GRAMMAR_COLORS } from "../data/constants.js";
-import { speakPhraseWithEnglish, speak } from "../utils/audio.js";
+import { speakPhraseWithEnglish, speakWithEnglish, speak } from "../utils/audio.js";
 import { track } from "../utils/telemetry.js";
 import { IconPlay, IconX, IconRefresh } from "./Icons.jsx";
 import PhraseSegments from "./PhraseSegments.jsx";
@@ -603,10 +603,18 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
       const moved = nodeDragRef.current?.moved;
       // Always release the pin so physics breathes again
       unpin(idx);
-      // If pointer barely moved, treat as a click → focus the node
+      // If pointer barely moved, treat as a click → focus the node + auto-play.
       if (!moved) {
         setFocusId(node.id);
         track("web_node_click", { mode, id: node.id });
+        // Auto-play matches the connection-card behaviour: phrase nodes get
+        // EN→JP with MP3 fallback, block nodes get pure TTS chain.
+        if (node.kind === "phrase") {
+          const p = PHRASES.find(x => x[0] === node.id);
+          if (p) speakPhraseWithEnglish(p[0], p[1], p[3]);
+        } else {
+          speakWithEnglish(node.jp, node.meaning || "");
+        }
       }
       nodeDragRef.current = null;
       wake();
@@ -959,7 +967,18 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
           edges={panelGraph.edges}
           idxOf={panelGraph.idxOf}
           onClose={() => setFocusId(null)}
-          onJumpTo={(id) => setFocusId(id)}
+          onJumpTo={(id) => {
+            setFocusId(id);
+            // Auto-play the new focus. Phrase id → EN→JP chain w/ MP3 fallback.
+            // Segment id (no entry in PHRASES) → pure TTS chain.
+            const p = PHRASES.find(x => x[0] === id);
+            if (p) {
+              speakPhraseWithEnglish(p[0], p[1], p[3]);
+            } else {
+              const seg = blockGraph.nodes.find(n => n.id === id);
+              if (seg) speakWithEnglish(seg.jp, seg.meaning || "");
+            }
+          }}
         />
       )}
     </div>
@@ -1129,7 +1148,7 @@ function DetailPanel({ node, data, c, btn, isDesktop, mode, allNodes, edges, idx
         {mode === "block" && (
           <>
             <button
-              onClick={(e) => { e.stopPropagation(); speak(node.jp); }}
+              onClick={(e) => { e.stopPropagation(); speakWithEnglish(node.jp, node.meaning || ""); }}
               aria-label="Hear it"
               style={{
                 ...btn, padding: "10px 14px", borderRadius: 10,

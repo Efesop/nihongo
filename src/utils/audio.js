@@ -48,6 +48,27 @@ export const speakPhrase=(id,text,{slow=false}={})=>{
   });
 };
 
+// Pure TTS chain — English then Japanese — for items without a pre-recorded
+// MP3 (e.g. building-block segments in the Web tab). Skips the /audio/phrase/
+// lookup that speakPhraseWithEnglish does. Both sides use Google TTS proxy.
+export const speakWithEnglish=(japanese,english)=>{
+  if(_ttsAudio){_ttsAudio.pause();_ttsAudio.src="";_ttsAudio=null;}
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  const token=_newPlayToken();
+  const playJp=()=>{
+    if(!_isCurrentToken(token)) return;
+    if(!japanese) return;
+    const a=new Audio(`/api/tts?lang=ja&q=${encodeURIComponent(japanese)}`);
+    a.playbackRate=0.85;_ttsAudio=a;a.play().catch(()=>{});
+  };
+  if(!english){ playJp(); return; }
+  const a1=new Audio(`/api/tts?lang=en&q=${encodeURIComponent(english)}`);
+  a1.playbackRate=1;_ttsAudio=a1;
+  a1.onended=()=>{ if(_isCurrentToken(token)) playJp(); };
+  a1.onerror=()=>{ playJp(); };
+  a1.play().catch(()=>{ playJp(); });
+};
+
 // English → pause → Japanese chain for phrase learning.
 // Uses a play token so that if the user clicks another play button mid-chain,
 // the pending Japanese playback is cancelled instead of stomping their new audio.
