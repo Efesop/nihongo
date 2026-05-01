@@ -85,3 +85,49 @@ export const RP_SCENARIOS = [
   {id:"shop",  icon:"🏪", name:"Shopping",       prompt:"Let's role-play. You are staff at a Japanese convenience store. Speak in Japanese with English in parentheses. I walk up to the counter — start the scene."},
   {id:"dir",   icon:"🗺️", name:"Asking Directions",prompt:"Let's role-play. You are a friendly Japanese local on the street. Speak in Japanese with English in parentheses. I approach you looking confused with my phone — start the scene."},
 ];
+
+// ═══ SKILL MAP — exerciseType → skill dimension ═══
+// Used by reviewPhr / updateKanaSRS to credit the right slot in
+// data.skills[id], and by capBoxBySkills to gate box advancement. Missing
+// keys default to "visual" — safer than crediting production for unknown
+// types, which would inflate mastery falsely.
+//
+// Single source of truth: every retrieval surface (Learn, Vocab Test,
+// PhraseBank, DailyDrill, Web quiz) routes its writes through
+// recordRetrieval which reads this map.
+export const SKILL_MAP = {
+  // Kana
+  "kana-visual":     "visual",
+  "kana-listen":     "listen",
+  "kana-reverse":    "production",
+  "kana-pair":       "visual",
+  // Phrase MCQ / typed
+  "phrase-scenario": "visual",
+  "phrase-listen":   "listen",
+  "phrase-production":"production",
+  "phrase-reverse":  "production",
+  "phrase-build":    "production",
+  "phrase-pair":     "visual",
+  "phrase-kana-type":"production",
+  "phrase-chain":    "listen",
+  "phrase-dj":       "production",
+  "pattern-assembly":"production",
+  "phrase-shadow":   "production",
+  "number-match":    "listen",
+  // Scene study
+  "scene-watch":     "listen",
+  "scene-cloze":     "listen",
+  "scene-shadow":    "production",
+  "scene-roleplay":  "production",
+  // Vocab Test self-judge — EN→JP recall (production direction)
+  "vocab-test":      "production",
+  // Web tab quiz — comprehension prompt before reveal
+  "web-quiz":        "visual",
+  // Specials
+  "speed-round-listen":"listen",
+  "speed-round-produce":"production",
+  "cluster-contrast":"visual",
+  "pitch-pair":      "listen",
+  "leech-review":    "production",
+  "conversation":    "production",
+};

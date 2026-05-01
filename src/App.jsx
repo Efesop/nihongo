@@ -14,7 +14,7 @@ import SmartSession from "./components/SmartSession.jsx";
 import { M, H_GROUPS, K_GROUPS, ROMAJI, YOON_PARTS, DAKUTEN_BASE } from "./data/kana.js";
 import { PHRASES, CATS, CAT_ICONS, CAT_COLORS } from "./data/phrases.js";
 import { THEMES } from "./data/themes.js";
-import { SRS_DAYS, KEY, font, mono, RP_SCENARIOS } from "./data/constants.js";
+import { SRS_DAYS, KEY, font, mono, RP_SCENARIOS, SKILL_MAP } from "./data/constants.js";
 import { fsrsUpdate, stabilityToBox, capBoxBySkills } from "./utils/fsrs.js";
 
 // Utils
@@ -359,44 +359,8 @@ function AuthedApp({ user, getToken }){
     return log;
   };
 
-  // Map exercise types to skill dimensions. Used by reviewPhr/updateKanaSRS to
-  // credit the right slot in data.skills[id], and by capBoxBySkills to gate
-  // box advancement. Missing keys default to "visual" — safer than crediting
-  // production for unknown types, which would inflate mastery falsely.
-  const SKILL_MAP={
-    // Kana
-    "kana-visual":"visual",
-    "kana-listen":"listen",
-    "kana-reverse":"production",
-    "kana-pair":"visual",
-    // Phrase MCQ / typed
-    "phrase-scenario":"visual",
-    "phrase-listen":"listen",
-    "phrase-production":"production",
-    "phrase-reverse":"production",
-    "phrase-build":"production",
-    "phrase-pair":"visual",
-    "phrase-kana-type":"production",
-    "phrase-chain":"listen",
-    "phrase-dj":"production",
-    "pattern-assembly":"production",
-    "phrase-shadow":"production",
-    "number-match":"listen",
-    // Scene study (embedded exercises)
-    "scene-watch":"listen",
-    "scene-cloze":"listen",
-    "scene-shadow":"production",
-    "scene-roleplay":"production",
-    // Vocab Test self-judge — EN→JP recall. Throttled to once per phrase per
-    // 24h via vocab-srs-cooldown so a grind session can't tank a working
-    // schedule. Misses-only; "Knew it" never writes (self-grading bias).
-    "vocab-test":"production",
-    // New exercise types (Phase 2-4)
-    "speed-round-listen":"listen",
-    "speed-round-produce":"production",
-    "cluster-contrast":"visual",
-    "pitch-pair":"listen",
-  };
+  // SKILL_MAP moved to src/data/constants.js so retrieval.js (and any future
+  // wrapper) can import it directly without React-scope plumbing.
 
   const reviewPhr=(id,correct,exerciseType,responseMs)=>{
     setD(prev=>{
