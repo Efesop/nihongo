@@ -11,8 +11,13 @@ export default function PhraseBank({
   pCat, setPCat, pMode, setPMode, pCards, setPCards, pI, setPI,
   pFlip, setPFlip, pDone, setPDone, pRecall, setPRecall,
   fastTrack, setFastTrack,
-  reviewPhr, getPhrBox, isPhrDue, dueCount, learnedPhr, mcLeft,
+  reviewPhr, recordRetrieval, getPhrBox, isPhrDue, dueCount, learnedPhr, mcLeft,
 }) {
+  // Quiz-mode → exerciseType so SKILL_MAP credits the right skill dimension.
+  // Was a real bug: every advance() used to pass only (id, correct) which
+  // defaulted to "visual" via reviewPhr's fallback, so listen-quiz answers
+  // were credited as visual.
+  const QUIZ_EX_TYPE = { situation: "phrase-scenario", listen: "phrase-listen", match: "phrase-pair" };
   const MC_PHRASES=PHRASES.filter(p=>p[6]);
   const [quizAnswer,setQuizAnswer]=useState(null);
   const [quizMode,setQuizMode]=useState("situation"); // "situation" | "listen" | "match"
@@ -45,7 +50,13 @@ export default function PhraseBank({
     </div>;
     const p=pCards[pI];if(!p){setPDone(true);return null;}
     const catCol=CAT_COLORS[p[4]];
-    const advance=(correct)=>{reviewPhr(p[0],correct);setQuizAnswer(null);if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}};
+    const advance=(correct)=>{
+      const exType=QUIZ_EX_TYPE[quizMode]||"phrase-scenario";
+      if(recordRetrieval) recordRetrieval(p[0],correct,exType,null,"phrasebank");
+      else reviewPhr(p[0],correct,exType,null);
+      setQuizAnswer(null);
+      if(pI+1>=pCards.length)setPDone(true);else{setPI(pI+1);setPFlip(false);}
+    };
 
     // Quiz mode selector + romaji toggle
     const modeSelector=<div style={{display:"flex",gap:4,marginBottom:14,alignItems:"center"}}>
@@ -238,7 +249,7 @@ export default function PhraseBank({
         </div>
         {allMatched&&<div style={{textAlign:"center",marginTop:20}}>
           <div style={{fontSize:32,marginBottom:8}}>🎉</div>
-          <button onClick={()=>{matchMatched.forEach(id=>reviewPhr(id,true));setMatchPairs([]);setMatchMatched([]);setMatchSelected(null);const ni=Math.min(pI+4,pCards.length);if(ni>=pCards.length)setPDone(true);else setPI(ni);}} style={{...btn,padding:14,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600,width:"100%"}}>Continue</button>
+          <button onClick={()=>{matchMatched.forEach(id=>{ if(recordRetrieval) recordRetrieval(id,true,"phrase-pair",null,"phrasebank"); else reviewPhr(id,true,"phrase-pair",null); });setMatchPairs([]);setMatchMatched([]);setMatchSelected(null);const ni=Math.min(pI+4,pCards.length);if(ni>=pCards.length)setPDone(true);else setPI(ni);}} style={{...btn,padding:14,borderRadius:10,background:c.g,color:"#fff",fontSize:14,fontWeight:600,width:"100%"}}>Continue</button>
         </div>}
       </div>;
     }

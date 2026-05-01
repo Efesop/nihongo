@@ -11,7 +11,7 @@ export default function DailyDrill({
   drillFb, setDrillFb, drillScore, setDrillScore,
   drillDone, setDrillDone,
   drillRef,
-  submitDrillKana, advanceDrill, startDrill, reviewPhr,
+  submitDrillKana, advanceDrill, startDrill, reviewPhr, recordRetrieval,
   setTab,
 }) {
   if(drillDone||drillCards.length===0){
@@ -88,8 +88,8 @@ export default function DailyDrill({
           <div style={{fontSize:14,color:c.m}}>{p[3]}</div></>}
     </div>
     {drillFlip&&<div style={{display:"flex",gap:10,marginTop:16}}>
-      <button onClick={()=>{reviewPhr(p[0],false);setDrillScore(s=>({...s,w:s.w+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
-      <button onClick={()=>{reviewPhr(p[0],true);setDrillScore(s=>({...s,c:s.c+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it</button>
+      <button onClick={()=>{ if(recordRetrieval) recordRetrieval(p[0],false,"phrase-production",null,"drill"); else reviewPhr(p[0],false,"phrase-production",null); setDrillScore(s=>({...s,w:s.w+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.rs,border:"1px solid "+c.a+"40",color:c.a,fontSize:14,fontWeight:600}}>Missed it</button>
+      <button onClick={()=>{ if(recordRetrieval) recordRetrieval(p[0],true,"phrase-production",null,"drill"); else reviewPhr(p[0],true,"phrase-production",null); setDrillScore(s=>({...s,c:s.c+1}));advanceDrill();}} style={{...btn,flex:1,padding:14,borderRadius:10,background:c.gs,border:"1px solid "+c.g+"40",color:c.g,fontSize:14,fontWeight:600}}>Got it</button>
     </div>}
   </div>;
 }
