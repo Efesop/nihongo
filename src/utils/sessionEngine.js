@@ -13,7 +13,7 @@ import { getUnlockedTemplates, generateAssemblyChallenge } from "../data/pattern
 import { GRADED_STORIES } from "../data/gradedStories.js";
 import { PHRASE_CHAINS } from "../data/phraseChains.js";
 import { IMMERSION_SCENES } from "../data/immersionScenes.js";
-import { getStuck } from "./vocabStuck.js";
+import { getStuck } from "./retrieval.js";
 import { buildBucketSort } from "../data/bucketSort.js";
 import { SCENE_STUDIES } from "../data/sceneStudies.js";
 

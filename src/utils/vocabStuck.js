@@ -1,11 +1,15 @@
-// "Stuck" queue — phrase ids the user missed in Vocab Test.
+// "Stuck" queue — phrase ids the user missed in any retrieval surface.
 //
-// Vocab Test itself is telemetry-only (never writes FSRS / boxes), so misses
-// would be lost signal otherwise. We persist them here in localStorage and
-// the smart-session builder picks them up as adaptive priority — front of the
-// queue, regardless of due-date — so the next Learn session works the gaps.
+// Persisted in localStorage so misses outlive the session. The smart-session
+// builder reads this list (via retrieval.js re-export) and merges it into
+// adaptive priority — flagged phrases get force-included in the next Learn
+// session regardless of due date.
 //
-// Capped so a long Vocab Test session doesn't drown out due reviews.
+// Capped so a long session doesn't drown out due reviews.
+//
+// SRS write throttling (cooldown + session cap + box floor) used to live
+// here but moved to src/utils/retrieval.js when the unified retrieval
+// contract landed. This file is now stuck-list bookkeeping only.
 const KEY = "vocab-stuck";
 const CAP = 30;
 
@@ -36,49 +40,3 @@ export const removeStuck = (id) => {
 };
 
 export const isStuck = (id) => _read().includes(id);
-
-// ─── SRS write throttling ────────────────────────────────────────────────────
-// Vocab Test self-judge can write to SRS — but only Misses, and only once per
-// phrase per cooldown window. This stops a single grind session from
-// collapsing the whole schedule (every phrase nuked to box 1) when the user
-// just doesn't feel sharp that day. Recovery credits use the same cooldown.
-const COOLDOWN_KEY = "vocab-srs-cooldown";
-// 2h: prevents same-sitting demote-compounding (one 30-minute Test session
-// can't ding the same phrase twice) while still letting morning/lunch/evening
-// practice each register independently.
-const COOLDOWN_MS = 2 * 60 * 60 * 1000;
-const SESSION_DEMOTE_CAP = 5;            // hard cap per fresh entry to Test
-
-const _readMap = () => {
-  try { return JSON.parse(localStorage.getItem(COOLDOWN_KEY) || "{}") || {}; }
-  catch { return {}; }
-};
-const _writeMap = (m) => {
-  try { localStorage.setItem(COOLDOWN_KEY, JSON.stringify(m)); } catch {}
-};
-
-// Returns true if it's been more than COOLDOWN_MS since the last SRS write
-// of this kind for this phrase id. Demote and credit are throttled
-// independently — otherwise a Missed (which stamps "demote") would block
-// the same-session retry-correct credit a few cards later.
-//
-// Storage shape: { [id]: { demote?: ts, credit?: ts } }
-// Old shape was { [id]: ts } meaning a flat cooldown — read defensively.
-export const canTouchSrs = (id, kind = "demote", now = Date.now()) => {
-  const m = _readMap();
-  const entry = m[id];
-  const last = (typeof entry === "number") ? entry : ((entry && entry[kind]) || 0);
-  return (now - last) > COOLDOWN_MS;
-};
-
-export const stampTouch = (id, kind = "demote", now = Date.now()) => {
-  const m = _readMap();
-  const cur = m[id];
-  // Migrate flat-number entries to the new shape on write.
-  const next = (typeof cur === "number") ? { demote: cur } : { ...(cur || {}) };
-  next[kind] = now;
-  m[id] = next;
-  _writeMap(m);
-};
-
-export const SESSION_DEMOTE_CAP_VALUE = SESSION_DEMOTE_CAP;
