@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useUser as _useUser, useAuth as _useAuth, useClerk as _useClerk, SignIn, SignUp } from "@clerk/clerk-react";
 
 // Dev mode: mock Clerk hooks on localhost so game loads without auth
@@ -20,6 +20,7 @@ import { fsrsUpdate, stabilityToBox, capBoxBySkills } from "./utils/fsrs.js";
 // Utils
 import { store, syncLoad, syncSave, defaultD, migrate } from "./utils/storage.js";
 import { configureTelemetry, track as telemetryTrack } from "./utils/telemetry.js";
+import { makeRecordRetrieval } from "./utils/retrieval.js";
 import { _ttsAudio, setTtsAudio, _playAudio, speak, speakPhrase } from "./utils/audio.js";
 import { shuffle, daysUntil } from "./utils/helpers.js";
 
@@ -399,6 +400,23 @@ function AuthedApp({ user, getToken }){
     });
   };
 
+  // ── Unified retrieval contract — single SRS-write entry point ──
+  // Every retrieval surface (Learn, Vocab Test, PhraseBank, Drill, Web quiz)
+  // calls this instead of reviewPhr directly. Throttle + box-floor +
+  // session-cap + stuck-list + telemetry all live in retrieval.js.
+  // Session counters reset on App mount, matching prior per-mount semantics.
+  const sessionCountersRef = useRef({ demotes: {} });
+  const recordRetrieval = useMemo(
+    () => makeRecordRetrieval({
+      reviewPhr,
+      getPhrBox,
+      sessionCounters: sessionCountersRef.current,
+    }),
+    // reviewPhr/getPhrBox are stable references in this component scope —
+    // including them satisfies the linter without causing re-creation.
+    [reviewPhr, getPhrBox]
+  );
+
   // Record a learner's metacognition on a wrong answer. Stored additively in
   // data.errorReasons[id] = { sounded: n, similar: n, unknown: n }. Leaves
   // data.errors[id] (the leech counter) untouched. Slamecka & Graf 1978
@@ -759,14 +777,15 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       pCat={pCat} setPCat={setPCat} pMode={pMode} setPMode={setPMode} pCards={pCards} setPCards={setPCards} pI={pI} setPI={setPI}
       pFlip={pFlip} setPFlip={setPFlip} pDone={pDone} setPDone={setPDone} pRecall={pRecall} setPRecall={setPRecall}
       fastTrack={fastTrack} setFastTrack={setFastTrack}
-      reviewPhr={reviewPhr} getPhrBox={getPhrBox} isPhrDue={isPhrDue} dueCount={dueCount} learnedPhr={learnedPhr} mcLeft={mcLeft}
+      reviewPhr={reviewPhr} recordRetrieval={recordRetrieval} getPhrBox={getPhrBox} isPhrDue={isPhrDue} dueCount={dueCount} learnedPhr={learnedPhr} mcLeft={mcLeft}
     />}
     {tab==="vocab"&&<VocabBrowser
       data={data} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop} theme={theme}
-      reviewPhr={reviewPhr} getPhrBox={getPhrBox}
+      reviewPhr={reviewPhr} recordRetrieval={recordRetrieval} getPhrBox={getPhrBox}
     />}
     {tab==="web"&&<Web
       data={data} c={c} inner={inner} btn={btn} isDesktop={isDesktop} theme={theme}
+      recordRetrieval={recordRetrieval}
     />}
     {tab==="sensei"&&<SenpaiChat
       data={data} c={c} btn={btn}
@@ -785,12 +804,12 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       drillFb={drillFb} setDrillFb={setDrillFb} drillScore={drillScore} setDrillScore={setDrillScore}
       drillDone={drillDone} setDrillDone={setDrillDone}
       drillRef={drillRef}
-      submitDrillKana={submitDrillKana} advanceDrill={advanceDrill} startDrill={startDrill} reviewPhr={reviewPhr}
+      submitDrillKana={submitDrillKana} advanceDrill={advanceDrill} startDrill={startDrill} reviewPhr={reviewPhr} recordRetrieval={recordRetrieval}
       setTab={setTab}
     />}
     {tab==="smart"&&<SmartSession
       data={data} save={save} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}
-      updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr} recordErrorReason={recordErrorReason}
+      updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr} recordRetrieval={recordRetrieval} recordErrorReason={recordErrorReason}
       stopAudio={stopAudio} speakStory={speakStory} setTab={setTab}
       startIntent={startIntent} clearStartIntent={()=>setStartIntent(null)}
       LEVEL_THRESHOLDS={LEVEL_THRESHOLDS} getLevel={getLevel} getXPForNext={getXPForNext}
