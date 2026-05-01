@@ -472,13 +472,20 @@ function usePanZoom(svgRef, onInteract) {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export default function Web({ data, c, btn, isDesktop, theme }) {
+export default function Web({ data, c, btn, isDesktop, theme, recordRetrieval }) {
   ensureWebStyles();
 
   const svgRef = useRef(null);
   const [size, setSize] = useState({ w: 1000, h: 700 });
   const [mode, setMode] = useState("phrase"); // "phrase" | "block"
   const [focusId, setFocusId] = useState(null);
+  // Quiz mode — when on, tapping a phrase node prompts "what does this mean?"
+  // before opening the detail panel. Answer routes through recordRetrieval
+  // (surface "web-quiz") so it counts toward SRS. Defaults OFF.
+  const [quizOn, setQuizOn] = useState(() => {
+    try { return localStorage.getItem("web-quiz-on") === "1"; } catch { return false; }
+  });
+  const [pendingQuiz, setPendingQuiz] = useState(null); // { node, startTs }
 
   useEffect(() => { track("web_open"); }, []);
 
@@ -603,17 +610,22 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
       const moved = nodeDragRef.current?.moved;
       // Always release the pin so physics breathes again
       unpin(idx);
-      // If pointer barely moved, treat as a click → focus the node + auto-play.
+      // If pointer barely moved, treat as a click. In quiz mode on a phrase
+      // node, divert to the WebQuiz overlay first; otherwise focus + auto-play
+      // immediately as before. Block nodes always skip the quiz (no English
+      // gloss to test against).
       if (!moved) {
-        setFocusId(node.id);
-        track("web_node_click", { mode, id: node.id });
-        // Auto-play matches the connection-card behaviour: phrase nodes get
-        // EN→JP with MP3 fallback, block nodes get pure TTS chain.
-        if (node.kind === "phrase") {
-          const p = PHRASES.find(x => x[0] === node.id);
-          if (p) speakPhraseWithEnglish(p[0], p[1], p[3]);
+        track("web_node_click", { mode, id: node.id, quiz: quizOn && node.kind === "phrase" });
+        if (quizOn && node.kind === "phrase") {
+          setPendingQuiz({ node, startTs: performance.now() });
         } else {
-          speakWithEnglish(node.jp, node.meaning || "");
+          setFocusId(node.id);
+          if (node.kind === "phrase") {
+            const p = PHRASES.find(x => x[0] === node.id);
+            if (p) speakPhraseWithEnglish(p[0], p[1], p[3]);
+          } else {
+            speakWithEnglish(node.jp, node.meaning || "");
+          }
         }
       }
       nodeDragRef.current = null;
@@ -743,6 +755,40 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
             );
           })}
         </div>
+
+        {/* Quiz-mode toggle — when ON, tapping a phrase node prompts
+            "what does this mean?" before opening the detail panel. Real
+            retrieval, writes to SRS via recordRetrieval (surface "web-quiz",
+            4h cooldown / box-≥-1 floor / session demote cap of 3). */}
+        <button
+          onClick={() => {
+            const next = !quizOn;
+            setQuizOn(next);
+            try { localStorage.setItem("web-quiz-on", next ? "1" : "0"); } catch {}
+            track("web_quiz_toggle", { on: next });
+          }}
+          aria-pressed={quizOn}
+          className="ts-btn"
+          title={quizOn
+            ? "Quiz me on phrase nodes before showing the answer."
+            : "Off — tapping a node opens the detail panel directly."}
+          style={{
+            padding: "7px 13px", borderRadius: 10,
+            background: quizOn ? c.a + "22" : c.s + "cc",
+            border: "1px solid " + (quizOn ? c.a + "66" : c.b),
+            color: quizOn ? c.a : c.m,
+            fontSize: T.xs, fontWeight: 700, cursor: "pointer",
+            fontFamily: mono, letterSpacing: ".04em",
+            backdropFilter: "blur(8px)",
+            display: "inline-flex", alignItems: "center", gap: 6,
+          }}
+        >
+          <span style={{
+            display: "inline-block", width: 8, height: 8, borderRadius: 4,
+            background: quizOn ? c.a : c.m + "55",
+          }} />
+          QUIZ {quizOn ? "ON" : "OFF"}
+        </button>
 
         {focusId && (
           <button
@@ -953,6 +999,29 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
         </g>
       </svg>
 
+      {/* Quiz overlay — appears when user taps a phrase node with quiz mode
+          on. Resolves into a real retrieval (EN MCQ) before falling through
+          to the normal focus + auto-play. */}
+      {pendingQuiz && (
+        <WebQuiz
+          node={pendingQuiz.node}
+          startTs={pendingQuiz.startTs}
+          c={c} btn={btn} isDesktop={isDesktop}
+          onResolve={(correct, ms) => {
+            const id = pendingQuiz.node.id;
+            if (recordRetrieval) {
+              recordRetrieval(id, correct, "phrase-scenario", ms, "web-quiz");
+            }
+            setPendingQuiz(null);
+            // Always reveal after answering — discovery flow continues.
+            setFocusId(id);
+            const p = PHRASES.find(x => x[0] === id);
+            if (p) speakPhraseWithEnglish(p[0], p[1], p[3]);
+          }}
+          onCancel={() => setPendingQuiz(null)}
+        />
+      )}
+
       {/* Detail panel — sources its data from whichever graph contains the
           focused id (panelGraph), independent of which graph is rendered on
           the canvas. Lets cross-mode jumps (block "USED IN" → phrase card)
@@ -981,6 +1050,122 @@ export default function Web({ data, c, btn, isDesktop, theme }) {
           }}
         />
       )}
+    </div>
+  );
+}
+
+// ─── WebQuiz overlay ─────────────────────────────────────────────────────────
+// Quick "what does this mean?" MCQ that wraps the discovery click. 4 EN
+// options (correct + 3 same-category distractors), shuffled. Resolves with
+// (correct, responseMs) into the parent — which calls recordRetrieval and
+// then opens the detail panel as normal.
+function WebQuiz({ node, startTs, c, btn, isDesktop, onResolve, onCancel }) {
+  const phrase = PHRASES.find(p => p[0] === node.id);
+  const choices = useMemo(() => {
+    if (!phrase) return [];
+    const sameCat = PHRASES.filter(p => p[4] === phrase[4] && p[0] !== phrase[0]);
+    const others = PHRASES.filter(p => p[4] !== phrase[4] && p[0] !== phrase[0]);
+    const distractorPool = [...sameCat, ...others];
+    // Fisher-Yates shuffle for the pool, take first 3, append correct, shuffle again.
+    const shuffled = distractorPool.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    const all = [phrase, ...shuffled.slice(0, 3)];
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]];
+    }
+    return all;
+  }, [phrase]);
+  const [picked, setPicked] = useState(null);
+
+  if (!phrase) {
+    // Shouldn't happen for phrase nodes but bail safely.
+    onCancel?.();
+    return null;
+  }
+
+  const onPick = (p) => {
+    if (picked) return;
+    setPicked(p[0]);
+    const correct = p[0] === phrase[0];
+    const ms = performance.now() - startTs;
+    // Brief feedback flash before resolving so the user sees the result.
+    setTimeout(() => onResolve(correct, ms), correct ? 600 : 1100);
+  };
+
+  return (
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget && !picked) onCancel?.(); }}
+      style={{
+        position: "absolute", inset: 0, zIndex: 5,
+        background: c.bg + "e6", backdropFilter: "blur(8px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 20,
+      }}>
+      <div className="ts-reveal" style={{
+        background: c.s, border: "1px solid " + c.b, borderRadius: 16,
+        padding: isDesktop ? "26px 28px" : "20px 18px",
+        maxWidth: 520, width: "100%",
+        boxShadow: "0 20px 60px rgba(0,0,0,.45)",
+      }}>
+        <div style={{
+          fontSize: T.xs, fontFamily: mono, color: c.m,
+          textTransform: "uppercase", letterSpacing: ".08em", marginBottom: 8,
+        }}>What does this mean?</div>
+        <div style={{
+          fontFamily: fontJa, fontSize: isDesktop ? T.xxl : T.xl,
+          fontWeight: JP.weight, lineHeight: JP.lineHeight, color: c.tx,
+          marginBottom: 16,
+        }}>{phrase[1]}</div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {choices.map(p => {
+            const isCorrect = p[0] === phrase[0];
+            const isPicked = picked === p[0];
+            const reveal = picked !== null;
+            // Picked-correct → green. Picked-wrong → red, also highlight the correct one.
+            const bg = !reveal ? c.s2
+              : isPicked && isCorrect ? c.g + "33"
+              : isPicked && !isCorrect ? c.a + "33"
+              : !isPicked && isCorrect ? c.g + "22"
+              : c.s2;
+            const border = !reveal ? c.b
+              : isPicked && isCorrect ? c.g
+              : isPicked && !isCorrect ? c.a
+              : !isPicked && isCorrect ? c.g + "88"
+              : c.b;
+            return (
+              <button
+                key={p[0]}
+                onClick={() => onPick(p)}
+                disabled={!!picked}
+                className="ts-btn"
+                style={{
+                  ...btn, padding: "12px 14px", borderRadius: 10,
+                  background: bg, border: "1px solid " + border, color: c.tx,
+                  fontSize: T.md, fontWeight: 500, textAlign: "left",
+                  cursor: picked ? "default" : "pointer",
+                  transition: "background .18s, border-color .18s",
+                }}
+              >{p[3]}</button>
+            );
+          })}
+        </div>
+
+        {!picked && (
+          <button
+            onClick={onCancel}
+            style={{
+              marginTop: 14, padding: "6px 10px", borderRadius: 8,
+              background: "transparent", border: "1px solid " + c.b,
+              color: c.m, fontSize: T.xs, fontFamily: mono, cursor: "pointer",
+            }}
+          >skip · just show me</button>
+        )}
+      </div>
     </div>
   );
 }
