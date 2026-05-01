@@ -5,7 +5,10 @@ import { font, fontJa, mono, T, JP, GRAMMAR_COLORS } from "../data/constants.js"
 import { speak, speakPhrase, speakPhraseWithEnglish } from "../utils/audio.js";
 import { shuffle } from "../utils/helpers.js";
 import { track } from "../utils/telemetry.js";
-import { addStuck, removeStuck, canTouchSrs, stampTouch, SESSION_DEMOTE_CAP_VALUE } from "../utils/vocabStuck.js";
+// Stuck-list, cooldown, box-floor, and session-cap all live inside
+// recordRetrieval (utils/retrieval.js). Vocab Test no longer touches any of
+// that machinery directly — it just calls recordRetrieval and trusts the
+// surface policy ("vocab-test") for all the rules.
 import { ProgressBar, PlayButton, ensureSessionStyles } from "./SessionParts.jsx";
 import PhraseSegments from "./PhraseSegments.jsx";
 import { IconPlay, IconCheck, IconX, IconRefresh, IconArrowRight, IconSparkle, IconBackspace } from "./Icons.jsx";
@@ -59,7 +62,7 @@ const FILTERS = [
 ];
 
 export default function VocabBrowser({
-  data, c, inner, card, btn, isDesktop, theme, reviewPhr, getPhrBox,
+  data, c, inner, card, btn, isDesktop, theme, reviewPhr, recordRetrieval, getPhrBox,
 }) {
   ensureSessionStyles();   // for .ts-reveal etc — already wired by other tabs but safe to re-call
   ensureVocabStyles();
@@ -92,10 +95,6 @@ export default function VocabBrowser({
   // also gets re-inserted ~3 cards later for forced retrieval.
   const [teaching, setTeaching] = useState(null);     // phrase id being taught
   const [retryIds, setRetryIds] = useState(new Set()); // ids that are on a retry pass
-  // Per-session demote counter — caps SRS writes per Test sitting so a bad-day
-  // grind can't wreck the whole schedule. Stuck-list adds still happen freely.
-  const [demoteCount, setDemoteCount] = useState(0);
-  const [srsTouched, setSrsTouched] = useState([]); // [{id, kind: "demote"|"credit"}]
   // Per-phrase miss count in this sitting. Drives TeachCard escalation:
   //   1 miss  → standard teach
   //   2 miss  → escalated teach (bigger image, intensified copy)
@@ -172,10 +171,8 @@ export default function VocabBrowser({
       setTeaching(null);
       setRetryIds(new Set());
     }
-    // Demote counter is per-sitting — always resets on entry/filter change.
-    // Cooldown map (per-phrase) lives in localStorage and survives.
-    setDemoteCount(0);
-    setSrsTouched([]);
+    // Cooldown map (per-phrase) + session demote counter live in retrieval.js.
+    // Cooldown persists in localStorage; counter persists for App's lifetime.
     setMissCounts({});
   }, [mode, filter]);
 
@@ -608,63 +605,44 @@ export default function VocabBrowser({
   const currentId = !finished ? testQueue[testIdx] : null;
   const currentPhrase = currentId ? PHRASES.find(p => p[0] === currentId) : null;
 
-  // Knew it — passing the recall test means we trust this phrase. Clear it
-  // from the stuck list (whether or not it was on it) so the next Learn
-  // session doesn't keep prioritising something the user already remembers.
-  //
-  // SRS writes are restricted to RETRY successes only (i.e. user previously
-  // missed this in-session, got the teach card, then re-recalled). Clean
-  // first-time "Knew it" never writes — too biased a signal (self-judge after
-  // seeing the answer). Retry success goes through the same throttle as
-  // demotes so a hot streak can't farm credits either.
+  // Knew it — single SRS write through recordRetrieval. Surface "vocab-test"
+  // policy throttles to one write per phrase per 2h (separate cooldown for
+  // demotes and credits). Stuck-list removal happens automatically inside
+  // recordRetrieval. Includes both first-attempt Knew it (small credit if
+  // cooldown allows) and retry-after-teach Knew it (recovery credit).
   const handleKnewIt = () => {
     if (!currentPhrase) return;
     const id = currentPhrase[0];
     const wasRetry = retryIds.has(id);
     setHistory(h => [...h, { id, knewIt: true, taught: wasRetry }]);
     track("vocab_test_attempt", { id, knewIt: true, retry: wasRetry });
-    removeStuck(id);
     setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
-    // Cleared this phrase — drop its miss counter so a future fresh miss
-    // starts at 1 (not stacked on top of past misses they've recovered from).
     setMissCounts(m => { const n = { ...m }; delete n[id]; return n; });
 
-    // Recovery credit — only on retry-correct, throttled by its OWN cooldown
-    // (independent from the demote stamp) so a same-session miss → teach →
-    // retry-correct can fire the credit it's supposed to.
-    if (wasRetry && reviewPhr && canTouchSrs(id, "credit")) {
+    if (recordRetrieval) {
+      recordRetrieval(id, true, "vocab-test", null, "vocab-test");
+    } else if (reviewPhr) {
       reviewPhr(id, true, "vocab-test", null);
-      stampTouch(id, "credit");
-      setSrsTouched(t => [...t, { id, kind: "credit" }]);
     }
 
     setRevealed(false);
     setTestIdx(i => i + 1);
   };
 
-  // Missed — flip into in-place teaching instead of skipping forward. The
-  // teach card auto-plays EN→JP and shows the scene + segmented breakdown.
-  //
-  // SRS demote applies only when ALL of:
-  //   - phrase is at box ≥ 2 (below that they're already in active learning)
-  //   - 24h cooldown elapsed since the last Vocab-Test SRS write
-  //   - session demote cap not yet hit
-  // Stuck-list adds always happen — that's the cheap signal Learn picks up.
+  // Missed — flip into in-place teaching. The single recordRetrieval call
+  // handles all the gates: stuck-list add, 2h cooldown, box-≥-2 floor, and
+  // session demote cap. We don't need to read getPhrBox or check anything
+  // here — the contract owns those rules.
   const handleMissed = () => {
     if (!currentPhrase) return;
     const id = currentPhrase[0];
-    addStuck(id);
     setMissCounts(m => ({ ...m, [id]: (m[id] || 0) + 1 }));
     track("vocab_test_attempt", { id, knewIt: false, missCount: (missCounts[id] || 0) + 1 });
 
-    if (reviewPhr && getPhrBox && demoteCount < SESSION_DEMOTE_CAP_VALUE) {
-      const box = getPhrBox(id);
-      if (box >= 2 && canTouchSrs(id, "demote")) {
-        reviewPhr(id, false, "vocab-test", null);
-        stampTouch(id, "demote");
-        setDemoteCount(n => n + 1);
-        setSrsTouched(t => [...t, { id, kind: "demote" }]);
-      }
+    if (recordRetrieval) {
+      recordRetrieval(id, false, "vocab-test", null, "vocab-test");
+    } else if (reviewPhr) {
+      reviewPhr(id, false, "vocab-test", null);
     }
 
     setTeaching(id);
@@ -699,8 +677,7 @@ export default function VocabBrowser({
     setHistory([]);
     setTeaching(null);
     setRetryIds(new Set());
-    setDemoteCount(0);
-    setSrsTouched([]);
+    setMissCounts({});
   };
 
   return (
