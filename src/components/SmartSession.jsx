@@ -44,7 +44,7 @@ import ColoredJP  from "./SmartSession/shared/ColoredJP.jsx";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
-  updateKanaSRS, reviewPhr, recordRetrieval, recordErrorReason,
+  updateKanaSRS, recordRetrieval, recordErrorReason,
   stopAudio, speakStory, setTab,
   startIntent, clearStartIntent,
   LEVEL_THRESHOLDS, getLevel, getXPForNext,
@@ -995,7 +995,7 @@ export default function SmartSession({
       // Trick mode (25% no-correct-answer) only applies once the phrase is at box
       // 2+. Below that, it felt like a gotcha: a beginner couldn't distinguish
       // "I don't know" from "there is no answer". Also, wrong picks in trick mode
-      // do NOT penalise SRS — see the reviewPhr call below (noSrs flag).
+      // do NOT penalise SRS — see the recordRetrieval call below (noSrs flag).
       const pBox = data.phr?.[p[0]]?.box ?? 0;
       const isTrick = pBox >= 2 && Math.random() < 0.25;
       const choices = isTrick ? shuffle(getDistractors(p, 4)) : shuffle([p, ...getDistractors(p)]);

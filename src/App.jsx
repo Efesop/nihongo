@@ -777,11 +777,11 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       pCat={pCat} setPCat={setPCat} pMode={pMode} setPMode={setPMode} pCards={pCards} setPCards={setPCards} pI={pI} setPI={setPI}
       pFlip={pFlip} setPFlip={setPFlip} pDone={pDone} setPDone={setPDone} pRecall={pRecall} setPRecall={setPRecall}
       fastTrack={fastTrack} setFastTrack={setFastTrack}
-      reviewPhr={reviewPhr} recordRetrieval={recordRetrieval} getPhrBox={getPhrBox} isPhrDue={isPhrDue} dueCount={dueCount} learnedPhr={learnedPhr} mcLeft={mcLeft}
+      recordRetrieval={recordRetrieval} getPhrBox={getPhrBox} isPhrDue={isPhrDue} dueCount={dueCount} learnedPhr={learnedPhr} mcLeft={mcLeft}
     />}
     {tab==="vocab"&&<VocabBrowser
       data={data} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop} theme={theme}
-      reviewPhr={reviewPhr} recordRetrieval={recordRetrieval} getPhrBox={getPhrBox}
+      recordRetrieval={recordRetrieval} getPhrBox={getPhrBox}
     />}
     {tab==="web"&&<Web
       data={data} c={c} inner={inner} btn={btn} isDesktop={isDesktop} theme={theme}
@@ -804,12 +804,12 @@ ROLE-PLAY RULES: You play the Japanese speaker. Always respond in Japanese first
       drillFb={drillFb} setDrillFb={setDrillFb} drillScore={drillScore} setDrillScore={setDrillScore}
       drillDone={drillDone} setDrillDone={setDrillDone}
       drillRef={drillRef}
-      submitDrillKana={submitDrillKana} advanceDrill={advanceDrill} startDrill={startDrill} reviewPhr={reviewPhr} recordRetrieval={recordRetrieval}
+      submitDrillKana={submitDrillKana} advanceDrill={advanceDrill} startDrill={startDrill} recordRetrieval={recordRetrieval}
       setTab={setTab}
     />}
     {tab==="smart"&&<SmartSession
       data={data} save={save} c={c} inner={inner} card={card} btn={btn} isDesktop={isDesktop}
-      updateKanaSRS={updateKanaSRS} reviewPhr={reviewPhr} recordRetrieval={recordRetrieval} recordErrorReason={recordErrorReason}
+      updateKanaSRS={updateKanaSRS} recordRetrieval={recordRetrieval} recordErrorReason={recordErrorReason}
       stopAudio={stopAudio} speakStory={speakStory} setTab={setTab}
       startIntent={startIntent} clearStartIntent={()=>setStartIntent(null)}
       LEVEL_THRESHOLDS={LEVEL_THRESHOLDS} getLevel={getLevel} getXPForNext={getXPForNext}

@@ -62,7 +62,7 @@ const FILTERS = [
 ];
 
 export default function VocabBrowser({
-  data, c, inner, card, btn, isDesktop, theme, reviewPhr, recordRetrieval, getPhrBox,
+  data, c, inner, card, btn, isDesktop, theme, recordRetrieval, getPhrBox,
 }) {
   ensureSessionStyles();   // for .ts-reveal etc — already wired by other tabs but safe to re-call
   ensureVocabStyles();
@@ -619,12 +619,7 @@ export default function VocabBrowser({
     setRetryIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     setMissCounts(m => { const n = { ...m }; delete n[id]; return n; });
 
-    if (recordRetrieval) {
-      recordRetrieval(id, true, "vocab-test", null, "vocab-test");
-    } else if (reviewPhr) {
-      reviewPhr(id, true, "vocab-test", null);
-    }
-
+    recordRetrieval(id, true, "vocab-test", null, "vocab-test");
     setRevealed(false);
     setTestIdx(i => i + 1);
   };
@@ -638,13 +633,7 @@ export default function VocabBrowser({
     const id = currentPhrase[0];
     setMissCounts(m => ({ ...m, [id]: (m[id] || 0) + 1 }));
     track("vocab_test_attempt", { id, knewIt: false, missCount: (missCounts[id] || 0) + 1 });
-
-    if (recordRetrieval) {
-      recordRetrieval(id, false, "vocab-test", null, "vocab-test");
-    } else if (reviewPhr) {
-      reviewPhr(id, false, "vocab-test", null);
-    }
-
+    recordRetrieval(id, false, "vocab-test", null, "vocab-test");
     setTeaching(id);
   };
 
