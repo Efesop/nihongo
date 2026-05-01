@@ -44,7 +44,7 @@ import ColoredJP  from "./SmartSession/shared/ColoredJP.jsx";
 
 export default function SmartSession({
   data, save, c, inner, card, btn, isDesktop,
-  updateKanaSRS, reviewPhr, recordErrorReason,
+  updateKanaSRS, reviewPhr, recordRetrieval, recordErrorReason,
   stopAudio, speakStory, setTab,
   startIntent, clearStartIntent,
   LEVEL_THRESHOLDS, getLevel, getXPForNext,
@@ -1030,7 +1030,7 @@ export default function SmartSession({
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
+            recordRetrieval(p[0], correct, "phrase-scenario", getResponseMs(), "learn");
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
@@ -1051,7 +1051,7 @@ export default function SmartSession({
           const correct = !!choiceAnswer.isTrick;
           setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          reviewPhr(p[0], correct, ex.type, getResponseMs());
+          recordRetrieval(p[0], correct, ex.type, getResponseMs(), "learn");
           speakPhraseWithEnglish(p[0], p[1], p[3]);
         }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered && choiceAnswer.isTrick ? c.gs : answered && choiceAnswer.selected === "none" ? c.rs : c.a + "10", color: answered ? c.m2 : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <IconBlock size={16} /> <span>None of these match</span>
@@ -1127,7 +1127,7 @@ export default function SmartSession({
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], correct, "phrase-listen", getResponseMs());
+            recordRetrieval(p[0], correct, "phrase-listen", getResponseMs(), "learn");
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1152,7 +1152,7 @@ export default function SmartSession({
           const correct = !!choiceAnswer.isTrick;
           setChoiceAnswer({ ...choiceAnswer, selected: "none", correct });
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          reviewPhr(p[0], correct, "phrase-scenario", getResponseMs());
+          recordRetrieval(p[0], correct, "phrase-scenario", getResponseMs(), "learn");
         }} className="ts-choice" disabled={answered} style={{ ...btn, padding: "14px 16px", borderRadius: 10, border: "2px dashed " + (answered ? c.b : c.a) + "66", background: answered ? "transparent" : c.a + "10", color: answered ? c.m2 : c.a, fontSize: T.base, fontWeight: 600, textAlign: "center", marginTop: 4, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
           <IconBlock size={16} /> <span>None of these match</span>
         </button>
@@ -1210,7 +1210,7 @@ export default function SmartSession({
             const correct = isCorrect;
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0], correct });
             setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], correct, ex.type, getResponseMs());
+            recordRetrieval(p[0], correct, ex.type, getResponseMs(), "learn");
             if (correct) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
@@ -1486,7 +1486,7 @@ export default function SmartSession({
           // off mere card-flip. Now skipping = no SRS update; quiz wrong = wrong
           // (the FSRS lapse is small for box-0 items so this isn't punitive).
           if (quizAnswered) {
-            reviewPhr(p[0], wasCorrect, "learn-phrase", getResponseMs());
+            recordRetrieval(p[0], wasCorrect, "learn-phrase", getResponseMs(), "learn");
           }
           setStoryAnswer(null);
           advance(true);
@@ -1844,7 +1844,7 @@ export default function SmartSession({
         onComplete={(matched, graded) => {
           if (graded) {
             setScore(s => matched ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], matched, "phrase-shadow", getResponseMs());
+            recordRetrieval(p[0], matched, "phrase-shadow", getResponseMs(), "learn");
             senpaiReact(matched);
             if (matched) speakPhrase(p[0], p[1]);
           }
@@ -2011,7 +2011,7 @@ export default function SmartSession({
       setKanaSubmitted(true);
       setFb(ok ? "ok" : "no");
       setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-      reviewPhr(p[0], ok, "phrase-kana-type", getResponseMs());
+      recordRetrieval(p[0], ok, "phrase-kana-type", getResponseMs(), "learn");
       if (ok) speakPhraseWithEnglish(p[0], p[1], p[3]);
       senpaiReact(ok);
     };
@@ -2080,7 +2080,7 @@ export default function SmartSession({
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <button onClick={() => { setKanaTyped(targetChars); setHintShown(true); }}
             style={{ ...btn, flex: 1, padding: "8px", borderRadius: 8, background: "transparent", border: "1px dashed " + c.b, color: c.m, fontSize: T.sm }}>👁 show answer</button>
-          <button onClick={() => { setKanaSubmitted(true); setFb("no"); setScore(s => ({ ...s, w: s.w + 1 })); reviewPhr(p[0], false, "phrase-kana-type", getResponseMs()); }}
+          <button onClick={() => { setKanaSubmitted(true); setFb("no"); setScore(s => ({ ...s, w: s.w + 1 })); recordRetrieval(p[0], false, "phrase-kana-type", getResponseMs(), "learn"); }}
             style={{ ...btn, flex: 1, padding: "8px", borderRadius: 8, background: "transparent", border: "1px dashed " + c.b, color: c.m, fontSize: T.sm }}>⏭ skip this one</button>
         </div>
       </>}
@@ -2125,7 +2125,7 @@ export default function SmartSession({
         if (phrase) speakPhrase(leftId, phrase[1]);
         setMatchPairs(p => [...p, { leftId, rightVal: NUMERAL_MAP[rightId], correct: true }]);
         setMatchPicked(null);
-        reviewPhr(leftId, true, "number-match", getResponseMs());
+        recordRetrieval(leftId, true, "number-match", getResponseMs(), "learn");
         // All done?
         if (matchedLeftIds.size + 1 >= roundIds.length) {
           setScore(s => ({ ...s, c: s.c + 1 }));
@@ -2133,7 +2133,7 @@ export default function SmartSession({
         }
       } else {
         setMatchWrong({ leftId, rightId });
-        reviewPhr(leftId, false, "number-match", getResponseMs());
+        recordRetrieval(leftId, false, "number-match", getResponseMs(), "learn");
         setTimeout(() => { setMatchWrong(null); setMatchPicked(null); }, 800);
       }
     };
@@ -2402,8 +2402,8 @@ export default function SmartSession({
     // Respond: pick an answer from MCQ
     const respond = (selected) => {
       const correct = selected[0] === currentPhrase[0];
-      if (correct) reviewPhr(currentPhrase[0], true, "phrase-listen", getResponseMs());
-      else reviewPhr(currentPhrase[0], false, "phrase-listen", getResponseMs());
+      if (correct) recordRetrieval(currentPhrase[0], true, "phrase-listen", getResponseMs(), "learn");
+      else recordRetrieval(currentPhrase[0], false, "phrase-listen", getResponseMs(), "learn");
       setImmersionTaps(t => [...t, { idx: immersionIdx, correct, selectedId: selected[0], choices: immersionChoices }]);
     };
 
@@ -2577,7 +2577,7 @@ export default function SmartSession({
         farPool={ex.farPool}
         onComplete={(correct) => {
           setScore(s => correct ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-          reviewPhr(ex.target[0], correct, "cluster-contrast", getResponseMs());
+          recordRetrieval(ex.target[0], correct, "cluster-contrast", getResponseMs(), "learn");
           senpaiReact(correct);
           advance(correct);
         }}
@@ -2910,7 +2910,7 @@ export default function SmartSession({
               }
               const newAnswers = [...chainAnswers, { correct: ok, phraseId: phrase[0] }];
               setChainAnswers(newAnswers);
-              reviewPhr(currentStep.correctId, ok, "phrase-chain", getResponseMs());
+              recordRetrieval(currentStep.correctId, ok, "phrase-chain", getResponseMs(), "learn");
               setTimeout(() => {
                 setChainPicked(null);
                 setChainWrongCompared(null);
@@ -3200,7 +3200,7 @@ export default function SmartSession({
         // SRS credit goes to the canonical phrase (b.correctId) — it's the one
         // the queue is targeting; alsoOk variants are alternative valid responses
         // for the situation, not the item under review.
-        blanks.forEach((b, i) => reviewPhr(b.correctId, isAccepted(b, convoAnswers[i]), "conversation"));
+        blanks.forEach((b, i) => recordRetrieval(b.correctId, isAccepted(b, convoAnswers[i]), "conversation", null, "learn"));
         setScore(s => ({ ...s, c: s.c + correct, w: s.w + (total - correct) }));
         setConvoAnswers({}); setConvoSubmitted(false);
         advance(correct >= total / 2);
@@ -3472,7 +3472,7 @@ export default function SmartSession({
             setChoiceAnswer({ ...choiceAnswer, selected: choice, correct: ok });
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], ok, "phrase-build", getResponseMs());
+            recordRetrieval(p[0], ok, "phrase-build", getResponseMs(), "learn");
             if (ok) speakPhrase(p[0], p[1]);
           }}>
             <span style={{ fontSize: T.xl, fontWeight: JP.weight, fontFamily: fontJa, lineHeight: 1.3 }}>{choice}</span>
@@ -3530,7 +3530,7 @@ export default function SmartSession({
       // Credit SRS for the actual slot's source phrase (not the template's example)
       const creditId = ch.slotSourcePhrase || ch.examplePhraseId;
       if (creditId && data.phr?.[creditId]) {
-        reviewPhr(creditId, ok, "pattern-assembly", getResponseMs());
+        recordRetrieval(creditId, ok, "pattern-assembly", getResponseMs(), "learn");
       }
     };
 
@@ -3722,7 +3722,7 @@ export default function SmartSession({
             setChoiceAnswer({ ...choiceAnswer, selected: i, correct: ok });
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(target[0], ok, "phrase-pair", getResponseMs());
+            recordRetrieval(target[0], ok, "phrase-pair", getResponseMs(), "learn");
             speakPhraseWithEnglish(target[0], target[1], target[3]);
           }} style={{ ...btn, padding: "16px", borderRadius: 12, border: "2px solid " + border, background: bg, textAlign: "left", transition: "all .2s" }}>
             <div style={{ fontSize: isDesktop ? T.xl : T.lg, fontWeight: 600, color: col, fontFamily: fontJa }}>{p[1]}</div>
@@ -3805,7 +3805,7 @@ export default function SmartSession({
             setChoiceAnswer({ ...choiceAnswer, selected: choice[0] });
             setFb(ok ? "ok" : "no");
             setScore(s => ok ? { ...s, c: s.c + 1 } : { ...s, w: s.w + 1 });
-            reviewPhr(p[0], ok, "phrase-reverse", getResponseMs());
+            recordRetrieval(p[0], ok, "phrase-reverse", getResponseMs(), "learn");
             if (ok) speakPhraseWithEnglish(p[0], p[1], p[3]);
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
@@ -4051,7 +4051,7 @@ export default function SmartSession({
       const ok = choice[0] === p[0];
       setLeechPicked(choice[0]);
       setLeechFb(ok ? "ok" : "no");
-      reviewPhr(p[0], ok, "leech-review", getResponseMs());
+      recordRetrieval(p[0], ok, "leech-review", getResponseMs(), "learn");
       if (ok) { setScore(s => ({ ...s, c: s.c + 1 })); senpaiReact(true); speakPhrase(p[0], p[1]); }
       else { setScore(s => ({ ...s, w: s.w + 1 })); senpaiReact(false); setStruggled(s => [...s, { label: p[1], type: "leech-review" }]); }
     };
