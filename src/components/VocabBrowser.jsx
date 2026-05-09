@@ -906,7 +906,7 @@ function TeachCard({ p, isRetry, missCount = 1, onContinue, progress, c, card, b
       padding: 0, overflow: "hidden",
       maxWidth: isDesktop ? 540 : "100%", margin: "0 auto",
       boxShadow: "0 12px 40px rgba(0,0,0,.32)",
-      border: "1px solid " + (isEscalated ? c.a : c.go) + "55",
+      border: "1px solid " + (missCount >= 2 ? c.a : c.go) + "55",
     }}>
       {/* Header strip — single, calm tag. No miss-count noise. */}
       <div style={{
